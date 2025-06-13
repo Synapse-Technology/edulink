@@ -11,8 +11,11 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
-from decouple import config
+from dotenv import load_dotenv
 import os
+
+load_dotenv()  # Load variables from .env
+
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
