@@ -11,8 +11,8 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
-from decouple import config
 import os
+from decouple import config
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -103,11 +103,11 @@ WSGI_APPLICATION = 'Edulink.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv("dbname"),
-        'USER': os.getenv("user"),
-        'PASSWORD': os.getenv("password"),
-        'HOST': os.getenv("host"),
-        'PORT': os.getenv("port"),
+        'NAME': config('dbname'),
+        'USER': config('user'),
+        'PASSWORD': config('password'),
+        'HOST': config('host'),
+        'PORT': config('port', default='5432'),
     }
 }
 
