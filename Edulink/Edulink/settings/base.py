@@ -11,14 +11,12 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
-<<<<<<< HEAD
 from dotenv import load_dotenv
-=======
->>>>>>> 1666b1e95aa1dd733756f1e14b6180b8fa61ef35
 import os
 from decouple import config
 
 load_dotenv()  # Load variables from .env
+
 
 
 
