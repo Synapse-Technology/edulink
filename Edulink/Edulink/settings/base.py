@@ -11,8 +11,12 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+<<<<<<< HEAD
 from dotenv import load_dotenv
+=======
+>>>>>>> 1666b1e95aa1dd733756f1e14b6180b8fa61ef35
 import os
+from decouple import config
 
 load_dotenv()  # Load variables from .env
 
@@ -106,11 +110,11 @@ WSGI_APPLICATION = 'Edulink.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv("dbname"),
-        'USER': os.getenv("user"),
-        'PASSWORD': os.getenv("password"),
-        'HOST': os.getenv("host"),
-        'PORT': os.getenv("port"),
+        'NAME': config('dbname'),
+        'USER': config('user'),
+        'PASSWORD': config('password'),
+        'HOST': config('host'),
+        'PORT': config('port', default='5432'),
     }
 }
 
