@@ -11,8 +11,13 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+from dotenv import load_dotenv
 import os
 from decouple import config
+
+load_dotenv()  # Load variables from .env
+
+
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -36,6 +41,8 @@ CORS_ALLOW_ALL_ORIGINS = True
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
  # For dev only, restrict in production!
 
+ DEFAULT_FROM_EMAIL = 'no-reply@edulink.ke'
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -56,13 +63,15 @@ REST_FRAMEWORK = {
     )
 }
 
-AUTH_USER_MODEL = 'auth.User'
+AUTH_USER_MODEL = 'authentication.User'
 
 from datetime import timedelta
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True, #Allows token logout
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 

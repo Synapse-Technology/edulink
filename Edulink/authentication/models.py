@@ -25,6 +25,11 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(default=timezone.now)
 
+    # ✅ Added fields
+    institution = models.CharField(max_length=255, blank=True, null=True)
+    phone_number = models.CharField(max_length=20, blank=True, null=True)
+    national_id = models.CharField(max_length=20, blank=True, null=True)
+
     # Override the groups and user_permissions fields from PermissionsMixin
     groups = models.ManyToManyField(
         'auth.Group',
@@ -50,4 +55,3 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email
-
