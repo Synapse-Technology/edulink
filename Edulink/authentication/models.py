@@ -55,3 +55,11 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email
+
+    @property
+    def role(self):
+        """Get the user's primary role"""
+        try:
+            return self.roles.first().role
+        except:
+            return None
