@@ -39,9 +39,9 @@ CORS_ALLOW_ALL_ORIGINS = True
 
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
- # For dev only, restrict in production!
+# For dev only, restrict in production!
 
- DEFAULT_FROM_EMAIL = 'no-reply@edulink.ke'
+DEFAULT_FROM_EMAIL = 'no-reply@edulink.ke'
 
 # Application definition
 
@@ -54,7 +54,11 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders',
-    'authentication.apps.AuthenticationConfig',  # Updated to use the new app name
+    'authentication',
+    'employers',
+    'users',
+    'institutions',
+    'internships',
 ]
 
 REST_FRAMEWORK = {
