@@ -9,60 +9,196 @@ from django.utils.encoding import force_str, force_bytes, smart_str, smart_bytes
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.core.mail import send_mail
 from django.conf import settings
-from users.models import UserRole, StudentProfile
+from users.models import UserRole, StudentProfile, InstitutionProfile, EmployerProfile
 from institutions.models import Institution
+from employers.models import Employer
 from django.utils import timezone
+from django.db import transaction
 
 
-class RegisterSerializer(serializers.ModelSerializer):
+class BaseProfileSerializer(serializers.Serializer):
+    first_name = serializers.CharField(max_length=100)
+    last_name = serializers.CharField(max_length=100)
+    phone_number = serializers.CharField(max_length=20)
+    email = serializers.EmailField()
     password = serializers.CharField(write_only=True, validators=[validate_password])
-    first_name = serializers.CharField(required=True)
-    last_name = serializers.CharField(required=True)
-    admission_number = serializers.CharField(required=True)
-    academic_year = serializers.IntegerField(required=True)
 
-    class Meta:
-        model = User
-        fields = ['email', 'password', 'institution', 'phone_number', 'national_id', 
-                 'first_name', 'last_name', 'admission_number', 'academic_year']
 
+class StudentRegistrationSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True, validators=[validate_password])
+    first_name = serializers.CharField(max_length=100)
+    last_name = serializers.CharField(max_length=100)
+    phone_number = serializers.CharField(max_length=20)
+    national_id = serializers.CharField(max_length=20)
+    registration_number = serializers.CharField(max_length=50)
+    academic_year = serializers.IntegerField()
+    institution_name = serializers.CharField(max_length=255)
+    course_code = serializers.CharField(max_length=50, required=False)
+
+    def validate(self, data):
+        # Validate institution exists and is verified
+        try:
+            institution = Institution.objects.get(name=data['institution_name'])
+            if not institution.is_verified:
+                raise serializers.ValidationError("The specified institution is not verified yet.")
+            data['institution'] = institution
+        except Institution.DoesNotExist:
+            raise serializers.ValidationError("The specified institution does not exist.")
+        
+        # Validate course if provided
+        if 'course_code' in data:
+            try:
+                course = institution.courses.get(code=data['course_code'])
+                data['course'] = course
+            except:
+                raise serializers.ValidationError("Invalid course code for the specified institution.")
+        
+        # Validate unique fields
+        if User.objects.filter(email=data['email']).exists():
+            raise serializers.ValidationError("A user with this email already exists.")
+        
+        if StudentProfile.objects.filter(national_id=data['national_id']).exists():
+            raise serializers.ValidationError("A student with this national ID already exists.")
+        
+        if StudentProfile.objects.filter(registration_number=data['registration_number']).exists():
+            raise serializers.ValidationError("A student with this registration number already exists.")
+        
+        return data
+
+    @transaction.atomic
     def create(self, validated_data):
         # Extract profile data
-        first_name = validated_data.pop('first_name')
-        last_name = validated_data.pop('last_name')
-        admission_number = validated_data.pop('admission_number')
         academic_year = validated_data.pop('academic_year')
-        institution_name = validated_data.get('institution')
+        profile_data = {
+            'first_name': validated_data.pop('first_name'),
+            'last_name': validated_data.pop('last_name'),
+            'phone_number': validated_data.pop('phone_number'),
+            'national_id': validated_data.pop('national_id'),
+            'registration_number': validated_data.pop('registration_number'),
+            'academic_year': academic_year,
+            'institution': validated_data.pop('institution'),
+            'course': validated_data.get('course'),
+            'year_of_study': academic_year,
+        }
         
-        # Create user
-        user = User.objects.create_user(**validated_data)
-        
-        # Create UserRole for student
-        UserRole.objects.create(
-            user=user,
-            role='student'
+        # Create user with role
+        user = User.objects.create_user(
+            email=validated_data['email'],
+            password=validated_data['password'],
+            role='student'  # Set the role directly on the user
         )
-        
-        # Check if institution exists and is verified
-        try:
-            institution = Institution.objects.get(name=institution_name)
-            is_verified = institution.is_verified
-        except Institution.DoesNotExist:
-            is_verified = False
-            institution = None
         
         # Create StudentProfile
         StudentProfile.objects.create(
             user=user,
-            first_name=first_name,
-            last_name=last_name,
-            phone_number=validated_data.get('phone_number', ''),
-            national_id=validated_data.get('national_id', ''),
-            admission_number=admission_number,
-            academic_year=academic_year,
+            **profile_data
+        )
+        
+        return user
+
+
+class InstitutionRegistrationSerializer(BaseProfileSerializer):
+    institution_name = serializers.CharField(max_length=255)
+    institution_type = serializers.CharField(max_length=100)
+    registration_number = serializers.CharField(max_length=100)
+    address = serializers.CharField(max_length=255)
+    website = serializers.URLField(required=False)
+    position = serializers.CharField(max_length=100, required=False)
+
+    @transaction.atomic
+    def create(self, validated_data):
+        # Extract profile data
+        profile_data = {
+            'first_name': validated_data.pop('first_name'),
+            'last_name': validated_data.pop('last_name'),
+            'phone_number': validated_data.pop('phone_number'),
+            'position': validated_data.pop('position', None),
+        }
+        
+        # Create user
+        user = User.objects.create_user(
+            email=validated_data['email'],
+            password=validated_data['password']
+        )
+        
+        # Create Institution
+        institution = Institution.objects.create(
+            name=validated_data['institution_name'],
+            institution_type=validated_data['institution_type'],
+            registration_number=validated_data['registration_number'],
+            email=validated_data['email'],
+            phone_number=validated_data['phone_number'],
+            address=validated_data['address'],
+            website=validated_data.get('website')
+        )
+        
+        # Create UserRole
+        UserRole.objects.create(
+            user=user,
+            role='institution_admin',
+            institution=institution
+        )
+        
+        # Create InstitutionProfile
+        InstitutionProfile.objects.create(
+            user=user,
             institution=institution,
-            is_verified=is_verified,
-            institution_name=institution_name
+            **profile_data
+        )
+        
+        return user
+
+
+class EmployerRegistrationSerializer(BaseProfileSerializer):
+    company_name = serializers.CharField(max_length=255)
+    industry = serializers.CharField(max_length=100)
+    company_size = serializers.CharField(max_length=50)
+    location = serializers.CharField(max_length=255)
+    website = serializers.URLField(required=False)
+    department = serializers.CharField(max_length=100, required=False)
+    position = serializers.CharField(max_length=100, required=False)
+
+    @transaction.atomic
+    def create(self, validated_data):
+        # Extract profile data
+        profile_data = {
+            'first_name': validated_data.pop('first_name'),
+            'last_name': validated_data.pop('last_name'),
+            'phone_number': validated_data.pop('phone_number'),
+            'department': validated_data.pop('department', None),
+            'position': validated_data.pop('position', None),
+        }
+        
+        # Create user
+        user = User.objects.create_user(
+            email=validated_data['email'],
+            password=validated_data['password']
+        )
+        
+        # Create Employer
+        employer = Employer.objects.create(
+            user=user,
+            company_name=validated_data['company_name'],
+            industry=validated_data['industry'],
+            company_size=validated_data['company_size'],
+            contact_email=validated_data['email'],
+            location=validated_data['location'],
+            website=validated_data.get('website')
+        )
+        
+        # Create UserRole
+        UserRole.objects.create(
+            user=user,
+            role='employer',
+            employer=employer
+        )
+        
+        # Create EmployerProfile
+        EmployerProfile.objects.create(
+            user=user,
+            employer=employer,
+            **profile_data
         )
         
         return user
@@ -103,8 +239,10 @@ class LoginSerializer(serializers.Serializer):
             'user': {
                 'email': user.email,
                 'role': user.role,
-                'institution': user.institution,
-                'phone_number': user.phone_number
+                'profile': {
+                    'first_name': user.profile.first_name if user.profile else None,
+                    'last_name': user.profile.last_name if user.profile else None,
+                }
             }
         }
 
@@ -120,7 +258,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         
         # Update student profile if it exists
         try:
-            student_profile = user.studentprofile
+            student_profile = StudentProfile.objects.get(user=user)
             student_profile.last_login_at = timezone.now()
             student_profile.save(update_fields=['last_login_at'])
         except StudentProfile.DoesNotExist:
@@ -133,8 +271,10 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         data['user'] = {
             'email': user.email,
             'role': user.role,
-            'institution': user.institution,
-            'phone_number': user.phone_number
+            'profile': {
+                'first_name': student_profile.first_name if 'student_profile' in locals() else None,
+                'last_name': student_profile.last_name if 'student_profile' in locals() else None,
+            }
         }
         
         return data
@@ -200,3 +340,14 @@ class ChangePasswordSerializer(serializers.Serializer):
         user.set_password(self.validated_data['new_password'])
         user.save()
         return user
+
+
+class PasswordChangeSerializer(serializers.Serializer):
+    old_password = serializers.CharField(required=True)
+    new_password = serializers.CharField(required=True, validators=[validate_password])
+    confirm_password = serializers.CharField(required=True)
+
+    def validate(self, data):
+        if data['new_password'] != data['confirm_password']:
+            raise serializers.ValidationError("The two password fields didn't match.")
+        return data
