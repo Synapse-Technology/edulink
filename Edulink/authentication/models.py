@@ -19,16 +19,19 @@ class UserManager(BaseUserManager):
         return self.create_user(email, password, **extra_fields)
 
 class User(AbstractBaseUser, PermissionsMixin):
+    ROLE_CHOICES = [
+        ('student', 'Student'),
+        ('institution_admin', 'Institution Admin'),
+        ('employer', 'Employer'),
+        ('super_admin', 'Super Admin'),
+    ]
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     email = models.EmailField(unique=True)
+    role = models.CharField(max_length=30, choices=ROLE_CHOICES, null=True, blank=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(default=timezone.now)
-
-    # ✅ Added fields
-    institution = models.CharField(max_length=255, blank=True, null=True)
-    phone_number = models.CharField(max_length=20, blank=True, null=True)
-    national_id = models.CharField(max_length=20, blank=True, null=True)
 
     # Override the groups and user_permissions fields from PermissionsMixin
     groups = models.ManyToManyField(
@@ -57,9 +60,12 @@ class User(AbstractBaseUser, PermissionsMixin):
         return self.email
 
     @property
-    def role(self):
-        """Get the user's primary role"""
-        try:
-            return self.roles.first().role
-        except:
-            return None
+    def profile(self):
+        """Get the user's profile based on their role"""
+        if self.role == 'student':
+            return getattr(self, 'studentprofile', None)
+        elif self.role == 'institution_admin':
+            return getattr(self, 'institutionprofile', None)
+        elif self.role == 'employer':
+            return getattr(self, 'employerprofile', None)
+        return None
