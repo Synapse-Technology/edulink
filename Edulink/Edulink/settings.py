@@ -30,13 +30,24 @@ ALLOWED_HOSTS = []
 
 # Application definition
 
+# settings.py
+
 INSTALLED_APPS = [
+    # ... other Django default apps
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    
+
+    # Your custom apps
+    'notifications', # Make sure your notification app is correctly listed
+    
+
+    # Correct entry for Django REST Framework
+    'rest_framework', # This is the correct one, not 'rest_frameworknotifications'
 ]
 
 MIDDLEWARE = [
