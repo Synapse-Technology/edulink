@@ -1,0 +1,2 @@
+C:/Users/PC/OneDrive/Documents/git projects/EDULINK/Edulink/edulink_app/android/app/.cxx/Debug/2q4h4s2c/x86/CMakeFiles/edit_cache.dir
+C:/Users/PC/OneDrive/Documents/git projects/EDULINK/Edulink/edulink_app/android/app/.cxx/Debug/2q4h4s2c/x86/CMakeFiles/rebuild_cache.dir
