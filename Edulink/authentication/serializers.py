@@ -327,9 +327,10 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         self.user.save()
 
 
-class ChangePasswordSerializer(serializers.Serializer):
+class PasswordChangeSerializer(serializers.Serializer):
     old_password = serializers.CharField(write_only=True)
     new_password = serializers.CharField(write_only=True, validators=[validate_password])
+    confirm_password = serializers.CharField(write_only=True)
 
     def validate_old_password(self, value):
         user = self.context['request'].user
@@ -337,22 +338,16 @@ class ChangePasswordSerializer(serializers.Serializer):
             raise serializers.ValidationError("Old password is incorrect.")
         return value
 
+    def validate(self, data):
+        if data['new_password'] != data['confirm_password']:
+            raise serializers.ValidationError("The two password fields didn't match.")
+        return data
+
     def save(self):
         user = self.context['request'].user
         user.set_password(self.validated_data['new_password'])
         user.save()
         return user
-
-
-class PasswordChangeSerializer(serializers.Serializer):
-    old_password = serializers.CharField(required=True)
-    new_password = serializers.CharField(required=True, validators=[validate_password])
-    confirm_password = serializers.CharField(required=True)
-
-    def validate(self, data):
-        if data['new_password'] != data['confirm_password']:
-            raise serializers.ValidationError("The two password fields didn't match.")
-        return data
 
 
 class InviteSerializer(serializers.ModelSerializer):
