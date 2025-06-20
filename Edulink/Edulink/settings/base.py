@@ -91,6 +91,11 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+# Allow frontend & Flutter apps to access
+CORS_ALLOW_ALL_ORIGINS = True
+#dev
+CORS_ALLOW_CREDENTIALS = True
+
 ROOT_URLCONF = 'Edulink.urls'
 
 TEMPLATES = [
