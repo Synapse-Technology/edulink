@@ -2,12 +2,16 @@ import uuid
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 from django.db import models
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
+from django.conf import settings
+from datetime import timedelta
 
 class UserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
         if not email:
             raise ValueError("Email is required")
         email = self.normalize_email(email)
+        extra_fields.setdefault("role", User.Role.STUDENT)
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save()
@@ -16,24 +20,37 @@ class UserManager(BaseUserManager):
     def create_superuser(self, email, password=None, **extra_fields):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
+        extra_fields.setdefault("role", User.Role.ADMIN)
+        if extra_fields.get("role") != User.Role.ADMIN:
+            raise ValueError("Superuser must have role of ADMIN.")
         return self.create_user(email, password, **extra_fields)
 
 class User(AbstractBaseUser, PermissionsMixin):
-    ROLE_CHOICES = [
-        ('student', 'Student'),
-        ('institution_admin', 'Institution Admin'),
-        ('employer', 'Employer'),
-        ('super_admin', 'Super Admin'),
-    ]
+    class Role(models.TextChoices):
+        ADMIN = "ADMIN", _("Admin")
+        STUDENT = "STUDENT", _("Student")
+        EMPLOYER = "EMPLOYER", _("Employer")
+        INSTITUTION = "INSTITUTION", _("Institution")
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     email = models.EmailField(unique=True)
-    role = models.CharField(max_length=30, choices=ROLE_CHOICES, null=True, blank=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(default=timezone.now)
 
-    # Override the groups and user_permissions fields from PermissionsMixin
+    # Extended fields
+    institution = models.CharField(max_length=255, blank=True, null=True)
+    phone_number = models.CharField(max_length=20, blank=True, null=True)
+    national_id = models.CharField(max_length=20, blank=True, null=True)
+
+    # Role-based access
+    role = models.CharField(
+        max_length=20,
+        choices=Role.choices,
+        default=Role.STUDENT,
+    )
+
+    # Custom related names for compatibility
     groups = models.ManyToManyField(
         'auth.Group',
         verbose_name='groups',
@@ -69,3 +86,55 @@ class User(AbstractBaseUser, PermissionsMixin):
         elif self.role == 'employer':
             return getattr(self, 'employerprofile', None)
         return None
+
+class EmailOTP(models.Model):
+    email = models.EmailField()
+    code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def is_expired(self):
+        return timezone.now() > self.created_at + timedelta(minutes=5)
+
+class Invite(models.Model):
+    email = models.EmailField(unique=True)
+    role = models.CharField(max_length=20, choices=User.Role.choices)
+    token = models.UUIDField(default=uuid.uuid4, unique=True)
+    is_used = models.BooleanField(default=False)
+    invited_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='sent_invites'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.email} - {self.role} ({'Used' if self.is_used else 'Unused'})"
+
+class CustomAdminLog(models.Model):
+    action_time = models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey(
+        'User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+    content_type = models.ForeignKey(
+        'contenttypes.ContentType',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+    object_id = models.TextField(null=True, blank=True)
+    object_repr = models.CharField(max_length=200)
+    action_flag = models.PositiveSmallIntegerField()
+    change_message = models.TextField()
+
+    class Meta:
+        verbose_name = 'admin log'
+        verbose_name_plural = 'admin logs'
+        ordering = ['-action_time']
+
+    def __str__(self):
+        return f"{self.action_time} - {self.user} - {self.object_repr}"
