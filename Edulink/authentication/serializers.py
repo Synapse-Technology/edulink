@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User
+from .models import User, Invite, EmailOTP
 from django.contrib.auth import authenticate, get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
@@ -14,6 +14,8 @@ from institutions.models import Institution
 from employers.models import Employer
 from django.utils import timezone
 from django.db import transaction
+import uuid
+import random
 
 
 class BaseProfileSerializer(serializers.Serializer):
@@ -351,3 +353,140 @@ class PasswordChangeSerializer(serializers.Serializer):
         if data['new_password'] != data['confirm_password']:
             raise serializers.ValidationError("The two password fields didn't match.")
         return data
+
+
+class InviteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Invite
+        fields = ['email', 'role']
+
+    def validate_role(self, value):
+        if value == User.Role.STUDENT:
+            raise serializers.ValidationError("Cannot invite Students. They must self-register.")
+        return value
+
+    def create(self, validated_data):
+        invite = Invite.objects.create(**validated_data)
+        invite_link = f"https://yourdomain.com/invite-register?token={invite.token}"
+        send_mail(
+            subject="You're invited to join EduLink KE",
+            message=f"You've been invited to register as a {invite.role}.\n\nUse this link to register:\n{invite_link}",
+            from_email="noreply@edulink.ke",
+            recipient_list=[invite.email],
+            fail_silently=False,
+        )
+        return invite
+
+
+class InvitedUserRegisterSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, validators=[validate_password])
+    invite_token = serializers.UUIDField(write_only=True)
+
+    class Meta:
+        model = User
+        fields = ['email', 'password', 'institution', 'phone_number', 'national_id', 'invite_token']
+
+    def validate(self, attrs):
+        try:
+            invite = Invite.objects.get(token=attrs['invite_token'], is_used=False)
+        except Invite.DoesNotExist:
+            raise serializers.ValidationError({'invite_token': 'Invalid or already used token.'})
+
+        if invite.email.lower() != attrs['email'].lower():
+            raise serializers.ValidationError({'email': 'Email does not match invite.'})
+
+        if invite.role == User.Role.STUDENT:
+            raise serializers.ValidationError({'invite_token': 'Students must use the public registration endpoint.'})
+
+        self.context['invite'] = invite
+        return attrs
+
+    def create(self, validated_data):
+        invite = self.context['invite']
+        validated_data['role'] = invite.role
+        validated_data.pop('invite_token', None)
+        user = User.objects.create_user(**validated_data)
+        invite.is_used = True
+        invite.save()
+        return user
+
+
+class RegisterSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, validators=[validate_password])
+    invite_token = serializers.UUIDField(required=False, write_only=True)
+
+    class Meta:
+        model = User
+        fields = [
+            'email', 'password',
+            'institution', 'phone_number', 'national_id',
+            'invite_token',
+        ]
+
+    def validate(self, attrs):
+        invite_token = attrs.get('invite_token', None)
+        if invite_token:
+            try:
+                invite = Invite.objects.get(token=invite_token, is_used=False)
+            except Invite.DoesNotExist:
+                raise serializers.ValidationError({'invite_token': 'Invalid or used invite token.'})
+
+            if invite.email.lower() != attrs['email'].lower():
+                raise serializers.ValidationError({'email': 'Email does not match invite.'})
+
+            attrs['role'] = invite.role
+            self.context['invite'] = invite
+        else:
+            attrs['role'] = User.Role.STUDENT
+        return attrs
+
+    def create(self, validated_data):
+        invite = self.context.get('invite', None)
+        validated_data.pop('invite_token', None)
+        user = User.objects.create_user(**validated_data)
+        if invite:
+            invite.is_used = True
+            invite.save()
+        return user
+
+
+class TwoFALoginSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField()
+
+    def validate(self, data):
+        user = authenticate(email=data['email'], password=data['password'])
+        if not user:
+            raise serializers.ValidationError("Invalid credentials")
+
+        otp = f"{random.randint(100000, 999999)}"
+        EmailOTP.objects.create(email=data['email'], code=otp)
+
+        send_mail(
+            subject="Your EduLink 2FA Code",
+            message=f"Your OTP is {otp}. It expires in 5 minutes.",
+            from_email=None,
+            recipient_list=[data['email']],
+        )
+
+        return {"detail": "OTP sent to your email"}
+
+
+class VerifyOTPSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    code = serializers.CharField(max_length=6)
+
+    def validate(self, data):
+        try:
+            otp_entry = EmailOTP.objects.filter(email=data['email'], code=data['code']).latest('created_at')
+        except EmailOTP.DoesNotExist:
+            raise serializers.ValidationError("Invalid OTP")
+
+        if otp_entry.is_expired():
+            raise serializers.ValidationError("OTP expired")
+
+        user = User.objects.get(email=data['email'])
+        return {
+            "refresh": str(RefreshToken.for_user(user)),
+            "access": str(RefreshToken.for_user(user).access_token),
+        }
