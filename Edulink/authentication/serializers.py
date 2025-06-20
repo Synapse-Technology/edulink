@@ -16,6 +16,7 @@ from django.utils import timezone
 from django.db import transaction
 import uuid
 import random
+from users.roles import RoleChoices
 
 
 class BaseProfileSerializer(serializers.Serializer):
@@ -111,10 +112,13 @@ class InstitutionRegistrationSerializer(BaseProfileSerializer):
     @transaction.atomic
     def create(self, validated_data):
         # Extract profile data
+        phone_number = validated_data.pop('phone_number', None)
+        if not phone_number:
+            raise serializers.ValidationError({'phone_number': 'Phone number is required.'})
         profile_data = {
             'first_name': validated_data.pop('first_name'),
             'last_name': validated_data.pop('last_name'),
-            'phone_number': validated_data.pop('phone_number'),
+            'phone_number': phone_number,
             'position': validated_data.pop('position', None),
         }
         
@@ -130,7 +134,7 @@ class InstitutionRegistrationSerializer(BaseProfileSerializer):
             institution_type=validated_data['institution_type'],
             registration_number=validated_data['registration_number'],
             email=validated_data['email'],
-            phone_number=validated_data['phone_number'],
+            phone_number=phone_number,
             address=validated_data['address'],
             website=validated_data.get('website')
         )
@@ -164,10 +168,13 @@ class EmployerRegistrationSerializer(BaseProfileSerializer):
     @transaction.atomic
     def create(self, validated_data):
         # Extract profile data
+        phone_number = validated_data.pop('phone_number', None)
+        if not phone_number:
+            raise serializers.ValidationError({'phone_number': 'Phone number is required.'})
         profile_data = {
             'first_name': validated_data.pop('first_name'),
             'last_name': validated_data.pop('last_name'),
-            'phone_number': validated_data.pop('phone_number'),
+            'phone_number': phone_number,
             'department': validated_data.pop('department', None),
             'position': validated_data.pop('position', None),
         }
@@ -359,19 +366,20 @@ class InviteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Invite
         fields = ['email', 'role']
+        
 
     def validate_role(self, value):
-        if value == User.Role.STUDENT:
+        if value == RoleChoices.STUDENT:
             raise serializers.ValidationError("Cannot invite Students. They must self-register.")
         return value
 
     def create(self, validated_data):
         invite = Invite.objects.create(**validated_data)
-        invite_link = f"https://yourdomain.com/invite-register?token={invite.token}"
+        invite_link = f"http://localhost:8000/api/auth/invite-register?token={invite.token}"
         send_mail(
             subject="You're invited to join EduLink KE",
             message=f"You've been invited to register as a {invite.role}.\n\nUse this link to register:\n{invite_link}",
-            from_email="noreply@edulink.ke",
+            from_email="noreply@edulink.com",
             recipient_list=[invite.email],
             fail_silently=False,
         )
@@ -395,7 +403,7 @@ class InvitedUserRegisterSerializer(serializers.ModelSerializer):
         if invite.email.lower() != attrs['email'].lower():
             raise serializers.ValidationError({'email': 'Email does not match invite.'})
 
-        if invite.role == User.Role.STUDENT:
+        if invite.role == RoleChoices.STUDENT:
             raise serializers.ValidationError({'invite_token': 'Students must use the public registration endpoint.'})
 
         self.context['invite'] = invite
@@ -437,7 +445,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             attrs['role'] = invite.role
             self.context['invite'] = invite
         else:
-            attrs['role'] = User.Role.STUDENT
+            attrs['role'] = RoleChoices.STUDENT
         return attrs
 
     def create(self, validated_data):

@@ -41,7 +41,7 @@ CORS_ALLOW_ALL_ORIGINS = True
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 # For dev only, restrict in production!
 
-DEFAULT_FROM_EMAIL = 'no-reply@edulink.ke'
+DEFAULT_FROM_EMAIL = 'noreply@edulink.com'
 
 # Application definition
 
@@ -173,3 +173,5 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+SITE_ID = 1

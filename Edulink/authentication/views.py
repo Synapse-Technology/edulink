@@ -9,7 +9,11 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from django.core.mail import send_mail
 from django.conf import settings
+
+from users.roles import RoleChoices
 from .serializers import (
+    EmployerRegistrationSerializer,
+    InstitutionRegistrationSerializer,
     StudentRegistrationSerializer,
     LoginSerializer,
     CustomTokenObtainPairSerializer,
@@ -30,6 +34,113 @@ from .models import Invite
 from .permissions import IsStudent, IsEmployer, IsInstitution, IsAdmin
 
 User = get_user_model()
+
+import json
+import requests
+from django.shortcuts import render, redirect
+from django.views import View
+from .models import Invite  # adjust if imported elsewhere
+
+
+
+class InviteRegisterTemplateView(View):
+    def get(self, request):
+        token = request.GET.get("token")
+        context = {"invite_token": token}
+
+        try:
+            invite = Invite.objects.get(token=token, is_used=False)
+            context["email"] = invite.email
+            context["role"] = invite.role  # ✅ include role for conditional form fields
+        except Invite.DoesNotExist:
+            context["error"] = {"invite_token": "Invalid or expired invitation link."}
+
+        return render(request, "invite_register.html", context)
+
+    def post(self, request):
+        # Basic shared data
+        data = {
+            "invite_token": request.POST.get("invite_token"),
+            "email": request.POST.get("email"),
+            "password": request.POST.get("password"),
+            "phone_number": request.POST.get("phone_number"),
+            "national_id": request.POST.get("national_id"),
+        }
+
+        # Get invite to determine role-specific fields
+        try:
+            invite = Invite.objects.get(token=data["invite_token"], is_used=False)
+            role = invite.role
+        except Invite.DoesNotExist:
+            return render(request, "invite_register.html", {
+                "error": {"invite_token": "Invalid or expired invitation token."},
+                **data
+            })
+
+        # Define required fields for each role
+        required_fields = ["email", "password", "phone_number"]
+        if role == "institution_admin":
+            data.update({
+                "first_name": request.POST.get("first_name"),
+                "last_name": request.POST.get("last_name"),
+                "institution_name": request.POST.get("institution_name"),
+                "institution_type": request.POST.get("institution_type"),
+                "registration_number": request.POST.get("registration_number"),
+                "address": request.POST.get("address"),
+                "website": request.POST.get("website"),
+                "position": request.POST.get("position"),
+            })
+            required_fields += [
+                "first_name", "last_name", "institution_name", "institution_type", "registration_number", "address"
+            ]
+            serializer_class = InstitutionRegistrationSerializer
+        elif role == "employer":
+            data.update({
+                "first_name": request.POST.get("first_name"),
+                "last_name": request.POST.get("last_name"),
+                "company_name": request.POST.get("company_name"),
+                "industry": request.POST.get("industry"),
+                "company_size": request.POST.get("company_size"),
+                "location": request.POST.get("location"),
+                "website": request.POST.get("website"),
+                "department": request.POST.get("department"),
+                "position": request.POST.get("position"),
+            })
+            required_fields += [
+                "first_name", "last_name", "company_name", "industry", "company_size", "location"
+            ]
+            serializer_class = EmployerRegistrationSerializer
+        else:
+            return render(request, "invite_register.html", {
+                "error": {"role": "Invalid role for invited registration."},
+                **data,
+                "role": role
+            })
+
+        # Pre-validate required fields
+        missing = [field for field in required_fields if not data.get(field)]
+        if missing:
+            return render(request, "invite_register.html", {
+                "error": {"missing_fields": f"Please fill in all required fields: {', '.join(missing)}."},
+                **data,
+                "role": role
+            })
+
+        serializer = serializer_class(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            invite.is_used = True
+            invite.save()
+            return render(request, "registration_success.html")
+
+
+        return render(request, "invite_register.html", {
+            "error": serializer.errors,
+            **data,
+            "role": role
+        })
+
+
 
 class StudentRegistrationView(APIView):
     permission_classes = [AllowAny]
@@ -139,9 +250,44 @@ class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
     permission_classes = [AllowAny]
 
-class InviteRegisterView(generics.CreateAPIView):
-    serializer_class = InvitedUserRegisterSerializer
+class InviteRegisterView(APIView):
     permission_classes = [AllowAny]
+
+    def post(self, request):
+        invite_token = request.data.get("invite_token")
+        if not invite_token:
+            return Response({"invite_token": "This field is required."}, status=400)
+
+        try:
+            invite = Invite.objects.get(token=invite_token, is_used=False)
+        except Invite.DoesNotExist:
+            return Response({"invite_token": "Invalid or used token."}, status=400)
+
+        role = invite.role
+
+        # Dynamically choose serializer based on role
+        if role == RoleChoices.INSTITUTION_ADMIN:
+            serializer_class = InstitutionRegistrationSerializer
+        elif role == RoleChoices.EMPLOYER:
+            serializer_class = EmployerRegistrationSerializer
+        else:
+            return Response({"detail": "Invalid role for invited registration."}, status=400)
+
+        serializer = serializer_class(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+
+            # Mark invite as used
+            invite.is_used = True
+            invite.save()
+
+            return Response({
+                "message": f"{role.replace('_', ' ').title()} registered successfully.",
+                "user": {"email": user.email, "role": role}
+            }, status=201)
+
+        return Response(serializer.errors, status=400)
+
 
 class TwoFALoginView(generics.GenericAPIView):
     serializer_class = TwoFALoginSerializer
