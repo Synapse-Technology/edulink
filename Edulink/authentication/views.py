@@ -40,7 +40,45 @@ import requests
 from django.shortcuts import render, redirect
 from django.views import View
 from .models import Invite  # adjust if imported elsewhere
+from django.views.generic import TemplateView
 
+
+class PasswordResetConfirmTemplateView(View):
+    def get(self, request, uidb64, token):
+        context = {
+            "uidb64": uidb64,
+            "token": token,
+        }
+        return render(request, "password_reset_confirm.html", context)
+
+    def post(self, request, uidb64, token):
+        new_password = request.POST.get("new_password")
+        confirm_password = request.POST.get("confirm_password")
+
+        if new_password != confirm_password:
+            return render(request, "password_reset_confirm.html", {
+                "error": {"password_mismatch": ["The two password fields didn't match."]},
+                "uidb64": uidb64,
+                "token": token,
+            })
+
+        data = {
+            "uidb64": uidb64,
+            "token": token,
+            "new_password": new_password,
+        }
+
+        serializer = PasswordResetConfirmSerializer(data=data)
+
+        if serializer.is_valid():
+            serializer.save()
+            return redirect("password_reset_success")
+
+        return render(request, "password_reset_confirm.html", {
+            "error": serializer.errors,
+            "uidb64": uidb64,
+            "token": token,
+        })
 
 
 class InviteRegisterTemplateView(View):
@@ -131,7 +169,7 @@ class InviteRegisterTemplateView(View):
             serializer.save()
             invite.is_used = True
             invite.save()
-            return render(request, "registration_success.html")
+            return redirect("registration_success")
 
 
         return render(request, "invite_register.html", {
@@ -195,49 +233,6 @@ class PasswordResetRequestView(APIView):
                 return Response({
                     'message': 'If an account exists with this email, you will receive a password reset link.'
                 }, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-class PasswordResetConfirmView(APIView):
-    permission_classes = [AllowAny]
-    
-    def post(self, request):
-        serializer = PasswordResetConfirmSerializer(data=request.data)
-        if serializer.is_valid():
-            try:
-                uid = force_str(urlsafe_base64_decode(serializer.validated_data['uid']))
-                user = User.objects.get(pk=uid)
-                
-                if default_token_generator.check_token(user, serializer.validated_data['token']):
-                    user.set_password(serializer.validated_data['new_password'])
-                    user.save()
-                    return Response({
-                        'message': 'Password has been reset successfully.'
-                    }, status=status.HTTP_200_OK)
-                return Response({
-                    'error': 'Invalid token.'
-                }, status=status.HTTP_400_BAD_REQUEST)
-            except (TypeError, ValueError, User.DoesNotExist):
-                return Response({
-                    'error': 'Invalid user.'
-                }, status=status.HTTP_400_BAD_REQUEST)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-class PasswordChangeView(APIView):
-    permission_classes = [IsAuthenticated]
-    
-    def post(self, request):
-        serializer = PasswordChangeSerializer(data=request.data)
-        if serializer.is_valid():
-            user = request.user
-            if user.check_password(serializer.validated_data['old_password']):
-                user.set_password(serializer.validated_data['new_password'])
-                user.save()
-                return Response({
-                    'message': 'Password changed successfully.'
-                }, status=status.HTTP_200_OK)
-            return Response({
-                'error': 'Current password is incorrect.'
-            }, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class InviteCreateView(generics.CreateAPIView):
@@ -396,3 +391,9 @@ class ViewAllUsersView(APIView):
 
     def get(self, request):
         return Response({"users": ["Admin", "Student", "Employer", "Institution"]})
+
+class RegistrationSuccessView(TemplateView):
+    template_name = "registration_success.html"
+
+class PasswordResetSuccessView(TemplateView):
+    template_name = "password_reset_success.html"

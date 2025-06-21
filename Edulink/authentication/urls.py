@@ -14,7 +14,10 @@ from .views import (
     InviteCreateView,
     TwoFALoginView,
     VerifyOTPView,
-    StudentRegistrationView
+    StudentRegistrationView,
+    PasswordResetConfirmTemplateView,
+    RegistrationSuccessView,
+    PasswordResetSuccessView,
 )
 
 urlpatterns = [
@@ -38,5 +41,11 @@ urlpatterns = [
     # Change password for logged-in user
     path('change-password/', ChangePasswordView.as_view(), name='change_password'),
 
+    # Template-based registration and password reset
     path("invite-register/", InviteRegisterTemplateView.as_view(), name="invite_register_template"),
+    path("reset-password/<uidb64>/<token>/", PasswordResetConfirmTemplateView.as_view(), name="password_reset_confirm_template"),
+    
+    # Success pages
+    path("registration-success/", RegistrationSuccessView.as_view(), name="registration_success"),
+    path("password-reset/success/", PasswordResetSuccessView.as_view(), name="password_reset_success"),
 ]

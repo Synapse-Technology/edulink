@@ -73,8 +73,8 @@ AUTH_USER_MODEL = 'authentication.User'
 from datetime import timedelta
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=8),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True, #Allows token logout
     'AUTH_HEADER_TYPES': ('Bearer',),
@@ -175,3 +175,5 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 SITE_ID = 1
+
+PASSWORD_RESET_URL_TEMPLATE = 'http://localhost:8000/api/auth/reset-password/{uid}/{token}/'

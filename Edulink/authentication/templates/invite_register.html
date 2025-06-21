@@ -179,8 +179,15 @@
         <div class="subtitle">Welcome to EduLink! Please complete your registration below.</div>
         {% if error %}
             <div class="error">
-                {% for field, msg in error.items %}
-                    <p><strong>{{ field|title }}:</strong> {{ msg }}</p>
+                {% for field, messages in error.items %}
+                    {% for message in messages %}
+                        <p>
+                            {% if field != "non_field_errors" and field != "missing_fields" %}
+                                <strong>{{ field|title }}:</strong> 
+                            {% endif %}
+                            {{ message }}
+                        </p>
+                    {% endfor %}
                 {% endfor %}
             </div>
         {% endif %}
@@ -201,9 +208,6 @@
             <div style="color:#64748b; font-size:0.97rem; margin-bottom:0.5rem;">
                 <em>Password must be at least 8 characters, not too common, and contain a mix of letters and numbers.</em>
             </div>
-            {% if error.password %}
-                <div class="error">{{ error.password.0 }}</div>
-            {% endif %}
             <label>Phone Number:</label>
             <input type="text" name="phone_number" value="{{ phone_number }}" required>
             <label>National ID:</label>

@@ -1,18 +1,20 @@
 from django.db import models
-from django.contrib.auth.models import AbstractUser
+from users.models.employer_profile import EmployerProfile
+
 # Create your models here.
 
-# Extend AbstractUser if companies log in
-class User(AbstractUser):
-    is_company = models.BooleanField(default=False)
-
-class Company(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    name = models.CharField(max_length=255)
-    website = models.URLField(blank=True)
-    address = models.TextField(blank=True)
-    phone = models.CharField(max_length=20)
-    description = models.TextField(blank=True)
+class Internship(models.Model):
+    title = models.CharField(max_length=255)
+    employer = models.ForeignKey(EmployerProfile, on_delete=models.CASCADE, related_name='internships')
+    description = models.TextField()
+    location = models.CharField(max_length=255)
+    start_date = models.DateField()
+    end_date = models.DateField()
+    is_paid = models.BooleanField(default=False)
+    stipend = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return self.name
+        return f"{self.title} at {self.employer.company_name}"
