@@ -29,6 +29,10 @@ from django.db import transaction
 from .models import Invite
 from .permissions import IsStudent, IsEmployer, IsInstitution, IsAdmin
 
+# Security app imports
+from security.models import LoginHistory, SecurityLog
+from security.views import get_client_ip
+
 User = get_user_model()
 
 class StudentRegistrationView(APIView):
@@ -40,6 +44,15 @@ class StudentRegistrationView(APIView):
             try:
                 with transaction.atomic():
                     user = serializer.save()
+                    
+                    # Log security event
+                    SecurityLog.objects.create(
+                        user=user,
+                        action='REGISTER',
+                        description='New student registration',
+                        ip_address=get_client_ip(request)
+                    )
+                    
                     return Response({
                         'message': 'Registration successful. Please check your email to verify your account.',
                         'user': {
@@ -57,58 +70,60 @@ class LoginView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
     permission_classes = [AllowAny]
 
-class PasswordResetRequestView(APIView):
-    permission_classes = [AllowAny]
-    
-    def post(self, request):
-        serializer = PasswordResetRequestSerializer(data=request.data)
-        if serializer.is_valid():
-            email = serializer.validated_data['email']
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        
+        # If login successful, log the event
+        if response.status_code == 200:
             try:
-                user = User.objects.get(email=email)
-                token = default_token_generator.make_token(user)
-                uid = urlsafe_base64_encode(force_bytes(user.pk))
-                reset_link = f"{settings.FRONTEND_URL}/reset-password/{uid}/{token}"
+                user = User.objects.get(email=request.data.get('email'))
+                ip_address = get_client_ip(request)
+                user_agent = request.META.get('HTTP_USER_AGENT', '')
                 
-                send_mail(
-                    'Password Reset Request',
-                    f'Click the following link to reset your password: {reset_link}',
-                    settings.DEFAULT_FROM_EMAIL,
-                    [email],
-                    fail_silently=False,
+                # Log login history
+                LoginHistory.objects.create(
+                    user=user,
+                    ip_address=ip_address,
+                    user_agent=user_agent
                 )
-                return Response({
-                    'message': 'Password reset link has been sent to your email.'
-                }, status=status.HTTP_200_OK)
+                
+                # Log security event
+                SecurityLog.objects.create(
+                    user=user,
+                    action='LOGIN',
+                    description='User logged in successfully',
+                    ip_address=ip_address
+                )
             except User.DoesNotExist:
-                return Response({
-                    'message': 'If an account exists with this email, you will receive a password reset link.'
-                }, status=status.HTTP_200_OK)
+                pass  # User not found, skip logging
+        
+        return response
+
+class PasswordResetRequestView(generics.GenericAPIView):
+    serializer_class = PasswordResetRequestSerializer
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"detail": "Password reset link sent."}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class PasswordResetConfirmView(APIView):
+class PasswordResetConfirmView(generics.GenericAPIView):
+    serializer_class = PasswordResetConfirmSerializer
     permission_classes = [AllowAny]
-    
-    def post(self, request):
-        serializer = PasswordResetConfirmSerializer(data=request.data)
+
+    def post(self, request, uidb64, token):
+        data = {
+            'uidb64': uidb64,
+            'token': token,
+            'new_password': request.data.get('new_password')
+        }
+        serializer = self.get_serializer(data=data)
         if serializer.is_valid():
-            try:
-                uid = force_str(urlsafe_base64_decode(serializer.validated_data['uid']))
-                user = User.objects.get(pk=uid)
-                
-                if default_token_generator.check_token(user, serializer.validated_data['token']):
-                    user.set_password(serializer.validated_data['new_password'])
-                    user.save()
-                    return Response({
-                        'message': 'Password has been reset successfully.'
-                    }, status=status.HTTP_200_OK)
-                return Response({
-                    'error': 'Invalid token.'
-                }, status=status.HTTP_400_BAD_REQUEST)
-            except (TypeError, ValueError, User.DoesNotExist):
-                return Response({
-                    'error': 'Invalid user.'
-                }, status=status.HTTP_400_BAD_REQUEST)
+            serializer.save()
+            return Response({"detail": "Password has been reset."}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class PasswordChangeView(APIView):
@@ -121,6 +136,15 @@ class PasswordChangeView(APIView):
             if user.check_password(serializer.validated_data['old_password']):
                 user.set_password(serializer.validated_data['new_password'])
                 user.save()
+                
+                # Log security event
+                SecurityLog.objects.create(
+                    user=user,
+                    action='PASSWORD_CHANGE',
+                    description='User changed their password',
+                    ip_address=get_client_ip(request)
+                )
+                
                 return Response({
                     'message': 'Password changed successfully.'
                 }, status=status.HTTP_200_OK)
@@ -165,34 +189,34 @@ class VerifyOTPView(generics.GenericAPIView):
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
-# Public: Request a password reset
-class PasswordResetRequestView(generics.GenericAPIView):
-    serializer_class = PasswordResetRequestSerializer
-    permission_classes = [AllowAny]
-
-    def post(self, request):
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({"detail": "Password reset link sent."}, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-# Public: Reset password with token
-class PasswordResetConfirmView(generics.GenericAPIView):
-    serializer_class = PasswordResetConfirmSerializer
-    permission_classes = [AllowAny]
-
-    def post(self, request, uidb64, token):
-        data = {
-            'uidb64': uidb64,
-            'token': token,
-            'new_password': request.data.get('new_password')
-        }
-        serializer = self.get_serializer(data=data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({"detail": "Password has been reset."}, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        
+        # If login successful, log the event
+        if response.status_code == 200:
+            try:
+                user = User.objects.get(email=request.data.get('email'))
+                ip_address = get_client_ip(request)
+                user_agent = request.META.get('HTTP_USER_AGENT', '')
+                
+                # Log login history
+                LoginHistory.objects.create(
+                    user=user,
+                    ip_address=ip_address,
+                    user_agent=user_agent
+                )
+                
+                # Log security event
+                SecurityLog.objects.create(
+                    user=user,
+                    action='LOGIN',
+                    description='User logged in successfully',
+                    ip_address=ip_address
+                )
+            except User.DoesNotExist:
+                pass  # User not found, skip logging
+        
+        return response
 
 # Authenticated users only: Update their own password
 class ChangePasswordView(generics.UpdateAPIView):

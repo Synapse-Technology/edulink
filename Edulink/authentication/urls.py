@@ -8,7 +8,7 @@ from .views import (
     CustomTokenObtainPairView,
     PasswordResetRequestView,
     PasswordResetConfirmView,
-    ChangePasswordView,
+    PasswordChangeView,
     InviteRegisterView,
     InviteCreateView,
     TwoFALoginView,
@@ -35,7 +35,7 @@ urlpatterns = [
     path('reset-password-confirm/<uidb64>/<token>/', PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
 
     # Change password for logged-in user
-    path('change-password/', ChangePasswordView.as_view(), name='change_password'),
+    path('change-password/', PasswordChangeView.as_view(), name='change_password'),
 
     path('invite-register/', InviteRegisterView.as_view(), name='invite_register'),
 ]
