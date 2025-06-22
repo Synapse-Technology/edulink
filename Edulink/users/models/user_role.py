@@ -1,20 +1,14 @@
 from django.db import models
 from authentication.models import User
 from institutions.models import Institution
-from employers.models import Employer
+from .employer_profile import EmployerProfile
+from users.roles import RoleChoices
 
 class UserRole(models.Model):
-    ROLE_CHOICES = [
-        ('student', 'Student'),
-        ('institution_admin', 'Institution Admin'),
-        ('employer', 'Employer'),
-        ('super_admin', 'Super Admin'),
-    ]
-
+    role = models.CharField(max_length=30, choices=RoleChoices.CHOICES)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='roles')
-    role = models.CharField(max_length=30, choices=ROLE_CHOICES)
     institution = models.ForeignKey(Institution, on_delete=models.SET_NULL, null=True, blank=True)
-    employer = models.ForeignKey(Employer, on_delete=models.SET_NULL, null=True, blank=True)
+    employer = models.ForeignKey(EmployerProfile, on_delete=models.SET_NULL, null=True, blank=True)
     granted_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='granted_roles')
     granted_at = models.DateTimeField(auto_now_add=True)
 

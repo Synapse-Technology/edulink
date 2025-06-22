@@ -1,8 +1,13 @@
 from django.urls import path
-from .views import CreateEmployerView, EmployerDetailView, VerifyEmployerView
+from .views import (
+    EmployerProfileDetailView,
+    EmployerInternshipListView,
+    InternshipApplicationListView,
+)
 
 urlpatterns = [
-    path('', CreateEmployerView.as_view(), name='create-employer'),
-    path('detail/<uuid:pk>/', EmployerDetailView.as_view(), name='employer-detail'),
-    path('<uuid:pk>/verify/', VerifyEmployerView.as_view(), name='verify-employer'),
+    path('profile/', EmployerProfileDetailView.as_view(), name='employer-profile'),
+    path('my-internships/', EmployerInternshipListView.as_view(), name='employer-internships'),
+    path('internship/<int:internship_id>/applicants/', InternshipApplicationListView.as_view(), name='internship-applicants'),
 ]
+ 

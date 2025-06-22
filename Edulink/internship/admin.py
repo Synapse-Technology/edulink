@@ -1,23 +1,16 @@
-# Example: applications/admin.py
-
 from django.contrib import admin
-# Assuming your Application model is in core.models
-from internship.models import Application
+from .models.internship import Internship
+from .models.application import Application
 
-@admin.register(Application)
+class InternshipAdmin(admin.ModelAdmin):
+    list_display = ('title', 'employer', 'location', 'start_date', 'end_date', 'is_active')
+    list_filter = ('is_active', 'is_paid', 'employer')
+    search_fields = ('title', 'employer__company_name', 'location')
+
 class ApplicationAdmin(admin.ModelAdmin):
-    list_display = ('student_user', 'internship', 'application_date', 'status', 'institution_approved')
-    list_filter = ('status', 'institution_approved', 'application_date')
-    search_fields = ('student_user__email', 'internship__title')
-    raw_id_fields = ('student_user', 'internship') # Useful for ForeignKey fields to avoid dropdowns for many objects
-    actions = ['mark_as_accepted', 'mark_as_rejected']
+    list_display = ('internship', 'student', 'status', 'application_date')
+    list_filter = ('status', 'internship__employer')
+    search_fields = ('internship__title', 'student__user__email')
 
-    def mark_as_accepted(self, request, queryset):
-        queryset.update(status='accepted')
-    mark_as_accepted.short_description = "Mark selected applications as accepted"
-
-    def mark_as_rejected(self, request, queryset):
-        queryset.update(status='rejected')
-    mark_as_rejected.short_description = "Mark selected applications as rejected"
-
-# Register your models here.
+admin.site.register(Internship, InternshipAdmin)
+admin.site.register(Application, ApplicationAdmin)

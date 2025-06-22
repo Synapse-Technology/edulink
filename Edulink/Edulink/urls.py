@@ -22,5 +22,8 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     
     # 🔑 Link your app's routes
-    path('api/auth/', include('authentication.urls')),  
+    path('api/auth/', include('authentication.urls')),
+    path('api/employers/', include('employers.urls')),
+    path('api/users/', include('users.urls')),
+    path('api/institutions/', include('institutions.urls')),
 ]
