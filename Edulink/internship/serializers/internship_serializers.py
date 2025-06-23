@@ -4,6 +4,7 @@ from rest_framework import serializers
 from django.utils import timezone
 from ..models.internship import Internship
 from ..models.skill_tag import SkillTag
+from datetime import datetime
 
 class SkillTagSerializer(serializers.ModelSerializer):
     """Serializer for SkillTag model"""
@@ -82,10 +83,18 @@ class InternshipSerializer(serializers.ModelSerializer):
         return value
 
     def validate_end_date(self, value):
-        """Ensure end date is after start date"""
         start_date = self.initial_data.get('start_date')
-        if start_date and value <= start_date:
-            raise serializers.ValidationError("End date must be after start date.")
+        if start_date:
+            # Convert start_date string to a date object
+            if isinstance(start_date, str):
+                try:
+                    start_date_obj = datetime.strptime(start_date, "%Y-%m-%d").date()
+                except ValueError:
+                    raise serializers.ValidationError("Start date must be in YYYY-MM-DD format.")
+            else:
+                start_date_obj = start_date
+            if value <= start_date_obj:
+                raise serializers.ValidationError("End date must be after start date.")
         return value
 
     def validate(self, data):
