@@ -5,12 +5,9 @@ from rest_framework_simplejwt.views import (
 )
 from .views import (
     InviteRegisterTemplateView,
-    RegisterView,
     CustomTokenObtainPairView,
     PasswordResetRequestView,
     PasswordResetConfirmView,
-    PasswordChangeView,
-    InviteRegisterView,
     InviteCreateView,
     TwoFALoginView,
     VerifyOTPView,
@@ -36,9 +33,6 @@ urlpatterns = [
     # Password reset
     path('password-reset/', PasswordResetRequestView.as_view(), name='password_reset'),
     path('reset-password-confirm/<uidb64>/<token>/', PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
-
-    # Change password for logged-in user
-    path('change-password/', PasswordChangeView.as_view(), name='change_password'),
 
     # Template-based registration and password reset
     path("invite-register/", InviteRegisterTemplateView.as_view(), name="invite_register_template"),
