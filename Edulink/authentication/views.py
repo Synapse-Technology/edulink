@@ -15,14 +15,10 @@ from .serializers import (
     EmployerRegistrationSerializer,
     InstitutionRegistrationSerializer,
     StudentRegistrationSerializer,
-    LoginSerializer,
     CustomTokenObtainPairSerializer,
     PasswordResetRequestSerializer,
     PasswordResetConfirmSerializer,
-    PasswordChangeSerializer,
     InviteSerializer,
-    InvitedUserRegisterSerializer,
-    RegisterSerializer,
     ChangePasswordSerializer,
     TwoFALoginSerializer,
     VerifyOTPSerializer,
@@ -239,11 +235,6 @@ class InviteCreateView(generics.CreateAPIView):
     queryset = Invite.objects.all()
     serializer_class = InviteSerializer
     permission_classes = [IsAuthenticated, IsAdmin]
-
-# Public endpoint: Anyone can register (Students only)
-class RegisterView(generics.CreateAPIView):
-    serializer_class = RegisterSerializer
-    permission_classes = [AllowAny]
 
 class InviteRegisterView(APIView):
     permission_classes = [AllowAny]
