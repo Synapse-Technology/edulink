@@ -4,6 +4,7 @@ from rest_framework_simplejwt.views import (
     TokenBlacklistView,
 )
 from .views import (
+    InviteRegisterTemplateView,
     RegisterView,
     CustomTokenObtainPairView,
     PasswordResetRequestView,
@@ -13,13 +14,15 @@ from .views import (
     InviteCreateView,
     TwoFALoginView,
     VerifyOTPView,
-    StudentRegistrationView
+    StudentRegistrationView,
+    PasswordResetConfirmTemplateView,
+    RegistrationSuccessView,
+    PasswordResetSuccessView,
 )
 
 urlpatterns = [
-    path('register/student/', StudentRegistrationView.as_view(), name='student-register'),
-    path('register/', RegisterView.as_view(), name='register'),
-    path('auth/invite/', InviteCreateView.as_view(), name='send-invite'),
+    path('register/', StudentRegistrationView.as_view(), name='student-register'),
+    path('invite/', InviteCreateView.as_view(), name='send-invite'),
     path('login/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('logout/', TokenBlacklistView.as_view(), name='token_blacklist'),
@@ -37,5 +40,11 @@ urlpatterns = [
     # Change password for logged-in user
     path('change-password/', PasswordChangeView.as_view(), name='change_password'),
 
-    path('invite-register/', InviteRegisterView.as_view(), name='invite_register'),
+    # Template-based registration and password reset
+    path("invite-register/", InviteRegisterTemplateView.as_view(), name="invite_register_template"),
+    path("reset-password/<uidb64>/<token>/", PasswordResetConfirmTemplateView.as_view(), name="password_reset_confirm_template"),
+    
+    # Success pages
+    path("registration-success/", RegistrationSuccessView.as_view(), name="registration_success"),
+    path("password-reset/success/", PasswordResetSuccessView.as_view(), name="password_reset_success"),
 ]

@@ -9,7 +9,8 @@ class EmployerProfileSerializer(ProfileBaseSerializer):
             'company_name',
             'industry',
             'company_size',
-            'company_email',
-            'company_website',
-            'verification_status',
+            'location',
+            'website',
+            'department',
+            'position',
         ]

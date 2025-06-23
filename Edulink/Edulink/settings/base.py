@@ -41,7 +41,7 @@ CORS_ALLOW_ALL_ORIGINS = True
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 # For dev only, restrict in production!
 
-DEFAULT_FROM_EMAIL = 'no-reply@edulink.ke'
+DEFAULT_FROM_EMAIL = 'noreply@edulink.com'
 
 # Application definition
 
@@ -74,8 +74,8 @@ AUTH_USER_MODEL = 'authentication.User'
 from datetime import timedelta
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=8),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True, #Allows token logout
     'AUTH_HEADER_TYPES': ('Bearer',),
@@ -91,6 +91,11 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+# Allow frontend & Flutter apps to access
+CORS_ALLOW_ALL_ORIGINS = True
+#dev
+CORS_ALLOW_CREDENTIALS = True
 
 ROOT_URLCONF = 'Edulink.urls'
 
@@ -169,3 +174,7 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+SITE_ID = 1
+
+PASSWORD_RESET_URL_TEMPLATE = 'http://localhost:8000/api/auth/reset-password/{uid}/{token}/'

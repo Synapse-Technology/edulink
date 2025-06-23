@@ -5,13 +5,14 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.conf import settings
 from datetime import timedelta
+from users.roles import RoleChoices
 
 class UserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
         if not email:
             raise ValueError("Email is required")
         email = self.normalize_email(email)
-        extra_fields.setdefault("role", User.Role.STUDENT)
+        extra_fields.setdefault("role", RoleChoices.STUDENT)
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save()
@@ -20,18 +21,12 @@ class UserManager(BaseUserManager):
     def create_superuser(self, email, password=None, **extra_fields):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
-        extra_fields.setdefault("role", User.Role.ADMIN)
-        if extra_fields.get("role") != User.Role.ADMIN:
-            raise ValueError("Superuser must have role of ADMIN.")
+        extra_fields.setdefault("role", RoleChoices.SUPER_ADMIN)
+        if extra_fields.get("role") != RoleChoices.SUPER_ADMIN:
+            raise ValueError("Superuser must have role of SUPER_ADMIN.")
         return self.create_user(email, password, **extra_fields)
 
 class User(AbstractBaseUser, PermissionsMixin):
-    class Role(models.TextChoices):
-        ADMIN = "ADMIN", _("Admin")
-        STUDENT = "STUDENT", _("Student")
-        EMPLOYER = "EMPLOYER", _("Employer")
-        INSTITUTION = "INSTITUTION", _("Institution")
-
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     email = models.EmailField(unique=True)
     is_active = models.BooleanField(default=True)
@@ -45,9 +40,9 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     # Role-based access
     role = models.CharField(
-        max_length=20,
-        choices=Role.choices,
-        default=Role.STUDENT,
+        max_length=30,
+        choices=RoleChoices.CHOICES,
+        default=RoleChoices.STUDENT,
     )
 
     # Custom related names for compatibility
@@ -79,11 +74,11 @@ class User(AbstractBaseUser, PermissionsMixin):
     @property
     def profile(self):
         """Get the user's profile based on their role"""
-        if self.role == 'student':
+        if self.role == RoleChoices.STUDENT:
             return getattr(self, 'studentprofile', None)
-        elif self.role == 'institution_admin':
+        elif self.role == RoleChoices.INSTITUTION_ADMIN:
             return getattr(self, 'institutionprofile', None)
-        elif self.role == 'employer':
+        elif self.role == RoleChoices.EMPLOYER:
             return getattr(self, 'employerprofile', None)
         return None
 
@@ -97,7 +92,7 @@ class EmailOTP(models.Model):
 
 class Invite(models.Model):
     email = models.EmailField(unique=True)
-    role = models.CharField(max_length=20, choices=User.Role.choices)
+    role = models.CharField(max_length=30, choices=RoleChoices.CHOICES)
     token = models.UUIDField(default=uuid.uuid4, unique=True)
     is_used = models.BooleanField(default=False)
     invited_by = models.ForeignKey(

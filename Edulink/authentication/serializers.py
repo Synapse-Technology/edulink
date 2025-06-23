@@ -11,27 +11,41 @@ from django.core.mail import send_mail
 from django.conf import settings
 from users.models import UserRole, StudentProfile, InstitutionProfile, EmployerProfile
 from institutions.models import Institution
-from employers.models import Employer
 from django.utils import timezone
 from django.db import transaction
 import uuid
 import random
+from users.roles import RoleChoices
+
+
+def validate_unique_email(value):
+    User = get_user_model()
+    if User.objects.filter(email__iexact=value).exists():
+        raise serializers.ValidationError("A user with this email already exists.")
+
+def validate_unique_phone_number(value):
+    if not value:
+        return
+    if StudentProfile.objects.filter(phone_number=value).exists() or \
+       InstitutionProfile.objects.filter(phone_number=value).exists() or \
+       EmployerProfile.objects.filter(phone_number=value).exists():
+        raise serializers.ValidationError("A user with this phone number already exists.")
 
 
 class BaseProfileSerializer(serializers.Serializer):
     first_name = serializers.CharField(max_length=100)
     last_name = serializers.CharField(max_length=100)
-    phone_number = serializers.CharField(max_length=20)
-    email = serializers.EmailField()
+    phone_number = serializers.CharField(max_length=20, validators=[validate_unique_phone_number])
+    email = serializers.EmailField(validators=[validate_unique_email])
     password = serializers.CharField(write_only=True, validators=[validate_password])
 
 
 class StudentRegistrationSerializer(serializers.Serializer):
-    email = serializers.EmailField()
+    email = serializers.EmailField(validators=[validate_unique_email])
     password = serializers.CharField(write_only=True, validators=[validate_password])
     first_name = serializers.CharField(max_length=100)
     last_name = serializers.CharField(max_length=100)
-    phone_number = serializers.CharField(max_length=20)
+    phone_number = serializers.CharField(max_length=20, validators=[validate_unique_phone_number])
     national_id = serializers.CharField(max_length=20)
     registration_number = serializers.CharField(max_length=50)
     academic_year = serializers.IntegerField()
@@ -57,9 +71,6 @@ class StudentRegistrationSerializer(serializers.Serializer):
                 raise serializers.ValidationError("Invalid course code for the specified institution.")
         
         # Validate unique fields
-        if User.objects.filter(email=data['email']).exists():
-            raise serializers.ValidationError("A user with this email already exists.")
-        
         if StudentProfile.objects.filter(national_id=data['national_id']).exists():
             raise serializers.ValidationError("A student with this national ID already exists.")
         
@@ -107,21 +118,27 @@ class InstitutionRegistrationSerializer(BaseProfileSerializer):
     address = serializers.CharField(max_length=255)
     website = serializers.URLField(required=False)
     position = serializers.CharField(max_length=100, required=False)
+    national_id = serializers.CharField(max_length=20)
 
     @transaction.atomic
     def create(self, validated_data):
         # Extract profile data
+        phone_number = validated_data.pop('phone_number', None)
+        if not phone_number:
+            raise serializers.ValidationError({'phone_number': 'Phone number is required.'})
         profile_data = {
             'first_name': validated_data.pop('first_name'),
             'last_name': validated_data.pop('last_name'),
-            'phone_number': validated_data.pop('phone_number'),
+            'phone_number': phone_number,
             'position': validated_data.pop('position', None),
         }
         
-        # Create user
+        # Create user with correct role
         user = User.objects.create_user(
             email=validated_data['email'],
-            password=validated_data['password']
+            password=validated_data['password'],
+            role='institution_admin',  # Set the correct role
+            national_id=validated_data.pop('national_id')  # Save national_id to user
         )
         
         # Create Institution
@@ -130,7 +147,7 @@ class InstitutionRegistrationSerializer(BaseProfileSerializer):
             institution_type=validated_data['institution_type'],
             registration_number=validated_data['registration_number'],
             email=validated_data['email'],
-            phone_number=validated_data['phone_number'],
+            phone_number=phone_number,
             address=validated_data['address'],
             website=validated_data.get('website')
         )
@@ -160,47 +177,43 @@ class EmployerRegistrationSerializer(BaseProfileSerializer):
     website = serializers.URLField(required=False)
     department = serializers.CharField(max_length=100, required=False)
     position = serializers.CharField(max_length=100, required=False)
+    national_id = serializers.CharField(max_length=20)
 
     @transaction.atomic
     def create(self, validated_data):
         # Extract profile data
-        profile_data = {
-            'first_name': validated_data.pop('first_name'),
-            'last_name': validated_data.pop('last_name'),
-            'phone_number': validated_data.pop('phone_number'),
-            'department': validated_data.pop('department', None),
-            'position': validated_data.pop('position', None),
-        }
-        
-        # Create user
+        phone_number = validated_data.pop('phone_number', None)
+        if not phone_number:
+            raise serializers.ValidationError({'phone_number': 'Phone number is required.'})
+
+        # Create user with correct role
         user = User.objects.create_user(
             email=validated_data['email'],
-            password=validated_data['password']
+            password=validated_data['password'],
+            role='employer',  # Set the correct role
+            national_id=validated_data.pop('national_id')  # Save national_id to user
         )
-        
-        # Create Employer
-        employer = Employer.objects.create(
+
+        # Create EmployerProfile
+        employer_profile = EmployerProfile.objects.create(
             user=user,
-            company_name=validated_data['company_name'],
-            industry=validated_data['industry'],
-            company_size=validated_data['company_size'],
-            contact_email=validated_data['email'],
-            location=validated_data['location'],
-            website=validated_data.get('website')
+            first_name=validated_data.pop('first_name'),
+            last_name=validated_data.pop('last_name'),
+            phone_number=phone_number,
+            company_name=validated_data.pop('company_name'),
+            industry=validated_data.pop('industry'),
+            company_size=validated_data.pop('company_size'),
+            location=validated_data.pop('location'),
+            website=validated_data.get('website'),
+            department=validated_data.pop('department', None),
+            position=validated_data.pop('position', None),
         )
-        
+
         # Create UserRole
         UserRole.objects.create(
             user=user,
             role='employer',
-            employer=employer
-        )
-        
-        # Create EmployerProfile
-        EmployerProfile.objects.create(
-            user=user,
-            employer=employer,
-            **profile_data
+            employer=employer_profile
         )
         
         return user
@@ -218,21 +231,21 @@ class LoginSerializer(serializers.Serializer):
         if not user.is_active:
             raise serializers.ValidationError("This account has been deactivated")
             
-        # Update last login for user
         user.last_login = timezone.now()
         user.save(update_fields=['last_login'])
             
-        # Check if user's institution is verified and update last_login_at
-        try:
-            student_profile = user.studentprofile
-            student_profile.last_login_at = timezone.now()
-            student_profile.save(update_fields=['last_login_at'])
+        if user.role == RoleChoices.STUDENT:
+            try:
+                student_profile = user.student_profile
+                student_profile.last_login_at = timezone.now()
+                student_profile.save(update_fields=['last_login_at'])
+                
+                if not student_profile.is_verified:
+                    raise serializers.ValidationError("Your institution is not yet verified.")
+            except StudentProfile.DoesNotExist:
+                pass
             
-            if not student_profile.is_verified:
-                raise serializers.ValidationError("Your institution is not yet verified. Please wait for verification to access your dashboard.")
-        except StudentProfile.DoesNotExist:
-            # If no student profile exists, we still allow login but with a warning
-            pass
+        profile_data = self._get_profile_data(user)
             
         refresh = RefreshToken.for_user(user)
         return {
@@ -241,12 +254,25 @@ class LoginSerializer(serializers.Serializer):
             'user': {
                 'email': user.email,
                 'role': user.role,
-                'profile': {
-                    'first_name': user.profile.first_name if user.profile else None,
-                    'last_name': user.profile.last_name if user.profile else None,
-                }
+                'profile': profile_data
             }
         }
+
+    def _get_profile_data(self, user):
+        profile = None
+        try:
+            if user.role == RoleChoices.STUDENT:
+                profile = user.student_profile
+            elif user.role == RoleChoices.INSTITUTION_ADMIN:
+                profile = user.institutionprofile_profile
+            elif user.role == RoleChoices.EMPLOYER:
+                profile = user.employerprofile_profile
+            
+            if profile:
+                return {'first_name': profile.first_name, 'last_name': profile.last_name}
+        except (AttributeError, StudentProfile.DoesNotExist, InstitutionProfile.DoesNotExist, EmployerProfile.DoesNotExist):
+            pass
+        return {'first_name': None, 'last_name': None}
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -254,36 +280,50 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         data = super().validate(attrs)
         user = self.user
         
-        # Update last login for user
         user.last_login = timezone.now()
         user.save(update_fields=['last_login'])
         
-        # Update student profile if it exists
-        try:
-            student_profile = StudentProfile.objects.get(user=user)
-            student_profile.last_login_at = timezone.now()
-            student_profile.save(update_fields=['last_login_at'])
-        except StudentProfile.DoesNotExist:
-            pass
+        if user.role == RoleChoices.STUDENT:
+            try:
+                student_profile = user.student_profile
+                student_profile.last_login_at = timezone.now()
+                student_profile.save(update_fields=['last_login_at'])
+            except StudentProfile.DoesNotExist:
+                pass
 
-        # Add custom claims
+        profile_data = self._get_profile_data(user)
+
         refresh = self.get_token(user)
         data['refresh'] = str(refresh)
         data['access'] = str(refresh.access_token)
         data['user'] = {
             'email': user.email,
             'role': user.role,
-            'profile': {
-                'first_name': student_profile.first_name if 'student_profile' in locals() else None,
-                'last_name': student_profile.last_name if 'student_profile' in locals() else None,
-            }
+            'profile': profile_data
         }
         
         return data
 
+    def _get_profile_data(self, user):
+        profile = None
+        try:
+            if user.role == RoleChoices.STUDENT:
+                profile = user.student_profile
+            elif user.role == RoleChoices.INSTITUTION_ADMIN:
+                profile = user.institutionprofile_profile
+            elif user.role == RoleChoices.EMPLOYER:
+                profile = user.employerprofile_profile
+
+            if profile:
+                return {'first_name': profile.first_name, 'last_name': profile.last_name}
+        except (AttributeError, StudentProfile.DoesNotExist, InstitutionProfile.DoesNotExist, EmployerProfile.DoesNotExist):
+            pass
+        return {'first_name': None, 'last_name': None}
+
 
 class PasswordResetRequestSerializer(serializers.Serializer):
     email = serializers.EmailField()
+    reset_url_template = serializers.CharField(write_only=True, required=False)
 
     def validate_email(self, value):
         if not User.objects.filter(email=value).exists():
@@ -295,7 +335,13 @@ class PasswordResetRequestSerializer(serializers.Serializer):
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         token = default_token_generator.make_token(user)
 
-        reset_url = f"http://localhost:3000/reset-password/{uid}/{token}/"
+        # Use the provided template or a default from settings
+        url_template = self.validated_data.get(
+            'reset_url_template',
+            getattr(settings, 'PASSWORD_RESET_URL_TEMPLATE', 'http://localhost:3000/reset-password/{uid}/{token}/')
+        )
+        reset_url = url_template.format(uid=uid, token=token)
+
         send_mail(
             subject="Password Reset Request",
             message=f"Click the link to reset your password: {reset_url}",
@@ -359,19 +405,20 @@ class InviteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Invite
         fields = ['email', 'role']
+        
 
     def validate_role(self, value):
-        if value == User.Role.STUDENT:
+        if value == RoleChoices.STUDENT:
             raise serializers.ValidationError("Cannot invite Students. They must self-register.")
         return value
 
     def create(self, validated_data):
         invite = Invite.objects.create(**validated_data)
-        invite_link = f"https://yourdomain.com/invite-register?token={invite.token}"
+        invite_link = f"http://localhost:8000/api/auth/invite-register?token={invite.token}"
         send_mail(
             subject="You're invited to join EduLink KE",
             message=f"You've been invited to register as a {invite.role}.\n\nUse this link to register:\n{invite_link}",
-            from_email="noreply@edulink.ke",
+            from_email="noreply@edulink.com",
             recipient_list=[invite.email],
             fail_silently=False,
         )
@@ -395,7 +442,7 @@ class InvitedUserRegisterSerializer(serializers.ModelSerializer):
         if invite.email.lower() != attrs['email'].lower():
             raise serializers.ValidationError({'email': 'Email does not match invite.'})
 
-        if invite.role == User.Role.STUDENT:
+        if invite.role == RoleChoices.STUDENT:
             raise serializers.ValidationError({'invite_token': 'Students must use the public registration endpoint.'})
 
         self.context['invite'] = invite
@@ -437,7 +484,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             attrs['role'] = invite.role
             self.context['invite'] = invite
         else:
-            attrs['role'] = User.Role.STUDENT
+            attrs['role'] = RoleChoices.STUDENT
         return attrs
 
     def create(self, validated_data):

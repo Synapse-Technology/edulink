@@ -4,7 +4,6 @@ from django.db import models
 from authentication.models import User
 
 class ProfileBase(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='%(class)s_profile')
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
     phone_number = models.CharField(max_length=20, unique=True)
