@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>About Us - Edulink KE</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: url('assets/img/vision.jpeg') no-repeat center center fixed;
+      background-size: cover;
+      color: white;
+      line-height: 1.6;
+      position: relative;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 100%;
+      background-color: rgba(0, 0, 0, 0.6); /* Dark overlay */
+      z-index: -1;
+    }
+
+    header {
+      background-color: rgba(14, 116, 144, 0.8);
+      color: white;
+      padding: 20px 30px;
+    }
+
+    header h1 {
+      font-size: 32px;
+    }
+
+    nav ul {
+      list-style: none;
+      display: flex;
+      justify-content: flex-end;
+      gap: 20px;
+    }
+
+    nav ul li a {
+      color: white;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .about-container {
+      max-width: 1000px;
+      margin: 40px auto;
+      padding: 30px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      backdrop-filter: blur(6px);
+    }
+
+    .about-container h1 {
+      font-size: 32px;
+      color: #00ffff;
+      margin-bottom: 10px;
+    }
+
+    .about-container h2 {
+      font-size: 24px;
+      color: #7fffd4;
+      margin-top: 20px;
+    }
+
+    .about-container p,
+    .about-container li {
+      margin-top: 10px;
+      font-size: 16px;
+      color: #e0f7fa;
+    }
+
+    .about-container ul {
+      margin-left: 20px;
+      padding-left: 10px;
+    }
+
+    .signup-button {
+      display: inline-block;
+      margin-top: 30px;
+      padding: 10px 20px;
+      background-color: #00bcd4;
+      color: white;
+      text-decoration: none;
+      border-radius: 5px;
+    }
+
+    footer {
+      text-align: center;
+      font-size: 14px;
+      margin-top: 40px;
+      padding: 20px;
+      background-color: rgba(14, 116, 144, 0.7);
+      color: white;
+    }
+  </style>
+
+  
+  <!-- Favicons -->
+  <link href="assets/img/favicon.png" rel="icon">
+  <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500;1,600;1,700;1,800&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Raleway:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+  <link href="assets/vendor/aos/aos.css" rel="stylesheet">
+  <link href="assets/vendor/glightbox/css/glightbox.min.css" rel="stylesheet">
+  <link href="assets/vendor/swiper/swiper-bundle.min.css" rel="stylesheet">
+
+  <!-- Main CSS File -->
+  <link href="assets/css/main.css" rel="stylesheet">
+
+  <style>
+    /* Dropdown styling */
+    .group:hover .group-hover\:block {
+      display: block;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+  <!-- Navbar -->
+<header id="header" class="header d-flex align-items-center sticky-top">
+  <div class="container-fluid container-xl position-relative d-flex align-items-center justify-content-between">
+
+    <a href="index.html" class="logo d-flex align-items-center me-auto">
+      <h1 class="sitename">EduLink KE</h1>
+    </a>
+
+    <nav id="navmenu" class="navmenu">
+      <ul>
+        <li><a href="index.html" class="nav-link">Home</a></li>
+        <li class="dropdown">
+          <a href="#" class="nav-link"><span>About</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
+          <ul>
+            <li><a href="about.html#background" class="nav-link">Background</a></li>
+            <li><a href="about.html#mission" class="nav-link">Vision,Mission & Core Values</a></li>
+            <li><a href="about.html#partners" class="nav-link">Partners</a></li>
+          </ul>
+        </li>
+        <li><a href="contact.html" class="nav-link">Contact</a></li>
+        <li><a href="support.html" class="nav-link">Support Features</a></li>
+        <li><a href="https://chatgpt.com/" class="nav-link">AI HELP</a></li>
+        <li><a href="register.html" class="btn-getstarted nav-link">Get Started</a></li>
+        <li>
+          <!-- Search Form -->
+          <form class="d-flex" onsubmit="return handleSearch(event)">
+            <input class="form-control me-2" id="searchInput" type="text" placeholder="Search...">
+            <button class="btn" type="submit" style="background: none; border: none; padding: 0 8px; font-size: 1.2rem;">🔍</button>
+          </form>
+        </li>
+      </ul>
+    </nav>
+    <script>
+      // Highlight active nav link
+      document.addEventListener("DOMContentLoaded", function () {
+        const current = window.location.pathname.split('/').pop();
+        document.querySelectorAll('.navmenu .nav-link').forEach(link => {
+          if (
+            link.getAttribute('href') === current ||
+            (link.getAttribute('href') !== "#" && current && link.getAttribute('href').startsWith(current.split('#')[0]))
+          ) {
+            link.classList.add('active-nav');
+          }
+        });
+      });
+    </script>
+    <style>
+      .navmenu .nav-link.active-nav,
+      .navmenu .dropdown ul .nav-link.active-nav {
+        color: #28a745 !important;
+        border-radius: 4px;
+        transition: background 0.2s;
+      }
+      .navmenu .btn-getstarted.active-nav {
+        background: #fd1206 !important;
+        color: #fff !important;
+        border-radius: 4px;
+      }
+    </style>
+  </ul>
+  <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
+</nav>
+  </div>
+</header>
+
+ <section class="about-container">
+    <h2>Our Background</h2>
+    <p>Edulink KE was an initiative of the Synapse JKUAT group with the support of Jhub Africa. The Synapse group is a group made up of seven Computer Technology
+students from Jomo Kenyatta University of Agriculture and Technology (JKUAT) who are passionate about leveraging technology to solve real-world problems.
+ Our journey began with a vision to bridge the gap between education and employment in Kenya.</p>
+    <p>Recognizing the challenges faced by students in securing internships and job placements, we set out to create a platform that would not only connect students with opportunities but also provide educational institutions and employers with tools to track and support talent development.</p>
+    <p>With the support of Jhub Africa, we developed Edulink KE as a comprehensive solution that integrates internship listings, digital certifications, and performance tracking. Our platform aims to empower students by providing them with the resources they need to succeed in their careers while also offering institutions and employers a reliable system to monitor and nurture talent.</p>
+    <p>Today, Edulink KE stands as a testament to our commitment to transforming the educational landscape in Kenya. We are dedicated to creating a seamless experience for students, institutions, and employers.</p>
+    
+    <h2>Our Mission</h2>
+    <p>To empower Kenyan students by providing seamless access to internships, job placements, and mentorship, while offering institutions and employers a reliable system to track and support talent development.</p>
+
+    <h2>Our Vision</h2>
+    <p>A Kenya where every student can easily transition from learning to working, guided by transparent systems and real-time progress tracking.</p>
+
+    <h2>Our Core Values</h2>
+    <ul>
+      <li><strong>Integrity:</strong> We uphold the highest standards of honesty and transparency in all our interactions.</li>
+      <li><strong>Empowerment:</strong> We believe in equipping students with the tools and opportunities they need to succeed.</li>
+      <li><strong>Collaboration:</strong> We work closely with educational institutions, employers, and partners to create a supportive ecosystem for youth.</li>
+      <li><strong>Innovation:</strong> We leverage technology to continuously improve our platform and services.</li>
+      <li><strong>Inclusivity:</strong> We strive to ensure equal access to opportunities for all Kenyan students, regardless of their background.</li>
+      <li><strong>Impact:</strong> We are committed to making a positive difference in the lives of students and the broader community.</li>
+    </ul> 
+
+    
+
+    <h2>Join the Movement</h2>
+    <p>Whether you're a student, institution, or employer—Edulink KE is here to link you to progress. Together, we build a skilled and empowered generation.</p>
+
+    <a href="/signup" class="signup-button">Sign Up Today</a>
+  </section>
+
+
+  <!-- Footer -->
+  <footer id="footer" class="footer position-relative light-background">
+
+  <div class="container footer-top">
+    <div class="row gy-4">
+      <div class="col-lg-4 col-md-6 footer-about">
+        <a href="index.html" class="logo d-flex align-items-center">
+          <span class="sitename" id="edulink-highlight">EduLink KE</span>
+        </a>
+        <div class="footer-contact pt-3">
+          <p>Ngong Lane, Off Ngong Road</p>
+          <p>Nairobi, Kenya</p>
+          <p class="mt-3"><strong>Phone:</strong> <span>+254 712 345 678</span></p>
+          <p><strong>Email:</strong> <span>info@edulink.co.ke</span></p>
+        </div>
+        <div class="social-links d-flex mt-4">
+          <a href="https://twitter.com/edulinkke"><i class="bi bi-twitter-x"></i></a>
+          <a href="https://facebook.com/edulinkke"><i class="bi bi-facebook"></i></a>
+          <a href="https://instagram.com/edulinkke"><i class="bi bi-instagram"></i></a>
+          <a href="https://linkedin.com/company/edulinkke"><i class="bi bi-linkedin"></i></a>
+        </div>
+      </div>
+
+      <div class="col-lg-2 col-md-3 footer-links">
+        <h4>Useful Links</h4>
+        <ul>
+           <li><a href="app.html">Download App</a></li> 
+          <li><a href="policy.html">Privacy Policy</a></li>
+          <li><a href="term.html">Terms of Service</a></li>
+           <li><a href="opprtunities.html">FAQs</a></li>
+           <li><a href="about.html">Help</a></li>
+          <li><a href="index.html">Chat with Staff</a></li>
+          </ul>
+      </div>
+
+      <div class="col-lg-2 col-md-3 footer-links">
+        <h4>Our Services</h4>
+        <ul>
+          <li><a href="#">Internship Listings</a></li>
+          <li><a href="#">Digital Certifications</a></li>
+          <li><a href="#">Performance Tracking</a></li>
+          <li><a href="#">Employer Dashboard</a></li>
+          <li><a href="#">Institution Reports</a></li>
+        </ul>
+      </div>
+
+      <div class="col-lg-4 col-md-12 footer-newsletter">
+        <h4>Our Newsletter</h4>
+        <p>Stay updated on verified internships, new features, and student career events.</p>
+        <form action="" method="post" class="php-email-form">
+          <div class="newsletter-form">
+            <input type="email" name="email"><input type="submit" value="Subscribe">
+          </div>
+          <div class="loading">Loading</div>
+          <div class="error-message"></div>
+          <div class="sent-message">Your subscription request has been sent. Thank you!</div>
+        </form>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="container copyright text-center mt-4">
+    <p>© <span>Copyright</span> <strong class="px-1 sitename" id="edulink-highlight">EduLink KE</strong> <span>All Rights Reserved</span></p>
+    <div class="credits">
+      Designed by Synapse JKUAT
+    </div>
+  </div>
+
+</footer>
+
+  <script>
+    // Search functionality
+    function handleSearch(event) {
+      event.preventDefault();
+      const query = document.getElementById('searchInput').value;
+      if (query) {
+        window.location.href = `search.html?q=${encodeURIComponent(query)}`;
+      }
+    }
+  </script>
+</body>
+</html>
