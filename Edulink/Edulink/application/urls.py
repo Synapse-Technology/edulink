@@ -1,7 +1,7 @@
 from django.urls import path
-from . import views
+from .views import get_csrf_token, list_internships
 
 urlpatterns = [
-    # Example path — make sure this matches a real view
-    path('', views.list_internships, name='internship_list'),
+    path('', list_internships, name='internship_list'),
+    path('csrf/', get_csrf_token, name='get-csrf-token'),
 ]
