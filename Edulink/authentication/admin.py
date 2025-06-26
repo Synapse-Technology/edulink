@@ -6,8 +6,8 @@ from .models import User, EmailOTP, Invite, CustomAdminLog
 # For now, we can use the default site for simplicity unless specific overrides are needed.
 
 class UserAdmin(admin.ModelAdmin):
-    list_display = ('email', 'role', 'is_staff', 'is_superuser', 'is_active', 'date_joined')
-    list_filter = ('role', 'is_staff', 'is_superuser', 'is_active')
+    list_display = ('email', 'role', 'is_staff', 'is_superuser', 'is_active', 'email_verified', 'date_joined')
+    list_filter = ('role', 'is_staff', 'is_superuser', 'is_active', 'email_verified')
     search_fields = ('email', 'role')
     ordering = ('-date_joined',)
 
