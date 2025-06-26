@@ -293,6 +293,27 @@
       .form-box {
         max-width: 100%;
       }
+      <style>
+  .password-wrapper {
+    position: relative;
+  }
+
+  .password-wrapper input {
+    padding-right: 40px;
+  }
+
+  .toggle-password {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    font-size: 18px;
+    color: #444;
+    opacity: 0.8;
+  }
+</style>
+
     }
   </style>
 </head>
@@ -320,11 +341,21 @@
     
         <form id="registerForm">
           <!-- Step 1: Account Credentials -->
-          <div class="form-step active" id="step1">
-            <input type="email" name="email" placeholder="Email" required />
-            <input type="password" name="password" placeholder="Password" required />
-            <input type="password" name="confirm_password" placeholder="Confirm Password" required />
-          </div>
+          <!-- Step 1: Account Credentials -->
+<div class="form-step active" id="step1">
+  <input type="email" name="email" placeholder="Email" required />
+
+  <div class="password-wrapper">
+    <input type="password" name="password" placeholder="Password" required />
+    <span class="toggle-password" onclick="togglePassword(this)">👁️</span>
+  </div>
+
+  <div class="password-wrapper">
+    <input type="password" name="confirm_password" placeholder="Confirm Password" required />
+    <span class="toggle-password" onclick="togglePassword(this)">👁️</span>
+  </div>
+</div>
+
     
           <!-- Step 2: Personal Details -->
           <div class="form-step" id="step2">
@@ -466,7 +497,19 @@
       });
 
       showStep(currentStep);
+
     });
+    function togglePassword(icon) {
+  const input = icon.previousElementSibling;
+  if (input.type === "password") {
+    input.type = "text";
+    icon.textContent = "🙈";
+  } else {
+    input.type = "password";
+    icon.textContent = "👁️";
+  }
+}
+yu
   </script>
 </body>
 </html>
