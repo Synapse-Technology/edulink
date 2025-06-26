@@ -5,7 +5,6 @@ from rest_framework_simplejwt.views import (
 )
 from .views import (
     InviteRegisterTemplateView,
-    RegisterView,
     CustomTokenObtainPairView,
     PasswordResetRequestView,
     PasswordResetConfirmView,

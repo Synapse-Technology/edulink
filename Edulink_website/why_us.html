@@ -1,141 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>About Us - Edulink KE</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      line-height: 1.6;
-      background-color: #f2f2f2;
-    }
-
-    nav {
-      background-color: #fff;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      padding: 10px 30px;
-      position: sticky;
-      top: 0;
-      z-index: 999;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .logo {
-      font-size: 24px;
-      color: #009999;
-      font-weight: bold;
-    }
-
-    nav ul {
-      list-style: none;
-      display: flex;
-      align-items: center;
-    }
-
-    nav ul li {
-      position: relative;
-    }
-
-    nav ul li a {
-      text-decoration: none;
-      color: #333;
-      padding: 10px 15px;
-      display: block;
-      font-weight: 500;
-    }
-
-    nav ul li:hover > ul {
-      display: block;
-    }
-
-    nav ul li ul {
-      display: none;
-      position: absolute;
-      top: 40px;
-      left: 0;
-      background: white;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      min-width: 200px;
-    }
-
-    nav ul li ul li a {
-      padding: 10px;
-      border-bottom: 1px solid #ddd;
-    }
-
-    header {
-      background-color: #e0f7f7;
-      text-align: center;
-      padding: 50px 20px;
-    }
-
-    header h1 {
-      color: #477c7c;
-      font-size: 36px;
-      margin-bottom: 10px;
-    }
-
-    header p {
-      font-size: 18px;
-      color: #6236e5;
-    }
-
-    section {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 30px;
-      background: white;
-      padding: 40px 20px;
-      max-width: 1200px;
-      margin: 20px auto;
-      border-radius: 10px;
-      box-shadow: 0 2px 8px rgba(11, 11, 11, 0.1);
-    }
-
-    section:nth-child(even) {
-      flex-direction: row-reverse;
-    }
-
-    section img {
-      width: 40%;
-      border-radius: 8px;
-    }
-
-    .text {
-      width: 55%;
-    }
-
-    h2 {
-      color: #006666;
-      margin-bottom: 10px;
-    }
-
-    ul {
-      margin-left: 20px;
-    }
-
-    @media (max-width: 768px) {
-      section {
-        flex-direction: column !important;
-      }
-
-      section img,
-      .text {
-        width: 100%;
-      }
-    }
-  </style>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Why Us - EduLink KE</title>
+  <meta content="Discover the unique advantages of partnering with us. We're dedicated to bridging the gap between education and employment in Kenya." name="description">
+  <meta content="EduLink, Kenya, internships, students, employers, institutions, youth empowerment" name="keywords">
   
   <!-- Favicons -->
   <link href="assets/img/favicon.png" rel="icon">
@@ -157,201 +28,353 @@
   <link href="assets/css/main.css" rel="stylesheet">
 
   <style>
-    /* Dropdown styling */
-    .group:hover .group-hover\:block {
-      display: block;
-    }
+  /* Custom Why Us Page Styles */
+  .why-us-page .benefits .card .icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: #f0fdf4; /* Light green background */
+    color: var(--accent-color);
+    font-size: 28px;
+    margin-bottom: 15px;
+    transition: 0.3s;
+  }
+  .why-us-page .benefits .card {
+    border: 1px solid #e2e8f0;
+    transition: transform 0.3s, box-shadow 0.3s;
+  }
+  .why-us-page .benefits .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+  }
+  .why-us-page .benefits .card-body ul {
+    list-style: none;
+    padding: 0;
+  }
+  .why-us-page .benefits .card-body ul li {
+    padding-left: 28px;
+    position: relative;
+    margin-bottom: 12px;
+  }
+  .why-us-page .benefits .card-body ul li:before {
+    content: "✓"; /* Corrected Checkmark icon */
+    position: absolute;
+    left: 0;
+    top: 1px; /* Adjusted for better vertical alignment */
+    color: var(--accent-color);
+    font-weight: bold;
+  }
+  .features-section {
+    padding: 60px 0;
+  }
+  .features-section .feature-item {
+    padding: 40px 0;
+  }
+  .features-section .feature-item img {
+    border-radius: 10px;
+    box-shadow: 0 5px 25px rgba(0,0,0,0.1);
+  }
+  .features-section .feature-item h3 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--default-color);
+    margin-bottom: 15px;
+  }
+  .features-section .feature-item p {
+    color: #6c757d;
+  }
+  .features-section .feature-item ul {
+    list-style: none;
+    padding: 0;
+    margin-top: 15px;
+  }
+  .features-section .feature-item ul li {
+    padding-left: 28px;
+    position: relative;
+    margin-bottom: 10px;
+  }
+  .features-section .feature-item ul i {
+    position: absolute;
+    left: 0;
+    top: 2px;
+    font-size: 20px;
+    color: var(--accent-color);
+  }
+
+  #footer.footer-brand {
+    background: #112019; /* Deep, dark green */
+    color: #c0c0c0; /* Lighter text for better contrast */
+    padding: 60px 0 30px 0;
+  }
+  #footer.footer-brand .footer-about .sitename,
+  #footer.footer-brand h4 {
+    color: #ffffff;
+    font-weight: 600;
+  }
+  #footer.footer-brand .footer-contact p {
+    color: #c0c0c0;
+  }
+  #footer.footer-brand .footer-links ul li {
+    padding: 6px 0;
+  }
+  #footer.footer-brand .footer-links ul a {
+    color: #c0c0c0;
+    transition: 0.3s;
+  }
+  #footer.footer-brand .footer-links ul a:hover {
+    color:rgb(10, 189, 174); /* Brand accent green */
+    text-decoration: none; /* Removing underline for a cleaner look */
+  }
+  #footer.footer-brand .social-links a {
+    background: rgba(255, 255, 255, 0.1); /* Subtle background */
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin-right: 8px;
+    transition: 0.3s;
+  }
+  #footer.footer-brand .social-links a:hover {
+    background: #28a745; /* Brand accent green */
+    transform: translateY(-2px); /* Add a subtle lift */
+  }
+  #footer.footer-brand .footer-newsletter .newsletter-form input[type="email"] {
+    background: transparent;
+    border: solid 1px rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    padding: 10px;
+  }
+  #footer.footer-brand .footer-newsletter .newsletter-form input[type="submit"] {
+    background:rgb(6, 165, 144);
+    padding: 10px 20px;
+  }
+  #footer.footer-brand .copyright {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 30px;
+    margin-top: 30px;
+  }
+  #footer.footer-brand .copyright, 
+  #footer.footer-brand .credits a {
+    color: #999999;
+  }
+  #footer.footer-brand .credits a:hover {
+    color: #28a745;
+  }
+
   </style>
+
 </head>
-<body class="bg-gray-50 text-gray-800">
-  <!-- Navbar -->
+
+<body class="why-us-page">
+
 <header id="header" class="header d-flex align-items-center sticky-top">
   <div class="container-fluid container-xl position-relative d-flex align-items-center justify-content-between">
 
     <a href="index.html" class="logo d-flex align-items-center me-auto">
-      <h1 class="sitename">EduLink KE</h1>
+      <h1 class="sitename">EduLink</h1>
     </a>
 
     <nav id="navmenu" class="navmenu">
         <ul>
-            <li><a href="index.html" class="">Home</a></li>
+        <li><a href="index.html" class="nav-link">Home</a></li>
             <li class="dropdown">
-                <a href="#" class=""><span>About</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
-                <ul>
-                    <li><a href="about.html#background" class="">Background</a></li>
-                    <li><a href="about.html#mission" class="">Vision,Mission & Core Values</a></li>
-                    <li><a href="about.html#partners" class="">Partners</a></li>
+          <a href="#" class="nav-link"><span>About</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
+          <ul>
+            <li><a href="about.html#background" class="nav-link">Background</a></li>
+            <li><a href="about.html#mission" class="nav-link">Vision,Mission & Core Values</a></li>
+            <li><a href="about.html#partners" class="nav-link">Partners</a></li>
                 </ul>
             </li>
-            <li><a href="contact.html" class="">Contact</a></li>
-            <li><a href="support.html" class="">Support Features</a></li>
-            <li><a href="https://chatgpt.com/" class="">AI HELP</a></li>
-            <li><a href="register.html" class="btn-getstarted">Get Started</a></li>
-            <li>
-                <!-- Search Form -->
-                <form class="d-flex" onsubmit="return handleSearch(event)">
-                    <input class="form-control me-2" id="searchInput" type="text" placeholder="Search...">
-                    <button class="btn" type="submit" style="background: none; border: none; padding: 0 8px; font-size: 1.2rem;">🔍</button>
-                </form>
-            </li>
+        <li><a href="contact.html" class="nav-link">Contact</a></li>
+        <li><a href="support.html" class="nav-link">Support Features</a></li>
+        <li><a href="search.html" class="nav-link">Search</a></li>
         </ul>
-    </nav>
-    <script>
-        // Highlight active nav link in green
-        document.addEventListener('DOMContentLoaded', function () {
-            const navLinks = document.querySelectorAll('.navmenu a[href]');
-            const currentUrl = window.location.pathname.split('/').pop() + window.location.hash;
-            navLinks.forEach(link => {
-                if (
-                    link.getAttribute('href') === currentUrl ||
-                    (link.getAttribute('href').split('#')[0] === window.location.pathname.split('/').pop() &&
-                     link.getAttribute('href').includes(window.location.hash))
-                ) {
-                    link.classList.add('active-nav-green');
-                }
-            });
-        });
-    </script>
-    <style>
-        .navmenu a.active-nav-green,
-        .navmenu a.active-nav-green:focus,
-        .navmenu a.active-nav-green:hover {
-            color: #fff !important;
-            background: #22c55e !important; /* Tailwind green-500 */
-            font-weight: bold;
-            border-radius: 4px;
-            transition: background 0.2s;
-        }
-    </style>
-    <script>
-      // Highlight active nav link
-      document.addEventListener('DOMContentLoaded', function () {
-        const navLinks = document.querySelectorAll('.navmenu a[href]');
-        const currentUrl = window.location.pathname.split('/').pop() + window.location.hash;
-        navLinks.forEach(link => {
-          // Check for exact match or anchor match
-          if (
-            link.getAttribute('href') === currentUrl ||
-            (link.getAttribute('href').split('#')[0] === window.location.pathname.split('/').pop() &&
-             link.getAttribute('href').includes(window.location.hash))
-          ) {
-            link.style.color = '#009999';
-            link.style.fontWeight = 'bold';
-            link.style.background = '#e0f7f7';
-            link.classList.add('active-nav');
-          }
-        });
-      });
-    </script>
-    <style>
-      .navmenu a.active-nav,
-      .navmenu a.active-nav:focus,
-      .navmenu a.active-nav:hover {
-        color: #009999 !important;
-        background: #e0f7f7 !important;
-        font-weight: bold;
-        border-radius: 4px;
-      }
-    </style>
-  </ul>
-  <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
-</nav>
+    </nav><!-- End Nav Menu -->
+
+    <div class="header-actions d-flex align-items-center">
+      <a href="register.html" class="btn-getstarted">Get Started</a>
+      <i class="mobile-nav-toggle d-xl-none bi bi-list ms-3"></i>
+    </div><!-- End Header Actions -->
   </div>
 </header>
 
   
-  <body>
-<body class="text-gray-800">
-  <!-- Hero Section -->
-  <section class="bg-cyan-600 text-white py-16 text-center">
-    <div class="max-w-4xl mx-auto">
-      <h1 class="text-4xl font-bold">Why Choose Edulink KE</h1>
-      <p class="mt-4 text-lg">Empowering Kenya's youth through education, innovation, and opportunity.</p>
-    </div>
-  </section>
+  <main class="main">
 
-  <!-- Experience Section -->
-  <section class="bg-white py-16">
-    <div class="max-w-6xl mx-auto px-4 grid md:grid-cols-2 gap-8 items-center">
-      <div>
-        <h2 class="text-3xl font-bold text-cyan-700 mb-4">Transforming Youth Employment</h2>
-        <p class="mb-4">With years of experience in youth engagement, Edulink KE connects graduates to verified internships, mentorship, and job listings.</p>
-        <ul class="list-disc pl-5 space-y-2 text-gray-700">
-          <li>Over 200+ Partner Institutions</li>
-          <li>Empowering 47,000+ youth annually</li>
-          <li>Supported by industry, NGOs, and government</li>
-        </ul>
-        
-      </div>
-    
+    <!-- Page Title -->
+    <div class="page-title" data-aos="fade">
+      <div class="heading">
+        <div class="container">
+          <div class="row d-flex justify-content-center text-center">
+            <div class="col-lg-8">
+              <h1>Why Choose EduLink KE</h1>
+              <p class="mb-0">We are committed to bridging the gap between education and employment in Kenya by creating a dynamic ecosystem that benefits students, institutions, and employers alike.</p>
+            </div>
+          </div>
     </div>
-  </section>
+      </div>
+    </div><!-- End Page Title -->
 
-  <!-- Stats Banner -->
-  <section class="bg-cyan-100 py-12">
-    <div class="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 text-center gap-6">
-      
-      <div>
-        <p class="text-4xl font-bold text-cyan-800">47K+</p>
-        <p class="text-gray-600">Happy Students</p>
-      </div>
-      <div>
-        <p class="text-4xl font-bold text-cyan-800">36+</p>
-        <p class="text-gray-600">Partner Institutions</p>
-      </div>
-      <div>
-        <p class="text-4xl font-bold text-cyan-800">56+</p>
-        <p class="text-gray-600">Ongoing Collaborations</p>
-      </div>
-    </div>
-  </section>
+    <!-- Benefits Section -->
+    <section id="benefits" class="benefits section">
+      <div class="container">
 
-  <!-- Core Solutions Section -->
-  <section class="bg-white py-16">
-    <div class="max-w-6xl mx-auto px-4 text-center">
-      <h2 class="text-3xl font-bold text-cyan-700 mb-10">What We Offer</h2>
-      <div class="grid md:grid-cols-3 gap-8">
-        <div class="bg-cyan-100 p-6 rounded-lg shadow">
-          <h3 class="text-xl font-semibold text-cyan-800 mb-2">Internship Listings</h3>
-          <p class="text-gray-700">Access verified and quality internships to gain industry experience.</p>
-        </div>
-        <div class="bg-cyan-100 p-6 rounded-lg shadow">
-          <h3 class="text-xl font-semibold text-cyan-800 mb-2">Mentorship Programs</h3>
-          <p class="text-gray-700">Connect with professionals and get guidance on your career journey.</p>
-        </div>
-        <div class="bg-cyan-100 p-6 rounded-lg shadow">
-          <h3 class="text-xl font-semibold text-cyan-800 mb-2">Institution Reports</h3>
-          <p class="text-gray-700">Empowering universities with performance insights from real-world placements.</p>
-        </div>
-        <div class="bg-cyan-100 p-6 rounded-lg shadow">
-          <h3 class="text-xl font-semibold text-cyan-800 mb-2">Employer Access</h3>
-          <p class="text-gray-700">Connect employers with pre-qualified, trained, and vetted students.</p>
-        </div>
-        <div class="bg-cyan-100 p-6 rounded-lg shadow">
-          <h3 class="text-xl font-semibold text-cyan-800 mb-2">Youth Empowerment</h3>
-          <p class="text-gray-700">Build confidence, professionalism, and relevant 21st-century skills.</p>
-        </div>
-        <div class="bg-cyan-100 p-6 rounded-lg shadow">
-          <h3 class="text-xl font-semibold text-cyan-800 mb-2">Digital Certifications</h3>
-          <p class="text-gray-700">Earn certificates from verified programs to boost your employability.</p>
-        </div>
+        <div class="row gy-4">
+
+          <div class="col-lg-4" data-aos="fade-up" data-aos-delay="100">
+            <div class="card h-100">
+              <div class="card-body">
+                <i class="bi bi-mortarboard-fill icon"></i>
+                <h3 class="card-title">For Students</h3>
+                <ul>
+                  <li>Access exclusive, high-quality internships.</li>
+                  <li>Receive personalized career coaching and mentorship.</li>
+                  <li>Build a standout CV with skill-building workshops.</li>
+                  <li>Earn verifiable digital certifications.</li>
+                </ul>
+              </div>
+            </div>
+    </div>
+
+          <div class="col-lg-4" data-aos="fade-up" data-aos-delay="200">
+            <div class="card h-100">
+              <div class="card-body">
+                <i class="bi bi-bank icon"></i>
+                <h3 class="card-title">For Institutions</h3>
+                <ul>
+                  <li>Bridge the gap between academia and industry needs.</li>
+                  <li>Gain real-time analytics on student performance.</li>
+                  <li>Refine curricula to enhance graduate employability.</li>
+                  <li>Reduce administrative overhead with our platform.</li>
+                </ul>
+              </div>
+            </div>
+      </div>
+
+          <div class="col-lg-4" data-aos="fade-up" data-aos-delay="300">
+            <div class="card h-100">
+              <div class="card-body">
+                <i class="bi bi-briefcase-fill icon"></i>
+                <h3 class="card-title">For Employers</h3>
+                <ul>
+                  <li>Tap into a pipeline of Kenya's brightest talent.</li>
+                  <li>Connect with pre-vetted, job-ready students.</li>
+                  <li>Enhance your employer brand and visibility.</li>
+                  <li>Simplify and streamline your recruitment process.</li>
+                </ul>
+      </div>
       </div>
     </div>
-  </section>
-<body class="text-gray-800">
+
+        </div>
+      </div>
+    </section><!-- /Benefits Section -->
+
+    <!-- Features Section -->
+    <section id="features" class="features-section">
+      <div class="container">
+
+        <div class="row gy-4 align-items-center feature-item">
+          <div class="col-md-5" data-aos="fade-right">
+            <img src="assets/img/course-1.jpg" class="img-fluid" alt="">
+          </div>
+          <div class="col-md-7" data-aos="fade-left">
+            <h3>The EduLink Advantage: A Curated Talent Pipeline</h3>
+            <p>Employers gain direct access to a curated pool of students who are not only academically proficient but also professionally trained, vetted, and ready to make an impact from day one.</p>
+            <ul>
+              <li><i class="bi bi-patch-check-fill"></i><span>Pre-screened and qualified candidates.</span></li>
+              <li><i class="bi bi-patch-check-fill"></i><span>Reduced hiring time and costs.</span></li>
+              <li><i class="bi bi-patch-check-fill"></i><span>Access to motivated, high-potential talent.</span></li>
+            </ul>
+        </div>
+        </div><!-- Features Item -->
+
+        <div class="row gy-4 align-items-center feature-item">
+          <div class="col-md-5 order-1 order-md-2" data-aos="fade-left">
+            <img src="assets/img/course-2.jpg" class="img-fluid" alt="">
+        </div>
+          <div class="col-md-7 order-2 order-md-1" data-aos="fade-right">
+            <h3>360° Career Readiness and Development</h3>
+            <p>
+              Beyond job placements, we focus on holistic development. Our programs build confidence, professionalism, and critical 21st-century skills through targeted mentorship and hands-on training workshops.
+            </p>
+            <ul>
+              <li><i class="bi bi-people-fill"></i><span>Soft skills training (communication, teamwork).</span></li>
+              <li><i class="bi bi-tools"></i><span>Technical workshops relevant to industry needs.</span></li>
+              <li><i class="bi bi-award-fill"></i><span>Mentorship from seasoned industry professionals.</span></li>
+            </ul>
+        </div>
+        </div><!-- Features Item -->
+
+        <div class="row gy-4 align-items-center feature-item">
+          <div class="col-md-5" data-aos="fade-right">
+            <img src="assets/img/course-3.jpg" class="img-fluid" alt="">
+        </div>
+          <div class="col-md-7" data-aos="fade-left">
+            <h3>Actionable Performance Insights for Institutions</h3>
+            <p>We provide universities with powerful, data-driven dashboards to track student progress and gather feedback, closing the crucial loop between academic theory and real-world industry practice.</p>
+            <ul>
+              <li><i class="bi bi-graph-up-arrow"></i><span>Track student engagement and success rates.</span></li>
+              <li><i class="bi bi-file-earmark-text-fill"></i><span>Generate reports on graduate employability.</span></li>
+              <li><i class="bi bi-lightbulb-fill"></i><span>Inform curriculum development with industry data.</span></li>
+            </ul>
+        </div>
+        </div><!-- Features Item -->
+
+      </div>
+    </section><!-- /Features Section -->
+
+    <!-- Stats Section -->
+    <section id="stats" class="stats section light-background">
+        <div class="container" data-aos="fade-up">
+            <div class="row gy-4">
+
+                <div class="col-lg-3 col-md-6 d-flex flex-column align-items-center">
+                    <i class="bi bi-people"></i>
+                    <span data-purecounter-start="0" data-purecounter-end="10000" data-purecounter-duration="1" class="purecounter"></span>
+                    <p>Students Engaged</p>
+                </div>
+
+                <div class="col-lg-3 col-md-6 d-flex flex-column align-items-center">
+                    <i class="bi bi-building"></i>
+                    <span data-purecounter-start="0" data-purecounter-end="50" data-purecounter-duration="1" class="purecounter"></span>
+                    <p>Future Partner Institutions</p>
+                </div>
+
+                <div class="col-lg-3 col-md-6 d-flex flex-column align-items-center">
+                    <i class="bi bi-briefcase"></i>
+                    <span data-purecounter-start="0" data-purecounter-end="100" data-purecounter-duration="1" class="purecounter"></span>
+                    <p>Leading Employer Partners</p>
+                </div>
+
+                <div class="col-lg-3 col-md-6 d-flex flex-column align-items-center">
+                     <i class="bi bi-award"></i>
+                    <span data-purecounter-start="0" data-purecounter-end="2500" data-purecounter-duration="1" class="purecounter"></span>
+                    <p>Successful Placements</p>
+                </div>
+
+      </div>
+    </div>
+    </section><!-- /Stats Section -->
  
+  </main>
 
-  <!-- Footer -->
-  <footer id="footer" class="footer position-relative light-background">
+  <footer id="footer" class="footer position-relative footer-brand">
 
   <div class="container footer-top">
     <div class="row gy-4">
       <div class="col-lg-4 col-md-6 footer-about">
         <a href="index.html" class="logo d-flex align-items-center">
-          <span class="sitename" id="edulink-highlight">EduLink KE</span>
+          <span class="sitename">EduLink KE</span>
         </a>
         <div class="footer-contact pt-3">
-          <p>Ngong Lane, Off Ngong Road</p>
+          <p>JKUAT, Juja </p>
           <p>Nairobi, Kenya</p>
           <p class="mt-3"><strong>Phone:</strong> <span>+254 712 345 678</span></p>
           <p><strong>Email:</strong> <span>info@edulink.co.ke</span></p>
@@ -360,19 +383,19 @@
           <a href="https://twitter.com/edulinkke"><i class="bi bi-twitter-x"></i></a>
           <a href="https://facebook.com/edulinkke"><i class="bi bi-facebook"></i></a>
           <a href="https://instagram.com/edulinkke"><i class="bi bi-instagram"></i></a>
-          <a href="https://linkedin.com/company/edulinkke"><i class="bi bi-linkedin"></i></a>
+          <a href="https://linkedin.com/company/synapsetechnology/"><i class="bi bi-linkedin"></i></a>
         </div>
       </div>
 
       <div class="col-lg-2 col-md-3 footer-links">
         <h4>Useful Links</h4>
         <ul>
-           <li><a href="app.html">Download App</a></li> 
+           <li><a href="">Download App</a></li>
           <li><a href="policy.html">Privacy Policy</a></li>
-          <li><a href="term.html">Terms of Service</a></li>
-           <li><a href="opprtunities.html">FAQs</a></li>
-           <li><a href="about.html">Help</a></li>
-          <li><a href="index.html">Chat with Staff</a></li>
+          <li><a href="">Terms of Service</a></li>
+           <li><a href="">FAQs</a></li>
+           <li><a href="">Help</a></li>
+          <li><a href="">Chat with Staff</a></li>
           </ul>
       </div>
 
@@ -390,7 +413,7 @@
       <div class="col-lg-4 col-md-12 footer-newsletter">
         <h4>Our Newsletter</h4>
         <p>Stay updated on verified internships, new features, and student career events.</p>
-        <form action="" method="post" class="php-email-form">
+        <form action="forms/newsletter.php" method="post" class="php-email-form">
           <div class="newsletter-form">
             <input type="email" name="email"><input type="submit" value="Subscribe">
           </div>
@@ -403,24 +426,34 @@
     </div>
   </div>
 
-  <div class="container copyright text-center mt-4">
-    <p>© <span>Copyright</span> <strong class="px-1 sitename" id="edulink-highlight">EduLink KE</strong> <span>All Rights Reserved</span></p>
+  <div class="container copyright text-center">
+    <p>© <span>Copyright</span> <strong class="px-1 sitename">EduLink KE</strong> <span>All Rights Reserved</span></p>
     <div class="credits">
-      Designed by Synapse JKUAT
+      Designed by <a href="">Synapse Technology</a> Distributed by <a href="">Synapse</a>
     </div>
   </div>
 
 </footer>
 
-  <script>
-    // Search functionality
-    function handleSearch(event) {
-      event.preventDefault();
-      const query = document.getElementById('searchInput').value;
-      if (query) {
-        window.location.href = `search.html?q=${encodeURIComponent(query)}`;
-      }
-    }
-  </script>
+  <!-- Scroll Top -->
+  <a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+
+  <!-- Preloader -->
+  <div id="preloader"></div>
+
+  <!-- Vendor JS Files -->
+  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/vendor/php-email-form/validate.js"></script>
+  <script src="assets/vendor/aos/aos.js"></script>
+  <script src="assets/vendor/glightbox/js/glightbox.min.js"></script>
+  <script src="assets/vendor/purecounter/purecounter_vanilla.js"></script>
+  <script src="assets/vendor/swiper/swiper-bundle.min.js"></script>
+
+
+  <!-- Main JS File -->
+  <script src="assets/js/main.js"></script>
+  <script src="assets/js/edulink-chatbot.js"></script>
+
 </body>
+
 </html>
