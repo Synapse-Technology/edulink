@@ -16,6 +16,11 @@ from django.db import transaction
 import uuid
 import random
 from users.roles import RoleChoices
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_protect
+from security.models import SecurityLog
+from rest_framework_simplejwt.views import TokenBlacklistView
+from rest_framework.permissions import AllowAny
 
 
 def validate_unique_email(value):
@@ -95,17 +100,29 @@ class StudentRegistrationSerializer(serializers.Serializer):
             'year_of_study': academic_year,
         }
         
-        # Create user with role
+        # Create user with role and inactive status
         user = User.objects.create_user(
             email=validated_data['email'],
             password=validated_data['password'],
-            role='student'  # Set the role directly on the user
+            role='student',  # Set the role directly on the user
+            is_active=False  # User is inactive until email is verified
         )
         
         # Create StudentProfile
         StudentProfile.objects.create(
             user=user,
             **profile_data
+        )
+        
+        # Send verification email
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = default_token_generator.make_token(user)
+        verification_link = f"http://localhost:8000/api/auth/verify-email/{uid}/{token}/"
+        send_mail(
+            subject="Verify your email",
+            message=f"Click the link to verify your email: {verification_link}",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
         )
         
         return user
@@ -537,3 +554,19 @@ class VerifyOTPSerializer(serializers.Serializer):
             "refresh": str(RefreshToken.for_user(user)),
             "access": str(RefreshToken.for_user(user).access_token),
         }
+
+
+class CustomLogoutView(TokenBlacklistView):
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        # Try to get user from request if authenticated, else log as None
+        user = request.user if request.user.is_authenticated else None
+        SecurityLog.objects.create(
+            user=user,
+            action="LOGOUT",
+            description="User logged out and token blacklisted.",
+            ip_address=request.META.get('REMOTE_ADDR')
+        )
+        return response

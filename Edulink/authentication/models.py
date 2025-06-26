@@ -34,9 +34,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     date_joined = models.DateTimeField(default=timezone.now)
 
     # Extended fields
-    institution = models.CharField(max_length=255, blank=True, null=True)
+    institution = models.ForeignKey('institutions.Institution', on_delete=models.SET_NULL, null=True, blank=True)
     phone_number = models.CharField(max_length=20, blank=True, null=True)
     national_id = models.CharField(max_length=20, blank=True, null=True)
+    email_verified = models.BooleanField(default=False)
 
     # Role-based access
     role = models.CharField(

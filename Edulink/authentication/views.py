@@ -2,7 +2,7 @@ from rest_framework import status, generics
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenBlacklistView
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
@@ -28,6 +28,8 @@ from institutions.models import Institution
 from django.db import transaction
 from .models import Invite
 from .permissions import IsStudent, IsEmployer, IsInstitution, IsAdmin
+from security.models import SecurityLog, LoginHistory
+from security.utils import get_client_ip
 
 User = get_user_model()
 
@@ -68,6 +70,12 @@ class PasswordResetConfirmTemplateView(View):
 
         if serializer.is_valid():
             serializer.save()
+            SecurityLog.objects.create(
+                user=request.user,
+                action='PASSWORD_RESET',
+                description='User successfully reset password',
+                ip_address=get_client_ip(request)
+            )
             return redirect("password_reset_success")
 
         return render(request, "password_reset_confirm.html", {
@@ -165,8 +173,13 @@ class InviteRegisterTemplateView(View):
             serializer.save()
             invite.is_used = True
             invite.save()
+            SecurityLog.objects.create(
+                user=request.user,
+                action='REGISTER',
+                description='User registered via invite successfully',
+                ip_address=get_client_ip(request)
+            )
             return redirect("registration_success")
-
 
         return render(request, "invite_register.html", {
             "error": serializer.errors,
@@ -185,6 +198,12 @@ class StudentRegistrationView(APIView):
             try:
                 with transaction.atomic():
                     user = serializer.save()
+                    SecurityLog.objects.create(
+                        user=user,
+                        action='REGISTER',
+                        description='User registered successfully',
+                        ip_address=request.META.get('REMOTE_ADDR')
+                    )
                     return Response({
                         'message': 'Registration successful. Please check your email to verify your account.',
                         'user': {
@@ -201,6 +220,66 @@ class StudentRegistrationView(APIView):
 class LoginView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
     permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        try:
+            response = super().post(request, *args, **kwargs)
+            # If login successful
+            if response.status_code == 200:
+                user = User.objects.get(email=request.data.get("email"))
+                ip = get_client_ip(request)
+                user_agent = request.META.get('HTTP_USER_AGENT', '')
+                LoginHistory.objects.create(
+                    user=user,
+                    ip_address=ip,
+                    user_agent=user_agent
+                )
+                SecurityLog.objects.create(
+                    user=user,
+                    action='LOGIN',
+                    description='User logged in successfully',
+                    ip_address=ip
+                )
+            else:
+                # Log failed login
+                SecurityLog.objects.create(
+                    user=None,
+                    action='FAILED_LOGIN',
+                    description=f'Failed login attempt for email: {request.data.get("email")}',
+                    ip_address=get_client_ip(request)
+                )
+            return response
+        except Exception as e:
+            # Log failed login
+            SecurityLog.objects.create(
+                user=None,
+                action='FAILED_LOGIN',
+                description=f'Failed login attempt for email: {request.data.get("email")}',
+                ip_address=get_client_ip(request)
+            )
+            raise e
+        
+
+class CustomLogoutView(TokenBlacklistView):
+    """
+    Custom logout view to blacklist the refresh token and log the event.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        
+        # Log the logout event
+        user = request.user if request.user.is_authenticated else None
+        SecurityLog.objects.create(
+            user=user,
+            action="LOGOUT",
+            description="User logged out and token blacklisted.",
+            ip_address=get_client_ip(request)
+        )
+        
+        return response
+    
 
 class PasswordResetRequestView(APIView):
     permission_classes = [AllowAny]
@@ -267,6 +346,14 @@ class InviteRegisterView(APIView):
             invite.is_used = True
             invite.save()
 
+            # Log registration
+            SecurityLog.objects.create(
+                user=user,
+                action='REGISTER',
+                description='User registered via invite successfully',
+                ip_address=get_client_ip(request)
+            )
+
             return Response({
                 "message": f"{role.replace('_', ' ').title()} registered successfully.",
                 "user": {"email": user.email, "role": role}
@@ -290,6 +377,12 @@ class VerifyOTPView(generics.GenericAPIView):
     def post(self, request):
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
+            SecurityLog.objects.create(
+                user=request.user,
+                action='2FA_VERIFY',
+                description='User successfully verified 2FA',
+                ip_address=get_client_ip(request)
+            )
             return Response(serializer.validated_data, status=200)
         return Response(serializer.errors, status=400)
    
@@ -323,6 +416,12 @@ class PasswordResetConfirmView(generics.GenericAPIView):
         serializer = self.get_serializer(data=data)
         if serializer.is_valid():
             serializer.save()
+            SecurityLog.objects.create(
+                user=request.user,
+                action='PASSWORD_RESET',
+                description='User successfully reset password',
+                ip_address=get_client_ip(request)
+            )
             return Response({"detail": "Password has been reset."}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -333,6 +432,19 @@ class ChangePasswordView(generics.UpdateAPIView):
 
     def get_object(self):
         return self.request.user
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        SecurityLog.objects.create(
+            user=request.user,
+            action='PASSWORD_CHANGE',
+            description='User changed their password',
+            ip_address=get_client_ip(request)
+        )
+        return Response(serializer.data)
 
 # STUDENT-only: Submit an application
 class SubmitApplicationView(APIView):
@@ -388,3 +500,20 @@ class RegistrationSuccessView(TemplateView):
 
 class PasswordResetSuccessView(TemplateView):
     template_name = "password_reset_success.html"
+
+class VerifyEmailView(APIView):
+    def get(self, request, uidb64, token):
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            return render(request, 'authentication/verification_failed.html')
+        
+        if default_token_generator.check_token(user, token):
+            user.is_active = True
+            if hasattr(user, 'email_verified'):
+                user.email_verified = True
+            user.save()
+            return render(request, 'authentication/verification_success.html')
+        
+        return render(request, 'authentication/verification_failed.html')

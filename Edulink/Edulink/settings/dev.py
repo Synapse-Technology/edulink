@@ -4,8 +4,9 @@ DEBUG = True
 
 ALLOWED_HOSTS = ["*"]  # For local testing
 
+# Email backend for development
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-DEFAULT_FROM_EMAIL = 'noreply@edulink.com'  # Replace with your actual email
+DEFAULT_FROM_EMAIL = 'noreply@edulink.com'
 
 # Optional: log SQL queries for debugging
 LOGGING = {

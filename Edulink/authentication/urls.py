@@ -5,12 +5,9 @@ from rest_framework_simplejwt.views import (
 )
 from .views import (
     InviteRegisterTemplateView,
-    RegisterView,
     CustomTokenObtainPairView,
     PasswordResetRequestView,
     PasswordResetConfirmView,
-    ChangePasswordView,
-    InviteRegisterView,
     InviteCreateView,
     TwoFALoginView,
     VerifyOTPView,
@@ -18,6 +15,9 @@ from .views import (
     PasswordResetConfirmTemplateView,
     RegistrationSuccessView,
     PasswordResetSuccessView,
+    CustomLogoutView,
+    ChangePasswordView,
+    VerifyEmailView
 )
 
 urlpatterns = [
@@ -25,7 +25,8 @@ urlpatterns = [
     path('invite/', InviteCreateView.as_view(), name='send-invite'),
     path('login/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    path('logout/', TokenBlacklistView.as_view(), name='token_blacklist'),
+    path('logout/', CustomLogoutView.as_view(), name='logout'),
+    path('change-password/', ChangePasswordView.as_view(), name='change-password'),
 
     # 2FA: Step 1 - Login to receive OTP
     path("2fa/login/", TwoFALoginView.as_view(), name="2fa_login"),
@@ -37,9 +38,6 @@ urlpatterns = [
     path('password-reset/', PasswordResetRequestView.as_view(), name='password_reset'),
     path('reset-password-confirm/<uidb64>/<token>/', PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
 
-    # Change password for logged-in user
-    path('change-password/', ChangePasswordView.as_view(), name='change_password'),
-
     # Template-based registration and password reset
     path("invite-register/", InviteRegisterTemplateView.as_view(), name="invite_register_template"),
     path("reset-password/<uidb64>/<token>/", PasswordResetConfirmTemplateView.as_view(), name="password_reset_confirm_template"),
@@ -47,4 +45,6 @@ urlpatterns = [
     # Success pages
     path("registration-success/", RegistrationSuccessView.as_view(), name="registration_success"),
     path("password-reset/success/", PasswordResetSuccessView.as_view(), name="password_reset_success"),
+
+    path('verify-email/<uidb64>/<token>/', VerifyEmailView.as_view(), name='verify-email'),
 ]

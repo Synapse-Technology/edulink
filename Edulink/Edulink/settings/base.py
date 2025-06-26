@@ -43,6 +43,11 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 DEFAULT_FROM_EMAIL = 'noreply@edulink.com'
 
+# Frontend URL configurations
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
+FRONTEND_VERIFICATION_SUCCESS_URL = os.environ.get('FRONTEND_VERIFICATION_SUCCESS_URL', f'{FRONTEND_URL}/login?verified=true')
+FRONTEND_VERIFICATION_FAILURE_URL = os.environ.get('FRONTEND_VERIFICATION_FAILURE_URL', f'{FRONTEND_URL}/verification-failed')
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -60,6 +65,7 @@ INSTALLED_APPS = [
     'users',
     'institutions',
     'internship',
+    'security',
 ]
 
 REST_FRAMEWORK = {
@@ -101,7 +107,7 @@ ROOT_URLCONF = 'Edulink.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
