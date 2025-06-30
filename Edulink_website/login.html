@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Edulink KE - Login</title>
+  
   <style>
     * {
       box-sizing: border-box;
@@ -11,194 +12,249 @@
       padding: 0;
     }
 
-    body, html {
+    html, body {
       height: 100%;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
 
     body {
-      background: url('signin.jpeg') no-repeat center center/cover;
+      background: url('assets/img/signin.jpeg') no-repeat center center/cover;
+      min-height: 100vh;
+      width: 100vw;
+      overflow-x: hidden;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       position: relative;
     }
 
     .overlay {
-      position: absolute;
+      position: fixed;
       top: 0; left: 0;
-      width: 100%; height: 100%;
-      background-color: rgba(0, 0, 0, 0.35);
+      width: 100vw; height: 100vh;
+      background: rgba(20, 40, 30, 0.55);
       z-index: 0;
+      pointer-events: none;
     }
 
-    .container {
-      position: relative;
+    .login-wrapper {
+      display: flex;
+      width: 100%;
+      max-width: 920px;
+      min-height: 620px;
+      background-color: rgba(10, 25, 15, 0.55);
+      border-radius: 20px;
+      box-shadow: 0 10px 35px rgba(0,0,0,0.3);
+      overflow: hidden;
+      backdrop-filter: blur(18px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
       z-index: 1;
-      height: 100vh;
+    }
+    
+    .branding-side {
+      flex: 0.9;
+      background: linear-gradient(145deg,rgb(17, 204, 173),rgb(6, 165, 165));
+      color: #fff;
+      padding: 50px 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .branding-logo {
+      max-width: 150px;
+      margin-bottom: 25px;
+    }
+
+    .branding-title {
+      font-size: 2rem;
+      font-weight: 600;
+      margin-bottom: 15px;
+      line-height: 1.3;
+    }
+
+    .branding-subtitle {
+      font-size: 1.05rem;
+      line-height: 1.6;
+      opacity: 0.85;
+    }
+
+    .form-side {
+      flex: 1.1;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 20px;
+      padding: 30px;
+    }
+    
+    .form-box {
+      width: 100%;
+      max-width: 400px;
+      color: #fff;
     }
 
-    .glass-box {
-      backdrop-filter: blur(25px);
-      background-color: rgba(255, 255, 255, 0.2);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      padding: 50px 35px;
-      width: 100%;
-      max-width: 420px;
-      border-radius: 20px;
-      box-shadow: 0 8px 40px rgba(0, 0, 0, 0.3);
+    .form-box h2 {
+      color: #ffffff;
+      margin-bottom: 8px;
       text-align: center;
-      color: #ffffff;
+      font-size: 26px;
+      letter-spacing: 0.5px;
     }
 
-    .glass-box h2 {
-      font-size: 28px;
-      margin-bottom: 10px;
-      font-weight: 700;
-      color: #ffffff;
-    }
-
-    .glass-box p {
+    .form-box p {
+      color: #f1f1f1;
+      margin-bottom: 20px;
+      text-align: center;
       font-size: 15px;
-      margin-bottom: 25px;
-      color: #eeeeee;
     }
 
-    .glass-box input[type="text"],
-    .glass-box input[type="password"],
-    .glass-box input[type="email"],
-    .glass-box input[type="number"] {
+    .form-box form {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .form-box input {
       width: 100%;
-      padding: 12px;
-      margin-bottom: 15px;
+      padding: 12px 14px;
       border: none;
-      border-radius: 8px;
-      background-color: rgba(255, 255, 255, 0.4);
-      color: #000;
-      font-size: 14px;
+      border-radius: 10px;
+      background-color: rgba(255, 255, 255, 0.82);
+      color: #222;
+      font-size: 15px;
+      transition: box-shadow 0.2s;
     }
 
-    .glass-box input::placeholder {
+    .form-box input:focus {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(56, 142, 60, 0.25);
+    }
+
+    .form-box input::placeholder {
       color: #555;
     }
-
-    .glass-box input:focus {
-      outline: none;
-      border: 2px solid #4caf50;
-      background-color: rgba(255, 255, 255, 0.7);
-    }
-
-    .glass-box .options {
+    
+    .form-options {
       display: flex;
       justify-content: space-between;
-      font-size: 13px;
-      margin: 10px 0 20px;
+      align-items: center;
+      font-size: 14px;
+      color: #e0e0e0;
+    }
+    
+    .remember-me {
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
-    .glass-box .options a {
-      color: #d0f1da;
+    .forgot-password {
+      color: #c8e6c9;
       text-decoration: none;
-      cursor: pointer;
     }
-
-    .glass-box .options a:hover {
+    .forgot-password:hover {
       text-decoration: underline;
     }
 
-    .glass-box label {
-      color: #fff;
-      font-size: 13px;
-    }
-
-    .glass-box button {
-      width: 100%;
-      padding: 12px;
-      background-color: #4caf50;
+    .form-box button[type="submit"] {
+      padding: 13px;
+      background: linear-gradient(90deg,rgb(10, 187, 163) 0%,rgb(7, 168, 141) 100%);
       color: white;
       border: none;
-      border-radius: 8px;
-      font-size: 16px;
+      border-radius: 10px;
+      font-size: 17px;
+      font-weight: 600;
       cursor: pointer;
-      transition: background-color 0.3s ease;
-      margin-top: 5px;
+      margin-top: 8px;
+      box-shadow: 0 2px 8px rgba(56, 142, 60, 0.10);
+      transition: background 0.2s, box-shadow 0.2s;
     }
 
-    .glass-box button:hover {
-      background-color: #388e3c;
+    .form-box button[type="submit"]:hover {
+      background: linear-gradient(90deg,rgb(26, 194, 171) 0%, rgb(7, 168, 141) 100%);
+      box-shadow: 0 4px 16px rgba(56, 142, 60, 0.18);
     }
 
-    .glass-box .footer {
-      margin-top: 20px;
+    .form-box .footer {
+      text-align: center;
+      margin-top: 18px;
       font-size: 14px;
-      color: #eee;
+      color: #f2f2f2;
     }
 
-    .glass-box .footer a {
-      color: #81c784;
+    .form-box .footer a {
+      color: #c8e6c9;
       text-decoration: none;
-      font-weight: bold;
+      font-weight: 600;
     }
-
-    .glass-box .footer a:hover {
+    .form-box .footer a:hover {
       text-decoration: underline;
     }
 
-    @media screen and (max-width: 500px) {
-      .glass-box {
-        padding: 30px 20px;
+    #form-message {
+      text-align: center;
+      margin-top: 15px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    
+    @media screen and (max-width: 920px) {
+      .login-wrapper {
+        flex-direction: column;
+        min-height: 100vh;
+        border-radius: 0;
+      }
+      .branding-side {
+        padding: 40px 25px;
+        text-align: center;
+        align-items: center;
+        flex: 0;
+      }
+      .branding-title {
+        font-size: 1.8rem;
+      }
+      .form-side {
+        flex: 1;
+        padding: 20px;
       }
     }
   </style>
 </head>
 <body>
   <div class="overlay"></div>
-  <div class="container">
-    <div class="glass-box" id="form-box">
-      <h2>Welcome Back</h2>
-      <p id="form-title">Log in to your Edulink account</p>
-
-      <form id="login-form">
-        <input type="text" placeholder="Email" required />
-        <input type="password" placeholder="Password" required />
-        <div class="options">
-          <label><input type="checkbox" /> Remember Me</label>
-          <a onclick="showForgotForm()">Forgot Password?</a>
+  <main class="login-wrapper">
+    <div class="branding-side">
+      <a href="index.html">
+        <img src="assets/img/edulink_logo.png" alt="Edulink Logo" class="branding-logo">
+      </a>
+      <h1 class="branding-title">Welcome Back to Edulink</h1>
+      <p class="branding-subtitle">Log in to access your dashboard, track applications, and discover new opportunities.</p>
+    </div>
+    <div class="form-side">
+      <div class="form-box">
+        <div id="login-view">
+          <h2>Sign In</h2>
+          <p>Please enter your credentials to proceed.</p>
+          <form id="login-form">
+            <input type="email" name="email" placeholder="Email" required />
+            <input type="password" name="password" placeholder="Password" required />
+            <div class="form-options">
+              <div class="remember-me">
+                <input type="checkbox" id="remember" name="remember">
+                <label for="remember">Remember Me</label>
+              </div>
+              <a href="#" class="forgot-password">Forgot Password?</a>
+            </div>
+            <button type="submit">Login</button>
+          </form>
+          <div class="footer">
+            Don't have an account? <a href="register.html">Sign Up</a>
+          </div>
+          <div id="form-message"></div>
         </div>
-        <button type="submit">Sign In</button>
-      </form>
-
-      <form id="forgot-form" style="display:none;">
-        <input type="email" placeholder="Enter your Email" required />
-        <button type="button" onclick="sendCode()">Send Code</button>
-      </form>
-
-      <form id="reset-form" style="display:none;">
-        <input type="number" placeholder="Enter Code" required />
-        <input type="password" placeholder="New Password" required />
-        <input type="password" placeholder="Confirm Password" required />
-        <button type="submit">Reset Password</button>
-      </form>
-
-      <div class="footer">
-        Don’t have an account? <a href="register.html">Sign Up</a>
       </div>
     </div>
-  </div>
-
-  <script>
-    function showForgotForm() {
-      document.getElementById("login-form").style.display = "none";
-      document.getElementById("forgot-form").style.display = "block";
-      document.getElementById("form-title").innerText = "Reset your password";
-    }
-
-    function sendCode() {
-      alert("Verification code sent to your email!");
-      document.getElementById("forgot-form").style.display = "none";
-      document.getElementById("reset-form").style.display = "block";
-      document.getElementById("form-title").innerText = "Enter code and new password";
-    }
-  </script>
+  </main>
 </body>
 </html>
