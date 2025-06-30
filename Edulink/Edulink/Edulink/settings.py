@@ -55,7 +55,10 @@ ROOT_URLCONF = 'Edulink.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [
+            BASE_DIR / 'templates',
+            BASE_DIR / 'application' / 'templates',
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -74,7 +77,6 @@ WSGI_APPLICATION = 'Edulink.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-   
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'postgres',
@@ -82,8 +84,7 @@ DATABASES = {
         'PASSWORD': 'Edulinksynapse254%',
         'HOST': 'aws-0-eu-west-2.pooler.supabase.com',  # From Supabase → Settings → Database
         'PORT': '6543',
-    
-}
+    }
 }
 
 
