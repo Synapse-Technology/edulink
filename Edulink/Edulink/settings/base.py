@@ -45,6 +45,8 @@ DEFAULT_FROM_EMAIL = 'noreply@edulink.com'
 
 # Application definition
 
+# settings.py
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -62,6 +64,7 @@ INSTALLED_APPS = [
     'institutions',
     'internship',
     'dashboards',
+    'notifications',  # Added notifications app
 ]
 
 REST_FRAMEWORK = {
