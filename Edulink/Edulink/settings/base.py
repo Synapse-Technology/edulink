@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     'chatbot',
     'institutions',
     'internship',
+    'dashboards',
 ]
 
 REST_FRAMEWORK = {
