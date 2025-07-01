@@ -244,7 +244,7 @@
                 <input type="checkbox" id="remember" name="remember">
                 <label for="remember">Remember Me</label>
               </div>
-              <a href="#" class="forgot-password">Forgot Password?</a>
+              <a href="#" class="forgot-password" id="forgot-password-link">Forgot Password?</a>
             </div>
             <button type="submit">Login</button>
           </form>
@@ -253,8 +253,76 @@
           </div>
           <div id="form-message"></div>
         </div>
+        <!-- Forgot Password Step 1: Request -->
+        <div id="forgot-step1" style="display:none;">
+          <h2>Forgot Password</h2>
+          <p>Enter your email to receive a password reset link.</p>
+          <form id="forgot-form">
+            <input type="email" name="email" placeholder="Email" required />
+            <button type="submit">Send Reset Link</button>
+          </form>
+          <div class="footer">
+            <a href="#" id="back-to-login-1">Back to Login</a>
+          </div>
+          <div id="forgot-message1"></div>
+        </div>
       </div>
     </div>
   </main>
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // View switching
+    const loginView = document.getElementById('login-view');
+    const forgotStep1 = document.getElementById('forgot-step1');
+    const forgotLink = document.getElementById('forgot-password-link');
+    const backToLogin1 = document.getElementById('back-to-login-1');
+    const formMessage = document.getElementById('form-message');
+    const forgotMessage1 = document.getElementById('forgot-message1');
+
+    // Show forgot password step 1
+    forgotLink.addEventListener('click', function(e) {
+      e.preventDefault();
+      loginView.style.display = 'none';
+      forgotStep1.style.display = 'block';
+      formMessage.textContent = '';
+      forgotMessage1.textContent = '';
+    });
+    // Back to login from step 1
+    backToLogin1.addEventListener('click', function(e) {
+      e.preventDefault();
+      loginView.style.display = 'block';
+      forgotStep1.style.display = 'none';
+      formMessage.textContent = '';
+      forgotMessage1.textContent = '';
+    });
+
+    // Step 1: Request reset
+    document.getElementById('forgot-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      forgotMessage1.textContent = 'Sending reset link...';
+      forgotMessage1.style.color = '#e0e0e0';
+      const email = this.email.value.trim();
+      try {
+        const res = await fetch('/api/auth/password_reset/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          forgotMessage1.textContent = data.detail || 'If an account with that email exists, a password reset link has been sent.';
+          forgotMessage1.style.color = '#4CAF50';
+          this.style.display = 'none';
+        } else {
+          forgotMessage1.textContent = data.detail || 'Failed to send reset link.';
+          forgotMessage1.style.color = '#ffb3b3';
+        }
+      } catch (err) {
+        forgotMessage1.textContent = 'An error occurred. Please try again.';
+        forgotMessage1.style.color = '#ffb3b3';
+      }
+    });
+  });
+  </script>
 </body>
 </html>

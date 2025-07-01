@@ -253,19 +253,16 @@ h6 {
 }
 
 @media (max-width: 1200px) {
-  .header .logo {
-    order: 1;
+  .container-xl {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
   }
-
-  .header .btn-getstarted {
-    order: 2;
-    margin: 0 15px 0 0;
-    padding: 6px 15px;
-  }
-
-  .header .navmenu {
-    order: 3;
-  }
+  .container-xl > .logo { order: 1; margin-right: auto !important; }
+  .container-xl > .navmenu { order: 2; }
+  .container-xl > .header-actions { order: 3; display: flex !important; align-items: center; }
+  .header-actions .btn-getstarted { order: 1; }
+  .header-actions .mobile-nav-toggle { order: 2; margin-left: 15px !important; }
 }
 
 .scrolled .header {
