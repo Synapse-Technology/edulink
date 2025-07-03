@@ -1,5 +1,6 @@
 from django.db import models
 from users.models.employer_profile import EmployerProfile
+from users.models.institution_profile import InstitutionProfile
 from institutions.models import Institution
 from .base import BaseModel
 
@@ -42,9 +43,12 @@ class Internship(BaseModel):
     
     # Status
     is_active = models.BooleanField(default=True)
-
-    class Meta:
-        ordering = ['-created_at']
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    # Institution verification fields
+    is_verified_by_institution = models.BooleanField(default=False)
+    verified_by = models.ForeignKey(InstitutionProfile, null=True, blank=True, on_delete=models.SET_NULL)
+    verification_date = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.title} at {self.employer.company_name}"
