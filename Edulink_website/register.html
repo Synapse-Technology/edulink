@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Edulink KE - Sign Up</title>
+  <!-- Vendor CSS Files -->
+  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+  <link href="assets/vendor/aos/aos.css" rel="stylesheet">
+  <link href="assets/vendor/glightbox/css/glightbox.min.css" rel="stylesheet">
+  <link href="assets/vendor/swiper/swiper-bundle.min.css" rel="stylesheet">
+
+  
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background: url('assets/img/background_2.jpeg') no-repeat center center/cover;
+      min-height: 100vh;
+      width: 100vw;
+      overflow-x: hidden;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(20, 40, 30, 0.55);
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .registration-wrapper {
+      display: flex;
+      width: 100%;
+      max-width: 920px;
+      min-height: 620px;
+      background-color: rgba(10, 25, 15, 0.55);
+      border-radius: 20px;
+      box-shadow: 0 10px 35px rgba(0,0,0,0.3);
+      overflow: hidden;
+      backdrop-filter: blur(18px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .branding-side {
+      flex: 0.9;
+      background: linear-gradient(145deg,rgb(17, 204, 173),rgb(6, 165, 165));
+      color: #fff;
+      padding: 50px 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .branding-logo {
+      max-width: 150px;
+      margin-bottom: 25px;
+    }
+
+    .branding-title {
+      font-size: 2rem;
+      font-weight: 600;
+      margin-bottom: 15px;
+      line-height: 1.3;
+    }
+
+    .branding-subtitle {
+      font-size: 1.05rem;
+      line-height: 1.6;
+      opacity: 0.85;
+    }
+
+    .form-side {
+      flex: 1.1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 30px;
+    }
+    
+    .form-box {
+      position: static;
+      backdrop-filter: none;
+      background: transparent;
+      border: none;
+      padding: 0;
+      width: 100%;
+      max-width: 400px;
+      border-radius: 0;
+      box-shadow: none;
+      color: #fff;
+      margin: 0;
+      align-items: center;
+      margin-bottom: 25px;
+    }
+
+    .logo-container { display: none; }
+
+    .form-step {
+      display: none;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .form-step.active {
+      display: flex;
+    }
+
+    .form-navigation {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 15px;
+    }
+    
+    .form-navigation button {
+      padding: 10px 20px;
+      border-radius: 8px;
+      border: 1px solid #c8e6c9;
+      background-color: transparent;
+      color: #c8e6c9;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .form-navigation button:hover {
+       background-color: rgba(200, 230, 201, 0.1);
+    }
+    
+    .form-navigation button#nextBtn, .form-box button[type="submit"] {
+      background: linear-gradient(90deg,rgb(56, 142, 135) 0%,rgb(69, 197, 159) 100%);
+      color: white;
+      border: none;
+    }
+
+    .form-navigation button#nextBtn:hover, .form-box button[type="submit"]:hover {
+       background: linear-gradient(90deg,rgb(56, 138, 127) 0%,rgb(63, 173, 164) 100%);
+       box-shadow: 0 4px 16px rgba(56, 142, 60, 0.18);
+    }
+
+    .step-indicator {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 25px;
+    }
+
+    .step-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background-color: rgba(255, 255, 255, 0.3);
+      margin: 0 10px;
+      transition: all 0.3s ease;
+    }
+    
+    .step-dot.active {
+      background-color: rgb(11, 184, 161);
+      transform: scale(1.3);
+      box-shadow: 0 0 10px rgb(11, 184, 161);
+    }
+
+    .form-box h2 {
+      color: #ffffff;
+      margin-bottom: 8px;
+      text-align: center;
+      font-size: 26px;
+      letter-spacing: 0.5px;
+    }
+
+    .form-box p {
+      color: #f1f1f1;
+      margin-bottom: 20px;
+      text-align: center;
+      font-size: 15px;
+    }
+
+    .form-box input, .form-box select {
+      width: 100%;
+      padding: 12px 14px;
+      margin-bottom: 13px;
+      border: none;
+      border-radius: 10px;
+      background-color: rgba(255, 255, 255, 0.82);
+      color: #222;
+      font-size: 15px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+      transition: box-shadow 0.2s;
+      margin-bottom: 0;
+    }
+
+    .form-box input:focus, .form-box select:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px #388e3c44;
+    }
+
+    .form-box input::placeholder {
+      color: #555;
+      opacity: 0.8;
+    }
+
+    .form-box select:invalid {
+      color: #888;
+    }
+
+    .form-box button {
+      width: 100%;
+      padding: 13px;
+      background: linear-gradient(90deg,rgb(10, 187, 163) 0%,rgb(7, 168, 141) 100%);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 17px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+      box-shadow: 0 2px 8px rgba(56, 142, 60, 0.10);
+      transition: background 0.2s, box-shadow 0.2s;
+    }
+
+    .form-box button:hover {
+      background: linear-gradient(90deg,rgb(26, 194, 171) 0%, rgb(7, 168, 141) 100%);
+      box-shadow: 0 4px 16px rgba(56, 142, 60, 0.18);
+    }
+
+    .form-box .footer {
+      text-align: center;
+      margin-top: 18px;
+      font-size: 14px;
+      color: #f2f2f2;
+    }
+
+    .form-box .footer a {
+      color: #c8e6c9;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    .form-box .footer a:hover {
+      text-decoration: underline;
+    }
+
+    .password-wrapper {
+      position: relative;
+    }
+
+    .password-wrapper input {
+      padding-right: 40px;
+    }
+
+    .toggle-password {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      color: #333;
+      opacity: 0.7;
+    }
+
+    #formMessage {
+      min-height: 24px;
+      font-size: 15px;
+      margin-bottom: 0;
+    }
+
+    @media screen and (max-width: 992px) {
+      body {
+        padding: 0;
+        align-items: flex-start;
+      }
+      .registration-wrapper {
+        flex-direction: column;
+        width: 100%;
+        max-width: 100%;
+        min-height: 100vh;
+        border-radius: 0;
+        margin: 0;
+        box-shadow: none;
+      }
+      .branding-side {
+        padding: 40px 25px;
+        text-align: center;
+        align-items: center;
+        flex: 0 1 auto;
+      }
+      .branding-title {
+        font-size: 1.7rem;
+      }
+      .form-side {
+        padding: 30px 25px;
+        flex: 1 1 auto;
+        width: 100%;
+        justify-content: flex-start;
+      }
+      .form-box {
+        max-width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay"></div>
+
+  <main class="registration-wrapper">
+    <div class="branding-side">
+      <a href="index.html">
+        <img src="assets/img/edulink_logo.png" alt="Edulink Logo" class="branding-logo">
+      </a>
+      <h1 class="branding-title">Join Edulink Today</h1>
+      <p class="branding-subtitle">The bridge to your professional future. Sign up to unlock exclusive internship and job opportunities.</p>
+    </div>
+    <div class="form-side">
+      <div class="form-box">
+        <h2>Account Registration</h2>
+        <p>To sign up, please complete all steps</p>
+        
+        <div class="step-indicator">
+          <span class="step-dot"></span>
+          <span class="step-dot"></span>
+          <span class="step-dot"></span>
+        </div>
+    
+        <form id="registerForm">
+          <!-- Step 1: Account Credentials -->
+          <div class="form-step active" id="step1">
+            <input type="email" name="email" placeholder="Email" required />
+
+            <div class="password-wrapper">
+              <input type="password" name="password" placeholder="Password" required />
+              <span class="toggle-password" onclick="togglePassword(this)"><i class="bi bi-eye-fill"></i></span>
+            </div>
+
+            <div class="password-wrapper">
+              <input type="password" name="confirm_password" placeholder="Confirm Password" required />
+              <span class="toggle-password" onclick="togglePassword(this)"><i class="bi bi-eye-fill"></i></span>
+            </div>
+          </div>
+    
+          <!-- Step 2: Personal Details -->
+          <div class="form-step" id="step2">
+            <input type="text" name="first_name" placeholder="First Name" required />
+            <input type="text" name="last_name" placeholder="Last Name" required />
+            <input type="tel" name="phone_number" placeholder="Phone Number" required />
+            <input type="text" name="national_id" placeholder="National ID Number" required />
+          </div>
+    
+          <!-- Step 3: Academic Information -->
+          <div class="form-step" id="step3">
+            <select name="institution_name" required>
+              <option value="">-- Select Institution --</option>
+              <option value="JKUAT">JKUAT</option>
+              <option value="KU">Kenyatta University</option>
+              <option value="UoN">University of Nairobi</option>
+              <option value="Moi">Moi University</option>
+              <option value="Egerton">Egerton University</option>
+              <option value="Mku">Mount Kenya University</option>
+            </select>
+            <input type="text" name="registration_number" placeholder="University Registration Number" required />
+            <input type="number" name="academic_year" placeholder="Current Year of Study" required min="1" max="8" />
+            <input type="text" name="course_code" placeholder="Course Code (e.g., ICS2101)" />
+          </div>
+    
+          <div class="form-navigation">
+            <button type="button" id="prevBtn" style="display: none;">Previous</button>
+            <button type="button" id="nextBtn">Next</button>
+          </div>
+          
+          <button type="submit" style="display:none; width: 100%; margin-top: 15px;">Register</button>
+        </form>
+    
+        <div id="formMessage" style="margin-top: 15px; text-align: center; min-height: 24px; font-size: 15px; margin-bottom: 0;"></div>
+    
+        <div class="footer">
+          Already have an account? <a href="login.html">Sign In</a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="assets/js/edulink-chatbot.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      let currentStep = 0;
+      const steps = document.querySelectorAll('.form-step');
+      const nextBtn = document.getElementById('nextBtn');
+      const prevBtn = document.getElementById('prevBtn');
+      const submitBtn = document.querySelector('button[type="submit"]');
+      const form = document.getElementById('registerForm');
+      const formMessage = document.getElementById('formMessage');
+      const stepDots = document.querySelectorAll('.step-dot');
+
+      function showStep(stepIndex) {
+        steps.forEach((step, index) => {
+          step.classList.toggle('active', index === stepIndex);
+        });
+
+        stepDots.forEach((dot, index) => {
+          dot.classList.toggle('active', index === stepIndex);
+        });
+
+        prevBtn.style.display = stepIndex > 0 ? 'inline-block' : 'none';
+        nextBtn.style.display = stepIndex < steps.length - 1 ? 'inline-block' : 'none';
+        submitBtn.style.display = stepIndex === steps.length - 1 ? 'inline-block' : 'none';
+      }
+
+      function validateStep(stepIndex) {
+        let valid = true;
+        const inputs = steps[stepIndex].querySelectorAll('input, select');
+        formMessage.textContent = '';
+        
+        inputs.forEach(input => {
+          if (!input.checkValidity()) {
+            input.reportValidity();
+            valid = false;
+          }
+        });
+
+        if (stepIndex === 0) {
+          const password = form.password.value;
+          const confirm_password = form.confirm_password.value;
+          if (password !== confirm_password) {
+            formMessage.textContent = "Passwords do not match.";
+            formMessage.style.color = "#ffb3b3";
+            valid = false;
+          }
+        }
+        return valid;
+      }
+
+      nextBtn.addEventListener('click', () => {
+        if (validateStep(currentStep)) {
+          currentStep++;
+          showStep(currentStep);
+        }
+      });
+
+      prevBtn.addEventListener('click', () => {
+        currentStep--;
+        showStep(currentStep);
+      });
+
+      form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        if (!validateStep(currentStep)) return;
+
+        formMessage.textContent = '';
+
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+        delete data.confirm_password; // Not needed by backend
+
+        try {
+          const response = await fetch('http://127.0.0.1:8000/api/auth/register/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
+          const result = await response.json();
+          if (response.ok) {
+            formMessage.textContent = result.message || "Registration successful! Redirecting...";
+            formMessage.style.color = "#c8e6c9";
+            form.reset();
+            setTimeout(() => { window.location.href = 'login.html'; }, 2000);
+          } else {
+            let errorMsg = "Registration failed. Please check your details.";
+            if (result && typeof result === 'object') {
+              errorMsg = Object.values(result).map(e => Array.isArray(e) ? e.join(' ') : e).join(' ');
+            }
+            formMessage.textContent = errorMsg;
+            formMessage.style.color = "#ffb3b3";
+          }
+        } catch (err) {
+          formMessage.textContent = "An error occurred. Please try again later.";
+          formMessage.style.color = "#ffb3b3";
+        }
+      });
+
+      showStep(currentStep);
+
+    });
+    function togglePassword(span) {
+      const input = span.previousElementSibling;
+      const icon = span.querySelector('i');
+      if (input.type === "password") {
+        input.type = "text";
+        icon.className = 'bi bi-eye-slash-fill';
+      } else {
+        input.type = "password";
+        icon.className = 'bi bi-eye-fill';
+      }
+    }
+  </script>
+</body>
+</html>

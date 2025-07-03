@@ -5,7 +5,6 @@ from rest_framework_simplejwt.views import (
 )
 from .views import (
     InviteRegisterTemplateView,
-    RegisterView,
     CustomTokenObtainPairView,
     PasswordResetRequestView,
     PasswordResetConfirmView,
@@ -21,8 +20,7 @@ from .views import (
 )
 
 urlpatterns = [
-    path('register/student/', StudentRegistrationView.as_view(), name='student-register'),
-    path('register/', RegisterView.as_view(), name='register'),
+    path('register/', StudentRegistrationView.as_view(), name='student-register'),
     path('invite/', InviteCreateView.as_view(), name='send-invite'),
     path('login/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),

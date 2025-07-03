@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Search | EduLink KE</title>
+  <link href="assets/img/favicon.png" rel="icon">
+  <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+  <link href="assets/css/main.css" rel="stylesheet">
+  <style>
+    body { min-height: 100vh; display: flex; flex-direction: column; }
+    .search-section { flex: 1; display: flex; align-items: center; justify-content: center; background: #f8f9fa; }
+    .search-box { background: #fff; border-radius: 18px; box-shadow: 0 2px 16px rgba(0,0,0,0.07); padding: 2.5rem 2rem; max-width: 420px; width: 100%; }
+    .search-highlight { background: #ffe066; color: #222; border-radius: 3px; padding: 0 2px; transition: background 0.3s; }
+    .search-results { margin-top: 2rem; }
+  </style>
+</head>
+<body>
+  <header class="header d-flex align-items-center sticky-top" style="background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+    <div class="container-xl d-flex align-items-center justify-content-between">
+      <a href="index.html" class="logo d-flex align-items-center me-auto">
+        <h1 class="sitename">EduLink KE</h1>
+      </a>
+      <a href="index.html" class="btn btn-outline-success">Back to Home</a>
+    </div>
+  </header>
+  <section class="search-section">
+    <div class="search-box">
+      <form id="modernSearchForm" class="d-flex align-items-center mb-3" autocomplete="off">
+        <input class="form-control border-0 me-2" id="modernSearchInput" type="text" placeholder="Search this page..." style="box-shadow: none; outline: none; font-size: 1.1rem; background: #f5f5f5;">
+        <button class="btn btn-success d-flex align-items-center justify-content-center" type="submit" aria-label="Search" style="font-size: 1.3rem;"><i class="bi bi-search"></i></button>
+      </form>
+      <div class="search-results" id="searchResults">
+        <p>Type a term and press enter to highlight matches in the content below.</p>
+      </div>
+      <div id="pageContent" class="mt-4">
+        <h2>Welcome to EduLink KE Search</h2>
+        <p>
+          EduLink KE connects Kenyan students to trusted internship and graduate job opportunities. Use this search to quickly find information about our services, features, and more.
+        </p>
+        <ul>
+          <li>Verified internship and graduate job listings</li>
+          <li>Track your applications, feedback, and performance</li>
+          <li>Receive digital certificates and build a professional profile</li>
+          <li>Trusted by employers and institutions</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/vendor/bootstrap-icons/bootstrap-icons.js"></script>
+  <script src="assets/js/edulink-chatbot.js"></script>
+  <script>
+    let lastHighlights = [];
+    function clearHighlights() {
+      lastHighlights.forEach(span => {
+        const parent = span.parentNode;
+        parent.replaceChild(document.createTextNode(span.textContent), span);
+        parent.normalize();
+      });
+      lastHighlights = [];
+    }
+    function highlightTerm(term) {
+      clearHighlights();
+      if (!term) return;
+      const walker = document.createTreeWalker(document.getElementById('pageContent'), NodeFilter.SHOW_TEXT, null, false);
+      const regex = new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+      let node;
+      let found = false;
+      while ((node = walker.nextNode())) {
+        const matches = node.nodeValue.match(regex);
+        if (matches) {
+          found = true;
+          const span = document.createElement('span');
+          span.className = 'search-highlight';
+          const parts = node.nodeValue.split(regex);
+          let frag = document.createDocumentFragment();
+          for (let i = 0; i < parts.length; i++) {
+            frag.appendChild(document.createTextNode(parts[i]));
+            if (i < matches.length) {
+              let highlight = span.cloneNode();
+              highlight.textContent = matches[i];
+              frag.appendChild(highlight);
+              lastHighlights.push(highlight);
+            }
+          }
+          node.parentNode.replaceChild(frag, node);
+        }
+      }
+      const results = document.getElementById('searchResults');
+      if (found) {
+        results.innerHTML = `<span class='text-success fw-bold'>Matches highlighted below.</span>`;
+      } else {
+        results.innerHTML = `<span class='text-danger'>No matches found.</span>`;
+      }
+    }
+    document.getElementById('modernSearchForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      const term = document.getElementById('modernSearchInput').value.trim();
+      highlightTerm(term);
+    });
+    document.getElementById('modernSearchInput').addEventListener('input', function () {
+      if (!this.value.trim()) {
+        clearHighlights();
+        document.getElementById('searchResults').innerHTML = '<p>Type a term and press enter to highlight matches in the content below.</p>';
+      }
+    });
+  </script>
+</body>
+</html> 

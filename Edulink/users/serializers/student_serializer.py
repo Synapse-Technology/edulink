@@ -9,7 +9,7 @@ class StudentProfileSerializer(ProfileBaseSerializer):
             'institution',
             'course',
             'national_id',
-            'admission_number',
+            'registration_number',
             'academic_year',
             'skills',
             'interests',

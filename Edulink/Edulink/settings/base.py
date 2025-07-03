@@ -45,6 +45,8 @@ DEFAULT_FROM_EMAIL = 'noreply@edulink.com'
 
 # Application definition
 
+# settings.py
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -58,8 +60,11 @@ INSTALLED_APPS = [
     'authentication',
     'employers',
     'users',
+    'chatbot',
     'institutions',
     'internship',
+    'dashboards',
+    'notifications',  # Added notifications app
 ]
 
 REST_FRAMEWORK = {
@@ -177,3 +182,5 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 SITE_ID = 1
 
 PASSWORD_RESET_URL_TEMPLATE = 'http://localhost:8000/api/auth/reset-password/{uid}/{token}/'
+
+GOOGLE_GEMINI_API_KEY = os.environ.get('GOOGLE_GEMINI_API_KEY')
