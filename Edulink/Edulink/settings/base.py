@@ -17,7 +17,7 @@ from decouple import config
 
 load_dotenv()  # Load variables from .env
 
-
+print("USING SETTINGS FILE: Edulink/Edulink/Edulink/settings/base.py")
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.

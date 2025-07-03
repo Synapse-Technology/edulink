@@ -6,13 +6,9 @@ class StudentProfileSerializer(ProfileBaseSerializer):
     class Meta(ProfileBaseSerializer.Meta):
         model = StudentProfile
         fields = ProfileBaseSerializer.Meta.fields + [
-            'institution',
-            'course',
-            'national_id',
-            'admission_number',
+            'institution_name',
+            'registration_number',
             'academic_year',
-            'skills',
-            'interests',
-            'career_goals',
-            'internship_status',
+            'institution',
+            'national_id',
         ]

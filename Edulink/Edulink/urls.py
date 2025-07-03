@@ -17,6 +17,18 @@ Including another URLconf
 # config/urls.py
 from django.contrib import admin
 from django.urls import path, include
+from django.http import JsonResponse
+from django.conf import settings
+
+def test_auth(request):
+    return JsonResponse({
+        "user": str(request.user),
+        "is_authenticated": request.user.is_authenticated,
+        "auth_header": request.META.get("HTTP_AUTHORIZATION"),
+        "auth_classes": str(settings.REST_FRAMEWORK.get('DEFAULT_AUTHENTICATION_CLASSES'))
+    })
+
+print("MAIN URLS LOADED")
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -27,4 +39,6 @@ urlpatterns = [
     path('api/users/', include('users.urls')),
     path('api/institutions/', include('institutions.urls')),
     path('api/security/', include('security.urls')),
+    path('api/', include('internship.urls')),
+    path('api/test-auth/', test_auth),
 ]

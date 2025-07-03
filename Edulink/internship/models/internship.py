@@ -1,8 +1,8 @@
 from django.db import models
 from users.models.employer_profile import EmployerProfile
 
-# Create your models here.
-
+# Create your models here
+#Create a model for internship
 class Internship(models.Model):
     title = models.CharField(max_length=255)
     employer = models.ForeignKey(EmployerProfile, on_delete=models.CASCADE, related_name='internships')

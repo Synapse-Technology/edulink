@@ -23,3 +23,10 @@ LOGGING = {
         },
     },
 }
+
+REST_FRAMEWORK = {
+    'EXCEPTION_HANDLER': 'Edulink.utils.custom_exception_handler',
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+          'rest_framework_simplejwt.authentication.JWTAuthentication',
+      )
+}

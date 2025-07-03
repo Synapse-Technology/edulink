@@ -1,9 +1,9 @@
 # core/serializers/internship_serializers.py
 
 from rest_framework import serializers
-from internship.models import Internship # Assuming Internship is in core.models
-from internship.models import User # Assuming User model is in authentication_app
-from internship.models import Institution # Assuming Institution model is in institutions_app
+from internship.models.internship import Internship # Assuming Internship is in core.models
+from authentication.models import User
+from institutions.models import Institution
 
 class InternshipSerializer(serializers.ModelSerializer):
     """

@@ -30,6 +30,7 @@ from .models import Invite
 from .permissions import IsStudent, IsEmployer, IsInstitution, IsAdmin
 from security.models import SecurityLog, LoginHistory
 from security.utils import get_client_ip
+from authentication.models import User
 
 User = get_user_model()
 
@@ -446,55 +447,6 @@ class ChangePasswordView(generics.UpdateAPIView):
         )
         return Response(serializer.data)
 
-# STUDENT-only: Submit an application
-class SubmitApplicationView(APIView):
-    permission_classes = [IsAuthenticated, IsStudent]
-
-    def post(self, request):
-        return Response({"message": "Application submitted!"})
-
-# STUDENT-only: View their own applications
-class ViewOwnApplicationsView(APIView):
-    permission_classes = [IsAuthenticated, IsStudent]
-
-    def get(self, request):
-        return Response({"applications": ["Internship 1", "Internship 2"]})
-
-# EMPLOYER-only: Create an internship
-class CreateInternshipView(APIView):
-    permission_classes = [IsAuthenticated, IsEmployer]
-
-    def post(self, request):
-        return Response({"message": "Internship created!"})
-
-# EMPLOYER-only: View applications to their internships
-class ViewOwnInternshipApplicationsView(APIView):
-    permission_classes = [IsAuthenticated, IsEmployer]
-
-    def get(self, request):
-        return Response({"applications": ["John Doe", "Jane Doe"]})
-
-# INSTITUTION ADMIN-only: View institution's registered students
-class ViewInstitutionStudentsView(APIView):
-    permission_classes = [IsAuthenticated, IsInstitution]
-
-    def get(self, request):
-        return Response({"students": ["Alice", "Bob"]})
-
-# INSTITUTION ADMIN-only: Generate analytics reports
-class GenerateAnalyticsReportView(APIView):
-    permission_classes = [IsAuthenticated, IsInstitution]
-
-    def get(self, request):
-        return Response({"report": "Student placement analytics"})
-
-# ADMIN-only: View all users (SuperAdmin)
-class ViewAllUsersView(APIView):
-    permission_classes = [IsAuthenticated, IsAdmin]
-
-    def get(self, request):
-        return Response({"users": ["Admin", "Student", "Employer", "Institution"]})
-
 class RegistrationSuccessView(TemplateView):
     template_name = "registration_success.html"
 
@@ -502,18 +454,18 @@ class PasswordResetSuccessView(TemplateView):
     template_name = "password_reset_success.html"
 
 class VerifyEmailView(APIView):
+    permission_classes = [AllowAny]
+
     def get(self, request, uidb64, token):
         try:
             uid = force_str(urlsafe_base64_decode(uidb64))
             user = User.objects.get(pk=uid)
         except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-            return render(request, 'authentication/verification_failed.html')
-        
-        if default_token_generator.check_token(user, token):
+            user = None
+        if user is not None and default_token_generator.check_token(user, token):
+            user.email_verified = True
             user.is_active = True
-            if hasattr(user, 'email_verified'):
-                user.email_verified = True
             user.save()
-            return render(request, 'authentication/verification_success.html')
-        
-        return render(request, 'authentication/verification_failed.html')
+            return render(request, "authentication/verification_success.html")
+        else:
+            return render(request, "authentication/verification_failed.html")
