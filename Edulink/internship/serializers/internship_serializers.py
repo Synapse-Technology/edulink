@@ -63,7 +63,9 @@ class InternshipSerializer(serializers.ModelSerializer):
             'can_apply',
             'application_count',
             'created_at',
-            'updated_at'
+            'updated_at',
+            'verified_by',
+            'verification_date',
         ]
         read_only_fields = [
             'id', 'created_at', 'updated_at', 'employer_name', 
@@ -96,14 +98,12 @@ class InternshipSerializer(serializers.ModelSerializer):
         
         return data
 
-
 class InternshipCreateSerializer(InternshipSerializer):
     """
     Serializer for creating internships - ensures employer is set automatically.
     """
     class Meta(InternshipSerializer.Meta):
         read_only_fields = InternshipSerializer.Meta.read_only_fields + ['employer']
-
 
 class InternshipUpdateSerializer(InternshipSerializer):
     """
@@ -122,7 +122,6 @@ class InternshipUpdateSerializer(InternshipSerializer):
         
         return super().validate(data)
 
-
 class InternshipVerificationSerializer(serializers.ModelSerializer):
     """
     Serializer for verifying internships by institution admins.
@@ -137,7 +136,6 @@ class InternshipVerificationSerializer(serializers.ModelSerializer):
         instance.is_verified = True
         instance.save()
         return instance
-
 
 class InternshipListSerializer(serializers.ModelSerializer):
     """

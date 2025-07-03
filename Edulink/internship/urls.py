@@ -1,5 +1,5 @@
 from django.urls import path
-from .views.internship_views import (
+from internship.views.internship_views import (
     InternshipListView,
     InternshipDetailView,
     InternshipCreateView,
@@ -10,7 +10,7 @@ from .views.internship_views import (
     SkillTagListView,
     InternshipSearchView,
 )
-from .views.application_views import (
+from internship.views.application_views import (
     ApplicationCreateView,
     ApplicationDetailView,
     ApplicationUpdateView,

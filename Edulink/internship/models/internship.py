@@ -1,6 +1,6 @@
 from django.db import models
 from users.models.employer_profile import EmployerProfile
-from institutions.models import Institution
+from users.models.institution_profile import InstitutionProfile
 from .base import BaseModel
 
 # Create your models here.
@@ -8,7 +8,7 @@ from .base import BaseModel
 class Internship(BaseModel):
     # Core relationships
     employer = models.ForeignKey(EmployerProfile, on_delete=models.CASCADE, related_name='internships')
-    institution = models.ForeignKey(Institution, on_delete=models.SET_NULL, null=True, blank=True, related_name='internships')
+    institution = models.ForeignKey(InstitutionProfile, on_delete=models.SET_NULL, null=True, blank=True, related_name='internships')
     
     # Basic information
     title = models.CharField(max_length=255)
@@ -42,6 +42,10 @@ class Internship(BaseModel):
     
     # Status
     is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    verified_by = models.ForeignKey(InstitutionProfile, null=True, blank=True, on_delete=models.SET_NULL)
+    verification_date = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ['-created_at']
