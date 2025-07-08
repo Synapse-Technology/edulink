@@ -47,22 +47,23 @@
       <nav class="flex flex-col justify-between h-full">
         <div class="space-y-4">
           <a href="#" class="block px-4 py-2 rounded hover:bg-teal-700 bg-teal-700">Dashboard</a>
-          <a href="#" class="block px-4 py-2 rounded hover:bg-teal-700">Browse Internships</a>
-          <a href="#" class="block px-4 py-2 rounded hover:bg-teal-700">Application Tracker</a>
-          <a href="#" class="block px-4 py-2 rounded hover:bg-teal-700">My Internship</a>
+          <a href="application_tracker.html" class="block px-4 py-2 rounded hover:bg-teal-700">Application Tracker</a>
+          <a href="my_internships.html" class="block px-4 py-2 rounded hover:bg-teal-700">My internships</a>
+          <a href="Browse.html" class="block px-4 py-2 rounded hover:bg-teal-700">Browse Internships</a>
           <a href="profile.html" class="block px-4 py-2 rounded hover:bg-teal-700">Profile</a>
           <a href="progress.html" class="block px-4 py-2 rounded hover:bg-teal-700">Reports and logbooks</a>
           <a href="#" class="block px-4 py-2 rounded hover:bg-teal-700">CV & Toolkit</a>
           <a href="#" class="block px-4 py-2 rounded hover:bg-teal-700">Support</a>
         </div>
         <div>
+          <a href="#" class="block px-4 py-2 rounded hover:bg-teal-700">settings</a>
           <a href="#" class="block px-4 py-2 rounded hover:bg-teal-700">Log Out</a>
         </div>
       </nav>
     </aside>
 
     <!-- Main Content -->
-    <main class="flex-1 p-6 ml-0 md:ml-64">
+    <main class="flex-1 p-6 ml-0 md:pl-62S">
       <!-- Welcome Message -->
       <div class="mb-8 text-center">
         <h1 class="text-2xl font-semibold text-teal-800">Welcome, Gabriella 👋</h1>
@@ -72,7 +73,7 @@
       <!-- Quick Stats -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
         <div class="bg-white p-4 rounded shadow">
-          <p class="text-sm text-gray-500">Active internships</p>
+          <p class="text-sm text-gray-500">Active applications</p>
           <h2 class="text-xl font-bold">4</h2>
         </div>
         <div class="bg-white p-4 rounded shadow">
@@ -85,14 +86,14 @@
         </div>
         <div class="bg-white p-4 rounded shadow">
           <p class="text-sm text-gray-500">Declined</p>
-          <h2 class="text-xl font-bold">0</h2>
+          <h2 class="text-xl font-bold"></h2>
         </div>
       </div>
 
        <!-- Internship applications -->
 
 <section class="mb-12">
-  <h2 class="text-xl font-semibold mb-4">My Applications</h2>
+  <h2 class="text-xl font-semibold mb-4">My Internships</h2>
 
   <!-- Filter Buttons -->
   <div class="flex gap-2 mb-4">
@@ -147,6 +148,10 @@
         </tr>
       </tbody>
     </table>
+    <div class="mt-4 text-right">
+  <a href="my_internships.html" class="text-teal-700 text-sm font-medium hover:underline">View More →</a>
+</div>
+
   </div>
 </section>
 
@@ -174,6 +179,10 @@
             <button class="mt-3 bg-teal-600 text-white px-4 py-2 text-sm rounded hover:bg-teal-700">Apply</button>
           </div>
         </div>
+            <div class="mt-4 text-right">
+  <a href="Browse.html" class="text-teal-700 text-sm font-medium hover:underline">View More →</a>
+</div>
+
       </section>
 
       <!-- Logbook & Tools Highlights (Optional Preview Cards) -->
