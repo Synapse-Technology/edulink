@@ -1,44 +1,103 @@
 from rest_framework import serializers
-from application.models import Application  # Use Application model from application app
+from .models import Application, SupervisorFeedback
 from internship.models.internship import Internship
-from .models import SupervisorFeedback
-from internship.models.internship import Internship as InternshipModel
-from .models import Application as ApplicationModel
+
 
 class InternshipSimpleSerializer(serializers.ModelSerializer):
     class Meta:
-        model = InternshipModel
-        fields = ['id', 'title', 'employer', 'location', 'start_date', 'end_date', 'is_active']
+        model = Internship
+        fields = [
+            "id",
+            "title",
+            "employer",
+            "location",
+            "start_date",
+            "end_date",
+            "is_active",
+        ]
+
 
 class ApplicationSerializer(serializers.ModelSerializer):
-    student_name = serializers.CharField(source='student.user.get_full_name', read_only=True)
-    internship_title = serializers.CharField(source='internship.title', read_only=True)
+    internship = InternshipSimpleSerializer(read_only=True)
+    internship_id = serializers.PrimaryKeyRelatedField(
+        queryset=Internship.objects.all(), source="internship", write_only=True  # type: ignore[attr-defined]
+    )
+    student = serializers.StringRelatedField(read_only=True)
 
     class Meta:
-        model = ApplicationModel
+        model = Application
         fields = [
-            'id',
-            'student',
-            'student_name',
-            'internship',
-            'internship_title',
-            'application_date',
-            'status',
-            'cover_letter',
-            'resume'
+            "id",
+            "student",
+            "internship",
+            "internship_id",
+            "status",
+            "submitted_at",
+            "updated_at",
         ]
-        read_only_fields = ['student', 'internship', 'application_date']
+        read_only_fields = ["id", "student", "submitted_at", "updated_at", "status"]
 
-class ApplicationStatusUpdateSerializer(serializers.ModelSerializer):
-    """
-    Serializer for updating the status of an application.
-    """
+
+class ApplicationCreateSerializer(serializers.ModelSerializer):
+    internship_id = serializers.PrimaryKeyRelatedField(
+        queryset=Internship.objects.all(), source="internship", write_only=True  # type: ignore[attr-defined]
+    )
+
     class Meta:
-        model = ApplicationModel
-        fields = ['status']
+        model = Application
+        fields = ["internship_id"]
+
 
 class SupervisorFeedbackSerializer(serializers.ModelSerializer):
-    application = serializers.PrimaryKeyRelatedField(queryset=ApplicationModel.objects.all())
+    application = serializers.PrimaryKeyRelatedField(queryset=Application.objects.all())  # type: ignore[attr-defined]
+
     class Meta:
         model = SupervisorFeedback
-        fields = ['id', 'application', 'feedback', 'rating'] 
+        fields = ["id", "application", "feedback", "rating"]
+
+
+class ApplicationStatusUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Application
+        fields = ["status", "review_notes"]
+
+
+# --- Application Serializers (moved from internship) ---
+# (Paste the full content of Edulink/internship/serializers/application_serializers.py here)
+
+
+class ApplicationListSerializer(serializers.ModelSerializer):
+    internship = InternshipSimpleSerializer(read_only=True)
+    student = serializers.StringRelatedField(read_only=True)
+    status = serializers.CharField(read_only=True)
+    application_date = serializers.DateTimeField(read_only=True)
+    is_active = serializers.BooleanField(read_only=True)
+
+    class Meta:
+        model = Application
+        fields = [
+            "id",
+            "student",
+            "internship",
+            "status",
+            "application_date",
+            "is_active",
+            "cover_letter",
+            "resume",
+            "reviewed_by",
+            "reviewed_at",
+            "review_notes",
+        ]
+
+
+# For employer/institution/internship application lists, you can use ApplicationListSerializer or extend as needed.
+
+
+class ApplicationStatisticsSerializer(serializers.Serializer):
+    total_applications = serializers.IntegerField()
+    pending_applications = serializers.IntegerField()
+    accepted_applications = serializers.IntegerField()
+    rejected_applications = serializers.IntegerField()
+    withdrawn_applications = serializers.IntegerField(required=False)
+    total_internships = serializers.IntegerField(required=False)
+    verified_internships = serializers.IntegerField(required=False)

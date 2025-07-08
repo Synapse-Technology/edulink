@@ -11,14 +11,15 @@ from authentication.permissions import IsInstitution
 from users.models import StudentProfile
 from users.serializers.student_serializer import StudentProfileSerializer
 
+
 class InstitutionProfileDetailView(generics.RetrieveUpdateAPIView):
     serializer_class = InstitutionProfileSerializer
     permission_classes = [IsAuthenticated]
 
     def get_object(self):
         try:
-            return InstitutionProfile.objects.get(user=self.request.user)
-        except InstitutionProfile.DoesNotExist:
+            return InstitutionProfile.objects.get(user=self.request.user)  # type: ignore[attr-defined]
+        except InstitutionProfile.DoesNotExist:  # type: ignore[attr-defined]
             return None
 
     def get(self, request, *args, **kwargs):

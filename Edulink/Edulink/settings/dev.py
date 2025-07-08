@@ -4,9 +4,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = ["*"]  # For local testing
 
-# Email backend for development
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-DEFAULT_FROM_EMAIL = 'noreply@edulink.com'
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+DEFAULT_FROM_EMAIL = "noreply@edulink.com"  # Replace with your actual email
 
 # Optional: log SQL queries for debugging
 LOGGING = {
@@ -22,11 +21,4 @@ LOGGING = {
             "level": "DEBUG",
         },
     },
-}
-
-REST_FRAMEWORK = {
-    'EXCEPTION_HANDLER': 'Edulink.utils.custom_exception_handler',
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-          'rest_framework_simplejwt.authentication.JWTAuthentication',
-      )
 }

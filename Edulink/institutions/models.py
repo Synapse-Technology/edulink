@@ -1,5 +1,6 @@
 from django.db import models
 
+
 class Institution(models.Model):
     name = models.CharField(max_length=255)
     institution_type = models.CharField(max_length=100)  # e.g., University, College
@@ -15,6 +16,7 @@ class Institution(models.Model):
     def __str__(self):
         return self.name
 
+
 class Course(models.Model):
     institution = models.ForeignKey(Institution, on_delete=models.CASCADE, related_name='courses')
     name = models.CharField(max_length=255)
@@ -23,4 +25,4 @@ class Course(models.Model):
     is_active = models.BooleanField(default=True)
 
     def __str__(self):
-        return f"{self.name} ({self.institution.name})" 
+        return f"{self.name} ({self.institution.name})"

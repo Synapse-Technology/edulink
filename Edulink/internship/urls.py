@@ -5,17 +5,29 @@ from internship.views.internship_views import (
     InternshipCreateView,
     InternshipUpdateView,
     InternshipDeleteView,
-    PublicInternshipSearchView,
-    InternshipVerifyView,
+    EmployerInternshipListView,
+    InternshipVerificationView,
+    SkillTagListView,
+    InternshipSearchView,
+    InternshipAnalyticsView,
 )
+
+app_name = 'internship'
 
 urlpatterns = [
     # Internship endpoints
-    path('internships/', InternshipListView.as_view(), name='internship-list'),
-    path('internships/<int:pk>/', InternshipDetailView.as_view(), name='internship-detail'),
-    path('internships/create/', InternshipCreateView.as_view(), name='internship-create'),
-    path('internships/<int:pk>/update/', InternshipUpdateView.as_view(), name='internship-update'),
-    path('internships/<int:pk>/delete/', InternshipDeleteView.as_view(), name='internship-delete'),
-    path('internships/public-search/', PublicInternshipSearchView.as_view(), name='public-internship-search'),
-    path('internships/<int:pk>/verify/', InternshipVerifyView.as_view(), name='internship-verify'),
+    path('', InternshipListView.as_view(), name='internship-list'),
+    path('create/', InternshipCreateView.as_view(), name='internship-create'),
+    path('<int:pk>/', InternshipDetailView.as_view(), name='internship-detail'),
+    path('<int:pk>/update/', InternshipUpdateView.as_view(), name='internship-update'),
+    path('<int:pk>/delete/', InternshipDeleteView.as_view(), name='internship-delete'),
+    path('<int:pk>/verify/', InternshipVerificationView.as_view(), name='internship-verify'),
+
+    # Employer-specific endpoints
+    path('my-internships/', EmployerInternshipListView.as_view(), name='employer-internships'),
+
+    # Search and filtering
+    path('search/', InternshipSearchView.as_view(), name='internship-search'),
+    path('skill-tags/', SkillTagListView.as_view(), name='skill-tags'),
+    path('analytics/', InternshipAnalyticsView.as_view(), name='internship-analytics'),
 ]

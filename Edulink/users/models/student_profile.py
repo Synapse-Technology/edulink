@@ -3,6 +3,7 @@ from django.conf import settings
 from .profile_base import ProfileBase
 from institutions.models import Institution, Course
 
+
 class StudentProfile(ProfileBase):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='student_profile')
     first_name = models.CharField(max_length=100)
@@ -15,15 +16,16 @@ class StudentProfile(ProfileBase):
     last_login_at = models.DateTimeField(null=True, blank=True)
     is_deleted = models.BooleanField(default=False)
     deleted_at = models.DateTimeField(null=True, blank=True)
-    
+
     # Institution-related fields
-    institution = models.ForeignKey(Institution, on_delete=models.SET_NULL, null=True, blank=True, related_name='students')
+    institution = models.ForeignKey(Institution, on_delete=models.SET_NULL,
+                                    null=True, blank=True, related_name='students')
     is_verified = models.BooleanField(default=False)
     institution_name = models.CharField(max_length=255, null=True, blank=True)
     registration_number = models.CharField(max_length=50, unique=True)
     year_of_study = models.PositiveIntegerField()
     course = models.ForeignKey(Course, on_delete=models.SET_NULL, null=True, related_name='students')
-    
+
     # Additional fields
     national_id = models.CharField(max_length=20, unique=True)
     academic_year = models.PositiveIntegerField()
@@ -38,7 +40,7 @@ class StudentProfile(ProfileBase):
         ],
         default='not_started'
     )
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -50,5 +52,5 @@ class StudentProfile(ProfileBase):
             self.institution_name = self.institution.name
         if self.academic_year and not self.year_of_study:
             self.year_of_study = self.academic_year
-        
+
         super().save(*args, **kwargs)

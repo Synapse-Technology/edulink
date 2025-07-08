@@ -1,12 +1,13 @@
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
-from users.models.institution_profile import InstitutionProfile
 from users.serializers.institution_serializers import InstitutionProfileSerializer
 from users.models.student_profile import StudentProfile
 from users.serializers.student_serializer import StudentProfileSerializer
 from application.models import Application
 from application.serializers import ApplicationSerializer, ApplicationStatusUpdateSerializer
+
 from .permissions import IsInstitutionAdmin
+
 
 class InstitutionProfileDetailView(generics.RetrieveUpdateAPIView):
     """
@@ -18,6 +19,7 @@ class InstitutionProfileDetailView(generics.RetrieveUpdateAPIView):
     def get_object(self):
         return self.request.user.institution_profile
 
+
 class InstitutionStudentListView(generics.ListAPIView):
     """
     List all students associated with the institution of the authenticated admin.
@@ -27,7 +29,8 @@ class InstitutionStudentListView(generics.ListAPIView):
 
     def get_queryset(self):
         institution = self.request.user.institution_profile.institution
-        return StudentProfile.objects.filter(institution=institution)
+        return StudentProfile.objects.filter(institution=institution)  # type: ignore[attr-defined]
+
 
 class InstitutionApplicationListView(generics.ListAPIView):
     """
@@ -38,7 +41,8 @@ class InstitutionApplicationListView(generics.ListAPIView):
 
     def get_queryset(self):
         institution = self.request.user.institution_profile.institution
-        return Application.objects.filter(student__institution=institution)
+        return Application.objects.filter(student__institution=institution)  # type: ignore[attr-defined]
+
 
 class ApplicationStatusUpdateView(generics.UpdateAPIView):
     """
@@ -54,4 +58,4 @@ class ApplicationStatusUpdateView(generics.UpdateAPIView):
         Ensure that the admin can only update applications from their own institution.
         """
         institution = self.request.user.institution_profile.institution
-        return Application.objects.filter(student__institution=institution)
+        return Application.objects.filter(student__institution=institution)  # type: ignore[attr-defined]
