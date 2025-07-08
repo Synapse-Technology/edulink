@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Email Verified | EduLink</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #38bdf8, #2563eb);
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            text-align: center;
+            padding: 2rem;
+        }
+        .card {
+            background: white;
+            color: #1e293b;
+            border-radius: 18px;
+            padding: 3rem 2rem;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+        }
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: #2563eb;
+        }
+        p {
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+        }
+        a {
+            display: inline-block;
+            padding: 0.8rem 1.5rem;
+            background: linear-gradient(135deg, #2563eb, #38bdf8);
+            color: white;
+            font-weight: bold;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: background 0.3s;
+        }
+        a:hover {
+            background: linear-gradient(135deg, #1e40af, #2563eb);
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>✅ Email Verified!</h1>
+        <p>Hi {{ first_name }},<br>Your email has been successfully verified.<br>
+        You can now log in to your account and access all features.</p>
+        <a href="/login/">Go to Login</a>
+    </div>
+</body>
+</html> 

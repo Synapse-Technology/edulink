@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from users.models.student_profile import StudentProfile
 from users.serializers.student_serializer import StudentProfileSerializer
 
+
 class StudentProfileDetailView(generics.RetrieveUpdateAPIView):
     serializer_class = StudentProfileSerializer
     permission_classes = [IsAuthenticated]
@@ -13,7 +14,7 @@ class StudentProfileDetailView(generics.RetrieveUpdateAPIView):
     def get_object(self):
         try:
             return self.request.user.studentprofile
-        except StudentProfile.DoesNotExist:
+        except StudentProfile.DoesNotExist:  # type: ignore[attr-defined]
             return None
 
     def get(self, request, *args, **kwargs):
@@ -33,7 +34,7 @@ class StudentProfileDetailView(generics.RetrieveUpdateAPIView):
         else:
             # Create new profile if it doesn't exist
             serializer = self.get_serializer(data=request.data)
-        
+
         serializer.is_valid(raise_exception=True)
         serializer.save(user=request.user)
         return Response(serializer.data)

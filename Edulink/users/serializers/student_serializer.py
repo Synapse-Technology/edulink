@@ -1,6 +1,6 @@
-from rest_framework import serializers
 from users.models.student_profile import StudentProfile
 from users.serializers.profile_serializer import ProfileBaseSerializer
+
 
 class StudentProfileSerializer(ProfileBaseSerializer):
     class Meta(ProfileBaseSerializer.Meta):

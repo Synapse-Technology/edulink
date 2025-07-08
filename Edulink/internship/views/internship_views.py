@@ -1,25 +1,25 @@
-from rest_framework import generics, status, filters
+from rest_framework import generics, filters
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
 from django.utils import timezone
 from django.db.models import Q
+from rest_framework.views import APIView
 
-from ..models.internship import Internship
-from ..models.skill_tag import SkillTag
-from ..serializers.internship_serializers import (
+from internship.models.internship import Internship
+from internship.models.skill_tag import SkillTag
+from internship.serializers.internship_serializers import (
     InternshipSerializer,
     InternshipCreateSerializer,
     InternshipUpdateSerializer,
     InternshipVerificationSerializer,
     InternshipListSerializer,
 )
-from ..permissions.role_permissions import (
+from internship.permissions.role_permissions import (
     IsVerifiedEmployer,
     CanEditInternship,
     CanVerifyInternship,
     CanViewInternship,
-    CanApplyToInternship,
 )
 
 
@@ -38,23 +38,23 @@ class InternshipListView(generics.ListAPIView):
 
     def get_queryset(self):
         """Filter internships based on visibility and expiration"""
-        queryset = Internship.objects.filter(is_active=True)
-        
+        queryset = Internship.objects.filter(is_active=True)  # type: ignore[attr-defined]
+
         # Filter by visibility based on user
-        if hasattr(self.request.user, 'student_profile'):
+        if hasattr(self.request.user, 'student_profile'):  # type: ignore[attr-defined]
             # Students can see public internships and institution-specific ones
-            student_institution = self.request.user.student_profile.institution
+            student_institution = self.request.user.student_profile.institution  # type: ignore[attr-defined]
             queryset = queryset.filter(
-                Q(visibility='public') | 
+                Q(visibility='public') |
                 Q(visibility='institution-only', institution=student_institution)
             )
         else:
             # Non-students can only see public internships
             queryset = queryset.filter(visibility='public')
-        
+
         # Filter by expiration (hide expired internships)
         queryset = queryset.filter(deadline__gt=timezone.now())
-        
+
         return queryset.select_related('employer', 'employer__user', 'institution')
 
 
@@ -65,7 +65,8 @@ class InternshipDetailView(generics.RetrieveAPIView):
     """
     serializer_class = InternshipSerializer
     permission_classes = [CanViewInternship]
-    queryset = Internship.objects.select_related('employer', 'employer__user', 'institution')
+    queryset = Internship.objects.select_related(
+        'employer', 'employer__user', 'institution')  # type: ignore[attr-defined]
 
 
 class InternshipCreateView(generics.CreateAPIView):
@@ -78,7 +79,7 @@ class InternshipCreateView(generics.CreateAPIView):
 
     def perform_create(self, serializer):
         """Set the employer automatically"""
-        serializer.save(employer=self.request.user.employer_profile)
+        serializer.save(employer=self.request.user.employer_profile)  # type: ignore[attr-defined]
 
 
 class InternshipUpdateView(generics.UpdateAPIView):
@@ -88,7 +89,7 @@ class InternshipUpdateView(generics.UpdateAPIView):
     """
     serializer_class = InternshipUpdateSerializer
     permission_classes = [IsAuthenticated, CanEditInternship]
-    queryset = Internship.objects.all()
+    queryset = Internship.objects.all()  # type: ignore[attr-defined]
 
 
 class InternshipDeleteView(generics.DestroyAPIView):
@@ -97,7 +98,7 @@ class InternshipDeleteView(generics.DestroyAPIView):
     Only the posting employer can delete, and only before verification.
     """
     permission_classes = [IsAuthenticated, CanEditInternship]
-    queryset = Internship.objects.all()
+    queryset = Internship.objects.all()  # type: ignore[attr-defined]
 
     def perform_destroy(self, instance):
         """Soft delete by setting is_active to False"""
@@ -117,9 +118,9 @@ class EmployerInternshipListView(generics.ListAPIView):
 
     def get_queryset(self):
         """Filter internships by the authenticated employer"""
-        return Internship.objects.filter(
-            employer=self.request.user.employer_profile
-        ).select_related('institution').order_by('-created_at')
+        return Internship.objects.filter(  # type: ignore[attr-defined]
+            employer=self.request.user.employer_profile  # type: ignore[attr-defined]
+        ).select_related('institution').order_by('-created_at')  # type: ignore[attr-defined]
 
 
 class InternshipVerificationView(generics.UpdateAPIView):
@@ -129,14 +130,14 @@ class InternshipVerificationView(generics.UpdateAPIView):
     """
     serializer_class = InternshipVerificationSerializer
     permission_classes = [IsAuthenticated, CanVerifyInternship]
-    queryset = Internship.objects.all()
+    queryset = Internship.objects.all()  # type: ignore[attr-defined]
 
     def update(self, request, *args, **kwargs):
         """Mark internship as verified"""
         instance = self.get_object()
         instance.is_verified = True
         instance.save()
-        
+
         serializer = self.get_serializer(instance)
         return Response({
             'message': 'Internship verified successfully',
@@ -148,11 +149,11 @@ class SkillTagListView(generics.ListAPIView):
     """
     List all skill tags for filtering and selection.
     """
-    from ..serializers.internship_serializers import SkillTagSerializer
-    
+    from internship.serializers.internship_serializers import SkillTagSerializer
+
     serializer_class = SkillTagSerializer
     permission_classes = [AllowAny]
-    queryset = SkillTag.objects.filter(is_active=True)
+    queryset = SkillTag.objects.filter(is_active=True)  # type: ignore[attr-defined]
     filter_backends = [filters.SearchFilter]
     search_fields = ['name', 'description']
 
@@ -166,41 +167,65 @@ class InternshipSearchView(generics.ListAPIView):
 
     def get_queryset(self):
         """Advanced filtering based on query parameters"""
-        queryset = Internship.objects.filter(is_active=True, is_verified=True)
-        
+        queryset = Internship.objects.filter(is_active=True, is_verified=True)  # type: ignore[attr-defined]
+
         # Basic filters
-        category = self.request.query_params.get('category')
-        location = self.request.query_params.get('location')
-        min_stipend = self.request.query_params.get('min_stipend')
-        max_stipend = self.request.query_params.get('max_stipend')
-        skill_tags = self.request.query_params.getlist('skill_tags')
-        
+        category = self.request.query_params.get('category')  # type: ignore[attr-defined]
+        location = self.request.query_params.get('location')  # type: ignore[attr-defined]
+        min_stipend = self.request.query_params.get('min_stipend')  # type: ignore[attr-defined]
+        max_stipend = self.request.query_params.get('max_stipend')  # type: ignore[attr-defined]
+        skill_tags = self.request.query_params.getlist('skill_tags')  # type: ignore[attr-defined]
+
         if category:
             queryset = queryset.filter(category__icontains=category)
-        
+
         if location:
             queryset = queryset.filter(location__icontains=location)
-        
+
         if min_stipend:
             queryset = queryset.filter(stipend__gte=min_stipend)
-        
+
         if max_stipend:
             queryset = queryset.filter(stipend__lte=max_stipend)
-        
+
         if skill_tags:
             queryset = queryset.filter(skill_tags__name__in=skill_tags).distinct()
-        
+
         # Filter by visibility for students
-        if hasattr(self.request.user, 'student_profile'):
-            student_institution = self.request.user.student_profile.institution
+        if hasattr(self.request.user, 'student_profile'):  # type: ignore[attr-defined]
+            student_institution = self.request.user.student_profile.institution  # type: ignore[attr-defined]
             queryset = queryset.filter(
-                Q(visibility='public') | 
+                Q(visibility='public') |
                 Q(visibility='institution-only', institution=student_institution)
             )
         else:
             queryset = queryset.filter(visibility='public')
-        
+
         # Hide expired internships
         queryset = queryset.filter(deadline__gt=timezone.now())
-        
+
         return queryset.select_related('employer', 'employer__user', 'institution')
+
+
+class InternshipAnalyticsView(APIView):
+    """
+    Analytics for internships: most popular, most applied-to, etc.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # Most applied-to internships
+        from django.db.models import Count
+        popular = (
+            Internship.objects.annotate(app_count=Count('applications'))  # type: ignore[attr-defined]
+            .order_by('-app_count')[:5]
+        )
+        data = [
+            {
+                'internship': i.title,
+                'employer': i.employer.company_name,  # type: ignore[attr-defined]
+                'applications': i.app_count,  # type: ignore[attr-defined]
+            }
+            for i in popular
+        ]
+        return Response({'most_applied_to': data})

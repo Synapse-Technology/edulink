@@ -1,10 +1,12 @@
 from rest_framework import serializers
 
+
 class RecentApplicationSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     internship_title = serializers.CharField()
     status = serializers.CharField()
     applied_on = serializers.DateTimeField()
+
 
 class StudentDashboardSerializer(serializers.Serializer):
     total_applications = serializers.IntegerField()

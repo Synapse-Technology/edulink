@@ -10,4 +10,3 @@ urlpatterns = [
     path('my-internships/', EmployerInternshipListView.as_view(), name='employer-internships'),
     path('internship/<int:internship_id>/applicants/', InternshipApplicationListView.as_view(), name='internship-applicants'),
 ]
- 

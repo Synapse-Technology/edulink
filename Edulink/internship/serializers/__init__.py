@@ -6,12 +6,6 @@ from .internship_serializers import (
     InternshipListSerializer,
     SkillTagSerializer,
 )
-from .application_serializers import (
-    ApplicationSerializer,
-    ApplicationCreateSerializer,
-    ApplicationStatusUpdateSerializer,
-    ApplicationListSerializer,
-)
 
 __all__ = [
     # Internship serializers
@@ -21,9 +15,4 @@ __all__ = [
     'InternshipVerificationSerializer',
     'InternshipListSerializer',
     'SkillTagSerializer',
-    # Application serializers
-    'ApplicationSerializer',
-    'ApplicationCreateSerializer',
-    'ApplicationStatusUpdateSerializer',
-    'ApplicationListSerializer',
-] 
+]

@@ -296,6 +296,76 @@
       forgotMessage1.textContent = '';
     });
 
+    // Login form submission
+    document.getElementById('login-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      formMessage.textContent = 'Logging in...';
+      formMessage.style.color = '#e0e0e0';
+      
+      const email = this.email.value.trim();
+      const password = this.password.value;
+      
+      try {
+        const response = await fetch('http://127.0.0.1:8000/api/auth/login/', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({ email, password })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          // Store tokens and user data
+          localStorage.setItem('access_token', data.access);
+          localStorage.setItem('refresh_token', data.refresh);
+          localStorage.setItem('user', JSON.stringify(data.user));
+          
+          // Store profile picture if available
+          if (data.user.profile && data.user.profile.profile_picture) {
+            localStorage.setItem('profilePicUrl', data.user.profile.profile_picture);
+          }
+          
+          formMessage.textContent = 'Login successful! Redirecting...';
+          formMessage.style.color = '#4CAF50';
+          
+          // Route based on user role
+          setTimeout(() => {
+            if (data.user.role === 'student') {
+              window.location.href = 'dashboards/student_dash.html';
+            } else if (data.user.role === 'employer') {
+              window.location.href = 'dashboards/employer_dash.html';
+            } else if (data.user.role === 'institution_admin') {
+              window.location.href = 'dashboards/institution_dash.html';
+            } else {
+              // Default fallback
+              window.location.href = 'index.html';
+            }
+          }, 1500);
+        } else {
+          // Handle different error responses
+          let errorMessage = 'Login failed. Please check your credentials.';
+          if (data.detail) {
+            errorMessage = data.detail;
+          } else if (data.non_field_errors) {
+            errorMessage = data.non_field_errors[0];
+          } else if (data.email) {
+            errorMessage = data.email[0];
+          } else if (data.password) {
+            errorMessage = data.password[0];
+          }
+          formMessage.textContent = errorMessage;
+          formMessage.style.color = '#ffb3b3';
+        }
+      } catch (err) {
+        formMessage.textContent = 'Network error. Please check your connection and try again.';
+        formMessage.style.color = '#ffb3b3';
+        console.error('Login error:', err);
+      }
+    });
+
     // Step 1: Request reset
     document.getElementById('forgot-form').addEventListener('submit', async function(e) {
       e.preventDefault();
@@ -303,7 +373,7 @@
       forgotMessage1.style.color = '#e0e0e0';
       const email = this.email.value.trim();
       try {
-        const res = await fetch('/api/auth/password_reset/', {
+        const res = await fetch('http://127.0.0.1:8000/api/auth/password-reset/', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email })

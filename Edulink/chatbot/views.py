@@ -1,4 +1,3 @@
-from django.shortcuts import render
 
 # Create your views here.
 from django.http import JsonResponse
@@ -6,6 +5,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 import google.generativeai as genai
 import json
+
 
 @csrf_exempt
 def edi_chat(request):
@@ -25,10 +25,10 @@ def edi_chat(request):
                 model = genai.GenerativeModel('models/gemini-1.5-pro-latest')
                 response = model.generate_content(user_message)
                 ai_reply = response.text
-        except Exception as e:
+        except Exception:
             ai_reply = (
                 "Sorry, Edi's AI brain is taking a break due to high demand. "
                 "Please try again later or visit our <a href='support.html'>Support Page</a> for help."
             )
         return JsonResponse({'reply': ai_reply})
-    return JsonResponse({'error': 'Invalid request'}, status=400) 
+    return JsonResponse({'error': 'Invalid request'}, status=400)

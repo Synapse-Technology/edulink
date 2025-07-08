@@ -312,6 +312,40 @@
         max-width: 100%;
       }
     }
+
+    .error-toast {
+      position: relative;
+      background: #fff0f0;
+      color: #b71c1c;
+      border: 1.5px solid #ffb3b3;
+      border-radius: 12px;
+      padding: 16px 40px 16px 18px;
+      margin-bottom: 18px;
+      box-shadow: 0 4px 18px rgba(183,28,28,0.08);
+      font-size: 15px;
+      animation: fadeInDown 0.5s;
+      display: flex;
+      align-items: center;
+      min-height: 40px;
+      z-index: 10;
+    }
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-20px);}
+      to { opacity: 1; transform: translateY(0);}
+    }
+    .close-btn {
+      position: absolute;
+      right: 12px;
+      top: 10px;
+      font-size: 22px;
+      color: #b71c1c;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .close-btn:hover {
+      transform: scale(1.2) rotate(90deg);
+      color: #d32f2f;
+    }
   </style>
 </head>
 <body>
@@ -329,6 +363,12 @@
       <div class="form-box">
         <h2>Account Registration</h2>
         <p>To sign up, please complete all steps</p>
+        
+        <!-- Error Toast/Card -->
+        <div id="errorToast" class="error-toast" style="display:none;">
+          <span class="close-btn" onclick="hideErrorToast()">&times;</span>
+          <span id="errorToastMsg"></span>
+        </div>
         
         <div class="step-indicator">
           <span class="step-dot"></span>
@@ -365,15 +405,16 @@
             <select name="institution_name" required>
               <option value="">-- Select Institution --</option>
               <option value="JKUAT">JKUAT</option>
-              <option value="KU">Kenyatta University</option>
-              <option value="UoN">University of Nairobi</option>
+              <option value="Kenyatta University">Kenyatta University</option>
+              <option value="UoN">University of Nairobi</option> 
               <option value="Moi">Moi University</option>
               <option value="Egerton">Egerton University</option>
               <option value="Mku">Mount Kenya University</option>
             </select>
             <input type="text" name="registration_number" placeholder="University Registration Number" required />
             <input type="number" name="academic_year" placeholder="Current Year of Study" required min="1" max="8" />
-            <input type="text" name="course_code" placeholder="Course Code (e.g., ICS2101)" />
+            <input type="text" name="course_code" placeholder="Course Code (leave blank if unsure)" />
+            <small style="color: #c8e6c9; margin-top: -10px; display: block;">Enter your institution's official course code or leave blank if unsure. Example: BSC-CS, BIT-01</small>
           </div>
     
           <div class="form-navigation">
@@ -422,11 +463,10 @@
       function validateStep(stepIndex) {
         let valid = true;
         const inputs = steps[stepIndex].querySelectorAll('input, select');
-        formMessage.textContent = '';
         
         inputs.forEach(input => {
           if (!input.checkValidity()) {
-            input.reportValidity();
+            input.reportValidity(); // Shows the browser's default bubble message
             valid = false;
           }
         });
@@ -438,6 +478,10 @@
             formMessage.textContent = "Passwords do not match.";
             formMessage.style.color = "#ffb3b3";
             valid = false;
+          } else if (valid) {
+             if (formMessage.textContent === "Passwords do not match.") {
+                formMessage.textContent = "";
+             }
           }
         }
         return valid;
@@ -457,13 +501,25 @@
 
       form.addEventListener('submit', async function(e) {
         e.preventDefault();
-        if (!validateStep(currentStep)) return;
+        
+        // Validate all steps before submitting
+        for (let i = 0; i < steps.length; i++) {
+          if (!validateStep(i)) {
+            currentStep = i;
+            showStep(currentStep);
+            formMessage.textContent = 'Please fill out all required fields in this step.';
+            formMessage.style.color = "#ffb3b3";
+            return;
+          }
+        }
 
-        formMessage.textContent = '';
-
+        formMessage.innerHTML = 'Submitting...';
+        formMessage.style.color = '#c8e6c9';
+        hideErrorToast();
         const formData = new FormData(form);
         const data = Object.fromEntries(formData.entries());
-        delete data.confirm_password; // Not needed by backend
+        delete data.confirm_password;
+        delete data.course_code; // Remove course code from data before sending
 
         try {
           const response = await fetch('http://127.0.0.1:8000/api/auth/register/', {
@@ -473,6 +529,7 @@
           });
           const result = await response.json();
           if (response.ok) {
+            hideErrorToast();
             formMessage.textContent = result.message || "Registration successful! Redirecting...";
             formMessage.style.color = "#c8e6c9";
             form.reset();
@@ -480,14 +537,20 @@
           } else {
             let errorMsg = "Registration failed. Please check your details.";
             if (result && typeof result === 'object') {
-              errorMsg = Object.values(result).map(e => Array.isArray(e) ? e.join(' ') : e).join(' ');
+              errorMsg = Object.entries(result).map(([field, errors]) => {
+                const formattedField = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                if (field === 'non_field_errors' && errors.includes('Invalid course code for the specified institution')) {
+                  return `<strong>Course Code Error:</strong> The course code you entered is not registered for ${data.institution_name}. Please verify the code with your institution or leave it blank.`;
+                }
+                return `<strong>${formattedField}:</strong> ${Array.isArray(errors) ? errors.join(' ') : errors}`;
+              }).join('<br>');
             }
-            formMessage.textContent = errorMsg;
-            formMessage.style.color = "#ffb3b3";
+            showErrorToast(errorMsg);
+            formMessage.textContent = '';
           }
         } catch (err) {
-          formMessage.textContent = "An error occurred. Please try again later.";
-          formMessage.style.color = "#ffb3b3";
+          showErrorToast("An error occurred. Please try again later.");
+          formMessage.textContent = '';
         }
       });
 
@@ -504,6 +567,18 @@
         input.type = "password";
         icon.className = 'bi bi-eye-fill';
       }
+    }
+    // Add error toast functions
+    function showErrorToast(message) {
+      const toast = document.getElementById('errorToast');
+      const msg = document.getElementById('errorToastMsg');
+      msg.innerHTML = message;
+      toast.style.display = 'flex';
+      toast.style.animation = 'fadeInDown 0.5s';
+    }
+    function hideErrorToast() {
+      const toast = document.getElementById('errorToast');
+      toast.style.display = 'none';
     }
   </script>
 </body>

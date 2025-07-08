@@ -1,16 +1,16 @@
-from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from users.models.student_profile import StudentProfile
 from users.serializers.student_serializer import StudentProfileSerializer
-from internship.models.application import Application
+from application.models import Application
 from notifications.models import Notification
 from django.db import models
 from .serializers import StudentDashboardSerializer
 
 # Create your views here.
+
 
 class StudentDashboardAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -19,11 +19,11 @@ class StudentDashboardAPIView(APIView):
         user = request.user
         try:
             student_profile = user.studentprofile
-        except StudentProfile.DoesNotExist:
+        except StudentProfile.DoesNotExist:  # type: ignore[attr-defined]
             return Response({"detail": "Student profile not found."}, status=status.HTTP_404_NOT_FOUND)
 
         # Application stats
-        applications = Application.objects.filter(student=student_profile)
+        applications = Application.objects.filter(student=student_profile)  # type: ignore[attr-defined]
         total_applications = applications.count()
         status_counts = applications.values('status').order_by('status').annotate(count=models.Count('status'))
         status_dict = {item['status']: item['count'] for item in status_counts}
@@ -39,11 +39,14 @@ class StudentDashboardAPIView(APIView):
         ]
 
         # Unread notifications
-        unread_notifications = Notification.objects.filter(user=user, is_read=False).count()
+        unread_notifications = Notification.objects.filter(
+            user=user, is_read=False).count()  # type: ignore[attr-defined]
 
         # Profile completeness (simple check)
-        required_fields = ['first_name', 'last_name', 'phone_number', 'national_id', 'registration_number', 'academic_year', 'institution', 'course']
+        required_fields = ['first_name', 'last_name', 'phone_number', 'national_id',
+                           'registration_number', 'academic_year', 'institution', 'course']
         profile_data = StudentProfileSerializer(student_profile).data
+        # type: ignore[attr-defined]
         incomplete_fields = [field for field in required_fields if not profile_data.get(field)]
         profile_complete = len(incomplete_fields) == 0
 
