@@ -1,6 +1,6 @@
 {
-    "name": "edulink_app",
-    "short_name": "edulink_app",
+    "name": "edulink_ke",
+    "short_name": "edulink_ke",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
