@@ -4,8 +4,8 @@ from users.models.institution_profile import InstitutionProfile
 from users.serializers.institution_serializers import InstitutionProfileSerializer
 from users.models.student_profile import StudentProfile
 from users.serializers.student_serializer import StudentProfileSerializer
-from internship.models.application import Application
-from internship.serializers.application_serializers import ApplicationSerializer, ApplicationStatusUpdateSerializer
+from application.models import Application
+from application.serializers import ApplicationSerializer, ApplicationStatusUpdateSerializer
 from .permissions import IsInstitutionAdmin
 
 class InstitutionProfileDetailView(generics.RetrieveUpdateAPIView):

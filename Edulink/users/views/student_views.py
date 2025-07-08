@@ -6,8 +6,8 @@ from rest_framework.response import Response
 from users.models.student_profile import StudentProfile
 from users.serializers.student_serializer import StudentProfileSerializer
 from authentication.permissions import IsOwnStudentProfile, IsStudent
-from internship.models.application import Application
-from internship.serializers.application_serializers import ApplicationSerializer
+from application.models import Application
+from application.serializers import ApplicationSerializer
 
 class StudentProfileDetailView(generics.RetrieveUpdateAPIView):
     """

@@ -4,9 +4,9 @@ from rest_framework.permissions import IsAuthenticated
 from users.models.employer_profile import EmployerProfile
 from users.serializers.employer_serializers import EmployerProfileSerializer
 from internship.models.internship import Internship
-from internship.models.application import Application
+from application.models import Application
+from application.serializers import ApplicationSerializer
 # from internship.serializers.internship_serializers import InternshipSerializer
-from internship.serializers.application_serializers import ApplicationSerializer
 from .permissions import IsEmployerOwner
 
 

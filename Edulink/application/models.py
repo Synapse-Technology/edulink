@@ -1,6 +1,7 @@
 from django.db import models
+from django.conf import settings
 from users.models.student_profile import StudentProfile
-from .internship import Internship
+from internship.models.internship import Internship
 
 class Application(models.Model):
     student = models.ForeignKey(StudentProfile, on_delete=models.CASCADE, related_name='applications')
@@ -24,3 +25,14 @@ class Application(models.Model):
 
     def __str__(self):
         return f"Application by {self.student} for {self.internship.title}"
+
+class SupervisorFeedback(models.Model):
+    application = models.OneToOneField(Application, on_delete=models.CASCADE)
+    feedback = models.TextField()
+    rating = models.PositiveSmallIntegerField()
+
+    def __str__(self):
+        return f"Feedback for {self.application}"
+
+
+# Create your models here.

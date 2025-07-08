@@ -40,5 +40,6 @@ urlpatterns = [
     path('api/institutions/', include('institutions.urls')),
     path('api/security/', include('security.urls')),
     path('api/', include('internship.urls')),
+    path('api/', include('application.urls')),
     path('api/test-auth/', test_auth),
 ]

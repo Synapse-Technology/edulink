@@ -66,6 +66,7 @@ INSTALLED_APPS = [
     'institutions',
     'internship',
     'security',
+    'application',
 ]
 
 REST_FRAMEWORK = {
