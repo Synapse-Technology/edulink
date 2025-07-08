@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Edulink KE - Login</title>
+  
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background: url('assets/img/signin.jpeg') no-repeat center center/cover;
+      min-height: 100vh;
+      width: 100vw;
+      overflow-x: hidden;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(20, 40, 30, 0.55);
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .login-wrapper {
+      display: flex;
+      width: 100%;
+      max-width: 920px;
+      min-height: 620px;
+      background-color: rgba(10, 25, 15, 0.55);
+      border-radius: 20px;
+      box-shadow: 0 10px 35px rgba(0,0,0,0.3);
+      overflow: hidden;
+      backdrop-filter: blur(18px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      z-index: 1;
+    }
+    
+    .branding-side {
+      flex: 0.9;
+      background: linear-gradient(145deg,rgb(17, 204, 173),rgb(6, 165, 165));
+      color: #fff;
+      padding: 50px 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .branding-logo {
+      max-width: 150px;
+      margin-bottom: 25px;
+    }
+
+    .branding-title {
+      font-size: 2rem;
+      font-weight: 600;
+      margin-bottom: 15px;
+      line-height: 1.3;
+    }
+
+    .branding-subtitle {
+      font-size: 1.05rem;
+      line-height: 1.6;
+      opacity: 0.85;
+    }
+
+    .form-side {
+      flex: 1.1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 30px;
+    }
+    
+    .form-box {
+      width: 100%;
+      max-width: 400px;
+      color: #fff;
+    }
+
+    .form-box h2 {
+      color: #ffffff;
+      margin-bottom: 8px;
+      text-align: center;
+      font-size: 26px;
+      letter-spacing: 0.5px;
+    }
+
+    .form-box p {
+      color: #f1f1f1;
+      margin-bottom: 20px;
+      text-align: center;
+      font-size: 15px;
+    }
+
+    .form-box form {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .form-box input {
+      width: 100%;
+      padding: 12px 14px;
+      border: none;
+      border-radius: 10px;
+      background-color: rgba(255, 255, 255, 0.82);
+      color: #222;
+      font-size: 15px;
+      transition: box-shadow 0.2s;
+    }
+
+    .form-box input:focus {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(56, 142, 60, 0.25);
+    }
+
+    .form-box input::placeholder {
+      color: #555;
+    }
+    
+    .form-options {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+      color: #e0e0e0;
+    }
+    
+    .remember-me {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .forgot-password {
+      color: #c8e6c9;
+      text-decoration: none;
+    }
+    .forgot-password:hover {
+      text-decoration: underline;
+    }
+
+    .form-box button[type="submit"] {
+      padding: 13px;
+      background: linear-gradient(90deg,rgb(10, 187, 163) 0%,rgb(7, 168, 141) 100%);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 17px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+      box-shadow: 0 2px 8px rgba(56, 142, 60, 0.10);
+      transition: background 0.2s, box-shadow 0.2s;
+    }
+
+    .form-box button[type="submit"]:hover {
+      background: linear-gradient(90deg,rgb(26, 194, 171) 0%, rgb(7, 168, 141) 100%);
+      box-shadow: 0 4px 16px rgba(56, 142, 60, 0.18);
+    }
+
+    .form-box .footer {
+      text-align: center;
+      margin-top: 18px;
+      font-size: 14px;
+      color: #f2f2f2;
+    }
+
+    .form-box .footer a {
+      color: #c8e6c9;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .form-box .footer a:hover {
+      text-decoration: underline;
+    }
+
+    #form-message {
+      text-align: center;
+      margin-top: 15px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    
+    @media screen and (max-width: 920px) {
+      .login-wrapper {
+        flex-direction: column;
+        min-height: 100vh;
+        border-radius: 0;
+      }
+      .branding-side {
+        padding: 40px 25px;
+        text-align: center;
+        align-items: center;
+        flex: 0;
+      }
+      .branding-title {
+        font-size: 1.8rem;
+      }
+      .form-side {
+        flex: 1;
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay"></div>
+  <main class="login-wrapper">
+    <div class="branding-side">
+      <a href="index.html">
+        <img src="assets/img/edulink_logo.png" alt="Edulink Logo" class="branding-logo">
+      </a>
+      <h1 class="branding-title">Welcome Back to Edulink</h1>
+      <p class="branding-subtitle">Log in to access your dashboard, track applications, and discover new opportunities.</p>
+    </div>
+    <div class="form-side">
+      <div class="form-box">
+        <div id="login-view">
+          <h2>Sign In</h2>
+          <p>Please enter your credentials to proceed.</p>
+          <form id="login-form">
+            <input type="email" name="email" placeholder="Email" required />
+            <input type="password" name="password" placeholder="Password" required />
+            <div class="form-options">
+              <div class="remember-me">
+                <input type="checkbox" id="remember" name="remember">
+                <label for="remember">Remember Me</label>
+              </div>
+              <a href="#" class="forgot-password" id="forgot-password-link">Forgot Password?</a>
+            </div>
+            <button type="submit">Login</button>
+          </form>
+          <div class="footer">
+            Don't have an account? <a href="register.html">Sign Up</a>
+          </div>
+          <div id="form-message"></div>
+        </div>
+        <!-- Forgot Password Step 1: Request -->
+        <div id="forgot-step1" style="display:none;">
+          <h2>Forgot Password</h2>
+          <p>Enter your email to receive a password reset link.</p>
+          <form id="forgot-form">
+            <input type="email" name="email" placeholder="Email" required />
+            <button type="submit">Send Reset Link</button>
+          </form>
+          <div class="footer">
+            <a href="#" id="back-to-login-1">Back to Login</a>
+          </div>
+          <div id="forgot-message1"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // View switching
+    const loginView = document.getElementById('login-view');
+    const forgotStep1 = document.getElementById('forgot-step1');
+    const forgotLink = document.getElementById('forgot-password-link');
+    const backToLogin1 = document.getElementById('back-to-login-1');
+    const formMessage = document.getElementById('form-message');
+    const forgotMessage1 = document.getElementById('forgot-message1');
+
+    // Show forgot password step 1
+    forgotLink.addEventListener('click', function(e) {
+      e.preventDefault();
+      loginView.style.display = 'none';
+      forgotStep1.style.display = 'block';
+      formMessage.textContent = '';
+      forgotMessage1.textContent = '';
+    });
+    // Back to login from step 1
+    backToLogin1.addEventListener('click', function(e) {
+      e.preventDefault();
+      loginView.style.display = 'block';
+      forgotStep1.style.display = 'none';
+      formMessage.textContent = '';
+      forgotMessage1.textContent = '';
+    });
+
+    // Login form submission
+    document.getElementById('login-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      formMessage.textContent = 'Logging in...';
+      formMessage.style.color = '#e0e0e0';
+      
+      const email = this.email.value.trim();
+      const password = this.password.value;
+      
+      try {
+        const response = await fetch('http://127.0.0.1:8000/api/auth/login/', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({ email, password })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          // Store tokens and user data
+          localStorage.setItem('access_token', data.access);
+          localStorage.setItem('refresh_token', data.refresh);
+          localStorage.setItem('user', JSON.stringify(data.user));
+          
+          // Store profile picture if available
+          if (data.user.profile && data.user.profile.profile_picture) {
+            localStorage.setItem('profilePicUrl', data.user.profile.profile_picture);
+          }
+          
+          formMessage.textContent = 'Login successful! Redirecting...';
+          formMessage.style.color = '#4CAF50';
+          
+          // Route based on user role
+          setTimeout(() => {
+            if (data.user.role === 'student') {
+              window.location.href = 'dashboards/student_dash.html';
+            } else if (data.user.role === 'employer') {
+              window.location.href = 'dashboards/employer_dash.html';
+            } else if (data.user.role === 'institution_admin') {
+              window.location.href = 'dashboards/institution_dash.html';
+            } else {
+              // Default fallback
+              window.location.href = 'index.html';
+            }
+          }, 1500);
+        } else {
+          // Handle different error responses
+          let errorMessage = 'Login failed. Please check your credentials.';
+          if (data.detail) {
+            errorMessage = data.detail;
+          } else if (data.non_field_errors) {
+            errorMessage = data.non_field_errors[0];
+          } else if (data.email) {
+            errorMessage = data.email[0];
+          } else if (data.password) {
+            errorMessage = data.password[0];
+          }
+          formMessage.textContent = errorMessage;
+          formMessage.style.color = '#ffb3b3';
+        }
+      } catch (err) {
+        formMessage.textContent = 'Network error. Please check your connection and try again.';
+        formMessage.style.color = '#ffb3b3';
+        console.error('Login error:', err);
+      }
+    });
+
+    // Step 1: Request reset
+    document.getElementById('forgot-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      forgotMessage1.textContent = 'Sending reset link...';
+      forgotMessage1.style.color = '#e0e0e0';
+      const email = this.email.value.trim();
+      try {
+        const res = await fetch('http://127.0.0.1:8000/api/auth/password-reset/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          forgotMessage1.textContent = data.detail || 'If an account with that email exists, a password reset link has been sent.';
+          forgotMessage1.style.color = '#4CAF50';
+          this.style.display = 'none';
+        } else {
+          forgotMessage1.textContent = data.detail || 'Failed to send reset link.';
+          forgotMessage1.style.color = '#ffb3b3';
+        }
+      } catch (err) {
+        forgotMessage1.textContent = 'An error occurred. Please try again.';
+        forgotMessage1.style.color = '#ffb3b3';
+      }
+    });
+  });
+  </script>
+</body>
+</html>

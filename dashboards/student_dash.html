@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EduLink KE - Student Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+    }
+    @media (min-width: 768px) {
+      #sidebar {
+        transform: translateX(0) !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen relative">
+  <!-- Top Header -->
+  <div class="flex items-center justify-between px-6 py-4 bg-white shadow">
+    <div class="flex items-center gap-4">
+      <h2 class="text-2xl font-bold text-teal-800">EduLink KE</h2>
+      <button id="toggleBtn" class="text-3xl text-teal-700 md:hidden">&#9776;</button>
+    </div>
+    <div class="flex items-center gap-4">
+      <a href="messages.html" class="bg-white shadow px-3 py-2 rounded-full text-sm">💬 Message</a>
+      <button class="bg-white shadow px-3 py-2 rounded-full text-sm">🔔 Notifications</button>
+      <img id="profilePic" src="https://via.placeholder.com/40" class="w-10 h-10 rounded-full" alt="Profile" />
+      <script>
+        // Load profile picture from localStorage if available
+        document.addEventListener('DOMContentLoaded', function() {
+          const profilePic = document.getElementById('profilePic');
+          const savedPic = localStorage.getItem('profilePicUrl');
+          if (savedPic) {
+        profilePic.src = savedPic;
+          }
+        });
+      </script>
+    </div>
+  </div>
+
+  <div class="flex">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="w-64 bg-teal-800 text-white min-h-screen p-6 fixed md:static top-[4rem] md:top-0 z-30 transform -translate-x-full md:translate-x-0 transition-transform duration-300">
+      <nav class="flex flex-col justify-between h-full">
+        <div class="space-y-4">
+          <a href="#" class="block px-4 py-2 rounded hover:bg-teal-700 bg-teal-700">Dashboard</a>
+          <a href="#" class="block px-4 py-2 rounded hover:bg-teal-700">Browse Internships</a>
+          <a href="#" class="block px-4 py-2 rounded hover:bg-teal-700">Application Tracker</a>
+          <a href="#" class="block px-4 py-2 rounded hover:bg-teal-700">My Internship</a>
+          <a href="profile.html" class="block px-4 py-2 rounded hover:bg-teal-700">Profile</a>
+          <a href="progress.html" class="block px-4 py-2 rounded hover:bg-teal-700">Reports and logbooks</a>
+          <a href="#" class="block px-4 py-2 rounded hover:bg-teal-700">CV & Toolkit</a>
+          <a href="#" class="block px-4 py-2 rounded hover:bg-teal-700">Support</a>
+        </div>
+        <div>
+          <a href="#" class="block px-4 py-2 rounded hover:bg-teal-700">Log Out</a>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-6 ml-0 md:ml-64">
+      <!-- Welcome Message -->
+      <div class="mb-8 text-center">
+        <h1 class="text-2xl font-semibold text-teal-800">Welcome, Gabriella 👋</h1>
+        <p class="text-sm text-gray-600">Track your verified internships and career growth.</p>
+      </div>
+
+      <!-- Quick Stats -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+        <div class="bg-white p-4 rounded shadow">
+          <p class="text-sm text-gray-500">Active internships</p>
+          <h2 class="text-xl font-bold">4</h2>
+        </div>
+        <div class="bg-white p-4 rounded shadow">
+          <p class="text-sm text-gray-500">Pending</p>
+          <h2 class="text-xl font-bold">1</h2>
+        </div>
+        <div class="bg-white p-4 rounded shadow">
+          <p class="text-sm text-gray-500">Accepted</p>
+          <h2 class="text-xl font-bold">2</h2>
+        </div>
+        <div class="bg-white p-4 rounded shadow">
+          <p class="text-sm text-gray-500">Declined</p>
+          <h2 class="text-xl font-bold">0</h2>
+        </div>
+      </div>
+
+       <!-- Internship applications -->
+
+<section class="mb-12">
+  <h2 class="text-xl font-semibold mb-4">My Applications</h2>
+
+  <!-- Filter Buttons -->
+  <div class="flex gap-2 mb-4">
+    <button class="px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700 active" onclick="filterTable('all', event)">All</button>
+    <button class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300" onclick="filterTable('in-progress', event)">In Progress</button>
+    <button class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300" onclick="filterTable('completed', event)">Completed</button>
+  </div>
+
+  <!-- Responsive Table -->
+  <div class="overflow-x-auto">
+    <table class="min-w-full bg-white rounded-lg shadow">
+      <thead>
+        <tr class="bg-gray-100 text-left text-sm font-semibold text-gray-700">
+          <th class="px-6 py-3">Opportunity</th>
+          <th class="px-6 py-3">Company</th>
+          <th class="px-6 py-3">Duration</th>
+          <th class="px-6 py-3">Progress</th>
+          <th class="px-6 py-3">Applicants</th>
+          <th class="px-6 py-3">Action</th>
+        </tr>
+      </thead>
+      <tbody class="text-sm text-gray-700">
+        <tr class="border-t" data-status="in-progress">
+          <td class="px-6 py-4">Software Intern</td>
+          <td class="px-6 py-4">Safaricom</td>
+          <td class="px-6 py-4">3 Months</td>
+          <td class="px-6 py-4">4/12 weeks (33%)</td>
+          <td class="px-6 py-4">+5</td>
+          <td class="px-6 py-4">
+            <button class="bg-teal-600 text-white px-3 py-1 rounded hover:bg-teal-700 text-sm">View</button>
+          </td>
+        </tr>
+        <tr class="border-t" data-status="completed">
+          <td class="px-6 py-4">Data Entry Assistant</td>
+          <td class="px-6 py-4">KRA</td>
+          <td class="px-6 py-4">2 Months</td>
+          <td class="px-6 py-4">8/8 weeks (100%)</td>
+          <td class="px-6 py-4">+3</td>
+          <td class="px-6 py-4">
+            <button class="bg-teal-600 text-white px-3 py-1 rounded hover:bg-teal-700 text-sm">View</button>
+          </td>
+        </tr>
+        <tr class="border-t" data-status="in-progress">
+          <td class="px-6 py-4">UI/UX Intern</td>
+          <td class="px-6 py-4">Equity Bank</td>
+          <td class="px-6 py-4">1 Month</td>
+          <td class="px-6 py-4">1/4 weeks (25%)</td>
+          <td class="px-6 py-4">+2</td>
+          <td class="px-6 py-4">
+            <button class="bg-teal-600 text-white px-3 py-1 rounded hover:bg-teal-700 text-sm">View</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+
+      <!-- Internship Recommendations -->
+      <section class="mb-12">
+        <h2 class="text-xl font-semibold mb-4">Recommended for You</h2>
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div class="bg-white p-5 rounded-lg shadow">
+            <h3 class="text-lg font-semibold">Software Developer Intern</h3>
+            <p class="text-sm text-gray-600">Safaricom • Nairobi • Remote</p>
+            <span class="text-xs text-green-600">✅ Verified</span>
+            <button class="mt-3 bg-teal-600 text-white px-4 py-2 text-sm rounded hover:bg-teal-700">Apply</button>
+          </div>
+          <div class="bg-white p-5 rounded-lg shadow">
+            <h3 class="text-lg font-semibold">Data Analyst Assistant</h3>
+            <p class="text-sm text-gray-600">Kenya Bureau of Statistics • Nairobi</p>
+            <span class="text-xs text-green-600">✅ Verified</span>
+            <button class="mt-3 bg-teal-600 text-white px-4 py-2 text-sm rounded hover:bg-teal-700">Apply</button>
+          </div>
+          <div class="bg-white p-5 rounded-lg shadow">
+            <h3 class="text-lg font-semibold">Marketing Intern</h3>
+            <p class="text-sm text-gray-600">Equity Group Foundation • Remote</p>
+            <span class="text-xs text-green-600">✅ Verified</span>
+            <button class="mt-3 bg-teal-600 text-white px-4 py-2 text-sm rounded hover:bg-teal-700">Apply</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Logbook & Tools Highlights (Optional Preview Cards) -->
+      <section class="mb-12">
+        <h2 class="text-xl font-semibold mb-4">Tools & Utilities</h2>
+        <div class="grid md:grid-cols-3 gap-6">
+          <div class="bg-white p-4 shadow rounded">
+            <h3 class="font-bold text-lg">📘 Digital Logbook</h3>
+    /        <p class="text-sm text-gray-600">Track your weekly internship tasks with supervisor feedback.</p>
+          </div>
+          <div class="bg-white p-4 shadow rounded">
+            <h3 class="font-bold text-lg">📄 CV Review</h3>
+            <p class="text-sm text-gray-600">Upload and get feedback on your resume to increase interview chances.</p>
+          </div>
+          <div class="bg-white p-4 shadow rounded">
+            <h3 class="font-bold text-lg">🎓 Certificate Vault</h3>
+            <p class="text-sm text-gray-600">Download all earned digital certificates and verification QR codes.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Footer -->
+      <footer class="text-center text-sm text-gray-400 mt-16">
+        &copy; 2025 EduLink KE. Empowering Students with Verified Internships.
+      </footer>
+    </main>
+  </div>
+
+  <script>
+    const sidebar = document.getElementById('sidebar');
+    const toggleBtn = document.getElementById('toggleBtn');
+
+    toggleBtn.addEventListener('click', () => {
+      sidebar.classList.toggle('-translate-x-full');
+    });
+
+    // Highlight current page
+    const links = sidebar.querySelectorAll('a');
+    const currentPath = window.location.pathname.split('/').pop();
+    links.forEach(link => {
+      if (link.getAttribute('href') === currentPath) {
+        link.classList.add('bg-teal-700');
+      } else {
+        link.classList.remove('bg-teal-700');
+      }
+    });
+    // Filter table rows by status
+  function filterTable(status, event) {
+    const rows = document.querySelectorAll('tbody tr');
+    const buttons = document.querySelectorAll('section .flex button');
+
+    // Remove 'active' styles from all buttons
+    buttons.forEach(btn => {
+      btn.classList.remove('bg-teal-600', 'text-white');
+      btn.classList.add('bg-gray-200', 'text-gray-700');
+    });
+
+    // Add 'active' styles to clicked button
+    event.target.classList.remove('bg-gray-200', 'text-gray-700');
+    event.target.classList.add('bg-teal-600', 'text-white');
+
+    // Show/hide rows based on selected filter
+    rows.forEach(row => {
+      const rowStatus = row.getAttribute('data-status');
+      if (status === 'all' || rowStatus === status) {
+        row.style.display = '';
+      } else {
+        row.style.display = 'none';
+      }
+    });
+  }
+  </script>
+</body>
+</html>
