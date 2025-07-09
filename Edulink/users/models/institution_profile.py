@@ -3,6 +3,7 @@ from .profile_base import ProfileBase
 from institutions.models import Institution
 from django.conf import settings
 
+
 class InstitutionProfile(ProfileBase):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,

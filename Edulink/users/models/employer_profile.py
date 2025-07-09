@@ -2,6 +2,7 @@ from django.db import models
 from .profile_base import ProfileBase
 from django.conf import settings
 
+
 class EmployerProfile(ProfileBase):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,

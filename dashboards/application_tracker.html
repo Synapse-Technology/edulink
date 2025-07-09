@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Application Tracker - EduLink KE</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+    }
+    @media (min-width: 768px) {
+      #sidebar {
+        transform: translateX(0) !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen relative">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between px-6 py-4 bg-white shadow">
+    <div class="flex items-center gap-4">
+      <h2 class="text-2xl font-bold text-teal-800">EduLink KE</h2>
+      <button id="toggleBtn" class="text-3xl text-teal-700 md:hidden">&#9776;</button>
+    </div>
+    <div class="flex items-center gap-4">
+      <a href="messages.html" class="bg-white shadow px-3 py-2 rounded-full text-sm">💬 Message</a>
+      <button class="bg-white shadow px-3 py-2 rounded-full text-sm">🔔 Notifications</button>
+      <img id="profilePic" src="https://via.placeholder.com/40" class="w-10 h-10 rounded-full" alt="Profile" />
+    </div>
+  </div>
+
+  <div class="flex">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="w-64 bg-teal-800 text-white min-h-screen p-6 fixed md:static top-[4rem] md:top-0 z-30 transform -translate-x-full md:translate-x-0 transition-transform duration-300">
+      <nav class="flex flex-col justify-between h-full">
+        <div class="space-y-4">
+          <a href="student_dash.html" class="block px-4 py-2 rounded hover:bg-teal-700">Dashboard</a>
+          <a href="application_tracker.html" class="block px-4 py-2 rounded bg-teal-700">Application Tracker</a>
+          <a href="my_internships.html" class="block px-4 py-2 rounded hover:bg-teal-700">My Internships</a>
+          <a href="Browse.html" class="block px-4 py-2 rounded hover:bg-teal-700">Browse Internships</a>
+          <a href="profile.html" class="block px-4 py-2 rounded hover:bg-teal-700">Profile</a>
+          <a href="progress.html" class="block px-4 py-2 rounded hover:bg-teal-700">Reports and Logbooks</a>
+          <a href="#" class="block px-4 py-2 rounded hover:bg-teal-700">CV & Toolkit</a>
+          <a href="#" class="block px-4 py-2 rounded hover:bg-teal-700">Support</a>
+        </div>
+        <div>
+          <a href="#" class="block px-4 py-2 rounded hover:bg-teal-700">Settings</a>
+          <a href="#" class="block px-4 py-2 rounded hover:bg-teal-700">Log Out</a>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-6 md:pl-50">
+      <h1 class="text-2xl font-bold text-teal-800 mb-4">Application Tracker</h1>
+
+      <!-- Filters -->
+      <div class="flex flex-wrap gap-3 mb-6">
+        <button onclick="filterStatus('all')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">All</button>
+        <button onclick="filterStatus('pending')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">Pending</button>
+        <button onclick="filterStatus('accepted')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">Accepted</button>
+        <button onclick="filterStatus('declined')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">Declined</button>
+      </div>
+
+      <!-- Application Table -->
+      <div class="overflow-x-auto mb-12">
+        <table class="min-w-full bg-white rounded shadow text-sm">
+          <thead class="bg-gray-100 text-left text-gray-700">
+            <tr>
+              <th class="px-6 py-3">Title</th>
+              <th class="px-6 py-3">Company</th>
+              <th class="px-6 py-3">Date Applied</th>
+              <th class="px-6 py-3">Status</th>
+              <th class="px-6 py-3">Progress</th>
+              <th class="px-6 py-3">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="applicationTable" class="text-gray-700">
+            <tr data-status="pending" data-stage="2" class="border-t">
+              <td class="px-6 py-4">Software Intern</td>
+              <td class="px-6 py-4">Safaricom</td>
+              <td class="px-6 py-4">June 15, 2025</td>
+              <td class="px-6 py-4"><span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs">Pending</span></td>
+              <td class="px-6 py-4">
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                  <div class="bg-yellow-500 h-2 rounded-full" style="width: 60%;"></div>
+                </div>
+                <small>3/5 steps</small>
+              </td>
+              <td class="px-6 py-4 space-x-2">
+                <button onclick="openTimelineModal(2)" class="text-teal-600 hover:underline">View Timeline</button>
+              </td>
+            </tr>
+            <tr data-status="accepted" data-stage="5" class="border-t">
+              <td class="px-6 py-4">UX Researcher</td>
+              <td class="px-6 py-4">Equity Bank</td>
+              <td class="px-6 py-4">May 28, 2025</td>
+              <td class="px-6 py-4"><span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">Accepted</span></td>
+              <td class="px-6 py-4">
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                  <div class="bg-green-500 h-2 rounded-full" style="width: 100%;"></div>
+                </div>
+                <small>5/5 steps</small>
+              </td>
+              <td class="px-6 py-4 space-x-2">
+                <button onclick="openTimelineModal(5)" class="text-teal-600 hover:underline">View Timeline</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Interview Calendar (Compact List) -->
+      <section class="bg-white p-6 rounded shadow mb-12">
+        <h2 class="text-xl font-semibold text-teal-800 mb-4">📅 Upcoming Interviews</h2>
+        <ul class="space-y-4">
+          <li class="border-l-4 border-teal-600 pl-4">
+            <p class="text-sm text-gray-600">July 10, 2025 — 10:00 AM</p>
+            <p class="font-semibold text-teal-700">Software Intern at Safaricom</p>
+          </li>
+          <li class="border-l-4 border-teal-600 pl-4">
+            <p class="text-sm text-gray-600">July 15, 2025 — 2:30 PM</p>
+            <p class="font-semibold text-teal-700">UX Researcher at Equity Bank</p>
+          </li>
+        </ul>
+      </section>
+
+      <!-- Timeline Modal -->
+      <div id="timelineModal" class="fixed inset-0 bg-black bg-opacity-50 hidden justify-center items-center z-50">
+        <div class="bg-white w-full max-w-2xl p-6 rounded shadow relative">
+          <h2 class="text-lg font-bold text-teal-800 mb-4">Application Timeline</h2>
+          <div id="timelineSteps" class="flex justify-between items-center">
+            <!-- Steps will be injected dynamically -->
+          </div>
+          <button onclick="closeTimelineModal()" class="absolute top-3 right-4 text-gray-600 hover:text-red-600 text-xl">&times;</button>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <footer class="text-center text-sm text-gray-400 mt-16">
+        &copy; 2025 EduLink KE. Empowering Students with Verified Internships.
+      </footer>
+    </main>
+  </div>
+
+  <!-- JS -->
+  <script>
+    const sidebar = document.getElementById('sidebar');
+    const toggleBtn = document.getElementById('toggleBtn');
+    toggleBtn.addEventListener('click', () => {
+      sidebar.classList.toggle('-translate-x-full');
+    });
+
+    function filterStatus(status) {
+      const rows = document.querySelectorAll('#applicationTable tr');
+      rows.forEach(row => {
+        const rowStatus = row.getAttribute('data-status');
+        row.style.display = (status === 'all' || rowStatus === status) ? '' : 'none';
+      });
+    }
+
+    function openTimelineModal(stage) {
+      const modal = document.getElementById("timelineModal");
+      const stepsContainer = document.getElementById("timelineSteps");
+      const labels = ["Applied", "Reviewed", "Interview", "Offer", "Final"];
+
+      stepsContainer.innerHTML = labels.map((label, index) => {
+        const step = index + 1;
+        const filled = step <= stage;
+        return `
+          <div class="flex-1 text-center">
+            <div class="w-8 h-8 mx-auto rounded-full ${filled ? 'bg-teal-600 text-white' : 'bg-gray-300 text-gray-600'} flex items-center justify-center">${step}</div>
+            <p class="text-xs mt-1">${label}</p>
+          </div>
+          ${step < 5 ? `<div class="flex-1 border-t-2 ${step < stage ? 'border-teal-500' : 'border-gray-300'}"></div>` : ''}
+        `;
+      }).join('');
+
+      modal.classList.remove("hidden");
+    }
+
+    function closeTimelineModal() {
+      document.getElementById("timelineModal").classList.add("hidden");
+    }
+  </script>
+</body>
+</html>

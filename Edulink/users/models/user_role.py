@@ -4,6 +4,7 @@ from institutions.models import Institution
 from .employer_profile import EmployerProfile
 from users.roles import RoleChoices
 
+
 class UserRole(models.Model):
     role = models.CharField(max_length=30, choices=RoleChoices.CHOICES)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='roles')

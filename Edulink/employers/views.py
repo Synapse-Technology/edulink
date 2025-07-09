@@ -1,12 +1,10 @@
-from rest_framework import generics, status
+from rest_framework import generics
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from users.models.employer_profile import EmployerProfile
 from users.serializers.employer_serializers import EmployerProfileSerializer
 from internship.models.internship import Internship
-from internship.models.application import Application
-# from internship.serializers.internship_serializers import InternshipSerializer
-from internship.serializers.application_serializers import ApplicationSerializer
+from application.models import Application
+from application.serializers import ApplicationSerializer
 from .permissions import IsEmployerOwner
 
 
@@ -31,12 +29,12 @@ class EmployerInternshipListView(generics.ListAPIView):
     """
     List all internships posted by the currently authenticated employer.
     """
-    #serializer_class = InternshipSerializer
+    # serializer_class = InternshipSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         # Filter internships based on the employer profile linked to the user
-        return Internship.objects.filter(employer=self.request.user.employer_profile)
+        return Internship.objects.filter(employer=self.request.user.employer_profile)  # type: ignore[attr-defined]
 
 
 class InternshipApplicationListView(generics.ListAPIView):
@@ -48,6 +46,6 @@ class InternshipApplicationListView(generics.ListAPIView):
 
     def get_queryset(self):
         internship_id = self.kwargs.get('internship_id')
-        return Application.objects.filter(internship_id=internship_id)
+        return Application.objects.filter(internship_id=internship_id)  # type: ignore[attr-defined]
 
 # Create your views here.

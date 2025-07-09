@@ -1,5 +1,6 @@
 from django.utils.translation import gettext_lazy as _
 
+
 class RoleChoices:
     STUDENT = 'student'
     INSTITUTION_ADMIN = 'institution_admin'
@@ -11,4 +12,4 @@ class RoleChoices:
         (INSTITUTION_ADMIN, _('Institution Admin')),
         (EMPLOYER, _('Employer')),
         (SUPER_ADMIN, _('Super Admin')),
-    ] 
+    ]
