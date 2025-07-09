@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     "employers",
     "users",
     "chatbot",
+    "security",
     "institutions",
     "internship",
     "dashboards",
