@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pantha Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="flex bg-gray-100 h-screen overflow-hidden">
+
+  <!-- Sidebar -->
+  <aside class="w-64 bg-teal-500 p-4 border-r overflow-y-auto flex flex-col h-full">
+    <div class="text-2xl font-bold mb-4">Pantha Group</div>
+    <nav class="space-y-2">
+      <a href="employer.html" class="block text-gray-700 hover:text-blue-600 ">Dashboard</a>
+      <a href="applications.html" class="block text-gray-700 hover:text-blue-600">Applications</a>
+      <a href="interns.html" class="block text-gray-700 hover:text-blue-600">Active Interns</a>
+      <a href="#" class="block text-gray-700 hover:text-blue-600">Scheduled Interviews</a>
+      <a href="#" class="block text-gray-700 hover:text-blue-600">Feedback</a>
+    </nav>
+    <div class="flex-grow"></div>
+    <div class="text-sm text-blue-600">
+      <a href="#" class="block">Settings</a>
+      <a href="#" class="block">Help Center</a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="flex-1 p-6 overflow-y-auto">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-xl font-semibold">Hey Pantha, welcome back to Edulink KE</h1>
+      <div class="flex space-x-4">
+        <span class="w-6 h-6 bg-gray-300 rounded-full"></span>
+        <span class="w-6 h-6 bg-gray-300 rounded-full"></span>
+        <span class="w-6 h-6 bg-gray-300 rounded-full"></span>
+      </div>
+    </div>
+
+    <!-- Summary Boxes -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6" id="summaryCards">
+      <!-- Dynamic Cards will be injected here -->
+    </div>
+
+    <!-- Applications Table -->
+    <div class="bg-white p-4 shadow rounded mb-6">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-semibold">Applications</h3>
+        <div>
+          <input type="text" placeholder="Search..." class="border px-2 py-1 text-sm rounded" />
+          <button class="ml-2 px-2 py-1 text-sm bg-gray-200 rounded">Filter</button>
+        </div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left" id="applicationsTable">
+          <!-- Dynamic Content -->
+        </table>
+      </div>
+    </div>
+
+    <!-- Active Internships -->
+    <div class="bg-white p-4 shadow rounded">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-semibold">Active Internships</h3>
+        <div>
+          <input type="text" placeholder="Search..." class="border px-2 py-1 text-sm rounded" />
+          <button class="ml-2 px-2 py-1 text-sm bg-gray-200 rounded">Filter</button>
+        </div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left" id="internshipsTable">
+          <!-- Dynamic Content -->
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
