@@ -7,25 +7,37 @@ from ..models.skill_tag import SkillTag
 from datetime import datetime
 from ..models.flag_report import FlagReport
 
+
 class SkillTagSerializer(serializers.ModelSerializer):
     """Serializer for SkillTag model"""
     class Meta:
         model = SkillTag
         fields = ['id', 'name', 'description']
 
+
 class InternshipSerializer(serializers.ModelSerializer):
     """
     Main serializer for the Internship model.
     """
-    # Read-only fields to include related object data
-    employer_email = serializers.ReadOnlyField(source='employer.email')
-    institution_name = serializers.ReadOnlyField(source='institution.name') # Assuming Institution model has a 'name' field
-    is_verified_by_institution = serializers.BooleanField(read_only=True)
-    verified_by = serializers.StringRelatedField(read_only=True)
-    verification_date = serializers.DateTimeField(read_only=True)
-    trust_score = serializers.IntegerField(read_only=True)
-    verification_status = serializers.CharField(read_only=True)
-    flag_count = serializers.IntegerField(read_only=True)
+    # Read-only fields for related data
+    employer_name = serializers.CharField(source='employer.company_name', read_only=True)
+    employer_email = serializers.CharField(source='employer.user.email', read_only=True)
+    institution_name = serializers.CharField(source='institution.name', read_only=True)
+
+    # Skill tags
+    skill_tags = SkillTagSerializer(many=True, read_only=True)
+    skill_tag_ids = serializers.PrimaryKeyRelatedField(
+        many=True,
+        write_only=True,
+        queryset=SkillTag.objects.filter(is_active=True),
+        required=False,
+        source='skill_tags'
+    )
+
+    # Computed fields
+    is_expired = serializers.BooleanField(read_only=True)
+    can_apply = serializers.BooleanField(read_only=True)
+    application_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Internship
@@ -49,22 +61,56 @@ class InternshipSerializer(serializers.ModelSerializer):
             'is_verified',
             'visibility',
             'is_active',
-            'is_verified_by_institution',
-            'verified_by',
-            'verification_date',
+            'is_expired',
+            'can_apply',
+            'application_count',
             'created_at',
             'updated_at',
             'trust_score',
             'verification_status',
             'flag_count',
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at', 'employer_email', 'institution_name', 'is_verified_by_institution', 'verified_by', 'verification_date', 'trust_score', 'verification_status', 'flag_count']
+        read_only_fields = [
+            'id', 'created_at', 'updated_at', 'employer_name',
+            'employer_email', 'institution_name', 'is_expired',
+            'can_apply', 'application_count'
+        ]
+
+    def get_application_count(self, obj):
+        """Return the number of applications for this internship"""
+        return obj.applications.count()
+
+    def validate_deadline(self, value):
+        """Ensure deadline is in the future"""
+        if value <= timezone.now():
+            raise serializers.ValidationError("Application deadline must be in the future.")
+        return value
+
+    def validate_end_date(self, value):
+        """Ensure end date is after start date"""
+        start_date = self.initial_data.get('start_date')
+        if start_date and value <= start_date:
+            raise serializers.ValidationError("End date must be after start date.")
+        return value
+
+    def validate(self, data):
+        """Additional validation"""
+        # Ensure start date is in the future
+        if data.get('start_date') and data['start_date'] < timezone.now().date():
+            raise serializers.ValidationError("Start date cannot be in the past.")
+
+        return data
+
 
 class InternshipCreateSerializer(InternshipSerializer):
     class Meta(InternshipSerializer.Meta):
         read_only_fields = InternshipSerializer.Meta.read_only_fields + ['employer']
 
 class InternshipUpdateSerializer(InternshipSerializer):
+    """
+    Serializer for updating internships - prevents changing certain fields after verification.
+    """
+
     def validate(self, data):
         instance = self.instance
         if instance and instance.is_verified:
@@ -116,9 +162,3 @@ class InternshipListSerializer(serializers.ModelSerializer):
 
     def get_application_count(self, obj):
         return obj.applications.count()
-
-class FlagReportSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = FlagReport
-        fields = ['id', 'student', 'internship', 'reason', 'timestamp', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'student', 'internship', 'timestamp', 'created_at', 'updated_at']

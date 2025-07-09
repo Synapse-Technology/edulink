@@ -16,4 +16,4 @@ __all__ = [
     'CanViewInternship',
     'CanApplyToInternship',
     'CanManageApplication',
-] 
+]

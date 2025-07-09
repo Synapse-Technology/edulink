@@ -4,11 +4,11 @@ from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from django_filters.rest_framework import DjangoFilterBackend
 from django.utils import timezone
 from django.db.models import Q
+from rest_framework.views import APIView
 
-from ..models.internship import Internship
-from ..models.skill_tag import SkillTag
-from ..models.flag_report import FlagReport
-from ..serializers.internship_serializers import (
+from internship.models.internship import Internship
+from internship.models.skill_tag import SkillTag
+from internship.serializers.internship_serializers import (
     InternshipSerializer,
     InternshipCreateSerializer,
     InternshipUpdateSerializer,
@@ -16,12 +16,11 @@ from ..serializers.internship_serializers import (
     InternshipListSerializer,
     FlagReportSerializer,
 )
-from ..permissions.role_permissions import (
+from internship.permissions.role_permissions import (
     IsVerifiedEmployer,
     CanEditInternship,
     CanVerifyInternship,
     CanViewInternship,
-    CanApplyToInternship,
 )
 from ..serializers.skill_tag import SkillTagSerializer
 
@@ -41,23 +40,23 @@ class InternshipListView(generics.ListAPIView):
 
     def get_queryset(self):
         """Filter internships based on visibility and expiration"""
-        queryset = Internship.objects.filter(is_active=True)
-        
+        queryset = Internship.objects.filter(is_active=True)  # type: ignore[attr-defined]
+
         # Filter by visibility based on user
-        if hasattr(self.request.user, 'student_profile'):
+        if hasattr(self.request.user, 'student_profile'):  # type: ignore[attr-defined]
             # Students can see public internships and institution-specific ones
-            student_institution = self.request.user.student_profile.institution
+            student_institution = self.request.user.student_profile.institution  # type: ignore[attr-defined]
             queryset = queryset.filter(
-                Q(visibility='public') | 
+                Q(visibility='public') |
                 Q(visibility='institution-only', institution=student_institution)
             )
         else:
             # Non-students can only see public internships
             queryset = queryset.filter(visibility='public')
-        
+
         # Filter by expiration (hide expired internships)
         queryset = queryset.filter(deadline__gt=timezone.now())
-        
+
         return queryset.select_related('employer', 'employer__user', 'institution')
 
 
@@ -68,7 +67,8 @@ class InternshipDetailView(generics.RetrieveAPIView):
     """
     serializer_class = InternshipSerializer
     permission_classes = [CanViewInternship]
-    queryset = Internship.objects.select_related('employer', 'employer__user', 'institution')
+    queryset = Internship.objects.select_related(
+        'employer', 'employer__user', 'institution')  # type: ignore[attr-defined]
 
 
 def calculate_trust_score(employer_profile, internship_data):
@@ -112,24 +112,8 @@ class InternshipCreateView(generics.CreateAPIView):
     permission_classes = [IsAuthenticated, IsVerifiedEmployer]
 
     def perform_create(self, serializer):
-        employer_profile = self.request.user.employer_profile
-        internship_data = serializer.validated_data.copy()
-        # Save first to get the instance
-        internship = serializer.save(employer=employer_profile)
-        # Calculate trust score
-        trust_score = calculate_trust_score(employer_profile, internship_data)
-        internship.trust_score = trust_score
-        # Assign verification status
-        if trust_score >= 80:
-            internship.verification_status = "auto_verified"
-            internship.is_verified = True
-        elif trust_score >= 60:
-            internship.verification_status = "pending_review"
-            internship.is_verified = False
-        else:
-            internship.verification_status = "flagged"
-            internship.is_verified = False
-        internship.save()
+        """Set the employer automatically"""
+        serializer.save(employer=self.request.user.employer_profile)  # type: ignore[attr-defined]
 
 
 class InternshipUpdateView(generics.UpdateAPIView):
@@ -139,7 +123,7 @@ class InternshipUpdateView(generics.UpdateAPIView):
     """
     serializer_class = InternshipUpdateSerializer
     permission_classes = [IsAuthenticated, CanEditInternship]
-    queryset = Internship.objects.all()
+    queryset = Internship.objects.all()  # type: ignore[attr-defined]
 
 
 class InternshipDeleteView(generics.DestroyAPIView):
@@ -148,7 +132,7 @@ class InternshipDeleteView(generics.DestroyAPIView):
     Only the posting employer can delete, and only before verification.
     """
     permission_classes = [IsAuthenticated, CanEditInternship]
-    queryset = Internship.objects.all()
+    queryset = Internship.objects.all()  # type: ignore[attr-defined]
 
     def perform_destroy(self, instance):
         """Soft delete by setting is_active to False"""
@@ -168,9 +152,9 @@ class EmployerInternshipListView(generics.ListAPIView):
 
     def get_queryset(self):
         """Filter internships by the authenticated employer"""
-        return Internship.objects.filter(
-            employer=self.request.user.employer_profile
-        ).select_related('institution').order_by('-created_at')
+        return Internship.objects.filter(  # type: ignore[attr-defined]
+            employer=self.request.user.employer_profile  # type: ignore[attr-defined]
+        ).select_related('institution').order_by('-created_at')  # type: ignore[attr-defined]
 
 
 class InternshipVerificationView(generics.UpdateAPIView):
@@ -180,14 +164,14 @@ class InternshipVerificationView(generics.UpdateAPIView):
     """
     serializer_class = InternshipVerificationSerializer
     permission_classes = [IsAuthenticated, CanVerifyInternship]
-    queryset = Internship.objects.all()
+    queryset = Internship.objects.all()  # type: ignore[attr-defined]
 
     def update(self, request, *args, **kwargs):
         """Mark internship as verified"""
         instance = self.get_object()
         instance.is_verified = True
         instance.save()
-        
+
         serializer = self.get_serializer(instance)
         return Response({
             'message': 'Internship verified successfully',
@@ -201,7 +185,7 @@ class SkillTagListView(generics.ListAPIView):
     """
     serializer_class = SkillTagSerializer
     permission_classes = [AllowAny]
-    queryset = SkillTag.objects.filter(is_active=True)
+    queryset = SkillTag.objects.filter(is_active=True)  # type: ignore[attr-defined]
     filter_backends = [filters.SearchFilter]
     search_fields = ['name', 'description']
 
@@ -215,123 +199,65 @@ class InternshipSearchView(generics.ListAPIView):
 
     def get_queryset(self):
         """Advanced filtering based on query parameters"""
-        queryset = Internship.objects.filter(is_active=True, is_verified=True)
-        
+        queryset = Internship.objects.filter(is_active=True, is_verified=True)  # type: ignore[attr-defined]
+
         # Basic filters
-        category = self.request.query_params.get('category')
-        location = self.request.query_params.get('location')
-        min_stipend = self.request.query_params.get('min_stipend')
-        max_stipend = self.request.query_params.get('max_stipend')
-        skill_tags = self.request.query_params.getlist('skill_tags')
-        
+        category = self.request.query_params.get('category')  # type: ignore[attr-defined]
+        location = self.request.query_params.get('location')  # type: ignore[attr-defined]
+        min_stipend = self.request.query_params.get('min_stipend')  # type: ignore[attr-defined]
+        max_stipend = self.request.query_params.get('max_stipend')  # type: ignore[attr-defined]
+        skill_tags = self.request.query_params.getlist('skill_tags')  # type: ignore[attr-defined]
+
         if category:
             queryset = queryset.filter(category__icontains=category)
-        
+
         if location:
             queryset = queryset.filter(location__icontains=location)
-        
+
         if min_stipend:
             queryset = queryset.filter(stipend__gte=min_stipend)
-        
+
         if max_stipend:
             queryset = queryset.filter(stipend__lte=max_stipend)
-        
+
         if skill_tags:
             queryset = queryset.filter(skill_tags__name__in=skill_tags).distinct()
-        
+
         # Filter by visibility for students
-        if hasattr(self.request.user, 'student_profile'):
-            student_institution = self.request.user.student_profile.institution
+        if hasattr(self.request.user, 'student_profile'):  # type: ignore[attr-defined]
+            student_institution = self.request.user.student_profile.institution  # type: ignore[attr-defined]
             queryset = queryset.filter(
-                Q(visibility='public') | 
+                Q(visibility='public') |
                 Q(visibility='institution-only', institution=student_institution)
             )
         else:
             queryset = queryset.filter(visibility='public')
-        
+
         # Hide expired internships
         queryset = queryset.filter(deadline__gt=timezone.now())
-        
+
         return queryset.select_related('employer', 'employer__user', 'institution')
 
 
-class InternshipFlagView(generics.CreateAPIView):
+class InternshipAnalyticsView(APIView):
     """
-    Allow a student to report/flag an internship.
+    Analytics for internships: most popular, most applied-to, etc.
     """
-    serializer_class = FlagReportSerializer
     permission_classes = [IsAuthenticated]
 
-    def post(self, request, *args, **kwargs):
-        internship_id = kwargs.get('pk')
-        reason = request.data.get('reason')
-        if not reason:
-            return Response({'detail': 'Reason is required.'}, status=status.HTTP_400_BAD_REQUEST)
-        try:
-            internship = Internship.objects.get(pk=internship_id)
-        except Internship.DoesNotExist:
-            return Response({'detail': 'Internship not found.'}, status=status.HTTP_404_NOT_FOUND)
-        student = getattr(request.user, 'student_profile', None)
-        if not student:
-            return Response({'detail': 'Only students can report internships.'}, status=status.HTTP_403_FORBIDDEN)
-        # Prevent duplicate flagging by the same student
-        if FlagReport.objects.filter(student=student, internship=internship).exists():
-            return Response({'detail': 'You have already reported this internship.'}, status=status.HTTP_400_BAD_REQUEST)
-        # Create the flag report
-        flag_report = FlagReport.objects.create(student=student, internship=internship, reason=reason)
-        # Increment flag count
-        internship.flag_count += 1
-        # Escalate if needed
-        if internship.flag_count >= 3:
-            internship.verification_status = 'flagged'
-            # Optionally notify admin here
-        internship.save()
-        serializer = self.get_serializer(flag_report)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-
-class AdminInternshipListView(generics.ListAPIView):
-    """
-    Admin: List internships filtered by verification_status.
-    ?status=verified|pending_review|flagged|auto_verified
-    """
-    serializer_class = InternshipListSerializer
-    permission_classes = [IsAdminUser]
-
-    def get_queryset(self):
-        status_param = self.request.query_params.get('status')
-        qs = Internship.objects.all()
-        if status_param:
-            if status_param == 'verified':
-                qs = qs.filter(is_verified=True)
-            else:
-                qs = qs.filter(verification_status=status_param)
-        return qs.order_by('-created_at')
-
-
-class AdminInternshipReviewView(generics.UpdateAPIView):
-    """
-    Admin: Approve, reject, or flag an internship.
-    PATCH/PUT with {"action": "approve"|"reject"|"flag"}
-    """
-    serializer_class = InternshipSerializer
-    permission_classes = [IsAdminUser]
-    queryset = Internship.objects.all()
-
-    def update(self, request, *args, **kwargs):
-        instance = self.get_object()
-        action = request.data.get('action')
-        if action == 'approve':
-            instance.is_verified = True
-            instance.verification_status = 'auto_verified'
-        elif action == 'reject':
-            instance.is_verified = False
-            instance.verification_status = 'flagged'
-            instance.is_active = False
-        elif action == 'flag':
-            instance.verification_status = 'flagged'
-        else:
-            return Response({'detail': 'Invalid action.'}, status=status.HTTP_400_BAD_REQUEST)
-        instance.save()
-        serializer = self.get_serializer(instance)
-        return Response(serializer.data)
+    def get(self, request):
+        # Most applied-to internships
+        from django.db.models import Count
+        popular = (
+            Internship.objects.annotate(app_count=Count('applications'))  # type: ignore[attr-defined]
+            .order_by('-app_count')[:5]
+        )
+        data = [
+            {
+                'internship': i.title,
+                'employer': i.employer.company_name,  # type: ignore[attr-defined]
+                'applications': i.app_count,  # type: ignore[attr-defined]
+            }
+            for i in popular
+        ]
+        return Response({'most_applied_to': data})
