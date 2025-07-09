@@ -5,8 +5,10 @@ from internship.views.internship_views import (
     InternshipCreateView,
     InternshipUpdateView,
     InternshipDeleteView,
-    PublicInternshipSearchView,
-    InternshipVerifyView,
+    InternshipFlagView,
+    AdminInternshipListView,
+    AdminInternshipReviewView,
+    SkillTagListView,
 )
 
 app_name = 'internship'
@@ -17,6 +19,8 @@ urlpatterns = [
     path('create/', InternshipCreateView.as_view(), name='internship-create'),
     path('<int:pk>/update/', InternshipUpdateView.as_view(), name='internship-update'),
     path('<int:pk>/delete/', InternshipDeleteView.as_view(), name='internship-delete'),
-    path('public-search/', PublicInternshipSearchView.as_view(), name='public-internship-search'),
-    path('<int:pk>/verify/', InternshipVerifyView.as_view(), name='internship-verify'),
+    path('<int:pk>/flag/', InternshipFlagView.as_view(), name='internship-flag'),
+    path('admin/', AdminInternshipListView.as_view(), name='admin-internship-list'),
+    path('admin/<int:pk>/review/', AdminInternshipReviewView.as_view(), name='admin-internship-review'),
+    path('skill-tags/', SkillTagListView.as_view(), name='skill-tag-list'),
 ]

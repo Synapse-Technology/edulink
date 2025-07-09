@@ -5,6 +5,7 @@ from django.utils import timezone
 from ..models.internship import Internship
 from ..models.skill_tag import SkillTag
 from datetime import datetime
+from ..models.flag_report import FlagReport
 
 class SkillTagSerializer(serializers.ModelSerializer):
     """Serializer for SkillTag model"""
@@ -22,6 +23,9 @@ class InternshipSerializer(serializers.ModelSerializer):
     is_verified_by_institution = serializers.BooleanField(read_only=True)
     verified_by = serializers.StringRelatedField(read_only=True)
     verification_date = serializers.DateTimeField(read_only=True)
+    trust_score = serializers.IntegerField(read_only=True)
+    verification_status = serializers.CharField(read_only=True)
+    flag_count = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Internship
@@ -50,8 +54,11 @@ class InternshipSerializer(serializers.ModelSerializer):
             'verification_date',
             'created_at',
             'updated_at',
+            'trust_score',
+            'verification_status',
+            'flag_count',
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at', 'employer_email', 'institution_name', 'is_verified_by_institution', 'verified_by', 'verification_date']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'employer_email', 'institution_name', 'is_verified_by_institution', 'verified_by', 'verification_date', 'trust_score', 'verification_status', 'flag_count']
 
 class InternshipCreateSerializer(InternshipSerializer):
     class Meta(InternshipSerializer.Meta):
@@ -93,6 +100,9 @@ class InternshipListSerializer(serializers.ModelSerializer):
     is_expired = serializers.BooleanField(read_only=True)
     can_apply = serializers.BooleanField(read_only=True)
     application_count = serializers.SerializerMethodField()
+    trust_score = serializers.IntegerField(read_only=True)
+    verification_status = serializers.CharField(read_only=True)
+    flag_count = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Internship
@@ -100,8 +110,15 @@ class InternshipListSerializer(serializers.ModelSerializer):
             'id', 'title', 'employer_name', 'institution_name', 'category',
             'location', 'start_date', 'end_date', 'stipend', 'deadline',
             'is_verified', 'visibility', 'skill_tags', 'is_expired',
-            'can_apply', 'application_count', 'created_at'
+            'can_apply', 'application_count', 'created_at',
+            'trust_score', 'verification_status', 'flag_count',
         ]
 
     def get_application_count(self, obj):
         return obj.applications.count()
+
+class FlagReportSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FlagReport
+        fields = ['id', 'student', 'internship', 'reason', 'timestamp', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'student', 'internship', 'timestamp', 'created_at', 'updated_at']

@@ -50,6 +50,19 @@ class Internship(BaseModel):
     verified_by = models.ForeignKey(InstitutionProfile, null=True, blank=True, on_delete=models.SET_NULL)
     verification_date = models.DateTimeField(null=True, blank=True)
 
+    # Hybrid verification fields
+    trust_score = models.IntegerField(default=0)
+    verification_status = models.CharField(
+        max_length=20,
+        choices=[
+            ("auto_verified", "Auto Verified"),
+            ("pending_review", "Pending Review"),
+            ("flagged", "Flagged")
+        ],
+        default="pending_review"
+    )
+    flag_count = models.IntegerField(default=0)
+
     def __str__(self):
         return f"{self.title} at {self.employer.company_name}"
 

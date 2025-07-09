@@ -1,18 +1,20 @@
 from rest_framework import generics, status, filters
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from django_filters.rest_framework import DjangoFilterBackend
 from django.utils import timezone
 from django.db.models import Q
 
 from ..models.internship import Internship
 from ..models.skill_tag import SkillTag
+from ..models.flag_report import FlagReport
 from ..serializers.internship_serializers import (
     InternshipSerializer,
     InternshipCreateSerializer,
     InternshipUpdateSerializer,
     InternshipVerificationSerializer,
     InternshipListSerializer,
+    FlagReportSerializer,
 )
 from ..permissions.role_permissions import (
     IsVerifiedEmployer,
@@ -21,6 +23,7 @@ from ..permissions.role_permissions import (
     CanViewInternship,
     CanApplyToInternship,
 )
+from ..serializers.skill_tag import SkillTagSerializer
 
 
 class InternshipListView(generics.ListAPIView):
@@ -68,6 +71,38 @@ class InternshipDetailView(generics.RetrieveAPIView):
     queryset = Internship.objects.select_related('employer', 'employer__user', 'institution')
 
 
+def calculate_trust_score(employer_profile, internship_data):
+    """
+    Calculate trust score for an internship posting based on hybrid model rules.
+    Returns an integer between 0 and 100.
+    """
+    score = 0
+    # KRA PIN provided (simulate with a field or always true for now)
+    if getattr(employer_profile, 'kra_pin', None):
+        score += 15
+    # Email domain not Gmail/Yahoo
+    email = getattr(employer_profile.user, 'email', '')
+    if email and not any(domain in email for domain in ['gmail.com', 'yahoo.com']):
+        score += 15
+    # Phone OTP verified (simulate with a field or always true for now)
+    if getattr(employer_profile.user, 'is_phone_verified', False):
+        score += 10
+    # Company has posted >1 internship successfully
+    if employer_profile.internships.filter(is_verified=True).count() > 1:
+        score += 10
+    # Company was verified manually before
+    if getattr(employer_profile, 'is_verified', False):
+        score += 20
+    # Internship location matches company profile (simulate fuzzy match)
+    if getattr(employer_profile, 'location', None) and internship_data.get('location'):
+        if employer_profile.location.lower() in internship_data['location'].lower():
+            score += 10
+    # No flags reported (simulate with a field or always true for now)
+    if getattr(employer_profile, 'flag_count', 0) == 0:
+        score += 20
+    return min(score, 100)
+
+
 class InternshipCreateView(generics.CreateAPIView):
     """
     Create a new internship.
@@ -77,8 +112,24 @@ class InternshipCreateView(generics.CreateAPIView):
     permission_classes = [IsAuthenticated, IsVerifiedEmployer]
 
     def perform_create(self, serializer):
-        """Set the employer automatically"""
-        serializer.save(employer=self.request.user.employer_profile)
+        employer_profile = self.request.user.employer_profile
+        internship_data = serializer.validated_data.copy()
+        # Save first to get the instance
+        internship = serializer.save(employer=employer_profile)
+        # Calculate trust score
+        trust_score = calculate_trust_score(employer_profile, internship_data)
+        internship.trust_score = trust_score
+        # Assign verification status
+        if trust_score >= 80:
+            internship.verification_status = "auto_verified"
+            internship.is_verified = True
+        elif trust_score >= 60:
+            internship.verification_status = "pending_review"
+            internship.is_verified = False
+        else:
+            internship.verification_status = "flagged"
+            internship.is_verified = False
+        internship.save()
 
 
 class InternshipUpdateView(generics.UpdateAPIView):
@@ -148,8 +199,6 @@ class SkillTagListView(generics.ListAPIView):
     """
     List all skill tags for filtering and selection.
     """
-    from ..serializers.internship_serializers import SkillTagSerializer
-    
     serializer_class = SkillTagSerializer
     permission_classes = [AllowAny]
     queryset = SkillTag.objects.filter(is_active=True)
@@ -204,3 +253,85 @@ class InternshipSearchView(generics.ListAPIView):
         queryset = queryset.filter(deadline__gt=timezone.now())
         
         return queryset.select_related('employer', 'employer__user', 'institution')
+
+
+class InternshipFlagView(generics.CreateAPIView):
+    """
+    Allow a student to report/flag an internship.
+    """
+    serializer_class = FlagReportSerializer
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        internship_id = kwargs.get('pk')
+        reason = request.data.get('reason')
+        if not reason:
+            return Response({'detail': 'Reason is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            internship = Internship.objects.get(pk=internship_id)
+        except Internship.DoesNotExist:
+            return Response({'detail': 'Internship not found.'}, status=status.HTTP_404_NOT_FOUND)
+        student = getattr(request.user, 'student_profile', None)
+        if not student:
+            return Response({'detail': 'Only students can report internships.'}, status=status.HTTP_403_FORBIDDEN)
+        # Prevent duplicate flagging by the same student
+        if FlagReport.objects.filter(student=student, internship=internship).exists():
+            return Response({'detail': 'You have already reported this internship.'}, status=status.HTTP_400_BAD_REQUEST)
+        # Create the flag report
+        flag_report = FlagReport.objects.create(student=student, internship=internship, reason=reason)
+        # Increment flag count
+        internship.flag_count += 1
+        # Escalate if needed
+        if internship.flag_count >= 3:
+            internship.verification_status = 'flagged'
+            # Optionally notify admin here
+        internship.save()
+        serializer = self.get_serializer(flag_report)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class AdminInternshipListView(generics.ListAPIView):
+    """
+    Admin: List internships filtered by verification_status.
+    ?status=verified|pending_review|flagged|auto_verified
+    """
+    serializer_class = InternshipListSerializer
+    permission_classes = [IsAdminUser]
+
+    def get_queryset(self):
+        status_param = self.request.query_params.get('status')
+        qs = Internship.objects.all()
+        if status_param:
+            if status_param == 'verified':
+                qs = qs.filter(is_verified=True)
+            else:
+                qs = qs.filter(verification_status=status_param)
+        return qs.order_by('-created_at')
+
+
+class AdminInternshipReviewView(generics.UpdateAPIView):
+    """
+    Admin: Approve, reject, or flag an internship.
+    PATCH/PUT with {"action": "approve"|"reject"|"flag"}
+    """
+    serializer_class = InternshipSerializer
+    permission_classes = [IsAdminUser]
+    queryset = Internship.objects.all()
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        action = request.data.get('action')
+        if action == 'approve':
+            instance.is_verified = True
+            instance.verification_status = 'auto_verified'
+        elif action == 'reject':
+            instance.is_verified = False
+            instance.verification_status = 'flagged'
+            instance.is_active = False
+        elif action == 'flag':
+            instance.verification_status = 'flagged'
+        else:
+            return Response({'detail': 'Invalid action.'}, status=status.HTTP_400_BAD_REQUEST)
+        instance.save()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
