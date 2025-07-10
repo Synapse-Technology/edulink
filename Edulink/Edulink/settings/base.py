@@ -13,7 +13,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 from dotenv import load_dotenv  # type: ignore
 import os
-from decouple import config  # type: ignore
+from decouple import config
 from datetime import timedelta
 
 load_dotenv()  # Load variables from .env

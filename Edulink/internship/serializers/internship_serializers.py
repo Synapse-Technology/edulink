@@ -44,6 +44,7 @@ class InternshipSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'employer',
+            'employer_name',
             'employer_email',
             'institution',
             'institution_name',
@@ -57,6 +58,7 @@ class InternshipSerializer(serializers.ModelSerializer):
             'skills_required',
             'eligibility_criteria',
             'skill_tags',
+            'skill_tag_ids',
             'deadline',
             'is_verified',
             'visibility',
@@ -89,8 +91,21 @@ class InternshipSerializer(serializers.ModelSerializer):
     def validate_end_date(self, value):
         """Ensure end date is after start date"""
         start_date = self.initial_data.get('start_date')
-        if start_date and value <= start_date:
-            raise serializers.ValidationError("End date must be after start date.")
+        if start_date:
+            # Parse start_date if it's a string
+            if isinstance(start_date, str):
+                try:
+                    start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+                except ValueError:
+                    raise serializers.ValidationError("Invalid start date format. Use YYYY-MM-DD.")
+            # If value is a string, parse it too
+            if isinstance(value, str):
+                try:
+                    value = datetime.strptime(value, "%Y-%m-%d").date()
+                except ValueError:
+                    raise serializers.ValidationError("Invalid end date format. Use YYYY-MM-DD.")
+            if value <= start_date:
+                raise serializers.ValidationError("End date must be after start date.")
         return value
 
     def validate(self, data):

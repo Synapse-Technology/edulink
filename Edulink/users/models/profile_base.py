@@ -9,7 +9,6 @@ class ProfileBase(models.Model):
     phone_number = models.CharField(max_length=20, unique=True)
     profile_picture = models.ImageField(upload_to='profile_pics/', null=True,
                                         blank=True, default='profile_pics/default.jpg')
-    email_verified = models.BooleanField(default=False)  # type: ignore[attr-defined]
     phone_verified = models.BooleanField(default=False)  # type: ignore[attr-defined]
     is_active = models.BooleanField(default=True)  # type: ignore[attr-defined]
     last_login_at = models.DateTimeField(null=True, blank=True)

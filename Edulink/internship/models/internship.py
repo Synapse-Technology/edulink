@@ -66,3 +66,18 @@ class Internship(BaseModel):
     def can_apply(self):
         """Check if students can still apply to this internship"""
         return self.is_active and not self.is_expired and self.is_verified
+
+    @property
+    def trust_score(self):
+        """Return a placeholder trust score. Replace with real logic as needed."""
+        return 100
+
+    @property
+    def verification_status(self):
+        """Return a human-readable verification status."""
+        return "Verified" if self.is_verified else "Pending"
+
+    @property
+    def flag_count(self):
+        """Return the number of flag reports related to this internship."""
+        return self.flagreport_set.count() if hasattr(self, 'flagreport_set') else 0
