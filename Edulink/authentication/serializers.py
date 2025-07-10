@@ -132,7 +132,7 @@ class StudentRegistrationSerializer(serializers.Serializer):
             role="student",  # Set the role directly on the user
             phone_number=phone_number,
             national_id=national_id,
-            institution=institution.name,
+            institution=institution,  # FIX: assign the Institution instance, not institution.name
             is_email_verified=True,  # Set to True since we're creating the user
         )
 
@@ -643,6 +643,14 @@ class RegisterSerializer(serializers.ModelSerializer):
             self.context["invite"] = invite
         else:
             attrs["role"] = RoleChoices.STUDENT
+        # FIX: convert institution from name to instance if it's a string
+        institution_value = attrs.get("institution")
+        if institution_value and isinstance(institution_value, str):
+            try:
+                institution = Institution.objects.get(name=institution_value)
+                attrs["institution"] = institution
+            except Institution.DoesNotExist:
+                raise serializers.ValidationError({"institution": "Institution does not exist."})
         return attrs
 
     def create(self, validated_data):
