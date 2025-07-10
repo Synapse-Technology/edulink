@@ -19,6 +19,7 @@ class EmployerProfile(ProfileBase):
     company_size = models.CharField(max_length=50, blank=True)
     department = models.CharField(max_length=100, blank=True, null=True)
     position = models.CharField(max_length=100, blank=True, null=True)
+    is_verified = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.user.get_full_name()} ({self.company_name})"
