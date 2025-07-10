@@ -162,3 +162,8 @@ class InternshipListSerializer(serializers.ModelSerializer):
 
     def get_application_count(self, obj):
         return obj.applications.count()
+
+class FlagReportSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FlagReport
+        fields = '__all__'
