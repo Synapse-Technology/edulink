@@ -1,6 +1,7 @@
 from django.db import models
 from users.models.employer_profile import EmployerProfile
 from users.models.institution_profile import InstitutionProfile
+from institutions.models import Institution
 from .base import BaseModel
 
 # Create your models here.

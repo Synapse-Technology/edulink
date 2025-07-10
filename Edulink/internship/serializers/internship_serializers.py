@@ -5,6 +5,7 @@ from django.utils import timezone
 from ..models.internship import Internship
 from ..models.skill_tag import SkillTag
 from datetime import datetime
+from ..models.flag_report import FlagReport
 
 
 class SkillTagSerializer(serializers.ModelSerializer):
@@ -43,7 +44,6 @@ class InternshipSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'employer',
-            'employer_name',
             'employer_email',
             'institution',
             'institution_name',
@@ -57,7 +57,6 @@ class InternshipSerializer(serializers.ModelSerializer):
             'skills_required',
             'eligibility_criteria',
             'skill_tags',
-            'skill_tag_ids',
             'deadline',
             'is_verified',
             'visibility',
@@ -67,8 +66,9 @@ class InternshipSerializer(serializers.ModelSerializer):
             'application_count',
             'created_at',
             'updated_at',
-            'verified_by',
-            'verification_date',
+            'trust_score',
+            'verification_status',
+            'flag_count',
         ]
         read_only_fields = [
             'id', 'created_at', 'updated_at', 'employer_name',
@@ -87,18 +87,10 @@ class InternshipSerializer(serializers.ModelSerializer):
         return value
 
     def validate_end_date(self, value):
+        """Ensure end date is after start date"""
         start_date = self.initial_data.get('start_date')
-        if start_date:
-            # Convert start_date string to a date object
-            if isinstance(start_date, str):
-                try:
-                    start_date_obj = datetime.strptime(start_date, "%Y-%m-%d").date()
-                except ValueError:
-                    raise serializers.ValidationError("Start date must be in YYYY-MM-DD format.")
-            else:
-                start_date_obj = start_date
-            if value <= start_date_obj:
-                raise serializers.ValidationError("End date must be after start date.")
+        if start_date and value <= start_date:
+            raise serializers.ValidationError("End date must be after start date.")
         return value
 
     def validate(self, data):
@@ -111,12 +103,8 @@ class InternshipSerializer(serializers.ModelSerializer):
 
 
 class InternshipCreateSerializer(InternshipSerializer):
-    """
-    Serializer for creating internships - ensures employer is set automatically.
-    """
     class Meta(InternshipSerializer.Meta):
         read_only_fields = InternshipSerializer.Meta.read_only_fields + ['employer']
-
 
 class InternshipUpdateSerializer(InternshipSerializer):
     """
@@ -124,18 +112,14 @@ class InternshipUpdateSerializer(InternshipSerializer):
     """
 
     def validate(self, data):
-        """Prevent updating certain fields if internship is verified"""
         instance = self.instance
         if instance and instance.is_verified:
-            # Don't allow changing these fields after verification
             for field in ['employer', 'institution', 'title', 'description']:
                 if field in data and getattr(instance, field) != data[field]:
                     raise serializers.ValidationError(
                         f"Cannot change {field} after internship is verified."
                     )
-
         return super().validate(data)
-
 
 class InternshipVerificationSerializer(serializers.ModelSerializer):
     """
@@ -152,7 +136,6 @@ class InternshipVerificationSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
-
 class InternshipListSerializer(serializers.ModelSerializer):
     """
     Simplified serializer for listing internships.
@@ -163,6 +146,9 @@ class InternshipListSerializer(serializers.ModelSerializer):
     is_expired = serializers.BooleanField(read_only=True)
     can_apply = serializers.BooleanField(read_only=True)
     application_count = serializers.SerializerMethodField()
+    trust_score = serializers.IntegerField(read_only=True)
+    verification_status = serializers.CharField(read_only=True)
+    flag_count = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Internship
@@ -170,8 +156,14 @@ class InternshipListSerializer(serializers.ModelSerializer):
             'id', 'title', 'employer_name', 'institution_name', 'category',
             'location', 'start_date', 'end_date', 'stipend', 'deadline',
             'is_verified', 'visibility', 'skill_tags', 'is_expired',
-            'can_apply', 'application_count', 'created_at'
+            'can_apply', 'application_count', 'created_at',
+            'trust_score', 'verification_status', 'flag_count',
         ]
 
     def get_application_count(self, obj):
         return obj.applications.count()
+
+class FlagReportSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FlagReport
+        fields = '__all__'

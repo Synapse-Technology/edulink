@@ -47,9 +47,15 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_email_verified = models.BooleanField(default=False)  # type: ignore[attr-defined]
 
     # Extended fields
-    institution = models.CharField(max_length=255, blank=True, null=True)
+    institution = models.ForeignKey(
+        'institutions.Institution',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
     phone_number = models.CharField(max_length=20, blank=True, null=True)
     national_id = models.CharField(max_length=20, blank=True, null=True)
+    email_verified = models.BooleanField(default=False)
 
     # Role-based access
     role = models.CharField(
@@ -95,6 +101,11 @@ class User(AbstractBaseUser, PermissionsMixin):
             return getattr(self, "employerprofile", None)
         return None
 
+    def get_full_name(self):
+        # Return a full name if you have first_name and last_name fields, else fallback to email
+        if hasattr(self, 'first_name') and hasattr(self, 'last_name'):
+            return f"{self.first_name} {self.last_name}".strip()
+        return self.email
 
 class EmailOTP(models.Model):
     email = models.EmailField()

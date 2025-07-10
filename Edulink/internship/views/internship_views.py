@@ -1,6 +1,6 @@
-from rest_framework import generics, filters
+from rest_framework import generics, status, filters
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from django_filters.rest_framework import DjangoFilterBackend
 from django.utils import timezone
 from django.db.models import Q
@@ -14,6 +14,7 @@ from internship.serializers.internship_serializers import (
     InternshipUpdateSerializer,
     InternshipVerificationSerializer,
     InternshipListSerializer,
+    FlagReportSerializer,
 )
 from internship.permissions.role_permissions import (
     IsVerifiedEmployer,
@@ -21,6 +22,7 @@ from internship.permissions.role_permissions import (
     CanVerifyInternship,
     CanViewInternship,
 )
+from ..serializers.skill_tag import SkillTagSerializer
 
 
 class InternshipListView(generics.ListAPIView):
@@ -67,6 +69,38 @@ class InternshipDetailView(generics.RetrieveAPIView):
     permission_classes = [CanViewInternship]
     queryset = Internship.objects.select_related(
         'employer', 'employer__user', 'institution')  # type: ignore[attr-defined]
+
+
+def calculate_trust_score(employer_profile, internship_data):
+    """
+    Calculate trust score for an internship posting based on hybrid model rules.
+    Returns an integer between 0 and 100.
+    """
+    score = 0
+    # KRA PIN provided (simulate with a field or always true for now)
+    if getattr(employer_profile, 'kra_pin', None):
+        score += 15
+    # Email domain not Gmail/Yahoo
+    email = getattr(employer_profile.user, 'email', '')
+    if email and not any(domain in email for domain in ['gmail.com', 'yahoo.com']):
+        score += 15
+    # Phone OTP verified (simulate with a field or always true for now)
+    if getattr(employer_profile.user, 'is_phone_verified', False):
+        score += 10
+    # Company has posted >1 internship successfully
+    if employer_profile.internships.filter(is_verified=True).count() > 1:
+        score += 10
+    # Company was verified manually before
+    if getattr(employer_profile, 'is_verified', False):
+        score += 20
+    # Internship location matches company profile (simulate fuzzy match)
+    if getattr(employer_profile, 'location', None) and internship_data.get('location'):
+        if employer_profile.location.lower() in internship_data['location'].lower():
+            score += 10
+    # No flags reported (simulate with a field or always true for now)
+    if getattr(employer_profile, 'flag_count', 0) == 0:
+        score += 20
+    return min(score, 100)
 
 
 class InternshipCreateView(generics.CreateAPIView):
@@ -149,8 +183,6 @@ class SkillTagListView(generics.ListAPIView):
     """
     List all skill tags for filtering and selection.
     """
-    from internship.serializers.internship_serializers import SkillTagSerializer
-
     serializer_class = SkillTagSerializer
     permission_classes = [AllowAny]
     queryset = SkillTag.objects.filter(is_active=True)  # type: ignore[attr-defined]
