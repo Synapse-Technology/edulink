@@ -18,6 +18,11 @@ from .views import (
     PasswordResetSuccessView,
     VerifyEmailView,
 )
+from django.contrib.auth import authenticate, login, logout
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.views.generic import TemplateView
+from django.views.generic import View
 
 urlpatterns = [
     path("register/", StudentRegistrationView.as_view(), name="student-register"),
@@ -63,4 +68,25 @@ urlpatterns = [
     path(
         "verify-email/<uidb64>/<token>/", VerifyEmailView.as_view(), name="verify_email"
     ),
+]
+
+def web_login_view(request):
+    if request.method == 'POST':
+        email = request.POST['email']
+        password = request.POST['password']
+        user = authenticate(request, email=email, password=password)
+        if user is not None:
+            login(request, user)
+            return redirect('dashboard')  # or your protected page
+        else:
+            return render(request, 'authentication/web_login.html', {'error': 'Invalid credentials'})
+    return render(request, 'authentication/web_login.html')
+
+def web_logout_view(request):
+    logout(request)
+    return redirect('web_login')
+
+urlpatterns += [
+    path('web-login/', web_login_view, name='web_login'),
+    path('web-logout/', web_logout_view, name='web_logout'),
 ]
