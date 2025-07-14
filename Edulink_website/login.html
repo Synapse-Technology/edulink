@@ -315,7 +315,15 @@
           body: JSON.stringify({ email, password })
         });
         
-        const data = await response.json();
+        let data;
+        try {
+          data = await response.json();
+        } catch (jsonErr) {
+          // Not valid JSON, probably a server error
+          formMessage.textContent = 'Server error: Invalid response. Please try again later.';
+          formMessage.style.color = '#ffb3b3';
+          return;
+        }
         
         if (response.ok) {
           // Store tokens and user data
