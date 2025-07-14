@@ -122,7 +122,6 @@ class StudentRegistrationSerializer(serializers.Serializer):
             "institution_name": institution.name,
             # Set verification status based on institution verification
             "is_verified": institution.is_verified,
-            "email_verified": True,  # Set to True since we're creating the user
         }
 
         # Create user with role and additional fields

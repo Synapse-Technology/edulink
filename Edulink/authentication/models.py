@@ -55,7 +55,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     )
     phone_number = models.CharField(max_length=20, blank=True, null=True)
     national_id = models.CharField(max_length=20, blank=True, null=True)
-    email_verified = models.BooleanField(default=False)
 
     # Role-based access
     role = models.CharField(
@@ -102,9 +101,9 @@ class User(AbstractBaseUser, PermissionsMixin):
         return None
 
     def get_full_name(self):
-        # Return a full name if you have first_name and last_name fields, else fallback to email
-        if hasattr(self, 'first_name') and hasattr(self, 'last_name'):
-            return f"{self.first_name} {self.last_name}".strip()
+        # Get full name from profile if available, else fallback to email
+        if self.profile:
+            return f"{self.profile.first_name} {self.profile.last_name}".strip()  # type: ignore[attr-defined]
         return self.email
 
 class EmailOTP(models.Model):

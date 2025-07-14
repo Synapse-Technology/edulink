@@ -2,6 +2,7 @@
   "institutions": [
     {"name": "University of Nairobi", "code": "UON"},
     {"name": "Kenyatta University", "code": "KU"},
+    {"name": "JKUAT", "code": "JKUAT"},
     {"name": "Moi University", "code": "MU"}
   ]
 } 
