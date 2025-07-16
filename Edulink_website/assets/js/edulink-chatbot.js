@@ -168,369 +168,170 @@
         saveChatHistory();
     }
 
-    // --- Enhanced Input Handler ---
-    function handleUserInput(raw, skipBackend, updateMsgElem) {
-        const text = raw.trim().toLowerCase();
-        
-        // Greetings and common pleasantries
-        const greetings = ["hi", "hello", "hey", "yo", "good morning", "good afternoon", "good evening", "greetings", "what's up", "sup", "howdy"]; 
-        if (greetings.includes(text)) {
-            const randomGreetings = [
-                "Hi there! 👋 I'm Edi, your EduLink assistant. How can I help you today?",
-                "Hello! 😊 Need help finding internships or info about EduLink?",
-                "Hey! 👋 What can I do for you today?",
-                "Greetings! How can I assist you on EduLink?"
-            ];
-            botReply(randomGreetings[Math.floor(Math.random() * randomGreetings.length)], [
-                { label: 'Show Menu', value: 'menu' }
-            ], [], true, true, updateMsgElem);
-            return;
-        }
+    // --- Modern Enhancements: Dynamic FAQ, Menu, and Rich Content ---
 
-        // Small talk & personality
-        if (["thanks", "thank you", "thx", "appreciate it"].includes(text)) {
-            botReply("You're welcome! 😊 If you have more questions, just ask.", [
-                { label: 'Show Menu', value: 'menu' }
-            ], [], false, true, updateMsgElem);
-            return;
-        }
-        if (["bye", "goodbye", "see you", "later", "cya"].includes(text)) {
-            botReply("Goodbye! 👋 Come back anytime if you need help.", [], [], false, true, updateMsgElem);
-            return;
-        }
-        if (text.includes('what can you do') || text.includes('help me') || text.includes('your features')) {
-            botReply("I can help you find internships, guide you through registration, answer questions about EduLink, and connect you to support. What would you like to do?", [
-                { label: 'Find Internships', value: 'opportunities' },
-                { label: 'How to Register', value: 'register' },
-                { label: 'Contact Support', value: 'contact' },
-                { label: 'Show Menu', value: 'menu' }
-            ], [], false, true, updateMsgElem);
-            return;
-        }
-        if (text.includes('who are you') || text.includes('your name')) {
-            lastTopic = 'identity';
-            botReply(`I'm Edi, your friendly guide to everything EduLink! I'm here to help you navigate the site and find opportunities.`, [
-                { label: 'Show Menu', value: 'menu' }
-            ], [], false, true, updateMsgElem);
-            return;
-        }
-        if (text.includes('how are you')) {
-            lastTopic = 'feeling';
-            botReply(`I'm just a bunch of code, but I'm feeling great and ready to help! What can I do for you?`, [
-                { label: 'Show Menu', value: 'menu' }
-            ], [], false, true, updateMsgElem);
-            return;
-        }
-        if (text === 'menu' || text === 'show menu') {
-            lastTopic = 'help';
-            botReply(
-                "Here are some things I can help you with:",
-                [
-                    { label: 'Find Internships', value: 'opportunities' },
-                    { label: 'How to Register', value: 'register' },
-                    { label: 'Contact Support', value: 'contact' },
-                    { label: 'About EduLink', value: 'about' },
-                    { label: 'Privacy Policy', value: 'privacy' }
-                ],
-                [],
-                false,
-                true,
-                updateMsgElem
-            );
-            return;
-        }
+    // FAQ and Menu Data
+    const FAQ_MENU = [
+      {
+        keywords: ["about", "edulink", "what is edulink", "who are you"],
+        answer: `EduLink KE is a platform connecting Kenyan students to verified internships and graduate jobs, empowering youth and bridging the gap between education and employment. <a href='about.html' target='_blank'>Learn more</a>.`,
+        label: "About EduLink KE"
+      },
+      {
+        keywords: ["mission", "vision", "values", "core values"],
+        answer: `Our mission is to empower Kenyan students with seamless access to internships, jobs, and mentorship. Our vision is a Kenya where every student can easily transition from learning to working. <a href='about.html#mission-vision' target='_blank'>Read our mission & vision</a>.`,
+        label: "Mission, Vision & Values"
+      },
+      {
+        keywords: ["register", "sign up", "create account", "how to join"],
+        answer: `To register, click the <b>Get Started</b> button at the top right or visit the <a href='register.html' target='_blank'>registration page</a>. Fill in your details and follow the steps to create your profile.`,
+        label: "How to Register"
+      },
+      {
+        keywords: ["internship", "opportunity", "job", "listing", "apply"],
+        answer: `Browse verified internships and graduate jobs on EduLink KE. Track your applications and get digital certificates. <a href='index.html#featured-opportunities' target='_blank'>See featured opportunities</a>.`,
+        label: "Internship Listings"
+      },
+      {
+        keywords: ["certificate", "digital certificate", "logbook"],
+        answer: `After completing your internship, your supervisor verifies your digital logbook. You then receive a downloadable, verifiable certificate. <a href='support.html#faqs' target='_blank'>Learn more in FAQs</a>.`,
+        label: "Digital Certificates"
+      },
+      {
+        keywords: ["contact", "support", "help", "reach"],
+        answer: `You can contact us at <a href='mailto:info@edulink.co.ke'>info@edulink.co.ke</a> or call +254 712 345 678. Visit our <a href='contact.html' target='_blank'>Contact page</a> for more options.`,
+        label: "Contact & Support"
+      },
+      {
+        keywords: ["privacy", "policy", "data", "protection"],
+        answer: `We are committed to protecting your privacy and data. <a href='policy.html' target='_blank'>Read our Privacy Policy</a>.`,
+        label: "Privacy Policy"
+      },
+      {
+        keywords: ["partner", "institution", "employer", "team", "who built", "who made"],
+        answer: `EduLink KE is a collaboration between JKUAT, Jhub Africa, and Synapse Technology. Meet our <a href='about.html#meet-the-team' target='_blank'>team</a> and <a href='about.html#partners' target='_blank'>partners</a>.`,
+        label: "Partners & Team"
+      },
+      {
+        keywords: ["newsletter", "updates", "subscribe"],
+        answer: `Subscribe to our newsletter for updates on internships, features, and events. Enter your email in the newsletter section at the bottom of any page.`,
+        label: "Newsletter/Updates"
+      },
+      {
+        keywords: ["menu", "what can you do", "options", "help me"],
+        answer: null, // triggers menu
+        label: "Show Menu"
+      },
+    ];
 
-        // Multi-turn conversation logic
-        if (lastTopic === 'internship_field_query' && text) {
-            lastTopic = 'internship';
-            botReply(`Searching for internships in "${raw}"... While I connect to the backend (coming soon!), you can browse all current listings on our <a href="opportunities.html">Opportunities Page</a>.`, [], [], false, true, updateMsgElem);
-            return;
-        }
+    // Fun/Easter Egg responses
+    const FUN_RESPONSES = [
+      { keywords: ["joke", "funny"], answer: "Why did the developer go broke? Because they used up all their cache! 😄" },
+      { keywords: ["who made you", "who built you", "your creator"], answer: "I was built by the EduLink KE team at JKUAT, with a little help from Synapse Technology!" },
+      { keywords: ["hello edi", "hi edi", "hey edi"], answer: "Hi there! 👋 I'm Edi, your friendly EduLink assistant." },
+    ];
 
-        // Easter Eggs & Personality
-        if (text === 'tell me a joke') {
-            lastTopic = 'joke';
-            const jokes = [
-                "Why don't scientists trust atoms? Because they make up everything!",
-                "I told my computer I needed a break, and now it won't stop sending me Kit-Kat ads.",
-                "Why did the scarecrow win an award? Because he was outstanding in his field!"
-            ];
-            botReply(jokes[Math.floor(Math.random() * jokes.length)], [], [], false, true, updateMsgElem);
-            return;
-        }
-        if (text.includes('privacy')) {
-            lastTopic = 'privacy';
-            botReply(
-                'We take your privacy seriously. You can read our full Privacy Policy here: <a href="policy.html" target="_blank">Privacy Policy</a>.',
-                [],
-                [
-                    { label: 'What data do you collect?', value: 'data' },
-                    { label: 'How is my data used?', value: 'data use' }
-                ],
-                false,
-                true,
-                updateMsgElem
-            );
-        } else if (text.includes('data use')) {
-             lastTopic = 'data use';
-             botReply(
-                'We use your data to connect you with relevant opportunities, enhance our platform, and send you important updates. We never sell your data to third parties. Our <a href="policy.html">Privacy Policy</a> has all the details.',
-                [],
-                [
-                    { label: 'What data do you collect?', value: 'data' },
-                    { label: 'Contact support', value: 'contact' }
-                ],
-                false,
-                true,
-                updateMsgElem
-            );
-        } else if (text.includes('data')) {
-            lastTopic = 'data';
-            botReply(
-                "We collect essential information to build your professional profile, such as your name, contact details, educational background, and application history. For a detailed breakdown, please see our <a href=\"policy.html\">Privacy Policy</a>.",
-                [],
-                [
-                    { label: 'How is my data used?', value: 'data use' },
-                    { label: 'Contact support', value: 'contact' }
-                ],
-                false,
-                true,
-                updateMsgElem
-            );
-        } else if (text.includes('contact')) {
-            lastTopic = 'contact';
-            botReply(
-                'The best way to reach us is through our <a href="contact.html" target="_blank">Contact Page</a> or by emailing us directly at <a href="mailto:info@edulink.co.ke">info@edulink.co.ke</a>.',
-                [],
-                [
-                    { label: 'What can you help with?', value: 'help' },
-                    { label: 'Tell me about EduLink', value: 'about' }
-                ],
-                false,
-                true,
-                updateMsgElem
-            );
-        } else if (text.includes('about')) {
-            lastTopic = 'about';
-            botReply(
-                'EduLink is a platform dedicated to connecting Kenyan students with verified internships and graduate jobs, helping bridge the gap between education and career. Learn more on our <a href="about.html" target="_blank">About Us</a> page.',
-                [],
-                [
-                    { label: 'Our partners', value: 'partner' },
-                    { label: 'All opportunities', value: 'opportunities' }
-                ],
-                false,
-                true,
-                updateMsgElem
-            );
-        } else if (text.includes('opportunity') || text.includes('internship') || text.includes('job')) {
-            lastTopic = 'internship';
-            botReply(
-                `<b>Browse Verified Internships & Jobs</b><br>
-                You can explore all our verified internships and graduate jobs on the <a href="opportunities.html" target="_blank">Opportunities Page</a>.<br><br>
-                <b>How to use the page:</b>
-                <ul style="margin:8px 0 8px 18px;padding:0;font-size:0.97em;">
-                  <li>Filter by field (e.g., Tech, Finance, Marketing), location, or company.</li>
-                  <li>Click <b>Apply</b> to start your application, or <b>Details</b> to learn more about a role.</li>
-                  <li>All opportunities are posted by <b>verified employers</b>.</li>
-                  <li>Track your applications and earn digital certificates for completed internships.</li>
-                </ul>
-                <b>What would you like to do next?</b>`,
-                [
-                  { label: 'Browse all opportunities', value: 'opportunities' },
-                  { label: 'Filter by field', value: 'filter by field' },
-                  { label: 'Profile tips', value: 'profile tips' },
-                  { label: 'Application help', value: 'application help' },
-                  { label: 'Show Menu', value: 'menu' }
-                ],
-                [
-                  { label: 'Support for students', value: 'student support' }
-                ],
-                false,
-                true,
-                updateMsgElem
-            );
-            return;
-        } else if (text.includes('support')) {
-            lastTopic = 'support';
-            botReply(
-                'You can find FAQs and guides on our <a href="support.html" target="_blank">Support Page</a>. If you can\'t find your answer, feel free to ask me or contact our team!',
-                [],
-                [
-                    { label: 'Contact support', value: 'contact' },
-                    { label: 'How to register?', value: 'register' }
-                ],
-                false,
-                true,
-                updateMsgElem
-            );
-        } else if (text.includes('login') || text.includes('sign in')) {
-            lastTopic = 'login';
-            botReply(
-                'You can sign in to your account here: <a href="sign in.html" target="_blank">Sign In Page</a>. If you\'ve forgotten your password, you can use the "Forgot Password" link there to reset it.',
-                [],
-                [
-                    { label: 'How to register?', value: 'register' },
-                    { label: 'I need to verify my account', value: 'verify' }
-                ],
-                false,
-                true,
-                updateMsgElem
-            );
-        } else if (text.includes('partner')) {
-            lastTopic = 'partner';
-            botReply(
-                'We partner with leading companies and institutions. You can see some of our featured partners on the <a href="about.html#partners" target="_blank">About Page</a>.',
-                [],
-                [
-                    { label: 'Tell me about EduLink', value: 'about' },
-                    { label: 'Contact support', value: 'contact' }
-                ],
-                false,
-                true,
-                updateMsgElem
-            );
-        } else if (text.includes('help') || text.includes('faq') || text === 'menu') {
-            lastTopic = 'help';
-            botReply(
-                "I can help with any of the following topics. What would you like to know?",
-                [
-                    { label: 'Find Internships', value: 'opportunities' },
-                    { label: 'How to Register', value: 'register' },
-                    { label: 'Contact Support', value: 'contact' },
-                    { label: 'About EduLink', value: 'about' },
-                    { label: 'Privacy Policy', value: 'privacy' }
-                ],
-                [],
-                false,
-                true,
-                updateMsgElem
-            );
-        } else if (text.includes('register')) {
-            lastTopic = 'register';
-            botReply(
-                'To register for EduLink:<ol style="margin:8px 0 8px 18px;padding:0;font-size:0.97em;"><li>Go to the <a href="register.html" target="_blank">Registration Page</a>.</li><li>Fill in your details and submit the form.</li><li>Check your email for a verification link.</li><li>Click the link to activate your account.</li></ol>Need help with any step?',
-                [
-                    { label: 'How to verify my account?', value: 'verify' },
-                    { label: 'Login help', value: 'login' },
-                    { label: 'Show Menu', value: 'menu' }
-                ],
-                [],
-                false,
-                true,
-                updateMsgElem
-            );
-            return;
-        } else if (text.includes('filter by field')) {
-            botReply(
-                'You can filter internships and jobs by field (e.g., Tech, Finance, Marketing) directly on the <a href="opportunities.html" target="_blank">Opportunities Page</a>. Use the filter options at the top of the page to narrow your search.',
-                [
-                  { label: 'Browse all opportunities', value: 'opportunities' },
-                  { label: 'Profile tips', value: 'profile tips' },
-                  { label: 'Show Menu', value: 'menu' }
-                ],
-                [],
-                false,
-                true,
-                updateMsgElem
-            );
-            return;
-        } else if (text.includes('profile tips')) {
-            botReply(
-                'To stand out to employers, make sure your profile is 100% complete: upload a professional photo, write a clear bio, and detail your skills, education, and projects. <a href="support.html#faqAccordion" target="_blank">See more tips in our Student FAQ</a>.',
-                [
-                  { label: 'Application help', value: 'application help' },
-                  { label: 'Show Menu', value: 'menu' }
-                ],
-                [],
-                false,
-                true,
-                updateMsgElem
-            );
-            return;
-        } else if (text.includes('application help')) {
-            botReply(
-                'When you find an opportunity you like, click <b>Apply</b> and follow the steps. You can track your applications from your dashboard. If you need more help, check our <a href="support.html#faqAccordion" target="_blank">Support Page</a> or ask me!',
-                [
-                  { label: 'Profile tips', value: 'profile tips' },
-                  { label: 'Show Menu', value: 'menu' }
-                ],
-                [],
-                false,
-                true,
-                updateMsgElem
-            );
-            return;
-        } else if (text.includes('student support')) {
-            botReply(
-                'You can find FAQs and guides for students on our <a href="support.html#faqAccordion" target="_blank">Support Page</a>.',
-                [
-                  { label: 'Profile tips', value: 'profile tips' },
-                  { label: 'Application help', value: 'application help' },
-                  { label: 'Show Menu', value: 'menu' }
-                ],
-                [],
-                false,
-                true,
-                updateMsgElem
-            );
-            return;
-        } else if (text === 'opportunities' || text === 'browse all opportunities') {
-            botReply(
-                'You can browse all our verified internships and jobs on the <a href="opportunities.html" target="_blank">Opportunities Page</a>. Use the filters at the top to narrow by field, location, or company. Need help with anything else?',
-                [
-                  { label: 'Filter by field', value: 'filter by field' },
-                  { label: 'Profile tips', value: 'profile tips' },
-                  { label: 'Application help', value: 'application help' },
-                  { label: 'Show Menu', value: 'menu' }
-                ],
-                [],
-                false,
-                true,
-                updateMsgElem
-            );
-            return;
-        } else {
-            // Friendly client-side fallback for unmatched queries
-            botReply("I'm here to help with EduLink info, registration, and opportunities! Try asking about internships, registration, or support—or use the menu.", [
-                { label: 'Show Menu', value: 'menu' }
-            ], [], true, true, updateMsgElem);
-        }
+    // Modern Menu
+    function showMenu() {
+      const options = FAQ_MENU.filter(f => f.label && f.label !== "Show Menu").map(f => ({ label: f.label, value: f.label.toLowerCase() }));
+      botReply("How can I help you? Here are some things I can assist with:", options, [], false);
     }
 
-    // --- Welcome & Proactive Engagement ---
-    function welcome(isProactive = false) {
-        let welcomeMessage = `👋 Hi, I'm <b>${BOT_NAME}</b>, your EduLink Guide! What can I help you with today?`;
-        let options = [
-            { label: 'Find Internships', value: 'opportunities' },
-            { label: 'How to Register', value: 'register' },
-            { label: 'Contact Support', value: 'contact' }
-        ];
+    // Card for team/partners
+    function showTeamCard() {
+      botCardReply({
+        imageUrl: "assets/img/edulink_team.jpg",
+        title: "Meet the EduLink KE Team",
+        text: "A passionate group of students and mentors from JKUAT, supported by Synapse Technology and Jhub Africa.",
+        linkUrl: "about.html#meet-the-team",
+        linkText: "View Team"
+      });
+    }
+    function showPartnersCard() {
+      botCardReply({
+        imageUrl: "assets/img/partner1.png",
+        title: "Our Partners",
+        text: "JKUAT, Jhub Africa, and Synapse Technology help us empower Kenyan youth.",
+        linkUrl: "about.html#partners",
+        linkText: "See Partners"
+      });
+    }
+    function showOpportunityCard() {
+      botCardReply({
+        imageUrl: "assets/img/course-1.jpg",
+        title: "Featured Internship: Software Development",
+        text: "Join Synapse Technologies as a Software Development Intern in Nairobi. KES 40,000/mo. See more opportunities on our homepage!",
+        linkUrl: "index.html#featured-opportunities",
+        linkText: "View Opportunities"
+      });
+    }
 
-        // Context-aware greeting
-        const page = window.location.pathname.split('/').pop();
-        if (page === 'opportunities.html') {
-            welcomeMessage = `👋 Welcome to the Opportunities Hub! I'm <b>${BOT_NAME}</b>. I can help you understand how to filter, apply, or save jobs. What would you like to do?`;
-            options = [
-                { label: 'How to apply?', value: 'apply' },
-                { label: 'Tell me about featured jobs', value: 'opportunities' },
-                { label: 'Contact support', value: 'contact' }
-            ];
-        } else if (page === 'register.html') {
-            welcomeMessage = `👋 Ready to join EduLink? I'm <b>${BOT_NAME}</b> and I can guide you through the registration process.`;
-             options = [
-                { label: 'Why should I join?', value: 'about' },
-                { label: 'I need help verifying', value: 'verify' },
-                { label: 'Is my data safe?', value: 'privacy' }
-            ];
+    // --- Enhanced Input Handler (Override) ---
+    function handleUserInput(raw, skipBackend, updateMsgElem) {
+      const text = raw.trim().toLowerCase();
+
+      // Fun responses
+      for (const fun of FUN_RESPONSES) {
+        if (fun.keywords.some(kw => text.includes(kw))) {
+          botReply(fun.answer, [{ label: 'Show Menu', value: 'menu' }], [], false, true, updateMsgElem);
+          return;
         }
-        
-        if (isProactive) {
-            botReply(welcomeMessage, options, [], false, false);
-        } else {
-            messages.innerHTML = '';
-            botReply(welcomeMessage, options, [], false);
+      }
+
+      // FAQ/Menu matching
+      for (const faq of FAQ_MENU) {
+        if (faq.keywords.some(kw => text.includes(kw))) {
+          if (faq.label === "Partners & Team") {
+            showTeamCard();
+            showPartnersCard();
+            botReply(faq.answer, [{ label: 'Show Menu', value: 'menu' }], [], false, true, updateMsgElem);
+            return;
+          }
+          if (faq.label === "Internship Listings") {
+            showOpportunityCard();
+            botReply(faq.answer, [{ label: 'Show Menu', value: 'menu' }], [], false, true, updateMsgElem);
+            return;
+          }
+          if (faq.label === "Show Menu") {
+            showMenu();
+            return;
+          }
+          botReply(faq.answer, [{ label: 'Show Menu', value: 'menu' }], [], false, true, updateMsgElem);
+          return;
         }
+      }
+
+      // Fallback: try to match partials
+      if (["team", "partner"].some(kw => text.includes(kw))) {
+        showTeamCard();
+        showPartnersCard();
+        botReply("Want to know more about our team or partners? <a href='about.html#meet-the-team' target='_blank'>Meet the team</a> or <a href='about.html#partners' target='_blank'>see our partners</a>.", [{ label: 'Show Menu', value: 'menu' }]);
+        return;
+      }
+      if (["opportunity", "internship", "job"].some(kw => text.includes(kw))) {
+        showOpportunityCard();
+        botReply("See more opportunities on our homepage! <a href='index.html#featured-opportunities' target='_blank'>Featured Opportunities</a>.", [{ label: 'Show Menu', value: 'menu' }]);
+        return;
+      }
+
+      // Default fallback
+      botReply("I'm not sure how to help with that yet. Try asking about EduLink, internships, registration, or type 'menu' to see options.", [{ label: 'Show Menu', value: 'menu' }], [], false, true, updateMsgElem);
+    }
+
+    // --- Proactive Greeting with Menu ---
+    function welcome(isProactive = false) {
+      const hour = new Date().getHours();
+      let greeting = "Hi! 👋 I'm Edi, your EduLink assistant.";
+      if (hour < 12) greeting = "Good morning! ☀️ I'm Edi, your EduLink assistant.";
+      else if (hour < 18) greeting = "Good afternoon! 🌞 I'm Edi, your EduLink assistant.";
+      else greeting = "Good evening! 🌙 I'm Edi, your EduLink assistant.";
+      botReply(greeting + " How can I help you today?", [
+        { label: "Show Menu", value: "menu" },
+        { label: "About EduLink KE", value: "about edulink" },
+        { label: "How to Register", value: "register" },
+        { label: "Internship Listings", value: "internship" },
+        { label: "Contact & Support", value: "contact" }
+      ], [], false);
     }
 
     // --- Event Listeners ---
