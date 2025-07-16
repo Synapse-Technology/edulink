@@ -136,6 +136,92 @@
     color: #28a745;
   }
 
+  /* Meet the Team Section Enhancements */
+  #meet-the-team {
+    background: linear-gradient(135deg, #f0fdf4 60%, #e6f9f7 100%);
+    border-radius: 24px;
+    box-shadow: 0 4px 32px 0 rgba(26,184,170,0.07);
+    margin-top: 48px;
+    margin-bottom: 48px;
+    padding-top: 32px;
+    padding-bottom: 32px;
+  }
+  #meet-the-team .section-title h2 {
+    position: relative;
+    display: inline-block;
+    color: #1ab8aa;
+    font-weight: 800;
+    letter-spacing: 1px;
+  }
+  #meet-the-team .section-title h2::after {
+    content: '';
+    display: block;
+    width: 60px;
+    height: 4px;
+    background: #1ab8aa;
+    border-radius: 2px;
+    margin: 10px auto 0 auto;
+  }
+  #meet-the-team .card {
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 2px 12px 0 rgba(26,184,170,0.08);
+    transition: transform 0.18s, box-shadow 0.18s, border 0.18s;
+    border: 2px solid transparent;
+  }
+  #meet-the-team .card:hover {
+    transform: translateY(-8px) scale(1.03);
+    box-shadow: 0 8px 32px 0 rgba(26,184,170,0.18);
+    border: 2px solid #1ab8aa;
+  }
+  #meet-the-team img.rounded-circle {
+    border: 4px solid #e6f9f7;
+    box-shadow: 0 2px 8px 0 rgba(26,184,170,0.10);
+  }
+  #meet-the-team h5 {
+    color: #37423b;
+    font-weight: 700;
+  }
+  #meet-the-team span.text-primary, #meet-the-team span.text-success, #meet-the-team .card span {
+    font-size: 0.98rem;
+    font-weight: 600;
+  }
+  #meet-the-team .card p.small {
+    color: #6c757d;
+    min-height: 40px;
+  }
+  #meet-the-team .d-flex.gap-2 a {
+    color: #1ab8aa;
+    background: #e6f9f7;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+    box-shadow: 0 1px 4px 0 rgba(26,184,170,0.08);
+  }
+  #meet-the-team .d-flex.gap-2 a:hover {
+    background: #1ab8aa;
+    color: #fff;
+    box-shadow: 0 2px 12px 0 rgba(26,184,170,0.18);
+  }
+  @media (max-width: 991px) {
+    #meet-the-team .col-lg-3 { flex: 0 0 50%; max-width: 50%; }
+  }
+  @media (max-width: 575px) {
+    #meet-the-team .col-lg-3, #meet-the-team .col-md-4, #meet-the-team .col-sm-6 {
+      flex: 0 0 100%; max-width: 100%;
+    }
+  }
+  .footer .credit-minimal {
+    font-size: 0.97rem;
+    color: #7bbcb7;
+    letter-spacing: 0.5px;
+    font-weight: 500;
+    margin-top: 8px;
+  }
   </style>
 </head>
 
@@ -149,13 +235,8 @@
     <nav id="navmenu" class="navmenu">
       <ul>
         <li><a href="index.html" class="nav-link">Home</a></li>
-        <li class="dropdown">
-            <a href="about.html" class="nav-link active"><span>About</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
-            <ul>
-              <li><a href="#background">Background</a></li>
-              <li><a href="#mission-vision">Vision & Mission</a></li>
-              <li><a href="#partners">Partners</a></li>
-          </ul>
+        <li>
+            <a href="about.html" class="nav-link active">About</a>
         </li>
         <li><a href="contact.html" class="nav-link">Contact</a></li>
         <li><a href="support.html" class="nav-link">Support Features</a></li>
@@ -316,9 +397,126 @@
             </div>
         </div>
     </section>
+
+    <!-- Meet the Team Section -->
+    <section id="meet-the-team" class="section light-background" style="position:relative;z-index:1;">
+      <div class="container">
+        <div class="section-title text-center" data-aos="fade-up">
+          <h2>Meet the Team</h2>
+          <p>The passionate individuals behind EduLink KE</p>
+        </div>
+        <div class="row gy-4 justify-content-center">
+          <!-- Dr. Lawrence Nderu -->
+          <div class="col-lg-3 col-md-4 col-sm-6 d-flex align-items-stretch">
+            <div class="card shadow-sm border-0 text-center p-3">
+              <img src="assets/img/team/team-1.jpg" class="img-fluid rounded-circle mb-3" alt="Dr. Lawrence Nderu" style="width:120px;height:120px;object-fit:cover;margin:auto;">
+              <h5 class="mb-1">Dr. Lawrence Nderu</h5>
+              <span class="text-success fw-bold">Project Inspector</span>
+              <p class="mt-2 small">Mentor and supervisor, guiding the team to success.</p>
+              <div class="d-flex justify-content-center gap-2 mt-2">
+                <a href="#" class="text-dark" title="LinkedIn"><i class="bi bi-linkedin" style="font-size:1.3rem;"></i></a>
+                <a href="#" class="text-dark" title="GitHub"><i class="bi bi-github" style="font-size:1.3rem;"></i></a>
+              </div>
+            </div>
+          </div>
+          <!-- Bouric Okwaro -->
+          <div class="col-lg-3 col-md-4 col-sm-6 d-flex align-items-stretch">
+            <div class="card shadow-sm border-0 text-center p-3">
+              <img src="assets/img/team/bouric.jpeg" class="img-fluid rounded-circle mb-3" alt="Bouric Okwaro" style="width:120px;height:120px;object-fit:cover;object-position:center top;margin:auto;">
+              <h5 class="mb-1">Bouric Okwaro</h5>
+              <span class="text-primary">Team Lead & Full Stack Developer</span>
+              <p class="mt-2 small">Leads the team and architects both frontend and backend solutions.</p>
+              <div class="d-flex justify-content-center gap-2 mt-2">
+                <a href="#" class="text-dark" title="LinkedIn"><i class="bi bi-linkedin" style="font-size:1.3rem;"></i></a>
+                <a href="#" class="text-dark" title="GitHub"><i class="bi bi-github" style="font-size:1.3rem;"></i></a>
+              </div>
+            </div>
+          </div>
+          <!-- Gabriella Muthoni -->
+          <div class="col-lg-3 col-md-4 col-sm-6 d-flex align-items-stretch">
+            <div class="card shadow-sm border-0 text-center p-3">
+              <img src="assets/img/team/gabby.jpg" class="img-fluid rounded-circle mb-3" alt="Gabriella Muthoni" style="width:120px;height:120px;object-fit:cover;margin:auto;">
+              <h5 class="mb-1">Gabriella Muthoni</h5>
+              <span class="text-primary">UI & UX Designer</span>
+              <p class="mt-2 small">Designs intuitive and engaging user experiences for EduLink KE.</p>
+              <div class="d-flex justify-content-center gap-2 mt-2">
+                <a href="#" class="text-dark" title="LinkedIn"><i class="bi bi-linkedin" style="font-size:1.3rem;"></i></a>
+                <a href="#" class="text-dark" title="GitHub"><i class="bi bi-github" style="font-size:1.3rem;"></i></a>
+              </div>
+            </div>
+          </div>
+          <!-- Caroline Obuyah -->
+          <div class="col-lg-3 col-md-4 col-sm-6 d-flex align-items-stretch">
+            <div class="card shadow-sm border-0 text-center p-3">
+              <img src="assets/img/team/caroline.jpg" class="img-fluid rounded-circle mb-3" alt="Caroline Obuyah" style="width:120px;height:120px;object-fit:cover;margin:auto;">
+              <h5 class="mb-1">Caroline Obuyah</h5>
+              <span class="text-primary">Backend Developer</span>
+              <p class="mt-2 small">Builds robust server-side logic and APIs for seamless operations.</p>
+              <div class="d-flex justify-content-center gap-2 mt-2">
+                <a href="#" class="text-dark" title="LinkedIn"><i class="bi bi-linkedin" style="font-size:1.3rem;"></i></a>
+                <a href="#" class="text-dark" title="GitHub"><i class="bi bi-github" style="font-size:1.3rem;"></i></a>
+              </div>
+            </div>
+          </div>
+          <!-- Duncan Mathai -->
+          <div class="col-lg-3 col-md-4 col-sm-6 d-flex align-items-stretch">
+            <div class="card shadow-sm border-0 text-center p-3">
+              <img src="assets/img/team/duncan.jpg" class="img-fluid rounded-circle mb-3" alt="Duncan Mathai" style="width:120px;height:120px;object-fit:cover;margin:auto;">
+              <h5 class="mb-1">Duncan Mathai</h5>
+              <span class="text-primary">Auth & Security Engineer</span>
+              <p class="mt-2 small">Ensures platform security and manages authentication systems.</p>
+              <div class="d-flex justify-content-center gap-2 mt-2">
+                <a href="#" class="text-dark" title="LinkedIn"><i class="bi bi-linkedin" style="font-size:1.3rem;"></i></a>
+                <a href="#" class="text-dark" title="GitHub"><i class="bi bi-github" style="font-size:1.3rem;"></i></a>
+              </div>
+            </div>
+          </div>
+          <!-- Jessy Cheruiyot -->
+          <div class="col-lg-3 col-md-4 col-sm-6 d-flex align-items-stretch">
+            <div class="card shadow-sm border-0 text-center p-3">
+              <img src="assets/img/team/jessy.jpg" class="img-fluid rounded-circle mb-3" alt="Jessy Cheruiyot" style="width:120px;height:120px;object-fit:cover;margin:auto;">
+              <h5 class="mb-1">Jessy Cheruiyot</h5>
+              <span class="text-primary">Mobile Developer</span>
+              <p class="mt-2 small">Develops and optimizes the EduLink KE mobile experience.</p>
+              <div class="d-flex justify-content-center gap-2 mt-2">
+                <a href="#" class="text-dark" title="LinkedIn"><i class="bi bi-linkedin" style="font-size:1.3rem;"></i></a>
+                <a href="#" class="text-dark" title="GitHub"><i class="bi bi-github" style="font-size:1.3rem;"></i></a>
+              </div>
+            </div>
+          </div>
+          <!-- Mark Matheka -->
+          <div class="col-lg-3 col-md-4 col-sm-6 d-flex align-items-stretch">
+            <div class="card shadow-sm border-0 text-center p-3">
+              <img src="assets/img/team/mark.jpg" class="img-fluid rounded-circle mb-3" alt="Mark Matheka" style="width:120px;height:120px;object-fit:cover;margin:auto;">
+              <h5 class="mb-1">Mark Matheka</h5>
+              <span class="text-primary">Data Engineer</span>
+              <p class="mt-2 small">Manages data pipelines and analytics for actionable insights.</p>
+              <div class="d-flex justify-content-center gap-2 mt-2">
+                <a href="#" class="text-dark" title="LinkedIn"><i class="bi bi-linkedin" style="font-size:1.3rem;"></i></a>
+                <a href="#" class="text-dark" title="GitHub"><i class="bi bi-github" style="font-size:1.3rem;"></i></a>
+              </div>
+            </div>
+          </div>
+          <!-- Brian Kiragu -->
+          <div class="col-lg-3 col-md-4 col-sm-6 d-flex align-items-stretch">
+            <div class="card shadow-sm border-0 text-center p-3">
+              <img src="assets/img/team/brian.jpg" class="img-fluid rounded-circle mb-3" alt="Brian Kiragu" style="width:120px;height:120px;object-fit:cover;margin:auto;">
+              <h5 class="mb-1">Brian Kiragu</h5>
+              <span class="text-primary">Frontend Developer</span>
+              <p class="mt-2 small">Implements engaging and responsive user interfaces.</p>
+              <div class="d-flex justify-content-center gap-2 mt-2">
+                <a href="#" class="text-dark" title="LinkedIn"><i class="bi bi-linkedin" style="font-size:1.3rem;"></i></a>
+                <a href="#" class="text-dark" title="GitHub"><i class="bi bi-github" style="font-size:1.3rem;"></i></a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
 </main>
   
-<footer id="footer" class="footer position-relative footer-brand">
+<footer id="footer" class="footer footer-brand">
 
   <div class="container footer-top">
     <div class="row gy-4">
@@ -382,7 +580,7 @@
   <div class="container copyright text-center">
     <p>© <span>Copyright</span> <strong class="px-1 sitename">EduLink KE</strong> <span>All Rights Reserved</span></p>
     <div class="credits">
-      Designed by <a href="">Synapse Technology</a> Distributed by <a href="">Synapse</a>
+      Designed &amp; Developed by Synapse Technology
     </div>
   </div>
 
