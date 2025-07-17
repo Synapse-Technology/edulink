@@ -10,7 +10,6 @@ class StudentProfile(ProfileBase):
     last_name = models.CharField(max_length=100)
     phone_number = models.CharField(max_length=20)
     profile_picture = models.ImageField(upload_to='profile_pics/', default='profile_pics/default.jpg')
-    email_verified = models.BooleanField(default=False)
     phone_verified = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     last_login_at = models.DateTimeField(null=True, blank=True)
