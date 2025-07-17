@@ -6,6 +6,8 @@
   <title>My Internships - EduLink KE</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <link href="../assets/css/main.css" rel="stylesheet">
+  <script src="../assets/js/main.js"></script>
   <style>
     body {
       font-family: 'Poppins', sans-serif;
@@ -25,9 +27,16 @@
       <button id="toggleBtn" class="text-3xl text-teal-700 md:hidden">&#9776;</button>
     </div>
     <div class="flex items-center gap-4">
-      <a href="messages.html" class="bg-white shadow px-3 py-2 rounded-full text-sm">💬 Message</a>
+      <a href="./messages.html" class="bg-white shadow px-3 py-2 rounded-full text-sm">💬 Message</a>
       <button class="bg-white shadow px-3 py-2 rounded-full text-sm">🔔 Notifications</button>
       <img id="profilePic" src="https://via.placeholder.com/40" class="w-10 h-10 rounded-full" alt="Profile" />
+      <script>
+        document.addEventListener('DOMContentLoaded', function() {
+          const profilePic = document.getElementById('profilePic');
+          const savedPic = localStorage.getItem('profilePicUrl');
+          if (savedPic) profilePic.src = savedPic;
+        });
+      </script>
     </div>
   </div>
 
@@ -36,12 +45,12 @@
      <aside id="sidebar" class="w-64 bg-teal-800 text-white min-h-screen p-6 fixed md:static top-[4rem] md:top-0 z-30 transform -translate-x-full md:translate-x-0 transition-transform duration-300">
       <nav class="flex flex-col justify-between h-full">
         <div class="space-y-4">
-          <a href="student_dash.html" class="block px-4 py-2 rounded hover:bg-teal-700 bg-teal-700">Dashboard</a>
-          <a href="application_tracker.html" class="block px-4 py-2 rounded hover:bg-teal-700">Application Tracker</a>
-          <a href="my_internships.html" class="block px-4 py-2 rounded hover:bg-teal-700">My internships</a>
-          <a href="Browse.html" class="block px-4 py-2 rounded hover:bg-teal-700">Browse Internships</a>
-          <a href="profile.html" class="block px-4 py-2 rounded hover:bg-teal-700">Profile</a>
-          <a href="progress.html" class="block px-4 py-2 rounded hover:bg-teal-700">Reports and logbooks</a>
+          <a href="./student_dash.html" class="block px-4 py-2 rounded hover:bg-teal-700">Dashboard</a>
+          <a href="./application_tracker.html" class="block px-4 py-2 rounded hover:bg-teal-700">Application Tracker</a>
+          <a href="./my_internships.html" class="block px-4 py-2 rounded hover:bg-teal-700 bg-teal-700">My internships</a>
+          <a href="./Browse.html" class="block px-4 py-2 rounded hover:bg-teal-700">Browse Internships</a>
+          <a href="./profile.html" class="block px-4 py-2 rounded hover:bg-teal-700">Profile</a>
+          <a href="./progress.html" class="block px-4 py-2 rounded hover:bg-teal-700">Reports and logbooks</a>
           <a href="#" class="block px-4 py-2 rounded hover:bg-teal-700">CV & Toolkit</a>
           <a href="#" class="block px-4 py-2 rounded hover:bg-teal-700">Support</a>
         </div>
@@ -56,7 +65,7 @@
     <!-- Main Content -->
     <main class="flex-1 p-6 md:pl-50">
       <nav class="text-sm mb-4 text-gray-500">
-        <a href="student_dash.html" class="hover:underline">Dashboard</a> &gt; My Internships
+        <a href="./student_dash.html" class="hover:underline">Dashboard</a> &gt; My Internships
       </nav>
 
       <h1 class="text-2xl font-bold text-teal-800 mb-6">My Internships</h1>
@@ -103,7 +112,7 @@
                 <span class="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">In Progress</span>
               </td>
               <td class="px-6 py-4">
-                <a href="progress.html" class="text-sm text-teal-600 hover:underline">View Logbook</a>
+                <a href="./progress.html" class="text-sm text-teal-600 hover:underline">View Logbook</a>
               </td>
             </tr>
             <tr class="border-t" data-status="completed">
@@ -115,7 +124,7 @@
                 <span class="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Completed</span>
               </td>
               <td class="px-6 py-4">
-                <a href="progress.html" class="text-sm text-teal-600 hover:underline">View Logbook</a>
+                <a href="./progress.html" class="text-sm text-teal-600 hover:underline">View Logbook</a>
               </td>
             </tr>
             <tr class="border-t" data-status="in-progress">
@@ -127,7 +136,7 @@
                 <span class="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">In Progress</span>
               </td>
               <td class="px-6 py-4">
-                <a href="progress.html" class="text-sm text-teal-600 hover:underline">View Logbook</a>
+                <a href="./progress.html" class="text-sm text-teal-600 hover:underline">View Logbook</a>
               </td>
             </tr>
           </tbody>
@@ -168,5 +177,4 @@
       });
     }
   </script>
-</body>
-</html>
+</body> 

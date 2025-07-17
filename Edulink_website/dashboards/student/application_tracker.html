@@ -6,6 +6,8 @@
   <title>Application Tracker - EduLink KE</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <link href="../assets/css/main.css" rel="stylesheet">
+  <script src="../assets/js/main.js"></script>
   <style>
     body {
       font-family: 'Poppins', sans-serif;
@@ -26,7 +28,7 @@
       <button id="toggleBtn" class="text-3xl text-teal-700 md:hidden">&#9776;</button>
     </div>
     <div class="flex items-center gap-4">
-      <a href="messages.html" class="bg-white shadow px-3 py-2 rounded-full text-sm">💬 Message</a>
+      <a href="./messages.html" class="bg-white shadow px-3 py-2 rounded-full text-sm">💬 Message</a>
       <button class="bg-white shadow px-3 py-2 rounded-full text-sm">🔔 Notifications</button>
       <img id="profilePic" src="https://via.placeholder.com/40" class="w-10 h-10 rounded-full" alt="Profile" />
     </div>
@@ -37,12 +39,12 @@
     <aside id="sidebar" class="w-64 bg-teal-800 text-white min-h-screen p-6 fixed md:static top-[4rem] md:top-0 z-30 transform -translate-x-full md:translate-x-0 transition-transform duration-300">
       <nav class="flex flex-col justify-between h-full">
         <div class="space-y-4">
-          <a href="student_dash.html" class="block px-4 py-2 rounded hover:bg-teal-700">Dashboard</a>
-          <a href="application_tracker.html" class="block px-4 py-2 rounded bg-teal-700">Application Tracker</a>
-          <a href="my_internships.html" class="block px-4 py-2 rounded hover:bg-teal-700">My Internships</a>
-          <a href="Browse.html" class="block px-4 py-2 rounded hover:bg-teal-700">Browse Internships</a>
-          <a href="profile.html" class="block px-4 py-2 rounded hover:bg-teal-700">Profile</a>
-          <a href="progress.html" class="block px-4 py-2 rounded hover:bg-teal-700">Reports and Logbooks</a>
+          <a href="./student_dash.html" class="block px-4 py-2 rounded hover:bg-teal-700">Dashboard</a>
+          <a href="./application_tracker.html" class="block px-4 py-2 rounded bg-teal-700">Application Tracker</a>
+          <a href="./my_internships.html" class="block px-4 py-2 rounded hover:bg-teal-700">My Internships</a>
+          <a href="./Browse.html" class="block px-4 py-2 rounded hover:bg-teal-700">Browse Internships</a>
+          <a href="./profile.html" class="block px-4 py-2 rounded hover:bg-teal-700">Profile</a>
+          <a href="./progress.html" class="block px-4 py-2 rounded hover:bg-teal-700">Reports and Logbooks</a>
           <a href="#" class="block px-4 py-2 rounded hover:bg-teal-700">CV & Toolkit</a>
           <a href="#" class="block px-4 py-2 rounded hover:bg-teal-700">Support</a>
         </div>
@@ -186,5 +188,4 @@
       document.getElementById("timelineModal").classList.add("hidden");
     }
   </script>
-</body>
-</html>
+</body> 
