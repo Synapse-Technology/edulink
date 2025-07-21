@@ -6,61 +6,183 @@
   <title>EduLink KE - Messages</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-  <link href="../assets/css/main.css" rel="stylesheet">
-  <script src="../assets/js/main.js"></script>
+  <link href="../../assets/css/main.css" rel="stylesheet">
+  <script src="../../assets/js/main.js"></script>
+  <link href="../../assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+  <link href="https://unpkg.com/phosphor-icons@2.0.3/src/css/phosphor.css" rel="stylesheet">
   <style>
     body {
       font-family: 'Poppins', sans-serif;
     }
+    /* --- DARK MODE THEME (copied from student_dash.html) --- */
+    .dark-mode {
+      background: #181c24 !important;
+      color: #eaf6fb !important;
+      transition: background 0.3s, color 0.3s;
+    }
+    .dark-mode aside#sidebar {
+      background: #23272f !important;
+      color: #eaf6fb !important;
+      border-right: 1px solid #23272f;
+    }
+    .dark-mode aside#sidebar a {
+      color: #eaf6fb !important;
+      background: transparent !important;
+    }
+    .dark-mode aside#sidebar a.bg-teal-700, .dark-mode aside#sidebar a:hover {
+      background: #14b8a6 !important;
+      color: #fff !important;
+    }
+    .dark-mode main, .dark-mode .bg-white, .dark-mode .bg-gray-50, .dark-mode .bg-teal-50, .dark-mode .bg-blue-50 {
+      background: #23272f !important;
+      color: #eaf6fb !important;
+      border-color: #23272f !important;
+      box-shadow: 0 2px 16px 0 #14b8a622 !important;
+    }
+    .dark-mode .rounded-xl, .dark-mode .rounded-2xl {
+      box-shadow: 0 2px 16px 0 #14b8a622 !important;
+    }
+    .dark-mode .shadow, .dark-mode .shadow-lg, .dark-mode .shadow-xl {
+      box-shadow: 0 2px 16px 0 #14b8a622 !important;
+    }
+    .dark-mode .border, .dark-mode .border-teal-100, .dark-mode .border-gray-200 {
+      border-color: #23272f !important;
+    }
+    .dark-mode .text-teal-700, .dark-mode .text-teal-800 {
+      color: #6ee7b7 !important;
+    }
+    .dark-mode .text-gray-500, .dark-mode .text-gray-600, .dark-mode .text-gray-700, .dark-mode .text-gray-800 {
+      color: #b6c2d1 !important;
+    }
+    .dark-mode .profile-pic {
+      border-color: #6ee7b7 !important;
+      box-shadow: 0 1px 8px #14b8a6cc;
+    }
+    .dark-mode .rounded-full, .dark-mode .rounded-lg {
+      background: #23272f !important;
+      color: #eaf6fb !important;
+    }
+    .dark-mode .bg-teal-600 {
+      background: #14b8a6 !important;
+      color: #fff !important;
+    }
+    .dark-mode .hover\:bg-teal-700:hover {
+      background: #0d9488 !important;
+      color: #fff !important;
+    }
+    .dark-mode .border-t {
+      border-top: 1px solid #23272f !important;
+    }
+    .dark-mode .border-b {
+      border-bottom: 1px solid #23272f !important;
+    }
+    .dark-mode .shadow-sm {
+      box-shadow: 0 1px 8px 0 #14b8a622 !important;
+    }
+    .dark-mode .footer, .dark-mode footer {
+      background: #181c24 !important;
+      color: #b6c2d1 !important;
+      border-top: 1px solid #23272f !important;
+    }
+    .dark-mode .active, .dark-mode .bg-teal-700, .dark-mode .selected {
+      box-shadow: 0 0 16px 2px #14b8a6cc !important;
+      background: #14b8a6 !important;
+      color: #fff !important;
+    }
+    .dark-mode *, .dark-mode *:before, .dark-mode *:after {
+      transition: background 0.3s, color 0.3s, box-shadow 0.3s, border-color 0.3s;
+    }
+    #notificationBtn, #darkModeToggle {
+      background: none !important;
+      border: none !important;
+      box-shadow: none !important;
+      padding: 0 !important;
+    }
+    .dark-mode #notificationBtn, .dark-mode #darkModeToggle {
+      background: none !important;
+      border: none !important;
+      box-shadow: none !important;
+      padding: 0 !important;
+    }
   </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
-  <div class="flex flex-col h-screen">
-    <!-- Top Bar -->
-    <header class="bg-teal-800 text-white p-4 flex justify-between items-center">
-      <h1 class="text-xl font-bold">EduLink KE - Messages</h1>
-      <a href="./student_dash.html" class="text-sm bg-white text-teal-800 px-4 py-1 rounded hover:bg-gray-100">← Back to Dashboard</a>
-    </header>
+<body class="bg-gray-100 min-h-screen relative">
+  <div style="display: flex;">
+    <!-- Sidebar (copy from dashboard) -->
+    <aside id="sidebar" style="width: 230px; background: #14b8a6; color: #fff; position: fixed; top: 0; left: 0; height: 100vh; display: flex; flex-direction: column; justify-content: space-between; z-index: 30; padding: 0;">
+      <div>
+        <div class="text-center py-6 mb-2 border-bottom" style="border-bottom: 1px solid #0d9488;">
+          <span style="font-family: 'Pacifico', cursive; font-size: 1.7rem; color: #fff; font-weight: 400; letter-spacing: 1px;">EduLink</span>
+        </div>
+        <nav style="flex: 1 1 0%; display: flex; flex-direction: column; padding: 2rem 1rem 0 1rem; gap: 0.25rem;">
+          <a href="./student_dash.html" class="block px-3 py-2 rounded hover:bg-teal-700 d-flex align-items-center" style="font-size: 0.85rem;"><i class="ph ph-gauge me-3" style="font-size: 0.95rem;"></i>Dashboard</a>
+          <a href="./Browse.html" class="block px-3 py-2 rounded hover:bg-teal-700 d-flex align-items-center" style="font-size: 0.85rem;"><i class="ph ph-magnifying-glass me-3" style="font-size: 0.95rem;"></i>Browse Internships</a>
+          <a href="./application_tracker.html" class="block px-3 py-2 rounded hover:bg-teal-700 d-flex align-items-center" style="font-size: 0.85rem;"><i class="ph ph-list-checks me-3" style="font-size: 0.95rem;"></i>Application Tracker</a>
+          <a href="./my_internships.html" class="block px-3 py-2 rounded hover:bg-teal-700 d-flex align-items-center" style="font-size: 0.85rem;"><i class="ph ph-briefcase me-3" style="font-size: 0.95rem;"></i>My Internship</a>
+          <a href="./progress.html" class="block px-3 py-2 rounded hover:bg-teal-700 d-flex align-items-center" style="font-size: 0.85rem;"><i class="ph ph-book-open me-3" style="font-size: 0.95rem;"></i>Reports & Logbooks</a>
+          <a href="#" class="block px-3 py-2 rounded hover:bg-teal-700 d-flex align-items-center" style="font-size: 0.85rem;"><i class="ph ph-file-text me-3" style="font-size: 0.95rem;"></i>CV & Toolkit</a>
+          <a href="#" class="block px-3 py-2 rounded hover:bg-teal-700 d-flex align-items-center" style="font-size: 0.85rem;"><i class="ph ph-lifebuoy me-3" style="font-size: 0.95rem;"></i>Support</a>
+        </nav>
+      </div>
+      <div style="margin-top: auto; padding: 2rem 1rem 1.5rem 1rem;">
+        <a href="#" id="logoutBtn" class="block px-3 py-2 rounded hover:bg-teal-700 d-flex align-items-center" style="font-size: 0.85rem;"><i class="ph ph-sign-out me-3" style="font-size: 0.95rem;"></i>Log Out</a>
+      </div>
+    </aside>
+    <!-- Main Content (header inside, margin-left for sidebar) -->
+    <main class="flex-1 p-6" style="margin-left: 230px;">
+      <!-- Rounded Pill Header (copy from dashboard) -->
+      <div style="display: flex; align-items: center; justify-content: flex-end; height: 56px; background: #fff; border-radius: 2rem; box-shadow: 0 2px 12px 0 rgba(20,184,166,0.10); margin-top: 2rem; margin-bottom: 2rem; padding: 0 2rem; width: 100%; max-width: 100%;">
+        <a href="./messages.html" class="d-flex align-items-center justify-content-center" title="Messages" style="background: none; border: none; padding: 0; margin-right: 1rem;"><i class="bi bi-chat-dots" style="font-size: 1.5rem; color: #14b8a6; text-shadow: 0 1px 2px rgba(20,184,166,0.15);"></i></a>
+        <button class="header-action d-flex align-items-center justify-content-center" title="Notifications" style="background: none; border: none; padding: 0; margin-right: 1rem;"><i class="bi bi-bell" style="font-size: 1.5rem; color: #14b8a6; text-shadow: 0 1px 2px rgba(20,184,166,0.15);"></i></button>
+        <a href="./profile.html" class="d-flex align-items-center justify-content-center ms-1" title="Profile">
+          <img id="profilePic" src="../../assets/img/default.jpg" class="profile-pic border-4" style="border-color: #0d9488;" alt="Profile" />
+        </a>
+        <button id="darkModeToggle" class="header-action d-flex align-items-center justify-content-center ms-1" title="Toggle dark mode" style="background: none; border: none; padding: 0; margin-left: 1rem;"><i id="darkModeIcon" class="bi bi-moon" style="font-size: 1.5rem; color: #14b8a6; text-shadow: 0 1px 2px rgba(20,184,166,0.15);"></i></button>
+      </div>
 
-    <!-- Chat Container -->
-    <div class="flex-1 flex overflow-hidden">
-      <!-- Contacts Sidebar -->
-      <aside class="w-64 bg-white p-4 border-r overflow-y-auto">
-        <h2 class="text-lg font-semibold mb-4">Chats</h2>
-        <ul class="space-y-2">
-          <li class="hover:bg-gray-200 p-2 rounded cursor-pointer bg-gray-100">👨‍🏫 Supervisor: Mr. Otieno</li>
-          <li class="hover:bg-gray-200 p-2 rounded cursor-pointer">🏢 KRA HR</li>
-          <li class="hover:bg-gray-200 p-2 rounded cursor-pointer">💼 Mentor: Carol M.</li>
-        </ul>
-      </aside>
+      <!-- Chat Container -->
+      <div class="flex-1 flex overflow-hidden">
+        <!-- Contacts Sidebar -->
+        <aside class="w-64 bg-white p-4 border-r overflow-y-auto">
+          <h2 class="text-lg font-semibold mb-4">Chats</h2>
+          <ul class="space-y-2">
+            <li class="hover:bg-gray-200 p-2 rounded cursor-pointer bg-gray-100">👨‍🏫 Supervisor: Mr. Otieno</li>
+            <li class="hover:bg-gray-200 p-2 rounded cursor-pointer">🏢 KRA HR</li>
+            <li class="hover:bg-gray-200 p-2 rounded cursor-pointer">💼 Mentor: Carol M.</li>
+          </ul>
+        </aside>
 
-      <!-- Chat Window -->
-      <main class="flex-1 flex flex-col">
-        <div id="chat-box" class="flex-1 p-6 overflow-y-auto space-y-4">
-          <!-- Existing messages -->
-          <div class="flex justify-start">
-            <div class="bg-white p-3 rounded-lg shadow max-w-xs">
-              <p class="text-sm">Hi Gabriella, how is the logbook progress?</p>
-              <span class="text-xs text-gray-400">Supervisor • 10:02 AM</span>
+        <!-- Chat Window -->
+        <main class="flex-1 flex flex-col">
+          <div id="chat-box" class="flex-1 p-6 overflow-y-auto space-y-4">
+            <!-- Existing messages -->
+            <div class="flex justify-start">
+              <div class="bg-white p-3 rounded-lg shadow max-w-xs">
+                <p class="text-sm">Hi Gabriella, how is the logbook progress?</p>
+                <span class="text-xs text-gray-400">Supervisor • 10:02 AM</span>
+              </div>
+            </div>
+            <div class="flex justify-end">
+              <div class="bg-teal-600 text-white p-3 rounded-lg shadow max-w-xs">
+                <p class="text-sm">Hi! I just uploaded my week 2 entry.</p>
+                <span class="text-xs text-gray-200">You • 10:05 AM</span>
+              </div>
             </div>
           </div>
-          <div class="flex justify-end">
-            <div class="bg-teal-600 text-white p-3 rounded-lg shadow max-w-xs">
-              <p class="text-sm">Hi! I just uploaded my week 2 entry.</p>
-              <span class="text-xs text-gray-200">You • 10:05 AM</span>
-            </div>
-          </div>
-        </div>
 
-        <!-- Input Box -->
-        <div class="bg-white p-4 border-t">
-          <form id="message-form" class="flex gap-2">
-            <input id="message-input" type="text" placeholder="Type a message..." class="flex-1 border rounded px-4 py-2 focus:outline-none" required />
-            <button type="submit" class="bg-teal-600 text-white px-4 py-2 rounded hover:bg-teal-700">Send</button>
-          </form>
-        </div>
-      </main>
-    </div>
+          <!-- Input Box -->
+          <div class="bg-white p-4 border-t">
+            <form id="message-form" class="flex gap-2">
+              <input id="message-input" type="text" placeholder="Type a message..." class="flex-1 border rounded px-4 py-2 focus:outline-none" required />
+              <button type="submit" class="bg-teal-600 text-white px-4 py-2 rounded hover:bg-teal-700">Send</button>
+            </form>
+          </div>
+        </main>
+      </div>
+    </main>
   </div>
 
   <!-- Script to handle sending message -->
@@ -87,6 +209,102 @@
       input.value = '';
       chatBox.scrollTop = chatBox.scrollHeight;
     });
+
+    document.addEventListener('DOMContentLoaded', function() {
+      // --- Logout Button Functionality ---
+      const logoutBtn = document.getElementById('logoutBtn');
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          localStorage.removeItem('access_token');
+          window.location.href = '/Edulink_website/login.html';
+        });
+      }
+
+      // Unified profile picture loading function
+      function loadProfilePicture() {
+        const profilePic = document.getElementById('profilePic');
+        if (!profilePic) return;
+
+        // Priority 1: Check localStorage first (fastest, most recent)
+        const savedPhoto = localStorage.getItem('profilePhoto');
+        if (savedPhoto) {
+          profilePic.src = savedPhoto;
+          return;
+        }
+
+        // Priority 2: Fetch from API
+        const accessToken = localStorage.getItem('access_token');
+        if (!accessToken) return;
+
+        fetch('http://localhost:8000/api/users/student/profile/', {
+          headers: { 'Authorization': 'Bearer ' + accessToken }
+        })
+          .then(res => res.json())
+          .then(data => {
+            if (data.profile_picture) {
+              profilePic.src = data.profile_picture;
+              localStorage.setItem('profilePhoto', data.profile_picture);
+            } else {
+              profilePic.src = '../../assets/img/default.jpg';
+            }
+          })
+          .catch(() => { 
+            profilePic.src = '../../assets/img/default.jpg'; 
+          });
+      }
+
+      // Shared function to update header profile picture
+      function updateHeaderProfilePicture(imageSrc) {
+        const profilePic = document.getElementById('profilePic');
+        if (profilePic) {
+          profilePic.src = imageSrc;
+        }
+      }
+
+      // Global function for other pages to use
+      window.updateHeaderProfilePicture = updateHeaderProfilePicture;
+
+      // Load profile picture
+      loadProfilePicture();
+    });
+
+    // --- DARK MODE TOGGLE LOGIC ---
+    const darkModeToggle = document.getElementById('darkModeToggle');
+    const darkModeIcon = document.getElementById('darkModeIcon');
+    function setDarkMode(enabled) {
+      if (enabled) {
+        document.body.classList.add('dark-mode');
+        if (darkModeIcon) {
+          darkModeIcon.classList.remove('bi-moon');
+          darkModeIcon.classList.add('bi-sun');
+        }
+      } else {
+        document.body.classList.remove('dark-mode');
+        if (darkModeIcon) {
+          darkModeIcon.classList.remove('bi-sun');
+          darkModeIcon.classList.add('bi-moon');
+        }
+      }
+    }
+    // Load preference on page load
+    const darkPref = localStorage.getItem('darkMode');
+    setDarkMode(darkPref === 'true');
+    if (darkModeToggle) {
+      darkModeToggle.addEventListener('click', function() {
+        const isDark = document.body.classList.toggle('dark-mode');
+        if (darkModeIcon) {
+          if (isDark) {
+            darkModeIcon.classList.remove('bi-moon');
+            darkModeIcon.classList.add('bi-sun');
+          } else {
+            darkModeIcon.classList.remove('bi-sun');
+            darkModeIcon.classList.add('bi-moon');
+          }
+        }
+        localStorage.setItem('darkMode', isDark);
+      });
+    }
   </script>
 </body>
 </html>

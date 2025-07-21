@@ -5,6 +5,73 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Pantha Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* --- DARK MODE THEME (copied from student_dash.html) --- */
+    .dark-mode {
+      background: #181c24 !important;
+      color: #eaf6fb !important;
+      transition: background 0.3s, color 0.3s;
+    }
+    .dark-mode aside {
+      background: #23272f !important;
+      color: #eaf6fb !important;
+      border-right: 1px solid #23272f;
+    }
+    .dark-mode aside a {
+      color: #eaf6fb !important;
+      background: transparent !important;
+    }
+    .dark-mode aside a:hover {
+      background: #14b8a6 !important;
+      color: #fff !important;
+    }
+    .dark-mode main, .dark-mode .bg-white, .dark-mode .bg-gray-50, .dark-mode .bg-teal-50, .dark-mode .bg-blue-50 {
+      background: #23272f !important;
+      color: #eaf6fb !important;
+      border-color: #23272f !important;
+      box-shadow: 0 2px 16px 0 #14b8a622 !important;
+    }
+    .dark-mode .rounded-xl, .dark-mode .rounded-2xl {
+      box-shadow: 0 2px 16px 0 #14b8a622 !important;
+    }
+    .dark-mode .shadow, .dark-mode .shadow-lg, .dark-mode .shadow-xl {
+      box-shadow: 0 2px 16px 0 #14b8a622 !important;
+    }
+    .dark-mode .border, .dark-mode .border-teal-100, .dark-mode .border-gray-200 {
+      border-color: #23272f !important;
+    }
+    .dark-mode .text-teal-700, .dark-mode .text-teal-800 {
+      color: #6ee7b7 !important;
+    }
+    .dark-mode .text-gray-500, .dark-mode .text-gray-600, .dark-mode .text-gray-700, .dark-mode .text-gray-800 {
+      color: #b6c2d1 !important;
+    }
+    .dark-mode .footer, .dark-mode footer {
+      background: #181c24 !important;
+      color: #b6c2d1 !important;
+      border-top: 1px solid #23272f !important;
+    }
+    .dark-mode .active, .dark-mode .bg-teal-700, .dark-mode .selected {
+      box-shadow: 0 0 16px 2px #14b8a6cc !important;
+      background: #14b8a6 !important;
+      color: #fff !important;
+    }
+    .dark-mode *, .dark-mode *:before, .dark-mode *:after {
+      transition: background 0.3s, color 0.3s, box-shadow 0.3s, border-color 0.3s;
+    }
+    #darkModeToggle {
+      background: none !important;
+      border: none !important;
+      box-shadow: none !important;
+      padding: 0 !important;
+    }
+    .dark-mode #darkModeToggle {
+      background: none !important;
+      border: none !important;
+      box-shadow: none !important;
+      padding: 0 !important;
+    }
+  </style>
 </head>
 <body class="flex bg-gray-100 h-screen overflow-hidden">
 
@@ -75,6 +142,56 @@
     </div>
   </main>
 
+  <script>
+    // --- DARK MODE TOGGLE LOGIC ---
+    // Add a toggle button to the header if not present
+    let header = document.querySelector('.flex.justify-between.items-center.mb-6');
+    if (header && !document.getElementById('darkModeToggle')) {
+      let btn = document.createElement('button');
+      btn.id = 'darkModeToggle';
+      btn.title = 'Toggle dark mode';
+      btn.style.background = 'none';
+      btn.style.border = 'none';
+      btn.style.marginLeft = '1rem';
+      btn.innerHTML = '<i id="darkModeIcon" class="bi bi-moon" style="font-size: 1.5rem; color: #14b8a6;"></i>';
+      header.appendChild(btn);
+    }
+    const darkModeToggle = document.getElementById('darkModeToggle');
+    const darkModeIcon = document.getElementById('darkModeIcon');
+    function setDarkMode(enabled) {
+      if (enabled) {
+        document.body.classList.add('dark-mode');
+        if (darkModeIcon) {
+          darkModeIcon.classList.remove('bi-moon');
+          darkModeIcon.classList.add('bi-sun');
+        }
+      } else {
+        document.body.classList.remove('dark-mode');
+        if (darkModeIcon) {
+          darkModeIcon.classList.remove('bi-sun');
+          darkModeIcon.classList.add('bi-moon');
+        }
+      }
+    }
+    // Load preference on page load
+    const darkPref = localStorage.getItem('darkMode');
+    setDarkMode(darkPref === 'true');
+    if (darkModeToggle) {
+      darkModeToggle.addEventListener('click', function() {
+        const isDark = document.body.classList.toggle('dark-mode');
+        if (darkModeIcon) {
+          if (isDark) {
+            darkModeIcon.classList.remove('bi-moon');
+            darkModeIcon.classList.add('bi-sun');
+          } else {
+            darkModeIcon.classList.remove('bi-sun');
+            darkModeIcon.classList.add('bi-moon');
+          }
+        }
+        localStorage.setItem('darkMode', isDark);
+      });
+    }
+  </script>
   <script src="script.js"></script>
 </body>
 </html>

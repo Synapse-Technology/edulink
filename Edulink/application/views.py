@@ -12,6 +12,7 @@ from .serializers import (
     ApplicationStatisticsSerializer,
 )
 from internship.models.internship import Internship
+from dashboards.models import StudentActivityLog
 
 
 class ApplyToInternshipView(generics.CreateAPIView):
@@ -19,7 +20,16 @@ class ApplyToInternshipView(generics.CreateAPIView):
     permission_classes = [IsAuthenticated]
 
     def perform_create(self, serializer):
-        serializer.save(student=self.request.user)
+        application = serializer.save(student=self.request.user)
+        # Log activity for streaks
+        from django.utils import timezone
+        student_profile = getattr(self.request.user, 'student_profile', None)
+        if student_profile:
+            StudentActivityLog.objects.get_or_create(
+                student=student_profile,
+                activity_date=timezone.now().date(),
+                activity_type='applied_internship'
+            )
 
     def create(self, request, *args, **kwargs):
         internship = get_object_or_404(Internship, pk=request.data.get("internship_id"))
