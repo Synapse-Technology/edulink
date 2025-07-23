@@ -5,6 +5,9 @@ from . import views
 # Create a router for ViewSets
 router = DefaultRouter()
 
+# App name for namespacing
+app_name = 'security'
+
 # URL patterns for security app
 urlpatterns = [
     # Dashboard and overview
@@ -39,6 +42,9 @@ urlpatterns = [
     path('alerts/', views.SecurityAlertView.as_view(), name='security-alerts'),
     path('alerts/active/', views.SecurityAlertView.as_view(), {'active_only': True}, name='active-security-alerts'),
     
+    # User's own login history
+    path('my-login-history/', views.MyLoginHistoryView.as_view(), name='my_login_history'),
+    
     # Include router URLs
     path('api/', include(router.urls)),
 ]
@@ -51,6 +57,3 @@ security_patterns = [
 
 # Combine all URL patterns
 urlpatterns += security_patterns
-
-# App name for namespacing
-app_name = 'security'

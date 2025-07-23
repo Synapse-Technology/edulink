@@ -1,3 +1,7 @@
+from django.utils import timezone
+from institutions.models import Institution
+from users.models import UserRole, StudentProfile
+from authentication.models import User
 import os
 import django
 
@@ -5,10 +9,6 @@ import django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'Edulink.settings')
 django.setup()
 
-from authentication.models import User
-from users.models import UserRole, StudentProfile
-from institutions.models import Institution
-from django.utils import timezone
 
 def create_test_user():
     # Create a test institution first
@@ -57,5 +57,6 @@ def create_test_user():
     print("Email: test@example.com")
     print("Password: testpass123")
 
+
 if __name__ == "__main__":
-    create_test_user() 
+    create_test_user()

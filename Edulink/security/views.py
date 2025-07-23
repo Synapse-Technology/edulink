@@ -5,20 +5,22 @@ from rest_framework.views import APIView
 from django.utils import timezone
 from django.db.models import Count, Q
 from django.contrib.auth import get_user_model
+from django.shortcuts import render
+from django.http import HttpRequest
 from datetime import timedelta, datetime
-from .models import SecurityEvent, UserSession, FailedLoginAttempt, SecurityConfiguration, AuditLog
+from .models import SecurityEvent, UserSession, FailedLoginAttempt, SecurityConfiguration, AuditLog, LoginHistory, SecurityLog
 from .serializers import (
     SecurityEventSerializer, SecurityEventCreateSerializer,
     UserSessionSerializer, FailedLoginAttemptSerializer,
     SecurityConfigurationSerializer, AuditLogSerializer,
     SecurityDashboardSerializer, SecurityReportSerializer,
-    BulkSecurityEventSerializer, SecurityAlertSerializer
+    BulkSecurityEventSerializer, SecurityAlertSerializer,
+    LoginHistorySerializer, SecurityLogSerializer
 )
 from .utils import SecurityAnalyzer, ThreatDetector
 from .permissions import IsSecurityAdmin, IsSecurityAnalyst
 
 User = get_user_model()
-
 
 class SecurityDashboardView(APIView):
     """Main security dashboard with overview statistics."""
@@ -452,3 +454,26 @@ def reset_security_settings(request):
     )
     
     return Response({'message': 'Security settings reset successfully'})
+
+
+def get_client_ip(request: HttpRequest) -> str:
+    """
+    Get the client's IP address from the request.
+    Handles cases where the request might be behind a proxy.
+    """
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0].strip()
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip or '0.0.0.0'
+
+
+# Example view to see login history for the logged-in user
+class MyLoginHistoryView(generics.ListAPIView):
+    queryset = LoginHistory.objects.all()
+    serializer_class = LoginHistorySerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return LoginHistory.objects.filter(user=self.request.user)

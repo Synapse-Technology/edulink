@@ -7,14 +7,15 @@ from users.models.employer_profile import EmployerProfile
 from users.serializers.employer_serializers import EmployerProfileSerializer
 from security.models import SecurityEvent, AuditLog
 
+
 class EmployerProfileDetailView(generics.RetrieveUpdateAPIView):
     serializer_class = EmployerProfileSerializer
     permission_classes = [IsAuthenticated]
 
     def get_object(self):
         try:
-            return EmployerProfile.objects.get(user=self.request.user)
-        except EmployerProfile.DoesNotExist:
+            return EmployerProfile.objects.get(user=self.request.user)  # type: ignore[attr-defined]
+        except EmployerProfile.DoesNotExist:  # type: ignore[attr-defined]
             return None
     
     def get_client_ip(self, request):

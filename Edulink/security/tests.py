@@ -10,7 +10,7 @@ import json
 
 from .models import (
     SecurityEvent, UserSession, FailedLoginAttempt,
-    SecurityConfiguration, AuditLog
+    SecurityConfiguration, AuditLog, LoginHistory, SecurityLog
 )
 from .utils import SecurityAnalyzer, ThreatDetector, PasswordValidator
 from .serializers import SecurityEventSerializer, UserSessionSerializer
@@ -532,3 +532,22 @@ class SecurityConfigurationTests(TestCase):
         
         updated_config = SecurityConfiguration.objects.get(key='session_timeout')
         self.assertEqual(updated_config.value, '7200')
+
+    def test_login_history_creation(self):
+        login_history = LoginHistory.objects.create(
+            user=self.user,
+            ip_address='127.0.0.1',
+            user_agent='Test Browser'
+        )
+        self.assertEqual(login_history.user, self.user)
+        self.assertEqual(login_history.ip_address, '127.0.0.1')
+
+    def test_security_log_creation(self):
+        security_log = SecurityLog.objects.create(
+            user=self.user,
+            action='LOGIN',
+            description='User logged in successfully',
+            ip_address='127.0.0.1'
+        )
+        self.assertEqual(security_log.user, self.user)
+        self.assertEqual(security_log.action, 'LOGIN')

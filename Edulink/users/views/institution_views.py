@@ -6,6 +6,11 @@ from rest_framework.response import Response
 from users.models.institution_profile import InstitutionProfile
 from users.serializers.institution_serializers import InstitutionProfileSerializer
 from security.models import SecurityEvent, AuditLog
+from rest_framework.generics import ListAPIView
+from rest_framework.views import APIView
+from authentication.permissions import IsInstitution
+from users.models import StudentProfile
+from users.serializers.student_serializer import StudentProfileSerializer
 
 class InstitutionProfileDetailView(generics.RetrieveUpdateAPIView):
     serializer_class = InstitutionProfileSerializer
@@ -13,8 +18,8 @@ class InstitutionProfileDetailView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         try:
-            return InstitutionProfile.objects.get(user=self.request.user)
-        except InstitutionProfile.DoesNotExist:
+            return InstitutionProfile.objects.get(user=self.request.user)  # type: ignore[attr-defined]
+        except InstitutionProfile.DoesNotExist:  # type: ignore[attr-defined]
             return None
     
     def get_client_ip(self, request):
@@ -77,3 +82,31 @@ class InstitutionProfileDetailView(generics.RetrieveUpdateAPIView):
                 'institution_name': profile.institution.name if profile.institution else None
             }
         )
+
+class InstitutionStudentsView(ListAPIView):
+    """
+    Allows an institution admin to view all students from their institution.
+    """
+    serializer_class = StudentProfileSerializer
+    permission_classes = [IsAuthenticated, IsInstitution]
+
+    def get_queryset(self):
+        institution = self.request.user.institutionprofile.institution
+        return StudentProfile.objects.filter(institution=institution)
+
+class InstitutionAnalyticsView(APIView):
+    """
+    Allows an institution admin to access analytics for their institution only.
+    """
+    permission_classes = [IsAuthenticated, IsInstitution]
+
+    def get(self, request):
+        institution = self.request.user.institutionprofile.institution
+        total_students = institution.studentprofile_set.count()
+        accepted_apps = institution.studentprofile_set.filter(application__status='accepted').distinct().count()
+        placement_rate = (accepted_apps / total_students) * 100 if total_students else 0
+        return Response({
+            "total_students": total_students,
+            "accepted_applications": accepted_apps,
+            "placement_rate": placement_rate,
+        })

@@ -61,12 +61,12 @@ INSTALLED_APPS = [
     "employers",
     "users",
     "chatbot",
+    "security",  # Security app for comprehensive security management
     "institutions",
     "internship",
     "dashboards",
     "notifications",  # Added notifications app
     "application",  # Ensure application app is registered
-    "security",  # Security app for comprehensive security management
 ]
 
 REST_FRAMEWORK = {
@@ -148,7 +148,6 @@ DATABASES = {
 #         "NAME": BASE_DIR / "db.sqlite3",
 #     }
 # }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators

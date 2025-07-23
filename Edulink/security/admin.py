@@ -5,7 +5,7 @@ from django.utils import timezone
 from django.db.models import Count
 from .models import (
     SecurityEvent, UserSession, FailedLoginAttempt,
-    SecurityConfiguration, AuditLog
+    SecurityConfiguration, AuditLog, LoginHistory, SecurityLog
 )
 
 
@@ -411,6 +411,24 @@ class SecurityAdminSite(admin.AdminSite):
         return super().index(request, extra_context)
 
 
+@admin.register(LoginHistory)
+class LoginHistoryAdmin(admin.ModelAdmin):
+    list_display = ('user', 'ip_address', 'timestamp')
+    list_filter = ('timestamp',)
+    search_fields = ('user__email', 'ip_address')
+    readonly_fields = ('timestamp',)
+    ordering = ('-timestamp',)
+
+
+@admin.register(SecurityLog)
+class SecurityLogAdmin(admin.ModelAdmin):
+    list_display = ('user', 'action', 'ip_address', 'timestamp')
+    list_filter = ('action', 'timestamp')
+    search_fields = ('user__email', 'description', 'ip_address')
+    readonly_fields = ('timestamp',)
+    ordering = ('-timestamp',)
+
+
 # Register models with custom admin site
 security_admin_site = SecurityAdminSite(name='security_admin')
 security_admin_site.register(SecurityEvent, SecurityEventAdmin)
@@ -418,3 +436,5 @@ security_admin_site.register(UserSession, UserSessionAdmin)
 security_admin_site.register(FailedLoginAttempt, FailedLoginAttemptAdmin)
 security_admin_site.register(SecurityConfiguration, SecurityConfigurationAdmin)
 security_admin_site.register(AuditLog, AuditLogAdmin)
+security_admin_site.register(LoginHistory, LoginHistoryAdmin)
+security_admin_site.register(SecurityLog, SecurityLogAdmin)

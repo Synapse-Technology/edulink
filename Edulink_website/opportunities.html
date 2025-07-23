@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Opportunities Marketplace - EduLink KE</title>
+  <meta name="description" content="Browse verified internships and job opportunities on EduLink KE.">
+  <meta name="keywords" content="internships, jobs, marketplace, EduLink, Kenya">
+
+  <!-- Favicons -->
+  <link href="assets/img/favicon.png" rel="icon">
+  <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&family=Poppins:wght@400;600;700&family=Raleway:wght@400;700&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+  <link href="assets/vendor/aos/aos.css" rel="stylesheet">
+  <link href="assets/vendor/glightbox/css/glightbox.min.css" rel="stylesheet">
+  <link href="assets/vendor/swiper/swiper-bundle.min.css" rel="stylesheet">
+
+  <!-- Main CSS File -->
+  <link href="assets/css/main.css" rel="stylesheet">
+  <style>
+    .marketplace-hero {
+      background: linear-gradient(120deg, #009999 0%, #112019 100%);
+      color: #fff;
+      padding: 70px 0 40px 0;
+      position: relative;
+      overflow: hidden;
+    }
+    .marketplace-hero .search-bar {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      padding: 18px 24px;
+      max-width: 600px;
+      margin: 30px auto 0 auto;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .marketplace-hero .search-bar input {
+      border: none;
+      outline: none;
+      flex: 1 1 auto;
+      font-size: 1.1rem;
+      background: transparent;
+      color: #222;
+    }
+    .marketplace-hero .search-bar button {
+      background: #22c55e;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 22px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .marketplace-hero .search-bar button:hover {
+      background: #009999;
+    }
+    .marketplace-hero .marketplace-cta {
+      margin-top: 18px;
+      font-size: 1.1rem;
+      color: #e0f7f7;
+    }
+    .marketplace-categories {
+      margin: 0 auto 32px auto;
+      max-width: 900px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+    }
+    .marketplace-categories .cat-btn {
+      background: #e0f7f7;
+      color: #009999;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 18px;
+      font-size: 1rem;
+      font-weight: 600;
+      transition: background 0.2s, color 0.2s;
+      cursor: pointer;
+    }
+    .marketplace-categories .cat-btn.active,
+    .marketplace-categories .cat-btn:hover {
+      background: #009999;
+      color: #fff;
+    }
+    .opportunities-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 32px;
+      margin-top: 24px;
+    }
+    .opportunity-card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
+      display: flex;
+      flex-direction: column;
+      min-height: 420px;
+      position: relative;
+      border: 1.5px solid #e0f7f7;
+    }
+    .opportunity-card:hover {
+      transform: translateY(-8px) scale(1.02);
+      box-shadow: 0 8px 32px rgba(0,153,153,0.12);
+      border-color: #009999;
+    }
+    .opportunity-card .card-img {
+      width: 100%;
+      height: 180px;
+      overflow: hidden;
+      background: #e0f7f7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .opportunity-card .card-img img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.3s;
+    }
+    .opportunity-card:hover .card-img img {
+      transform: scale(1.07);
+    }
+    .opportunity-card .card-content {
+      padding: 22px 20px 16px 20px;
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .opportunity-card .company-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 2px solid #e0f7f7;
+      margin-right: 10px;
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .opportunity-card .company-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .opportunity-card .badge {
+      font-size: 0.95em;
+      padding: 6px 12px;
+      border-radius: 8px;
+      margin-right: 8px;
+      background: #e0f7f7;
+      color: #009999;
+      font-weight: 600;
+    }
+    .opportunity-card .badge.tech { background: #e0f7f7; color: #009999; }
+    .opportunity-card .badge.marketing { background: #ffe066; color: #b68900; }
+    .opportunity-card .badge.finance { background: #e0e7ff; color: #3b4890; }
+    .opportunity-card .badge.health { background: #d1fae5; color: #047857; }
+    .opportunity-card .badge.engineering { background: #f3e8ff; color: #7c3aed; }
+    .opportunity-card .badge.featured { background: #22c55e; color: #fff; }
+    .opportunity-card .tags {
+      margin-top: 8px;
+      margin-bottom: 8px;
+    }
+    .opportunity-card .tag {
+      display: inline-block;
+      background: #f0fdf4;
+      color: #22c55e;
+      border-radius: 6px;
+      font-size: 0.93em;
+      padding: 3px 10px;
+      margin-right: 6px;
+      margin-bottom: 2px;
+    }
+    .opportunity-card .location {
+      font-size: 1em;
+      color: #6c757d;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .opportunity-card .salary {
+      font-size: 1.1em;
+      color: #009999;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .opportunity-card .actions {
+      margin-top: 10px;
+      display: flex;
+      gap: 10px;
+    }
+    .opportunity-card .actions .btn {
+      font-size: 1em;
+      border-radius: 8px;
+      font-weight: 600;
+      padding: 7px 18px;
+      transition: background 0.2s;
+    }
+    .opportunity-card .actions .btn-primary {
+      background: #009999;
+      color: #fff;
+      border: none;
+    }
+    .opportunity-card .actions .btn-primary:hover {
+      background: #22c55e;
+    }
+    .opportunity-card .actions .btn-outline {
+      background: #fff;
+      color: #009999;
+      border: 1.5px solid #009999;
+    }
+    .opportunity-card .actions .btn-outline:hover {
+      background: #e0f7f7;
+    }
+    .featured-employers {
+      background: #f8fafc;
+      padding: 40px 0 30px 0;
+      margin: 0 0 40px 0;
+    }
+    .featured-employers .swiper {
+      padding: 10px 0;
+    }
+    .featured-employers .swiper-slide {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100px;
+    }
+    .featured-employers .employer-logo {
+      width: 110px;
+      height: 70px;
+      object-fit: contain;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      padding: 10px;
+      margin: 0 10px;
+      transition: transform 0.2s;
+    }
+    .featured-employers .employer-logo:hover {
+      transform: scale(1.08);
+    }
+    .marketplace-impact {
+      background: #e0f7f7;
+      padding: 50px 0 40px 0;
+    }
+    .marketplace-impact .testimonial {
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      padding: 28px 24px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: flex-start;
+      gap: 18px;
+      position: relative;
+    }
+    .marketplace-impact .testimonial .avatar {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 2px solid #009999;
+      flex-shrink: 0;
+    }
+    .marketplace-impact .testimonial .avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .marketplace-impact .testimonial .quote {
+      font-size: 1.08em;
+      color: #37423b;
+      font-style: italic;
+    }
+    .marketplace-impact .testimonial .name {
+      font-weight: 700;
+      color: #009999;
+      margin-top: 6px;
+      font-size: 1em;
+    }
+    .marketplace-impact .testimonial .role {
+      font-size: 0.97em;
+      color: #6c757d;
+    }
+    .marketplace-cta-section {
+      background: linear-gradient(120deg, #009999 0%, #22c55e 100%);
+      color: #fff;
+      padding: 48px 0 40px 0;
+      text-align: center;
+    }
+    .marketplace-cta-section .btn {
+      background: #fff;
+      color: #009999;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 1.1em;
+      padding: 12px 32px;
+      margin-top: 18px;
+      border: none;
+      transition: background 0.2s, color 0.2s;
+    }
+    .marketplace-cta-section .btn:hover {
+      background: #22c55e;
+      color: #fff;
+    }
+    @media (max-width: 768px) {
+      .marketplace-hero { padding: 40px 0 20px 0; }
+      .opportunities-grid { grid-template-columns: 1fr; gap: 18px; }
+      .marketplace-impact .testimonial { flex-direction: column; align-items: flex-start; }
+      .featured-employers .employer-logo { width: 80px; height: 50px; }
+    }
+  </style>
+</head>
+<body class="opportunities-page">
+  <!-- Header (copy from index.html for consistency) -->
+  <header id="header" class="header d-flex align-items-center sticky-top">
+    <div class="container-fluid container-xl position-relative d-flex align-items-center justify-content-between">
+      <a href="index.html" class="logo d-flex align-items-center me-auto">
+        <h1 class="sitename">EduLink</h1>
+      </a>
+      <nav id="navmenu" class="navmenu">
+        <ul>
+          <li><a href="index.html" class="nav-link">Home</a></li>
+          <li class="dropdown">
+            <a href="#" class="nav-link"><span>About</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
+            <ul>
+              <li><a href="about.html#background" class="nav-link">Background</a></li>
+              <li><a href="about.html#mission" class="nav-link">Vision,Mission & Core Values</a></li>
+              <li><a href="about.html#partners" class="nav-link">Partners</a></li>
+            </ul>
+          </li>
+          <li><a href="contact.html" class="nav-link">Contact</a></li>
+          <li><a href="support.html" class="nav-link">Support Features</a></li>
+          <li><a href="search.html" class="nav-link">Search</a></li>
+        </ul>
+      </nav>
+      <div class="header-actions d-flex align-items-center">
+        <a href="register.html" class="btn-getstarted">Get Started</a>
+        <i class="mobile-nav-toggle d-xl-none bi bi-list ms-3"></i>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+    <!-- Marketplace Hero -->
+    <section class="marketplace-hero text-center" data-aos="fade-in">
+      <div class="container">
+        <h1 class="display-5 fw-bold mb-2">Find Your Next Opportunity</h1>
+        <p class="lead mb-4">Browse verified internships and jobs from top employers and institutions across Kenya.</p>
+        <form class="search-bar shadow" onsubmit="event.preventDefault();">
+          <input type="text" placeholder="Search by role, company, or keyword..." aria-label="Search opportunities">
+          <button type="submit"><i class="bi bi-search"></i> Search</button>
+        </form>
+        <div class="marketplace-cta">Tip: Use filters below to narrow your search by category or location.</div>
+      </div>
+    </section>
+
+    <!-- Category Filters -->
+    <div class="marketplace-categories" data-aos="fade-up">
+      <button class="cat-btn active">All</button>
+      <button class="cat-btn">Tech</button>
+      <button class="cat-btn">Marketing</button>
+      <button class="cat-btn">Finance</button>
+      <button class="cat-btn">Healthcare</button>
+      <button class="cat-btn">Engineering</button>
+      <button class="cat-btn">Remote</button>
+      <button class="cat-btn">Nairobi</button>
+      <button class="cat-btn">Mombasa</button>
+      <button class="cat-btn">Kisumu</button>
+    </div>
+
+    <!-- Opportunities Grid -->
+    <section class="container opportunities-grid" data-aos="fade-up" data-aos-delay="100">
+      <!-- Sample Opportunity Card 1 -->
+      <div class="opportunity-card">
+        <div class="card-img"><img src="assets/img/course-1.jpg" alt="Software Development Intern"></div>
+        <div class="card-content">
+          <div class="d-flex align-items-center mb-2">
+            <div class="company-avatar"><img src="assets/img/partner1.png" alt="Synapse Technologies"></div>
+            <span class="badge tech">Tech</span>
+            <span class="badge featured ms-2">Featured</span>
+          </div>
+          <h3 class="fw-bold mb-1">Software Development Intern</h3>
+          <div class="location"><i class="bi bi-geo-alt"></i> Nairobi, Kenya</div>
+          <div class="salary">KES 40,000/mo</div>
+          <div class="tags mb-2">
+            <span class="tag">Python</span>
+            <span class="tag">Django</span>
+            <span class="tag">Full-time</span>
+          </div>
+          <div class="actions">
+            <a href="#" class="btn btn-primary">Apply</a>
+            <a href="#" class="btn btn-outline">Details</a>
+          </div>
+        </div>
+      </div>
+      <!-- Sample Opportunity Card 2 -->
+      <div class="opportunity-card">
+        <div class="card-img"><img src="assets/img/course-2.jpg" alt="Digital Marketing Assistant"></div>
+        <div class="card-content">
+          <div class="d-flex align-items-center mb-2">
+            <div class="company-avatar"><img src="assets/img/partner2.png" alt="Creative Hub Inc."></div>
+            <span class="badge marketing">Marketing</span>
+          </div>
+          <h3 class="fw-bold mb-1">Digital Marketing Assistant</h3>
+          <div class="location"><i class="bi bi-geo-alt"></i> Mombasa, Kenya</div>
+          <div class="salary">KES 35,000/mo</div>
+          <div class="tags mb-2">
+            <span class="tag">SEO</span>
+            <span class="tag">Content</span>
+            <span class="tag">Remote</span>
+          </div>
+          <div class="actions">
+            <a href="#" class="btn btn-primary">Apply</a>
+            <a href="#" class="btn btn-outline">Details</a>
+          </div>
+        </div>
+      </div>
+      <!-- Sample Opportunity Card 3 -->
+      <div class="opportunity-card">
+        <div class="card-img"><img src="assets/img/course-3.jpg" alt="Finance & Accounting Intern"></div>
+        <div class="card-content">
+          <div class="d-flex align-items-center mb-2">
+            <div class="company-avatar"><img src="assets/img/partner3.png" alt="Kenya Trust Bank"></div>
+            <span class="badge finance">Finance</span>
+          </div>
+          <h3 class="fw-bold mb-1">Finance & Accounting Intern</h3>
+          <div class="location"><i class="bi bi-geo-alt"></i> Kisumu, Kenya</div>
+          <div class="salary">KES 38,000/mo</div>
+          <div class="tags mb-2">
+            <span class="tag">Excel</span>
+            <span class="tag">CPA</span>
+            <span class="tag">Graduate</span>
+          </div>
+          <div class="actions">
+            <a href="#" class="btn btn-primary">Apply</a>
+            <a href="#" class="btn btn-outline">Details</a>
+          </div>
+        </div>
+      </div>
+      <!-- Sample Opportunity Card 4 -->
+      <div class="opportunity-card">
+        <div class="card-img"><img src="assets/img/events-item-1.jpg" alt="Healthcare Assistant"></div>
+        <div class="card-content">
+          <div class="d-flex align-items-center mb-2">
+            <div class="company-avatar"><img src="assets/img/team/team-1.jpg" alt="HealthFirst"></div>
+            <span class="badge health">Healthcare</span>
+          </div>
+          <h3 class="fw-bold mb-1">Healthcare Assistant</h3>
+          <div class="location"><i class="bi bi-geo-alt"></i> Nairobi, Kenya</div>
+          <div class="salary">KES 30,000/mo</div>
+          <div class="tags mb-2">
+            <span class="tag">Patient Care</span>
+            <span class="tag">Full-time</span>
+          </div>
+          <div class="actions">
+            <a href="#" class="btn btn-primary">Apply</a>
+            <a href="#" class="btn btn-outline">Details</a>
+          </div>
+        </div>
+      </div>
+      <!-- Sample Opportunity Card 5 -->
+      <div class="opportunity-card">
+        <div class="card-img"><img src="assets/img/events-item-2.jpg" alt="Mechanical Engineering Intern"></div>
+        <div class="card-content">
+          <div class="d-flex align-items-center mb-2">
+            <div class="company-avatar"><img src="assets/img/team/team-2.jpg" alt="MechWorks"></div>
+            <span class="badge engineering">Engineering</span>
+          </div>
+          <h3 class="fw-bold mb-1">Mechanical Engineering Intern</h3>
+          <div class="location"><i class="bi bi-geo-alt"></i> Eldoret, Kenya</div>
+          <div class="salary">KES 42,000/mo</div>
+          <div class="tags mb-2">
+            <span class="tag">AutoCAD</span>
+            <span class="tag">Internship</span>
+          </div>
+          <div class="actions">
+            <a href="#" class="btn btn-primary">Apply</a>
+            <a href="#" class="btn btn-outline">Details</a>
+          </div>
+        </div>
+      </div>
+      <!-- Sample Opportunity Card 6 -->
+      <div class="opportunity-card">
+        <div class="card-img"><img src="assets/img/web.jpg" alt="Remote Data Analyst"></div>
+        <div class="card-content">
+          <div class="d-flex align-items-center mb-2">
+            <div class="company-avatar"><img src="assets/img/trainers/trainer-1.jpg" alt="Data Insights"></div>
+            <span class="badge tech">Tech</span>
+            <span class="badge featured ms-2">Remote</span>
+          </div>
+          <h3 class="fw-bold mb-1">Remote Data Analyst</h3>
+          <div class="location"><i class="bi bi-geo-alt"></i> Remote</div>
+          <div class="salary">KES 50,000/mo</div>
+          <div class="tags mb-2">
+            <span class="tag">SQL</span>
+            <span class="tag">Python</span>
+            <span class="tag">Remote</span>
+          </div>
+          <div class="actions">
+            <a href="#" class="btn btn-primary">Apply</a>
+            <a href="#" class="btn btn-outline">Details</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Featured Employers Carousel -->
+    <section class="featured-employers" data-aos="fade-up" data-aos-delay="200">
+      <div class="container">
+        <div class="text-center mb-4">
+          <h2 class="fw-bold">Featured Employers</h2>
+        </div>
+        <div class="swiper employer-swiper">
+          <div class="swiper-wrapper">
+            <div class="swiper-slide"><img src="assets/img/partner1.png" class="employer-logo" alt="Synapse Technologies"></div>
+            <div class="swiper-slide"><img src="assets/img/partner2.png" class="employer-logo" alt="Creative Hub Inc."></div>
+            <div class="swiper-slide"><img src="assets/img/partner3.png" class="employer-logo" alt="Kenya Trust Bank"></div>
+            <div class="swiper-slide"><img src="assets/img/team/team-1.jpg" class="employer-logo" alt="HealthFirst"></div>
+            <div class="swiper-slide"><img src="assets/img/team/team-2.jpg" class="employer-logo" alt="MechWorks"></div>
+            <div class="swiper-slide"><img src="assets/img/trainers/trainer-1.jpg" class="employer-logo" alt="Data Insights"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Impact/Testimonials Section -->
+    <section class="marketplace-impact" data-aos="fade-up" data-aos-delay="300">
+      <div class="container">
+        <div class="text-center mb-5">
+          <h2 class="fw-bold">Success Stories</h2>
+          <p>See how EduLink is transforming careers and organizations across Kenya.</p>
+        </div>
+        <div class="row">
+          <div class="col-md-6 col-lg-4">
+            <div class="testimonial">
+              <div class="avatar"><img src="assets/img/testimonials/testimonials-1.jpg" alt="Student"></div>
+              <div>
+                <div class="quote">“I landed my first internship through EduLink and gained real-world experience. The process was smooth and safe!”</div>
+                <div class="name">Mary W.</div>
+                <div class="role">Student, JKUAT</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6 col-lg-4">
+            <div class="testimonial">
+              <div class="avatar"><img src="assets/img/testimonials/testimonials-2.jpg" alt="Employer"></div>
+              <div>
+                <div class="quote">“EduLink helped us find talented interns who matched our needs. The digital tracking tools are a game changer.”</div>
+                <div class="name">James K.</div>
+                <div class="role">HR, Synapse Technologies</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6 col-lg-4">
+            <div class="testimonial">
+              <div class="avatar"><img src="assets/img/testimonials/testimonials-3.jpg" alt="Institution"></div>
+              <div>
+                <div class="quote">“Our students now access verified opportunities and get certified for their work. EduLink is bridging the gap!”</div>
+                <div class="name">Dr. Achieng</div>
+                <div class="role">Dean, Partner Institution</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Employer CTA Section -->
+    <section class="marketplace-cta-section" data-aos="fade-up" data-aos-delay="400">
+      <div class="container">
+        <h2 class="fw-bold mb-3">Are You Hiring?</h2>
+        <p class="lead mb-3">Post your internship or job opportunity and connect with top student talent across Kenya.</p>
+        <a href="#" class="btn">Post an Opportunity</a>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer (copy from index.html for consistency) -->
+  <footer id="footer" class="footer position-relative footer-brand">
+    <div class="container footer-top">
+      <div class="row gy-4">
+        <div class="col-lg-4 col-md-6 footer-about">
+          <a href="index.html" class="logo d-flex align-items-center">
+            <span class="sitename">EduLink KE</span>
+          </a>
+          <div class="footer-contact pt-3">
+            <p>JKUAT, Juja </p>
+            <p>Nairobi, Kenya</p>
+            <p class="mt-3"><strong>Phone:</strong> <span>+254 712 345 678</span></p>
+            <p><strong>Email:</strong> <span>info@edulink.co.ke</span></p>
+          </div>
+          <div class="social-links d-flex mt-4">
+            <a href="https://twitter.com/edulinkke"><i class="bi bi-twitter-x"></i></a>
+            <a href="https://facebook.com/edulinkke"><i class="bi bi-facebook"></i></a>
+            <a href="https://instagram.com/edulinkke"><i class="bi bi-instagram"></i></a>
+            <a href="https://linkedin.com/company/synapsetechnology/"><i class="bi bi-linkedin"></i></a>
+          </div>
+        </div>
+        <div class="col-lg-2 col-md-3 footer-links">
+          <h4>Useful Links</h4>
+          <ul>
+            <li><a href="">Download App</a></li>
+            <li><a href="policy.html">Privacy Policy</a></li>
+            <li><a href="">Terms of Service</a></li>
+            <li><a href="">FAQs</a></li>
+            <li><a href="">Help</a></li>
+            <li><a href="">Chat with Staff</a></li>
+          </ul>
+        </div>
+        <div class="col-lg-2 col-md-3 footer-links">
+          <h4>Our Services</h4>
+          <ul>
+            <li><a href="#">Internship Listings</a></li>
+            <li><a href="#">Digital Certifications</a></li>
+            <li><a href="#">Performance Tracking</a></li>
+            <li><a href="#">Employer Dashboard</a></li>
+            <li><a href="#">Institution Reports</a></li>
+          </ul>
+        </div>
+        <div class="col-lg-4 col-md-12 footer-newsletter">
+          <h4>Our Newsletter</h4>
+          <p>Stay updated on verified internships, new features, and student career events.</p>
+          <form action="forms/newsletter.php" method="post" class="php-email-form">
+            <div class="newsletter-form">
+              <input type="email" name="email"><input type="submit" value="Subscribe">
+            </div>
+            <div class="loading">Loading</div>
+            <div class="error-message"></div>
+            <div class="sent-message">Your subscription request has been sent. Thank you!</div>
+          </form>
+        </div>
+      </div>
+    </div>
+    <div class="container copyright text-center">
+      <p>© <span>Copyright</span> <strong class="px-1 sitename">EduLink KE</strong> <span>All Rights Reserved</span></p>
+      <div class="credits">
+        Designed by <a href="">Synapse Technology</a> Distributed by <a href="">Synapse</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scroll Top -->
+  <a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+  <!-- Preloader -->
+  <div id="preloader"></div>
+  <!-- Vendor JS Files -->
+  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/vendor/php-email-form/validate.js"></script>
+  <script src="assets/vendor/aos/aos.js"></script>
+  <script src="assets/vendor/glightbox/js/glightbox.min.js"></script>
+  <script src="assets/vendor/purecounter/purecounter_vanilla.js"></script>
+  <script src="assets/vendor/swiper/swiper-bundle.min.js"></script>
+  <!-- Main JS File -->
+  <script src="assets/js/main.js"></script>
+  <script src="assets/js/edulink-chatbot.js"></script>
+  <script>
+    // Swiper for featured employers
+    var employerSwiper = new Swiper('.employer-swiper', {
+      slidesPerView: 3,
+      spaceBetween: 30,
+      loop: true,
+      autoplay: { delay: 2500, disableOnInteraction: false },
+      breakpoints: {
+        0: { slidesPerView: 2 },
+        768: { slidesPerView: 3 },
+        1200: { slidesPerView: 5 }
+      }
+    });
+    // Category filter (demo only)
+    document.querySelectorAll('.cat-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        // In a real app, filter the grid here
+      });
+    });
+  </script>
+</body>
+</html>

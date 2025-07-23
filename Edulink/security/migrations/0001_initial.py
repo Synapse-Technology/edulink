@@ -107,4 +107,32 @@ class Migration(migrations.Migration):
                 'indexes': [models.Index(fields=['user', 'is_active'], name='security_us_user_id_9aa362_idx'), models.Index(fields=['session_key'], name='security_us_session_cd98d8_idx'), models.Index(fields=['last_activity'], name='security_us_last_ac_9080e9_idx')],
             },
         ),
+        migrations.CreateModel(
+            name='LoginHistory',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('ip_address', models.GenericIPAddressField()),
+                ('user_agent', models.TextField(blank=True)),
+                ('timestamp', models.DateTimeField(default=django.utils.timezone.now)),
+                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+            ],
+            options={
+                'verbose_name_plural': 'Login Histories',
+                'ordering': ['-timestamp'],
+            },
+        ),
+        migrations.CreateModel(
+            name='SecurityLog',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('action', models.CharField(choices=[('LOGIN', 'Login'), ('LOGOUT', 'Logout'), ('REGISTER', 'Register'), ('PASSWORD_CHANGE', 'Password Change'), ('PASSWORD_RESET', 'Password Reset'), ('2FA_VERIFY', '2FA Verification'), ('FAILED_LOGIN', 'Failed Login')], max_length=30)),
+                ('description', models.TextField()),
+                ('timestamp', models.DateTimeField(default=django.utils.timezone.now)),
+                ('ip_address', models.GenericIPAddressField(blank=True, null=True)),
+                ('user', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+            ],
+            options={
+                'ordering': ['-timestamp'],
+            },
+        ),
     ]

@@ -3,6 +3,7 @@ from django.apps import AppConfig
 
 class SecurityConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
+<<<<<<< HEAD
     name = 'security'
     verbose_name = 'Security'
 
@@ -12,3 +13,6 @@ class SecurityConfig(AppConfig):
             import security.signals  # noqa F401
         except ImportError:
             pass
+=======
+    name = 'security'
+>>>>>>> feature/auth

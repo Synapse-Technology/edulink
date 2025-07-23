@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import SecurityEvent, UserSession, FailedLoginAttempt, SecurityConfiguration, AuditLog
+from .models import SecurityEvent, UserSession, FailedLoginAttempt, SecurityConfiguration, AuditLog, LoginHistory, SecurityLog
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -160,3 +160,15 @@ class SecurityAlertSerializer(serializers.Serializer):
         child=serializers.CharField(max_length=200),
         required=False
     )
+
+
+class LoginHistorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LoginHistory
+        fields = '__all__'
+
+
+class SecurityLogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SecurityLog
+        fields = '__all__'

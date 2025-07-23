@@ -5,6 +5,11 @@ from django.utils import timezone
 from .models import Employer
 from .serializers import EmployerSerializer
 from security.models import SecurityEvent, AuditLog
+from users.serializers.employer_serializers import EmployerProfileSerializer
+from internship.models.internship import Internship
+from application.models import Application
+from application.serializers import ApplicationSerializer
+from .permissions import IsEmployerOwner
 
 class CreateEmployerView(generics.CreateAPIView):
     queryset = Employer.objects.all()
@@ -52,13 +57,16 @@ class CreateEmployerView(generics.CreateAPIView):
             }
         )
 
-class EmployerDetailView(generics.RetrieveUpdateAPIView):
-    queryset = Employer.objects.all()
-    serializer_class = EmployerSerializer
+class EmployerProfileDetailView(generics.RetrieveUpdateAPIView):
+    """
+    View and update the profile for the currently authenticated employer.
+    """
+    serializer_class = EmployerProfileSerializer
     permission_classes = [IsAuthenticated]
 
     def get_object(self):
-        return Employer.objects.get(user=self.request.user)
+        # The related name from the User model to EmployerProfile is 'employer_profile'
+        return self.request.user.employer_profile
     
     def get_client_ip(self, request):
         """Extract client IP address from request."""
@@ -68,6 +76,11 @@ class EmployerDetailView(generics.RetrieveUpdateAPIView):
         else:
             ip = request.META.get('REMOTE_ADDR')
         return ip
+
+    def get(self, request, *args, **kwargs):
+        profile = self.get_object()
+        serializer = self.get_serializer(profile)
+        return Response(serializer.data)
     
     def perform_update(self, serializer):
         employer = serializer.save()
@@ -157,5 +170,27 @@ class VerifyEmployerView(generics.UpdateAPIView):
             status=status.HTTP_200_OK
         )
 
+class EmployerInternshipListView(generics.ListAPIView):
+    """
+    List all internships posted by the currently authenticated employer.
+    """
+    # serializer_class = InternshipSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # Filter internships based on the employer profile linked to the user
+        return Internship.objects.filter(employer=self.request.user.employer_profile)  # type: ignore[attr-defined]
+
+
+class InternshipApplicationListView(generics.ListAPIView):
+    """
+    List all applications for a specific internship owned by the employer.
+    """
+    serializer_class = ApplicationSerializer
+    permission_classes = [IsAuthenticated, IsEmployerOwner]
+
+    def get_queryset(self):
+        internship_id = self.kwargs.get('internship_id')
+        return Application.objects.filter(internship_id=internship_id)  # type: ignore[attr-defined]
 
 # Create your views here.
