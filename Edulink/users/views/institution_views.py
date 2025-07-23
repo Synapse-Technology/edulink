@@ -5,6 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from users.models.institution_profile import InstitutionProfile
 from users.serializers.institution_serializers import InstitutionProfileSerializer
+from security.models import SecurityEvent, AuditLog
 
 class InstitutionProfileDetailView(generics.RetrieveUpdateAPIView):
     serializer_class = InstitutionProfileSerializer
@@ -15,6 +16,15 @@ class InstitutionProfileDetailView(generics.RetrieveUpdateAPIView):
             return InstitutionProfile.objects.get(user=self.request.user)
         except InstitutionProfile.DoesNotExist:
             return None
+    
+    def get_client_ip(self, request):
+        """Extract client IP address from request."""
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
 
     def get(self, request, *args, **kwargs):
         profile = self.get_object()
@@ -34,3 +44,36 @@ class InstitutionProfileDetailView(generics.RetrieveUpdateAPIView):
                 status=status.HTTP_403_FORBIDDEN
             )
         return super().update(request, *args, **kwargs)
+    
+    def perform_update(self, serializer):
+        profile = serializer.save()
+        
+        # Log security event for institution profile update
+        SecurityEvent.objects.create(
+            event_type='data_access',
+            severity='low',
+            description=f'Institution profile updated: {profile.first_name} {profile.last_name}',
+            user=self.request.user,
+            ip_address=self.get_client_ip(self.request),
+            user_agent=self.request.META.get('HTTP_USER_AGENT', ''),
+            metadata={
+                'action': 'institution_profile_updated',
+                'profile_id': str(profile.id),
+                'institution_name': profile.institution.name if profile.institution else None
+            }
+        )
+        
+        # Log audit trail
+        AuditLog.objects.create(
+            action='update',
+            user=self.request.user,
+            model_name='InstitutionProfile',
+            object_id=str(profile.id),
+            description=f'Updated institution profile: {profile.first_name} {profile.last_name}',
+            ip_address=self.get_client_ip(self.request),
+            metadata={
+                'first_name': profile.first_name,
+                'last_name': profile.last_name,
+                'institution_name': profile.institution.name if profile.institution else None
+            }
+        )

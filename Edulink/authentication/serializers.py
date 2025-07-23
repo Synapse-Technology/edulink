@@ -14,6 +14,8 @@ from institutions.models import Institution
 from employers.models import Employer
 from django.utils import timezone
 from django.db import transaction
+from security.models import SecurityEvent, FailedLoginAttempt, UserSession
+from security.utils import ThreatDetector
 
 
 class BaseProfileSerializer(serializers.Serializer):
@@ -249,35 +251,88 @@ class LoginSerializer(serializers.Serializer):
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
-        data = super().validate(attrs)
-        user = self.user
+        # Get request from context for IP address
+        request = self.context.get('request')
+        ip_address = self.get_client_ip(request) if request else None
         
-        # Update last login for user
-        user.last_login = timezone.now()
-        user.save(update_fields=['last_login'])
-        
-        # Update student profile if it exists
         try:
-            student_profile = StudentProfile.objects.get(user=user)
-            student_profile.last_login_at = timezone.now()
-            student_profile.save(update_fields=['last_login_at'])
-        except StudentProfile.DoesNotExist:
-            pass
+            data = super().validate(attrs)
+            user = self.user
+            
+            # Update last login for user
+            user.last_login = timezone.now()
+            user.save(update_fields=['last_login'])
+            
+            # Update last_login_at in profile if exists
+            profile = getattr(user, 'studentprofile', None) or \
+                     getattr(user, 'institutionprofile', None) or \
+                     getattr(user, 'employerprofile', None)
+            
+            if profile:
+                profile.last_login_at = timezone.now()
+                profile.save(update_fields=['last_login_at'])
 
-        # Add custom claims
-        refresh = self.get_token(user)
-        data['refresh'] = str(refresh)
-        data['access'] = str(refresh.access_token)
-        data['user'] = {
-            'email': user.email,
-            'role': user.role,
-            'profile': {
-                'first_name': student_profile.first_name if 'student_profile' in locals() else None,
-                'last_name': student_profile.last_name if 'student_profile' in locals() else None,
+            # Add custom claims
+            refresh = self.get_token(user)
+            data['refresh'] = str(refresh)
+            data['access'] = str(refresh.access_token)
+            data['user'] = {
+                'email': user.email,
+                'role': user.role,
+                'profile': {
+                    'first_name': profile.first_name if profile else None,
+                    'last_name': profile.last_name if profile else None,
+                }
             }
-        }
-        
-        return data
+            
+            # Log successful login security event
+            if request:
+                SecurityEvent.objects.create(
+                    event_type='login_success',
+                    user=user,
+                    ip_address=ip_address,
+                    user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                    details={'email': user.email}
+                )
+                
+                # Create user session record
+                UserSession.objects.create(
+                    user=user,
+                    session_key=request.session.session_key or '',
+                    ip_address=ip_address,
+                    user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                    login_time=timezone.now()
+                )
+            
+            return data
+            
+        except Exception as e:
+            # Log failed login attempt
+            if request and 'email' in attrs:
+                FailedLoginAttempt.objects.create(
+                    email=attrs['email'],
+                    ip_address=ip_address,
+                    user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                    failure_reason=str(e)
+                )
+                
+                SecurityEvent.objects.create(
+                    event_type='login_failed',
+                    ip_address=ip_address,
+                    user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                    details={'email': attrs['email'], 'reason': str(e)}
+                )
+            
+            raise e
+    
+    def get_client_ip(self, request):
+        """Extract client IP address from request"""
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
 
 
 class PasswordResetRequestSerializer(serializers.Serializer):

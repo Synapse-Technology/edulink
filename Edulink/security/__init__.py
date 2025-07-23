@@ -1,0 +1,1 @@
+# Security app for EduLink platform
