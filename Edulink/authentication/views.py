@@ -13,7 +13,8 @@ from django.shortcuts import render, redirect
 from django.views import View
 from django.views.generic import TemplateView
 from django.db import transaction
-
+from security.utils import ThreatDetector
+from security.models import SecurityEvent, FailedLoginAttempt, AuditLog
 from users.roles import RoleChoices
 from .serializers import (
     EmployerRegistrationSerializer,
@@ -233,6 +234,66 @@ class StudentRegistrationView(APIView):
 class LoginView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
     permission_classes = [AllowAny]
+    
+    def post(self, request, *args, **kwargs):
+        # Initialize threat detector
+        threat_detector = ThreatDetector()
+        
+        # Get client IP
+        client_ip = self.get_client_ip(request)
+        
+        # Check for brute force attempts before processing login
+        email = request.data.get('email', '')
+        if threat_detector.check_brute_force(email, client_ip):
+            # Log security event for brute force attempt
+            SecurityEvent.objects.create(
+                event_type='brute_force_attempt',
+                severity='high',
+                ip_address=client_ip,
+                description=f'Brute force login attempt detected for email: {email}',
+                metadata={
+                    'email': email,
+                    'user_agent': request.META.get('HTTP_USER_AGENT', ''),
+                    'detection_method': 'brute_force_threshold'
+                }
+            )
+            return Response(
+                {'error': 'Too many failed login attempts. Please try again later.'},
+                status=status.HTTP_429_TOO_MANY_REQUESTS
+            )
+        
+        # Process normal login
+        response = super().post(request, *args, **kwargs)
+        
+        # If login was successful, log security event
+        if response.status_code == 200:
+            try:
+                user = User.objects.get(email=email)
+                SecurityEvent.objects.create(
+                    user=user,
+                    event_type='user_login',
+                    severity='info',
+                    ip_address=client_ip,
+                    description=f'Successful login for user: {email}',
+                    metadata={
+                        'login_method': 'jwt_token',
+                        'user_agent': request.META.get('HTTP_USER_AGENT', ''),
+                        'session_key': request.session.session_key
+                    }
+                )
+            except User.DoesNotExist:
+                pass
+        
+        return response
+    
+    def get_client_ip(self, request):
+        """Get client IP address from request."""
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
 
 
 class PasswordResetRequestView(APIView):  # type: ignore[attr-defined]
@@ -277,7 +338,16 @@ class InviteCreateView(generics.CreateAPIView):
 
 class InviteRegisterView(APIView):
     permission_classes = [AllowAny]
-
+    
+    def get_client_ip(self, request):
+        """Get client IP address from request."""
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
+    
     def post(self, request):
         invite_token = request.data.get("invite_token")
         if not invite_token:
@@ -317,6 +387,79 @@ class InviteRegisterView(APIView):
             )
 
         return Response(serializer.errors, status=400)
+
+class PasswordChangeView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get_client_ip(self, request):
+        """Get client IP address from request."""
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
+    
+    def post(self, request):
+        serializer = PasswordChangeSerializer(data=request.data)
+        if serializer.is_valid():
+            user = request.user
+            client_ip = self.get_client_ip(request)
+            
+            if user.check_password(serializer.validated_data['old_password']):
+                user.set_password(serializer.validated_data['new_password'])
+                user.save()
+                
+                # Log security event for password change
+                SecurityEvent.objects.create(
+                    event_type='password_change',
+                    severity='medium',
+                    description=f'User {user.email} changed their password',
+                    user=user,
+                    ip_address=client_ip,
+                    user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                    metadata={
+                        'change_method': 'authenticated_user',
+                        'user_agent': request.META.get('HTTP_USER_AGENT', '')
+                    }
+                )
+                
+                # Create audit log
+                AuditLog.objects.create(
+                    action='password_change',
+                    user=user,
+                    resource_type='User',
+                    resource_id=str(user.pk),
+                    description=f'User {user.email} changed their password',
+                    ip_address=client_ip,
+                    user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                    metadata={
+                        'change_method': 'authenticated_user'
+                    }
+                )
+                
+                return Response({
+                    'message': 'Password changed successfully.'
+                }, status=status.HTTP_200_OK)
+            else:
+                # Log failed password change attempt
+                SecurityEvent.objects.create(
+                    event_type='failed_password_change',
+                    severity='medium',
+                    description=f'Failed password change attempt for user {user.email} - incorrect current password',
+                    user=user,
+                    ip_address=client_ip,
+                    user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                    metadata={
+                        'failure_reason': 'incorrect_current_password',
+                        'user_agent': request.META.get('HTTP_USER_AGENT', '')
+                    }
+                )
+                
+                return Response({
+                    'error': 'Current password is incorrect.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class TwoFALoginView(generics.GenericAPIView):
@@ -476,14 +619,48 @@ class PasswordResetSuccessView(TemplateView):
 
 class VerifyEmailView(View):
     def get(self, request, uidb64, token):
+        client_ip = self.get_client_ip(request)
+        user_agent = request.META.get('HTTP_USER_AGENT', '')
+        
         try:
             uid = force_str(urlsafe_base64_decode(uidb64))
             user = User.objects.get(pk=uid)
         except (TypeError, ValueError, OverflowError, User.DoesNotExist):  # type: ignore[attr-defined]
             user = None
+            
         if user is not None and default_token_generator.check_token(user, token):
             user.is_email_verified = True  # type: ignore[attr-defined]
             user.save()
+            
+            # Log successful email verification
+            SecurityEvent.objects.create(
+                event_type='email_verification_success',
+                severity='low',
+                description=f'Email verification successful for user {user.email}',
+                user=user,
+                ip_address=client_ip,
+                user_agent=user_agent,
+                metadata={
+                    'email': user.email,
+                    'verification_method': 'email_link'
+                }
+            )
+            
+            # Create audit log
+            AuditLog.objects.create(
+                action='email_verification_success',
+                user=user,
+                resource_type='User',
+                resource_id=str(user.pk),
+                description=f'Email verification successful for user {user.email}',
+                ip_address=client_ip,
+                user_agent=user_agent,
+                metadata={
+                    'email': user.email,
+                    'verification_method': 'email_link'
+                }
+            )
+            
             # Get first name for personalization
             first_name = user.email.split("@")[0]  # type: ignore[attr-defined]
             # type: ignore[attr-defined]
@@ -495,4 +672,26 @@ class VerifyEmailView(View):
                 first_name = user.profile.first_name  # type: ignore[attr-defined]
             return render(request, "email_verified.html", {"first_name": first_name})
         else:
+            # Log failed email verification
+            SecurityEvent.objects.create(
+                event_type='email_verification_failed',
+                severity='medium',
+                description=f'Failed email verification attempt - invalid token or user',
+                user=user if user else None,
+                ip_address=client_ip,
+                user_agent=user_agent,
+                metadata={
+                    'uid': uidb64,
+                    'failure_reason': 'invalid_token_or_user'
+                }
+            )
             return render(request, "email_verification_failed.html")
+    
+    def get_client_ip(self, request):
+        """Extract client IP address from request."""
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip

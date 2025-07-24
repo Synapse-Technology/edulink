@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     "employers",
     "users",
     "chatbot",
+    "security",  # Security app for comprehensive security management
     "institutions",
     "internship",
     "dashboards",
@@ -90,10 +91,13 @@ SIMPLE_JWT = {
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "security.middleware.SecurityMiddleware",  # Custom security middleware
+    "security.middleware.RateLimitMiddleware",  # Rate limiting middleware
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "security.middleware.SessionSecurityMiddleware",  # Session security middleware
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -126,6 +130,7 @@ WSGI_APPLICATION = "Edulink.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+# PostgreSQL configuration (restored with working credentials)
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
@@ -137,6 +142,13 @@ DATABASES = {
     }
 }
 
+# SQLite fallback (commented out)
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.sqlite3",
+#         "NAME": BASE_DIR / "db.sqlite3",
+#     }
+# }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -188,5 +200,42 @@ SITE_ID = 1
 PASSWORD_RESET_URL_TEMPLATE = (
     "http://localhost:8000/api/auth/reset-password/{uid}/{token}/"
 )
+
+# Security Configuration
+SECURITY_SETTINGS = {
+    'MAX_LOGIN_ATTEMPTS': 5,
+    'LOGIN_ATTEMPT_TIMEOUT': 300,  # 5 minutes
+    'SESSION_TIMEOUT': 3600,  # 1 hour
+    'PASSWORD_RESET_TIMEOUT': 3600,  # 1 hour
+    'BRUTE_FORCE_THRESHOLD': 10,
+    'RATE_LIMIT_REQUESTS': 100,
+    'RATE_LIMIT_WINDOW': 3600,  # 1 hour
+    'ENABLE_THREAT_DETECTION': True,
+    'ENABLE_SESSION_SECURITY': True,
+    'ENABLE_AUDIT_LOGGING': True,
+}
+
+# Security Headers
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
+SECURE_HSTS_SECONDS = 31536000
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+
+# Session Security
+SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
+# CSRF Protection
+CSRF_COOKIE_SECURE = False  # Set to True in production with HTTPS
+CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SAMESITE = 'Lax'
+
+# Additional Security Settings
+SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
+SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin'
 
 GOOGLE_GEMINI_API_KEY = os.environ.get("GOOGLE_GEMINI_API_KEY")

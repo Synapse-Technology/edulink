@@ -14,6 +14,8 @@ from institutions.models import Institution
 from django.utils import timezone
 from django.db import transaction
 import random
+from security.models import SecurityEvent, FailedLoginAttempt, UserSession, AuditLog
+from security.utils import ThreatDetector
 from users.roles import RoleChoices
 
 
@@ -141,6 +143,45 @@ class StudentRegistrationSerializer(serializers.Serializer):
             user=user, **profile_data
         )
 
+        # Log user registration security event
+        request = self.context.get('request')
+        ip_address = None
+        user_agent = ''
+        if request:
+            ip_address = self.get_client_ip(request)
+            user_agent = request.META.get('HTTP_USER_AGENT', '')
+
+        SecurityEvent.objects.create(
+            event_type='user_registration',
+            severity='low',
+            description=f'New student user registered: {user.email}',
+            user=user,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            metadata={
+                'email': user.email,
+                'role': 'student',
+                'registration_type': 'student_self_registration',
+                'institution_name': institution.name
+            }
+        )
+        
+        # Create audit log
+        AuditLog.objects.create(
+            action='user_registration',
+            user=user,
+            resource_type='User',
+            resource_id=str(user.pk),
+            description=f'New student user registered: {user.email}',
+            ip_address=ip_address,
+            user_agent=user_agent,
+            metadata={
+                'email': user.email,
+                'role': 'student',
+                'registration_type': 'student_self_registration'
+            }
+        )
+
         # Create welcome notification
         from notifications.models import Notification
 
@@ -162,6 +203,15 @@ class StudentRegistrationSerializer(serializers.Serializer):
             fail_silently=False,
         )
         return user
+
+    def get_client_ip(self, request):
+        """Extract client IP address from request."""
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
 
 
 class InstitutionRegistrationSerializer(BaseProfileSerializer):
@@ -217,6 +267,45 @@ class InstitutionRegistrationSerializer(BaseProfileSerializer):
             user=user, institution=institution, **profile_data
         )
 
+        # Log user registration security event
+        request = self.context.get('request')
+        ip_address = None
+        user_agent = ''
+        if request:
+            ip_address = self.get_client_ip(request)
+            user_agent = request.META.get('HTTP_USER_AGENT', '')
+
+        SecurityEvent.objects.create(
+            event_type='user_registration',
+            severity='low',
+            description=f'New institution admin user registered: {user.email}',
+            user=user,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            metadata={
+                'email': user.email,
+                'role': 'institution_admin',
+                'registration_type': 'institution_admin_registration',
+                'institution_name': validated_data["institution_name"]
+            }
+        )
+        
+        # Create audit log
+        AuditLog.objects.create(
+            action='user_registration',
+            user=user,
+            resource_type='User',
+            resource_id=str(user.pk),
+            description=f'New institution admin user registered: {user.email}',
+            ip_address=ip_address,
+            user_agent=user_agent,
+            metadata={
+                'email': user.email,
+                'role': 'institution_admin',
+                'registration_type': 'institution_admin_registration'
+            }
+        )
+
         # Create welcome notification
         from notifications.models import Notification
 
@@ -238,6 +327,15 @@ class InstitutionRegistrationSerializer(BaseProfileSerializer):
             fail_silently=False,
         )
         return user
+
+    def get_client_ip(self, request):
+        """Extract client IP address from request."""
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
 
 
 class EmployerRegistrationSerializer(BaseProfileSerializer):
@@ -290,6 +388,45 @@ class EmployerRegistrationSerializer(BaseProfileSerializer):
             user=user, role="employer"
         )
 
+        # Log user registration security event
+        request = self.context.get('request')
+        ip_address = None
+        user_agent = ''
+        if request:
+            ip_address = self.get_client_ip(request)
+            user_agent = request.META.get('HTTP_USER_AGENT', '')
+
+        SecurityEvent.objects.create(
+            event_type='user_registration',
+            severity='low',
+            description=f'New employer user registered: {user.email}',
+            user=user,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            metadata={
+                'email': user.email,
+                'role': 'employer',
+                'registration_type': 'employer_registration',
+                'company_name': validated_data["company_name"]
+            }
+        )
+        
+        # Create audit log
+        AuditLog.objects.create(
+            action='user_registration',
+            user=user,
+            resource_type='User',
+            resource_id=str(user.pk),
+            description=f'New employer user registered: {user.email}',
+            ip_address=ip_address,
+            user_agent=user_agent,
+            metadata={
+                'email': user.email,
+                'role': 'employer',
+                'registration_type': 'employer_registration'
+            }
+        )
+
         # Create welcome notification
         from notifications.models import Notification
 
@@ -311,6 +448,15 @@ class EmployerRegistrationSerializer(BaseProfileSerializer):
             fail_silently=False,
         )
         return user
+
+    def get_client_ip(self, request):
+        """Extract client IP address from request."""
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
 
 
 class LoginSerializer(serializers.Serializer):
@@ -376,79 +522,101 @@ class LoginSerializer(serializers.Serializer):
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
-    email = serializers.EmailField()
-    password = serializers.CharField()
-    
     def validate(self, attrs):
-        # Authenticate the user first
-        user = authenticate(email=attrs['email'], password=attrs['password'])
-        if not user:
-            raise serializers.ValidationError(
-                "No active account found with the given credentials"
-            )
-            
-        if not user.is_active:
-            raise serializers.ValidationError("This account has been deactivated")
-            
-        # Check if email is verified
-        if not user.is_email_verified:  # type: ignore[attr-defined]
-            raise serializers.ValidationError(
-                "Please verify your email address before logging in. Check your email for a verification link."
-            )
+        # Get request from context for IP address
+        request = self.context.get('request')
+        ip_address = self.get_client_ip(request) if request else None
         
-        user.last_login = timezone.now()
-        user.save(update_fields=["last_login"])
-        
-        if user.role == RoleChoices.STUDENT:  # type: ignore[attr-defined]
-            try:
-                student_profile = user.student_profile  # type: ignore[attr-defined]
-                student_profile.last_login_at = timezone.now()
-                student_profile.save(update_fields=["last_login_at"])
+        try:
+            data = super().validate(attrs)
+            user = self.user
+            
+            # Check if email is verified
+            if not user.is_email_verified:  # type: ignore[attr-defined]
+                raise serializers.ValidationError(
+                    "Please verify your email address before logging in. Check your email for a verification link."
+                )
+            
+            # Update last login for user
+            user.last_login = timezone.now()
+            user.save(update_fields=['last_login'])
+            
+            # Update last_login_at in profile if exists
+            profile = getattr(user, 'studentprofile', None) or \
+                     getattr(user, 'institutionprofile', None) or \
+                     getattr(user, 'employerprofile', None)
+            
+            if profile:
+                profile.last_login_at = timezone.now()
+                profile.save(update_fields=['last_login_at'])
                 
                 # Check if student profile is verified (this is the institution verification)
-                if not student_profile.is_verified:
+                if user.role == RoleChoices.STUDENT and not profile.is_verified:  # type: ignore[attr-defined]
                     raise serializers.ValidationError(
                         "Your institution is not yet verified. Please contact your institution administrator."
                     )
-            except StudentProfile.DoesNotExist:  # type: ignore[attr-defined]
-                # If no student profile exists, that's a data integrity issue
-                raise serializers.ValidationError(
-                    "Student profile not found. Please contact support."
-                )
 
-        # Get the token using the parent class method
-        data = super().validate(attrs)
-        
-        # Add user profile data
-        profile_data = self._get_profile_data(user)
-        data["user"] = {"email": user.email, "role": user.role, "profile": profile_data}  # type: ignore[attr-defined]
-        
-        return data
-
-    def _get_profile_data(self, user):
-        try:
-            if user.role == RoleChoices.STUDENT:  # type: ignore[attr-defined]
-                profile = user.student_profile  # type: ignore[attr-defined]
-            elif user.role == RoleChoices.INSTITUTION_ADMIN:  # type: ignore[attr-defined]
-                profile = user.institution_profile  # type: ignore[attr-defined]
-            elif user.role == RoleChoices.EMPLOYER:  # type: ignore[attr-defined]
-                profile = user.employer_profile  # type: ignore[attr-defined]
-            else:
-                profile = None
-
-            if profile:
-                return {
-                    "first_name": profile.first_name,
-                    "last_name": profile.last_name,
+            # Add custom claims
+            refresh = self.get_token(user)
+            data['refresh'] = str(refresh)
+            data['access'] = str(refresh.access_token)
+            data['user'] = {
+                'email': user.email,
+                'role': user.role,
+                'profile': {
+                    'first_name': profile.first_name if profile else None,
+                    'last_name': profile.last_name if profile else None,
                 }
-        except (
-            AttributeError,
-            StudentProfile.DoesNotExist,  # type: ignore[attr-defined]
-            InstitutionProfile.DoesNotExist,  # type: ignore[attr-defined]
-            EmployerProfile.DoesNotExist,  # type: ignore[attr-defined]
-        ):
-            pass
-        return {"first_name": None, "last_name": None}
+            }
+            
+            # Log successful login security event
+            if request:
+                SecurityEvent.objects.create(
+                    event_type='login_success',
+                    user=user,
+                    ip_address=ip_address,
+                    user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                    details={'email': user.email}
+                )
+                
+                # Create user session record
+                UserSession.objects.create(
+                    user=user,
+                    session_key=request.session.session_key or '',
+                    ip_address=ip_address,
+                    user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                    login_time=timezone.now()
+                )
+            
+            return data
+            
+        except Exception as e:
+            # Log failed login attempt
+            if request and 'email' in attrs:
+                FailedLoginAttempt.objects.create(
+                    email=attrs['email'],
+                    ip_address=ip_address,
+                    user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                    failure_reason=str(e)
+                )
+                
+                SecurityEvent.objects.create(
+                    event_type='login_failed',
+                    ip_address=ip_address,
+                    user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                    details={'email': attrs['email'], 'reason': str(e)}
+                )
+            
+            raise e
+    
+    def get_client_ip(self, request):
+        """Extract client IP address from request"""
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
 
 
 class PasswordResetRequestSerializer(serializers.Serializer):
@@ -476,12 +644,58 @@ class PasswordResetRequestSerializer(serializers.Serializer):
         )
         reset_url = url_template.format(uid=uid, token=token)
 
+        # Get request context for logging
+        request = self.context.get('request')
+        ip_address = None
+        user_agent = ''
+        if request:
+            ip_address = self.get_client_ip(request)
+            user_agent = request.META.get('HTTP_USER_AGENT', '')
+
+        # Log password reset request security event
+        SecurityEvent.objects.create(
+            event_type='password_reset_request',
+            severity='medium',
+            description=f'Password reset requested for user {user.email}',
+            user=user,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            metadata={
+                'email': user.email,
+                'reset_method': 'email_link'
+            }
+        )
+
+        # Create audit log
+        AuditLog.objects.create(
+            action='password_reset_request',
+            user=user,
+            resource_type='User',
+            resource_id=str(user.pk),
+            description=f'Password reset requested for user {user.email}',
+            ip_address=ip_address,
+            user_agent=user_agent,
+            metadata={
+                'email': user.email,
+                'reset_method': 'email_link'
+            }
+        )
+
         send_mail(
             subject="Password Reset Request",
             message=f"Click the following link to reset your password: {reset_url}",
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[user.email],  # type: ignore[attr-defined]
         )
+
+    def get_client_ip(self, request):
+        """Extract client IP address from request."""
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
 
 
 class PasswordResetConfirmSerializer(serializers.Serializer):
@@ -505,8 +719,54 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         return attrs
 
     def save(self):
+        # Get request context for logging
+        request = self.context.get('request')
+        ip_address = None
+        user_agent = ''
+        if request:
+            ip_address = self.get_client_ip(request)
+            user_agent = request.META.get('HTTP_USER_AGENT', '')
+
+        # Log password reset confirmation security event
+        SecurityEvent.objects.create(
+            event_type='password_reset_confirm',
+            severity='medium',
+            description=f'Password reset completed for user {self.user.email}',
+            user=self.user,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            metadata={
+                'email': self.user.email,
+                'reset_method': 'email_link'
+            }
+        )
+
+        # Create audit log
+        AuditLog.objects.create(
+            action='password_reset_confirm',
+            user=self.user,
+            resource_type='User',
+            resource_id=str(self.user.pk),
+            description=f'Password reset completed for user {self.user.email}',
+            ip_address=ip_address,
+            user_agent=user_agent,
+            metadata={
+                'email': self.user.email,
+                'reset_method': 'email_link'
+            }
+        )
+
         self.user.set_password(self.validated_data["new_password"])  # type: ignore[index]
         self.user.save()
+
+    def get_client_ip(self, request):
+        """Extract client IP address from request."""
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
 
 
 class ChangePasswordSerializer(serializers.Serializer):
@@ -556,6 +816,46 @@ class InviteSerializer(serializers.ModelSerializer):
         invite_link = (
             f"http://localhost:8000/api/auth/invite-register?token={invite.token}"
         )
+        
+        # Log invite creation security event
+        request = self.context.get('request')
+        ip_address = None
+        user_agent = ''
+        created_by = None
+        if request:
+            ip_address = self.get_client_ip(request)
+            user_agent = request.META.get('HTTP_USER_AGENT', '')
+            created_by = request.user if request.user.is_authenticated else None
+
+        SecurityEvent.objects.create(
+            event_type='invite_created',
+            severity='low',
+            description=f'Invite created for {invite.email} with role {invite.role}',
+            user=created_by,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            metadata={
+                'invite_email': invite.email,
+                'invite_role': invite.role,
+                'invite_token': str(invite.token)
+            }
+        )
+        
+        # Create audit log
+        AuditLog.objects.create(
+            action='invite_created',
+            user=created_by,
+            resource_type='Invite',
+            resource_id=str(invite.pk),
+            description=f'Invite created for {invite.email} with role {invite.role}',
+            ip_address=ip_address,
+            user_agent=user_agent,
+            metadata={
+                'invite_email': invite.email,
+                'invite_role': invite.role
+            }
+        )
+        
         send_mail(
             subject="You're invited to join EduLink KE",
             message=f"Click the following link to register: {invite_link}",
@@ -563,6 +863,15 @@ class InviteSerializer(serializers.ModelSerializer):
             recipient_list=[invite.email],
         )
         return invite
+    
+    def get_client_ip(self, request):
+        """Extract client IP address from request."""
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
 
 
 class InvitedUserRegisterSerializer(serializers.ModelSerializer):
@@ -604,9 +913,58 @@ class InvitedUserRegisterSerializer(serializers.ModelSerializer):
         validated_data["role"] = invite.role
         validated_data.pop("invite_token", None)
         user = User.objects.create_user(**validated_data)  # type: ignore[attr-defined]
+        
+        # Log invite usage security event
+        request = self.context.get('request')
+        ip_address = None
+        user_agent = ''
+        if request:
+            ip_address = self.get_client_ip(request)
+            user_agent = request.META.get('HTTP_USER_AGENT', '')
+
+        SecurityEvent.objects.create(
+            event_type='invite_used',
+            severity='low',
+            description=f'Invite used for registration by {user.email}',
+            user=user,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            metadata={
+                'invite_email': invite.email,
+                'invite_role': invite.role,
+                'invite_token': str(invite.token),
+                'registration_email': user.email
+            }
+        )
+        
+        # Create audit log
+        AuditLog.objects.create(
+            action='invite_used',
+            user=user,
+            resource_type='Invite',
+            resource_id=str(invite.pk),
+            description=f'Invite used for registration by {user.email}',
+            ip_address=ip_address,
+            user_agent=user_agent,
+            metadata={
+                'invite_email': invite.email,
+                'invite_role': invite.role,
+                'registration_email': user.email
+            }
+        )
+        
         invite.is_used = True
         invite.save()
         return user
+    
+    def get_client_ip(self, request):
+        """Extract client IP address from request."""
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -649,10 +1007,92 @@ class RegisterSerializer(serializers.ModelSerializer):
         invite = self.context.get("invite", None)
         validated_data.pop("invite_token", None)
         user = User.objects.create_user(**validated_data)  # type: ignore[attr-defined]
+        
+        # Log registration security event
+        request = self.context.get('request')
+        ip_address = None
+        user_agent = ''
+        if request:
+            ip_address = self.get_client_ip(request)
+            user_agent = request.META.get('HTTP_USER_AGENT', '')
+
         if invite:
+            # Log invite-based registration
+            SecurityEvent.objects.create(
+                event_type='invite_registration',
+                severity='low',
+                description=f'User registered via invite: {user.email}',
+                user=user,
+                ip_address=ip_address,
+                user_agent=user_agent,
+                metadata={
+                    'invite_email': invite.email,
+                    'invite_role': invite.role,
+                    'registration_email': user.email,
+                    'registration_type': 'invite_based'
+                }
+            )
+            
+            # Create audit log
+            AuditLog.objects.create(
+                action='invite_registration',
+                user=user,
+                resource_type='User',
+                resource_id=str(user.pk),
+                description=f'User registered via invite: {user.email}',
+                ip_address=ip_address,
+                user_agent=user_agent,
+                metadata={
+                    'invite_email': invite.email,
+                    'invite_role': invite.role,
+                    'registration_type': 'invite_based'
+                }
+            )
+            
             invite.is_used = True
             invite.save()
+        else:
+            # Log regular registration
+            SecurityEvent.objects.create(
+                event_type='user_registration',
+                severity='low',
+                description=f'User registered: {user.email}',
+                user=user,
+                ip_address=ip_address,
+                user_agent=user_agent,
+                metadata={
+                    'email': user.email,
+                    'role': user.role,
+                    'registration_type': 'regular'
+                }
+            )
+            
+            # Create audit log
+            AuditLog.objects.create(
+                action='user_registration',
+                user=user,
+                resource_type='User',
+                resource_id=str(user.pk),
+                description=f'User registered: {user.email}',
+                ip_address=ip_address,
+                user_agent=user_agent,
+                metadata={
+                    'email': user.email,
+                    'role': user.role,
+                    'registration_type': 'regular'
+                }
+            )
+        
         return user
+    
+    def get_client_ip(self, request):
+        """Extract client IP address from request."""
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
 
 
 class TwoFALoginSerializer(serializers.Serializer):
@@ -662,10 +1102,51 @@ class TwoFALoginSerializer(serializers.Serializer):
     def validate(self, data):
         user = authenticate(email=data["email"], password=data["password"])
         if not user:
+            # Log failed 2FA login attempt
+            request = self.context.get('request')
+            ip_address = None
+            user_agent = ''
+            if request:
+                ip_address = self.get_client_ip(request)
+                user_agent = request.META.get('HTTP_USER_AGENT', '')
+
+            SecurityEvent.objects.create(
+                event_type='2fa_login_failed',
+                severity='medium',
+                description=f'Failed 2FA login attempt for email {data["email"]} - invalid credentials',
+                user=None,
+                ip_address=ip_address,
+                user_agent=user_agent,
+                metadata={
+                    'email': data["email"],
+                    'failure_reason': 'invalid_credentials'
+                }
+            )
             raise serializers.ValidationError("Invalid credentials")
 
         otp = f"{random.randint(100000, 999999)}"
         EmailOTP.objects.create(email=data["email"], code=otp)  # type: ignore[attr-defined]
+
+        # Log OTP generation security event
+        request = self.context.get('request')
+        ip_address = None
+        user_agent = ''
+        if request:
+            ip_address = self.get_client_ip(request)
+            user_agent = request.META.get('HTTP_USER_AGENT', '')
+
+        SecurityEvent.objects.create(
+            event_type='2fa_otp_generated',
+            severity='low',
+            description=f'2FA OTP generated for user {user.email}',
+            user=user,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            metadata={
+                'email': user.email,
+                'otp_method': 'email'
+            }
+        )
 
         send_mail(
             subject="Your EduLink 2FA Code",
@@ -676,12 +1157,28 @@ class TwoFALoginSerializer(serializers.Serializer):
 
         return data
 
+    def get_client_ip(self, request):
+        """Extract client IP address from request."""
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
+
 
 class VerifyOTPSerializer(serializers.Serializer):
     email = serializers.EmailField()
     code = serializers.CharField(max_length=6)
 
     def validate(self, data):
+        request = self.context.get('request')
+        ip_address = None
+        user_agent = ''
+        if request:
+            ip_address = self.get_client_ip(request)
+            user_agent = request.META.get('HTTP_USER_AGENT', '')
+
         try:
             otp_entry = EmailOTP.objects.filter(
                 email=data["email"], code=data["code"]
@@ -689,13 +1186,63 @@ class VerifyOTPSerializer(serializers.Serializer):
                 "created_at"
             )  # type: ignore[attr-defined]
         except EmailOTP.DoesNotExist:  # type: ignore[attr-defined]
+            # Log failed OTP verification - invalid code
+            SecurityEvent.objects.create(
+                event_type='2fa_verify_failed',
+                severity='medium',
+                description=f'Failed 2FA verification for email {data["email"]} - invalid OTP',
+                user=None,
+                ip_address=ip_address,
+                user_agent=user_agent,
+                metadata={
+                    'email': data["email"],
+                    'failure_reason': 'invalid_otp'
+                }
+            )
             raise serializers.ValidationError("Invalid OTP")
 
         if otp_entry.is_expired():
+            # Log failed OTP verification - expired code
+            SecurityEvent.objects.create(
+                event_type='2fa_verify_failed',
+                severity='medium',
+                description=f'Failed 2FA verification for email {data["email"]} - expired OTP',
+                user=None,
+                ip_address=ip_address,
+                user_agent=user_agent,
+                metadata={
+                    'email': data["email"],
+                    'failure_reason': 'expired_otp'
+                }
+            )
             raise serializers.ValidationError("OTP expired")
 
         user = User.objects.get(email=data["email"])  # type: ignore[attr-defined]
+        
+        # Log successful 2FA verification
+        SecurityEvent.objects.create(
+            event_type='2fa_verify_success',
+            severity='low',
+            description=f'Successful 2FA verification for user {user.email}',
+            user=user,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            metadata={
+                'email': user.email,
+                'verification_method': 'email_otp'
+            }
+        )
+
         return {
             "refresh": str(RefreshToken.for_user(user)),
             "access": str(RefreshToken.for_user(user).access_token),  # type: ignore[attr-defined]
         }
+
+    def get_client_ip(self, request):
+        """Extract client IP address from request."""
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
