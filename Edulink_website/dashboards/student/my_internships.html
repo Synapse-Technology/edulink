@@ -14,22 +14,226 @@
   <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
   <link href="https://unpkg.com/phosphor-icons@2.0.3/src/css/phosphor.css" rel="stylesheet">
   <style>
-    body {
-      font-family: 'Poppins', sans-serif;
-    }
+      /* Base styles */
+      body {
+        transition: background-color 0.3s ease, color 0.3s ease;
+        background: linear-gradient(120deg, #f0fdfa 0%, #e0f2fe 100%);
+        min-height: 100vh;
+        font-family: 'Poppins', sans-serif;
+      }
+      
+      /* Profile picture styles */
+      .profile-pic {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid #e2e8f0;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+      }
+      
+      .profile-pic:hover {
+        transform: scale(1.05);
+        border-color: #14b8a6;
+      }
+      
+      /* Header styles */
+      .header-edulink {
+        background-color: #fff;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        padding: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: background-color 0.3s ease, box-shadow 0.3s ease;
+      }
+
+      .edulink-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1a202c;
+        margin: 0;
+        transition: color 0.3s ease;
+      }
+
+      .header-action {
+        background: none;
+        border: none;
+        color: #4a5568;
+        font-size: 1.25rem;
+        cursor: pointer;
+        transition: color 0.2s, transform 0.3s ease;
+      }
+
+      .header-action:hover {
+        color: #2d3748;
+        transform: scale(1.05);
+      }
+      
+      /* Sidebar styles */
+      #sidebar {
+        width: 230px;
+        background: #14b8a6;
+        color: #fff;
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        z-index: 40;
+        padding: 0;
+        transition: transform 0.3s ease, background-color 0.3s ease;
+      }
+      
+      /* Rounded pill header styles */
+      .rounded-full {
+        transition: box-shadow 0.3s ease, background-color 0.3s ease;
+      }
+
+      /* Animation for mobile menu button */
+      #mobileMenuBtn {
+        transition: transform 0.3s ease, background-color 0.3s ease;
+      }
+      
+      #mobileMenuBtn:hover {
+        transform: scale(1.05);
+      }
+      
+      /* Icon hover effects */
+      .bi-bell, .bi-chat-dots, .bi-moon, .bi-sun {
+        transition: transform 0.3s ease, color 0.3s ease;
+      }
+      
+      .bi-bell:hover, .bi-chat-dots:hover, .bi-moon:hover, .bi-sun:hover {
+        transform: scale(1.1);
+        color: #0d9488 !important;
+      }
+    /* Media queries for responsive design */
     @media (min-width: 768px) {
       #sidebar {
         transform: translateX(0) !important;
       }
+      .flex-col.md\:flex-row {
+        display: flex;
+        flex-direction: row;
+      }
+      .md\:sticky {
+        position: sticky;
+        align-self: flex-start;
+      }
+      main {
+        position: relative;
+        z-index: 5;
+      }
     }
-    /* --- DARK MODE THEME (copied from student_dash.html) --- */
+    @media (max-width: 768px) {
+      #sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s ease-in-out;
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 40;
+      }
+      main {
+        margin-left: 0 !important;
+        padding: 1rem;
+        width: 100%;
+      }
+      .overflow-x-auto {
+        margin: 0 -1rem;
+        padding: 0 1rem;
+      }
+      .grid {
+        grid-template-columns: repeat(1, minmax(0, 1fr));
+      }
+      .px-6 {
+        padding-left: 1rem;
+        padding-right: 1rem;
+      }
+      body.sidebar-open {
+        overflow: hidden;
+      }
+      body.sidebar-open #sidebar {
+        transform: translateX(0) !important;
+      }
+    }
+    body {
+      font-family: 'Poppins', sans-serif;
+    }
+    /* --- DARK MODE THEME --- */
     .dark-mode {
-      background: #181c24 !important;
+      color-scheme: dark;
+      background: linear-gradient(120deg, #0f172a 0%, #1e293b 100%) !important;
       color: #eaf6fb !important;
       transition: background 0.3s, color 0.3s;
     }
+    .dark-mode main {
+    background: linear-gradient(120deg, #1a202c 0%, #2d3748 100%) !important;
+  }
+  
+  .dark-mode .bg-white {
+    background-color: #2d3748 !important;
+    color: #e2e8f0;
+  }
+  
+  .dark-mode .bg-gray-50 {
+    background-color: #1a202c !important;
+  }
+  
+  .dark-mode .text-gray-700,
+  .dark-mode .text-gray-600,
+  .dark-mode .text-gray-500 {
+    color: #a0aec0 !important;
+  }
+  
+  .dark-mode .shadow-lg {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2) !important;
+  }
+  
+  /* Dark mode filter buttons */
+  .dark-mode .bg-gray-200 {
+    background-color: #4a5568 !important;
+    color: #e2e8f0 !important;
+  }
+  
+  .dark-mode .bg-gray-200:hover {
+    background-color: #2d3748 !important;
+  }
+  
+  /* Dark mode table styles */
+  .dark-mode .divide-gray-200 > * {
+    border-color: #4a5568 !important;
+  }
+  
+  /* Dark mode progress bars */
+  .dark-mode .bg-gray-200.rounded-full {
+    background-color: #4a5568 !important;
+  }
+  
+  /* Dark mode status badges */
+  .dark-mode .bg-yellow-100 {
+    background-color: rgba(214, 158, 46, 0.2) !important;
+  }
+  
+  .dark-mode .text-yellow-800,
+  .dark-mode .text-yellow-600 {
+    color: #fbd38d !important;
+  }
+  
+  .dark-mode .bg-green-100 {
+    background-color: rgba(72, 187, 120, 0.2) !important;
+  }
+  
+  .dark-mode .text-green-800,
+  .dark-mode .text-green-600 {
+    color: #9ae6b4 !important;
+  }
     .dark-mode aside#sidebar {
-      background: #23272f !important;
+      background: #0f766e !important;
       color: #eaf6fb !important;
       border-right: 1px solid #23272f;
     }
@@ -67,8 +271,22 @@
       box-shadow: 0 1px 8px #14b8a6cc;
     }
     .dark-mode .rounded-full, .dark-mode .rounded-lg {
-      background: #23272f !important;
+      background: #1e293b !important;
       color: #eaf6fb !important;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+    }
+    .dark-mode .bi-bell, 
+    .dark-mode .bi-chat-dots, 
+    .dark-mode .bi-moon, 
+    .dark-mode .bi-sun {
+      color: #14b8a6 !important;
+      text-shadow: 0 1px 2px rgba(20,184,166,0.25) !important;
+    }
+    .dark-mode .bi-bell:hover, 
+    .dark-mode .bi-chat-dots:hover, 
+    .dark-mode .bi-moon:hover, 
+    .dark-mode .bi-sun:hover {
+      color: #2dd4bf !important;
     }
     .dark-mode .bg-teal-600 {
       background: #14b8a6 !important;
@@ -86,6 +304,38 @@
     }
     .dark-mode .shadow-sm {
       box-shadow: 0 1px 8px 0 #14b8a622 !important;
+    }
+    .dark-mode .bg-gray-200 {
+      background: #2d3748 !important;
+    }
+    .dark-mode .bg-yellow-500 {
+      background: #d69e2e !important;
+    }
+    .dark-mode .bg-green-500 {
+      background: #48bb78 !important;
+    }
+    .dark-mode .bg-yellow-100 {
+      background: #4a5568 !important;
+      color: #fbd38d !important;
+    }
+    .dark-mode .bg-green-100 {
+      background: #4a5568 !important;
+      color: #9ae6b4 !important;
+    }
+    .dark-mode .text-gray-500 {
+      color: #a0aec0 !important;
+    }
+    .dark-mode .text-gray-600 {
+      color: #cbd5e0 !important;
+    }
+    .dark-mode .text-gray-700 {
+      color: #e2e8f0 !important;
+    }
+    .dark-mode .text-gray-800 {
+      color: #edf2f7 !important;
+    }
+    .dark-mode .divide-gray-200 > * {
+      border-color: #2d3748 !important;
     }
     .dark-mode .footer, .dark-mode footer {
       background: #181c24 !important;
@@ -115,11 +365,14 @@
   </style>
 </head>
 <body class="bg-gray-100 min-h-screen relative">
+  <!-- Overlay for mobile sidebar -->
+  <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden md:hidden" style="transition: opacity 0.3s ease-in-out;"></div>
+
   <div style="display: flex;">
     <!-- Sidebar (copy from dashboard) -->
-    <aside id="sidebar" style="width: 230px; background: #14b8a6; color: #fff; position: fixed; top: 0; left: 0; height: 100vh; display: flex; flex-direction: column; justify-content: space-between; z-index: 30; padding: 0;">
+    <aside id="sidebar" style="width: 230px; background: #14b8a6; color: #fff; position: fixed; top: 0; left: 0; height: 100vh; display: flex; flex-direction: column; justify-content: space-between; z-index: 50; padding: 0; transform: translateX(-100%); transition: transform 0.3s ease-in-out;" class="md:transform-none">
       <div>
-        <div class="text-center py-6 mb-2 border-bottom" style="border-bottom: 1px solid #0d9488;">
+        <div class="text-center py-6 mb-2 border-b border-teal-700">
           <span style="font-family: 'Pacifico', cursive; font-size: 1.7rem; color: #fff; font-weight: 400; letter-spacing: 1px;">EduLink</span>
         </div>
         <nav style="flex: 1 1 0%; display: flex; flex-direction: column; padding: 2rem 1rem 0 1rem; gap: 0.25rem;">
@@ -136,98 +389,134 @@
         <a href="#" id="logoutBtn" class="block px-3 py-2 rounded hover:bg-teal-700 d-flex align-items-center" style="font-size: 0.85rem;"><i class="ph ph-sign-out me-3" style="font-size: 0.95rem;"></i>Log Out</a>
       </div>
     </aside>
-    <!-- Main Content (header inside, margin-left for sidebar) -->
-    <main class="flex-1 p-6" style="margin-left: 230px;">
+    <!-- Main Content (header inside, margin-left for sidebar on desktop) -->
+    <main class="flex-1 p-6 md:ml-[230px] transition-all duration-300">
       <!-- Rounded Pill Header (copy from dashboard) -->
-      <div style="display: flex; align-items: center; justify-content: flex-end; height: 56px; background: #fff; border-radius: 2rem; box-shadow: 0 2px 12px 0 rgba(20,184,166,0.10); margin-top: 2rem; margin-bottom: 2rem; padding: 0 2rem; width: 100%; max-width: 100%;">
-        <a href="./messages.html" class="d-flex align-items-center justify-content-center" title="Messages" style="background: none; border: none; padding: 0; margin-right: 1rem;"><i class="bi bi-chat-dots" style="font-size: 1.5rem; color: #14b8a6; text-shadow: 0 1px 2px rgba(20,184,166,0.15);"></i></a>
-        <button class="header-action d-flex align-items-center justify-content-center" title="Notifications" style="background: none; border: none; padding: 0; margin-right: 1rem;"><i class="bi bi-bell" style="font-size: 1.5rem; color: #14b8a6; text-shadow: 0 1px 2px rgba(20,184,166,0.15);"></i></button>
-        <a href="./profile.html" class="d-flex align-items-center justify-content-center ms-1" title="Profile">
-          <img id="profilePic" src="../../assets/img/default.jpg" class="profile-pic border-4" style="border-color: #0d9488;" alt="Profile" />
-        </a>
-        <button id="darkModeToggle" class="header-action d-flex align-items-center justify-content-center ms-1" title="Toggle dark mode" style="background: none; border: none; padding: 0; margin-left: 1rem;"><i id="darkModeIcon" class="bi bi-moon" style="font-size: 1.5rem; color: #14b8a6; text-shadow: 0 1px 2px rgba(20,184,166,0.15);"></i></button>
-      </div>
-      <nav class="text-sm mb-4 text-gray-500">
-        <a href="./student_dash.html" class="hover:underline">Dashboard</a> &gt; My Internships
-      </nav>
-
-      <h1 class="text-2xl font-bold text-teal-800 mb-6">My Internships</h1>
-
-      <!-- Summary -->
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-white p-4 rounded shadow">
-          <p class="text-sm text-gray-500">In Progress</p>
-          <h2 class="text-xl font-bold text-yellow-600">2</h2>
-        </div>
-        <div class="bg-white p-4 rounded shadow">
-          <p class="text-sm text-gray-500">Completed</p>
-          <h2 class="text-xl font-bold text-green-600">1</h2>
+      <div style="display: flex; align-items: center; height: 56px; background: #fff; border-radius: 2rem; box-shadow: 0 2px 12px 0 rgba(20,184,166,0.10); margin-top: 2rem; margin-bottom: 2rem; padding: 0 2rem; width: 100%; max-width: 100%;">
+        <!-- Mobile menu button (visible only on mobile) -->
+        <button id="mobileMenuBtn" class="md:hidden flex items-center justify-center mr-2 bg-teal-600 text-white p-2 rounded-full shadow-lg focus:outline-none" aria-label="Open menu">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+          </button>
+        
+        <!-- Right side actions -->
+        <div class="flex items-center ml-auto">
+          <a href="./messages.html" class="d-flex align-items-center justify-content-center" title="Messages" style="background: none; border: none; padding: 0; margin-right: 1rem;"><i class="bi bi-chat-dots" style="font-size: 1.5rem; color: #14b8a6; text-shadow: 0 1px 2px rgba(20,184,166,0.15);"></i></a>
+          <button class="header-action d-flex align-items-center justify-content-center" title="Notifications" style="background: none; border: none; padding: 0; margin-right: 1rem;"><i class="bi bi-bell" style="font-size: 1.5rem; color: #14b8a6; text-shadow: 0 1px 2px rgba(20,184,166,0.15);"></i></button>
+          <a href="./profile.html" class="d-flex align-items-center justify-content-center ms-1" title="Profile">
+            <img id="profilePic" src="../../assets/img/default.jpg" class="profile-pic border-4" style="border-color: #0d9488;" alt="Profile" />
+          </a>
+          <button id="darkModeToggle" class="header-action d-flex align-items-center justify-content-center ms-1" title="Toggle dark mode" style="background: none; border: none; padding: 0; margin-left: 1rem;"><i id="darkModeIcon" class="bi bi-moon" style="font-size: 1.5rem; color: #14b8a6; text-shadow: 0 1px 2px rgba(20,184,166,0.15);"></i></button>
         </div>
       </div>
+        
+        <!-- Page Content -->
+        <div class="pb-16"> <!-- Added padding at bottom for footer space -->
+          <nav class="text-sm mb-4 text-gray-500">
+            <a href="./student_dash.html" class="hover:underline">Dashboard</a> &gt; My Internships
+          </nav>
 
-      <!-- Filters -->
-      <div class="flex gap-2 mb-4">
-        <button onclick="filterStatus('all', event)" class="px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700">All</button>
-        <button onclick="filterStatus('in-progress', event)" class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300">In Progress</button>
-        <button onclick="filterStatus('completed', event)" class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300">Completed</button>
-      </div>
+          <h1 class="text-2xl font-bold text-teal-800 mb-6">My Internships</h1>
 
-      <!-- Table -->
-      <div class="overflow-x-auto bg-white rounded shadow">
-        <table class="min-w-full text-sm text-gray-700">
-          <thead class="bg-gray-100 text-left font-semibold">
-            <tr>
-              <th class="px-6 py-3">Opportunity</th>
-              <th class="px-6 py-3">Company</th>
-              <th class="px-6 py-3">Duration</th>
-              <th class="px-6 py-3">Progress</th>
-              <th class="px-6 py-3">Status</th>
-              <th class="px-6 py-3">Logbook</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr class="border-t" data-status="in-progress">
-              <td class="px-6 py-4">Software Intern</td>
-              <td class="px-6 py-4">Safaricom</td>
-              <td class="px-6 py-4">3 Months</td>
-              <td class="px-6 py-4">4/12 weeks (33%)</td>
-              <td class="px-6 py-4">
-                <span class="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">In Progress</span>
-              </td>
-              <td class="px-6 py-4">
-                <a href="./progress.html" class="text-sm text-teal-600 hover:underline">View Logbook</a>
-              </td>
-            </tr>
-            <tr class="border-t" data-status="completed">
-              <td class="px-6 py-4">Data Entry Assistant</td>
-              <td class="px-6 py-4">KRA</td>
-              <td class="px-6 py-4">2 Months</td>
-              <td class="px-6 py-4">8/8 weeks (100%)</td>
-              <td class="px-6 py-4">
-                <span class="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Completed</span>
-              </td>
-              <td class="px-6 py-4">
-                <a href="./progress.html" class="text-sm text-teal-600 hover:underline">View Logbook</a>
-              </td>
-            </tr>
-            <tr class="border-t" data-status="in-progress">
-              <td class="px-6 py-4">UI/UX Intern</td>
-              <td class="px-6 py-4">Equity Bank</td>
-              <td class="px-6 py-4">1 Month</td>
-              <td class="px-6 py-4">1/4 weeks (25%)</td>
-              <td class="px-6 py-4">
-                <span class="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">In Progress</span>
-              </td>
-              <td class="px-6 py-4">
-                <a href="./progress.html" class="text-sm text-teal-600 hover:underline">View Logbook</a>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </main>
-  </div>
-   <!-- Footer -->
+          <!-- Summary Cards -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-xl shadow-lg flex items-center">
+              <div class="bg-yellow-100 p-3 rounded-full mr-4">
+                <i class="ph ph-clock-countdown text-yellow-600 text-2xl"></i>
+              </div>
+              <div>
+                <p class="text-sm text-gray-500">In Progress</p>
+                <h2 class="text-2xl font-bold text-yellow-600">2</h2>
+              </div>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-lg flex items-center">
+              <div class="bg-green-100 p-3 rounded-full mr-4">
+                <i class="ph ph-check-circle text-green-600 text-2xl"></i>
+              </div>
+              <div>
+                <p class="text-sm text-gray-500">Completed</p>
+                <h2 class="text-2xl font-bold text-green-600">1</h2>
+              </div>
+            </div>
+          </div>
+
+          <!-- Filters -->
+          <div class="flex flex-wrap gap-2 mb-4">
+            <button onclick="filterStatus('all', event)" class="px-3 sm:px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700 text-xs sm:text-sm transition-all duration-200">All</button>
+            <button onclick="filterStatus('in-progress', event)" class="px-3 sm:px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 text-xs sm:text-sm transition-all duration-200">In Progress</button>
+            <button onclick="filterStatus('completed', event)" class="px-3 sm:px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 text-xs sm:text-sm transition-all duration-200">Completed</button>
+          </div>
+
+          <!-- Table -->
+          <div class="overflow-x-auto bg-white rounded-xl shadow-lg">
+            <table class="min-w-full text-sm text-gray-700">
+              <thead class="bg-gray-50 text-left font-semibold text-gray-600">
+                <tr>
+                  <th class="px-6 py-4">Opportunity</th>
+                  <th class="px-6 py-4">Company</th>
+                  <th class="px-6 py-4">Duration</th>
+                  <th class="px-6 py-4">Progress</th>
+                  <th class="px-6 py-4">Status</th>
+                  <th class="px-6 py-4">Logbook</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200">
+                <tr data-status="in-progress">
+                  <td class="px-6 py-4 font-medium">Software Intern</td>
+                  <td class="px-6 py-4">Safaricom</td>
+                  <td class="px-6 py-4">3 Months</td>
+                  <td class="px-6 py-4">
+                    <div class="w-full bg-gray-200 rounded-full h-2.5">
+                      <div class="bg-yellow-500 h-2.5 rounded-full" style="width: 33%"></div>
+                    </div>
+                    <span class="text-xs text-gray-500 mt-1">33%</span>
+                  </td>
+                  <td class="px-6 py-4">
+                    <span class="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">In Progress</span>
+                  </td>
+                  <td class="px-6 py-4">
+                    <a href="./progress.html" class="text-sm text-teal-600 hover:underline font-semibold">View Logbook</a>
+                  </td>
+                </tr>
+                <tr data-status="completed">
+                  <td class="px-6 py-4 font-medium">Data Entry Assistant</td>
+                  <td class="px-6 py-4">KRA</td>
+                  <td class="px-6 py-4">2 Months</td>
+                  <td class="px-6 py-4">
+                    <div class="w-full bg-gray-200 rounded-full h-2.5">
+                      <div class="bg-green-500 h-2.5 rounded-full" style="width: 100%"></div>
+                    </div>
+                    <span class="text-xs text-gray-500 mt-1">100%</span>
+                  </td>
+                  <td class="px-6 py-4">
+                    <span class="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Completed</span>
+                  </td>
+                  <td class="px-6 py-4">
+                    <a href="./progress.html" class="text-sm text-teal-600 hover:underline font-semibold">View Logbook</a>
+                  </td>
+                </tr>
+                <tr data-status="in-progress">
+                  <td class="px-6 py-4 font-medium">UI/UX Intern</td>
+                  <td class="px-6 py-4">Equity Bank</td>
+                  <td class="px-6 py-4">1 Month</td>
+                  <td class="px-6 py-4">
+                    <div class="w-full bg-gray-200 rounded-full h-2.5">
+                      <div class="bg-yellow-500 h-2.5 rounded-full" style="width: 25%"></div>
+                    </div>
+                    <span class="text-xs text-gray-500 mt-1">25%</span>
+                  </td>
+                  <td class="px-6 py-4">
+                    <span class="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">In Progress</span>
+                  </td>
+                  <td class="px-6 py-4">
+                    <a href="./progress.html" class="text-sm text-teal-600 hover:underline font-semibold">View Logbook</a>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+      <!-- Footer -->
       <footer class="text-center text-sm text-gray-400 mt-16">
         &copy; 2025 EduLink KE. Empowering Students with Verified Internships.
       </footer>
@@ -236,10 +525,54 @@
 
 
   <script>
-    const sidebar = document.getElementById('sidebar');
-    const toggleBtn = document.getElementById('toggleBtn');
-    toggleBtn.addEventListener('click', () => {
-      sidebar.classList.toggle('-translate-x-full');
+    // Initialize the page when DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+      // Mobile sidebar toggle
+      const sidebar = document.getElementById('sidebar');
+      const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+      const sidebarOverlay = document.getElementById('sidebarOverlay');
+      let sidebarOpen = false;
+      
+      mobileMenuBtn.addEventListener('click', function() {
+        sidebarOpen = !sidebarOpen;
+        if (sidebarOpen) {
+          sidebar.style.transform = 'translateX(0)';
+          document.body.classList.add('overflow-hidden');
+          sidebarOverlay.classList.remove('hidden');
+        } else {
+          sidebar.style.transform = '';
+          document.body.classList.remove('overflow-hidden');
+          sidebarOverlay.classList.add('hidden');
+        }
+      });
+      
+      // Close sidebar on outside click (mobile)
+      document.addEventListener('click', function(e) {
+        if (sidebarOpen && !sidebar.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
+          sidebar.style.transform = '';
+          document.body.classList.remove('overflow-hidden');
+          sidebarOverlay.classList.add('hidden');
+          sidebarOpen = false;
+        }
+      });
+      
+      // Close sidebar when clicking overlay
+      sidebarOverlay.addEventListener('click', function() {
+        sidebar.style.transform = '';
+        document.body.classList.remove('overflow-hidden');
+        sidebarOverlay.classList.add('hidden');
+        sidebarOpen = false;
+      });
+      
+      // Close sidebar on window resize if it becomes desktop view
+      window.addEventListener('resize', function() {
+        if (window.innerWidth >= 768) {
+          sidebarOverlay.classList.add('hidden');
+          document.body.classList.remove('overflow-hidden');
+          sidebar.style.transform = ''; // Reset transform
+          sidebarOpen = false;
+        }
+      });
     });
 
     document.addEventListener('DOMContentLoaded', function() {
@@ -249,7 +582,7 @@
         logoutBtn.addEventListener('click', function(e) {
           e.preventDefault();
           localStorage.removeItem('access_token');
-          window.location.href = '/Edulink_website/login.html';
+          window.location.href = '../../login.html';
         });
       }
 
@@ -357,4 +690,4 @@
       });
     }
   </script>
-</body> 
+</body>

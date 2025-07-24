@@ -1,9 +1,16 @@
 from django.urls import path
-from . import views
+from .views import (
+    LogbookEntryListCreateView,
+    LogbookEntryRetrieveUpdateView,
+    SupervisorFeedbackCreateView,
+    SupervisorFeedbackListView,
+    InternshipProgressCalculationView,
+)
 
 urlpatterns = [
-    path('logbook/', views.LogbookEntryListCreateView.as_view(), name='logbook-list-create'),
-    path('logbook/<int:pk>/', views.LogbookEntryRetrieveUpdateView.as_view(), name='logbook-detail-update'),
-    path('logbook/<int:log_entry_id>/feedback/', views.SupervisorFeedbackListView.as_view(), name='logbook-feedback-list'),
-    path('logbook/feedback/add/', views.SupervisorFeedbackCreateView.as_view(), name='logbook-feedback-create'),
-] 
+    path('logbook/', LogbookEntryListCreateView.as_view(), name='logbook-list-create'),
+    path('logbook/<int:pk>/', LogbookEntryRetrieveUpdateView.as_view(), name='logbook-detail'),
+    path('logbook/<int:log_entry_id>/feedback/', SupervisorFeedbackListView.as_view(), name='feedback-list'),
+    path('logbook/feedback/add/', SupervisorFeedbackCreateView.as_view(), name='feedback-create'),
+    path('progress/', InternshipProgressCalculationView.as_view(), name='progress-calculation'),
+]

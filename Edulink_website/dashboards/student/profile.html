@@ -424,13 +424,13 @@
         // Redirect to login if not authenticated
         const accessToken = localStorage.getItem('access_token');
         if (!accessToken || typeof accessToken !== 'string' || accessToken.length < 10) {
-          window.location.href = '/Edulink_website/login.html';
+          window.location.href = '../../login.html';
         }
 
         // Helper: Redirect to login and clear token
         function forceLogout() {
           localStorage.removeItem('access_token');
-          window.location.href = '/Edulink_website/login.html';
+          window.location.href = '../../login.html';
         }
 
         // --- Profile Fetch/Update Logic ---
@@ -705,7 +705,7 @@
           logoutBtn.addEventListener('click', function(e) {
             e.preventDefault();
             localStorage.removeItem('access_token');
-            window.location.href = '/Edulink_website/login.html';
+            window.location.href = '../../login.html';
           });
         }
         
@@ -713,7 +713,7 @@
           logoutBtnMobile.addEventListener('click', function(e) {
             e.preventDefault();
             localStorage.removeItem('access_token');
-            window.location.href = '/Edulink_website/login.html';
+            window.location.href = '../../login.html';
           });
         }
       </script>
