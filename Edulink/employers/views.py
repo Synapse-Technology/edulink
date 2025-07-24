@@ -65,8 +65,8 @@ class EmployerProfileDetailView(generics.RetrieveUpdateAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_object(self):
-        # The related name from the User model to EmployerProfile is 'employer_profile'
-        return self.request.user.employer_profile
+        # The related name from the User model to Employer is 'employer_company_profile'
+        return self.request.user.employer_company_profile
     
     def get_client_ip(self, request):
         """Extract client IP address from request."""
@@ -131,7 +131,6 @@ class VerifyEmployerView(generics.UpdateAPIView):
     def patch(self, request, *args, **kwargs):
         employer = self.get_object()
         employer.is_verified = True
-        employer.verified_at = timezone.now()
         employer.save()
         
         # Log security event for employer verification
@@ -160,7 +159,6 @@ class VerifyEmployerView(generics.UpdateAPIView):
             ip_address=self.get_client_ip(request),
             metadata={
                 'company_name': employer.company_name,
-                'verified_at': employer.verified_at.isoformat(),
                 'verified_by': request.user.email
             }
         )
@@ -179,7 +177,7 @@ class EmployerInternshipListView(generics.ListAPIView):
 
     def get_queryset(self):
         # Filter internships based on the employer profile linked to the user
-        return Internship.objects.filter(employer=self.request.user.employer_profile)  # type: ignore[attr-defined]
+        return Internship.objects.filter(employer=self.request.user.employer_company_profile)  # type: ignore[attr-defined]
 
 
 class InternshipApplicationListView(generics.ListAPIView):

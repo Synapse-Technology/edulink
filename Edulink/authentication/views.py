@@ -428,8 +428,8 @@ class PasswordChangeView(APIView):
                 AuditLog.objects.create(
                     action='password_change',
                     user=user,
-                    model_name='User',
-                    object_id=str(user.pk),
+                    resource_type='User',
+                    resource_id=str(user.pk),
                     description=f'User {user.email} changed their password',
                     ip_address=client_ip,
                     user_agent=request.META.get('HTTP_USER_AGENT', ''),
@@ -619,14 +619,48 @@ class PasswordResetSuccessView(TemplateView):
 
 class VerifyEmailView(View):
     def get(self, request, uidb64, token):
+        client_ip = self.get_client_ip(request)
+        user_agent = request.META.get('HTTP_USER_AGENT', '')
+        
         try:
             uid = force_str(urlsafe_base64_decode(uidb64))
             user = User.objects.get(pk=uid)
         except (TypeError, ValueError, OverflowError, User.DoesNotExist):  # type: ignore[attr-defined]
             user = None
+            
         if user is not None and default_token_generator.check_token(user, token):
             user.is_email_verified = True  # type: ignore[attr-defined]
             user.save()
+            
+            # Log successful email verification
+            SecurityEvent.objects.create(
+                event_type='email_verification_success',
+                severity='low',
+                description=f'Email verification successful for user {user.email}',
+                user=user,
+                ip_address=client_ip,
+                user_agent=user_agent,
+                metadata={
+                    'email': user.email,
+                    'verification_method': 'email_link'
+                }
+            )
+            
+            # Create audit log
+            AuditLog.objects.create(
+                action='email_verification_success',
+                user=user,
+                resource_type='User',
+                resource_id=str(user.pk),
+                description=f'Email verification successful for user {user.email}',
+                ip_address=client_ip,
+                user_agent=user_agent,
+                metadata={
+                    'email': user.email,
+                    'verification_method': 'email_link'
+                }
+            )
+            
             # Get first name for personalization
             first_name = user.email.split("@")[0]  # type: ignore[attr-defined]
             # type: ignore[attr-defined]
@@ -638,4 +672,26 @@ class VerifyEmailView(View):
                 first_name = user.profile.first_name  # type: ignore[attr-defined]
             return render(request, "email_verified.html", {"first_name": first_name})
         else:
+            # Log failed email verification
+            SecurityEvent.objects.create(
+                event_type='email_verification_failed',
+                severity='medium',
+                description=f'Failed email verification attempt - invalid token or user',
+                user=user if user else None,
+                ip_address=client_ip,
+                user_agent=user_agent,
+                metadata={
+                    'uid': uidb64,
+                    'failure_reason': 'invalid_token_or_user'
+                }
+            )
             return render(request, "email_verification_failed.html")
+    
+    def get_client_ip(self, request):
+        """Extract client IP address from request."""
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip

@@ -24,7 +24,7 @@ class Command(BaseCommand):
         parser.add_argument(
             '--assign-user',
             type=str,
-            help='Assign specific user to security admin group (username or email)'
+            help='Assign specific user to security admin group (email)'
         )
         parser.add_argument(
             '--list-groups',
@@ -234,34 +234,23 @@ class Command(BaseCommand):
         """Create sample security users for testing."""
         sample_users = [
             {
-                'username': 'security_admin',
                 'email': 'security.admin@example.com',
-                'first_name': 'Security',
-                'last_name': 'Admin',
                 'group': 'Security Admins',
-                'is_staff': True
+                'is_staff': True,
+                'is_superuser': True
             },
             {
-                'username': 'security_analyst',
                 'email': 'security.analyst@example.com',
-                'first_name': 'Security',
-                'last_name': 'Analyst',
                 'group': 'Security Analysts',
                 'is_staff': True
             },
             {
-                'username': 'security_auditor',
                 'email': 'security.auditor@example.com',
-                'first_name': 'Security',
-                'last_name': 'Auditor',
                 'group': 'Security Auditors',
                 'is_staff': True
             },
             {
-                'username': 'security_operator',
                 'email': 'security.operator@example.com',
-                'first_name': 'Security',
-                'last_name': 'Operator',
                 'group': 'Security Operators',
                 'is_staff': True
             }
@@ -274,24 +263,27 @@ class Command(BaseCommand):
             
             # Create user if doesn't exist
             user, created = User.objects.get_or_create(
-                username=user_data['username'],
-                defaults=user_data
+                email=user_data['email'],
+                defaults={
+                    'is_staff': user_data.get('is_staff', False),
+                    'is_superuser': user_data.get('is_superuser', False),
+                    'role': user_data.get('role', 'student')
+                }
             )
             
             if created:
-                # Set a default password
+                # Set password for new user
                 user.set_password('SecurePass123!')
                 user.save()
-                
                 self.stdout.write(
                     self.style.SUCCESS(
-                        f"Created user: {user.username} (password: SecurePass123!)"
+                        f"Created user: {user.email} (password: SecurePass123!)"
                     )
                 )
             else:
                 self.stdout.write(
                     self.style.WARNING(
-                        f"User {user.username} already exists"
+                        f"User {user.email} already exists"
                     )
                 )
             
@@ -300,23 +292,20 @@ class Command(BaseCommand):
                 group = Group.objects.get(name=group_name)
                 user.groups.add(group)
                 self.stdout.write(
-                    f"  Added {user.username} to {group_name}"
+                    f"  Added {user.email} to {group_name}"
                 )
             except Group.DoesNotExist:
                 self.stdout.write(
                     self.style.ERROR(
-                        f"Group {group_name} not found for user {user.username}"
+                        f"Group {group_name} not found for user {user.email}"
                     )
                 )
     
     def assign_user_to_admin_group(self, user_identifier):
         """Assign a specific user to the security admin group."""
         try:
-            # Find user by username or email
-            try:
-                user = User.objects.get(username=user_identifier)
-            except User.DoesNotExist:
-                user = User.objects.get(email=user_identifier)
+            # Find user by email
+            user = User.objects.get(email=user_identifier)
             
             # Get security admin group
             admin_group = Group.objects.get(name='Security Admins')
@@ -326,7 +315,7 @@ class Command(BaseCommand):
             
             self.stdout.write(
                 self.style.SUCCESS(
-                    f"Added user {user.username} to Security Admins group"
+                    f"Added user {user.email} to Security Admins group"
                 )
             )
             
@@ -391,7 +380,7 @@ class Command(BaseCommand):
         for group_name in security_group_names:
             try:
                 group = Group.objects.get(name=group_name)
-                members = group.user_set.all()
+                members = group.custom_user_set.all()
                 
                 self.stdout.write(f"\n{group_name}:")
                 self.stdout.write(f"  Permissions: {group.permissions.count()}")
@@ -400,7 +389,7 @@ class Command(BaseCommand):
                 if members.exists():
                     for user in members:
                         self.stdout.write(
-                            f"    - {user.username} ({user.email})"
+                            f"    - {user.email}"
                         )
                 else:
                     self.stdout.write("    - No members")

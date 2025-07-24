@@ -207,4 +207,3 @@ class ApplicationStatusUpdateView(generics.UpdateAPIView):
         """
         institution = self.request.user.institution_profile.institution
         return Application.objects.filter(student__institution=institution)  # type: ignore[attr-defined]
->>>>>>> feature/auth
