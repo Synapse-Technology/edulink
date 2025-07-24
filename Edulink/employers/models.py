@@ -1,23 +1,45 @@
 from django.db import models
-from authentication.models import User
+from django.conf import settings
+from users.models.profile_base import ProfileBase
 
-class Employer(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='employer_profile')
+
+class Employer(ProfileBase):
+    """Model representing an employer/company profile."""
+    
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='employer_company_profile'
+    )
+    
+    # Company-specific fields
     company_name = models.CharField(max_length=255)
-    industry = models.CharField(max_length=100)
-    company_size = models.CharField(max_length=50)
-    contact_email = models.EmailField()
+    company_description = models.TextField(blank=True)
     website = models.URLField(blank=True, null=True)
-    location = models.CharField(max_length=255)
+    industry = models.CharField(max_length=100, blank=True)
+    company_size = models.CharField(
+        max_length=50,
+        choices=[
+            ('1-10', '1-10 employees'),
+            ('11-50', '11-50 employees'),
+            ('51-200', '51-200 employees'),
+            ('201-500', '201-500 employees'),
+            ('501-1000', '501-1000 employees'),
+            ('1000+', '1000+ employees'),
+        ],
+        blank=True
+    )
+    location = models.CharField(max_length=255, blank=True)
+    
+    # Additional employer-specific fields
+    department = models.CharField(max_length=100, blank=True, null=True)
+    position = models.CharField(max_length=100, blank=True, null=True)
     is_verified = models.BooleanField(default=False)
-    verified_at = models.DateTimeField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
+    
+    class Meta:
+        db_table = 'employers_employer'
+        verbose_name = 'Employer'
+        verbose_name_plural = 'Employers'
+    
     def __str__(self):
-        return self.company_name
-
-    @property
-    def profile(self):
-        """Get the associated employer profile if it exists"""
-        return getattr(self, 'employerprofile', None)
+        return f"{self.company_name} ({self.user.email})"

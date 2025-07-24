@@ -1,9 +1,14 @@
 from django.urls import path
-
-from .views import CreateInstitutionView, InstitutionDetailView, VerifyInstitutionView
+from .views import (
+    InstitutionProfileDetailView,
+    InstitutionStudentListView,
+    InstitutionApplicationListView,
+    ApplicationStatusUpdateView,
+)
 
 urlpatterns = [
-    path('create/', CreateInstitutionView.as_view(), name='create-institution'),
-    path('detail/<uuid:pk>/', InstitutionDetailView.as_view(), name='institution-detail'),
-    path('verify/<uuid:pk>/', VerifyInstitutionView.as_view(), name='verify-institution'),
+    path('profile/', InstitutionProfileDetailView.as_view(), name='institution-profile'),
+    path('my-students/', InstitutionStudentListView.as_view(), name='institution-students'),
+    path('applications/', InstitutionApplicationListView.as_view(), name='institution-applications'),
+    path('application/<int:id>/status/', ApplicationStatusUpdateView.as_view(), name='application-status-update'),
 ]
