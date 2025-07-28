@@ -50,7 +50,7 @@ def get_client_ip(request):
 def rate_limit_key(group, request):
     """Generate a unique key for rate limiting"""
     ip = get_client_ip(request)
-    user_id = request.user.id if request.user.is_authenticated else 'anonymous'
+    user_id = request.user.id if hasattr(request, 'user') and request.user.is_authenticated else 'anonymous'
     return f"rate_limit:{group}:{ip}:{user_id}"
 
 

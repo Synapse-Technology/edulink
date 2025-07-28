@@ -4,7 +4,9 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
 from django.utils import timezone
 from django.db.models import Q
+from django.core.exceptions import ValidationError
 from rest_framework.views import APIView
+import logging
 
 from internship.models.internship import Internship
 from internship.models.skill_tag import SkillTag
@@ -21,6 +23,9 @@ from internship.permissions.role_permissions import (
     CanVerifyInternship,
     CanViewInternship,
 )
+from application.validators import InternshipValidator
+
+logger = logging.getLogger(__name__)
 
 
 class InternshipListView(generics.ListAPIView):
@@ -78,8 +83,32 @@ class InternshipCreateView(generics.CreateAPIView):
     permission_classes = [IsAuthenticated, IsVerifiedEmployer]
 
     def perform_create(self, serializer):
-        """Set the employer automatically"""
-        serializer.save(employer=self.request.user.employer_profile)  # type: ignore[attr-defined]
+        """Create internship with comprehensive validation"""
+        try:
+            # Validate employer eligibility
+            InternshipValidator.validate_employer_eligibility(self.request.user)
+            
+            # Validate internship dates
+            validated_data = serializer.validated_data
+            InternshipValidator.validate_internship_dates(
+                validated_data['start_date'],
+                validated_data['end_date'],
+                validated_data['deadline']
+            )
+            
+            # Validate content quality
+            InternshipValidator.validate_internship_content(
+                validated_data['title'],
+                validated_data['description'],
+                validated_data.get('requirements', '')
+            )
+            
+            # Save the internship
+            serializer.save(employer=self.request.user.employer_profile)
+            
+        except ValidationError as e:
+            from rest_framework.exceptions import ValidationError as DRFValidationError
+            raise DRFValidationError(e.messages if hasattr(e, 'messages') else str(e))
 
 
 class InternshipUpdateView(generics.UpdateAPIView):
@@ -133,15 +162,19 @@ class InternshipVerificationView(generics.UpdateAPIView):
     queryset = Internship.objects.all()  # type: ignore[attr-defined]
 
     def update(self, request, *args, **kwargs):
-        """Mark internship as verified"""
+        """Mark internship as verified with proper audit trail"""
         instance = self.get_object()
         instance.is_verified = True
+        instance.verified_by = request.user
+        instance.verified_at = timezone.now()
         instance.save()
 
         serializer = self.get_serializer(instance)
         return Response({
             'message': 'Internship verified successfully',
-            'internship': serializer.data
+            'internship': serializer.data,
+            'verified_by': request.user.email,
+            'verified_at': instance.verified_at
         })
 
 

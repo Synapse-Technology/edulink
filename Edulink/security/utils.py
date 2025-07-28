@@ -199,7 +199,7 @@ class ThreatDetector:
         self.threat_patterns = {
             'sql_injection': [
                 r"('|(\-\-)|(;)|(\||\|)|(\*|\*))",
-                r"(union|select|insert|delete|update|drop|create|alter)",
+                r"\b(union\s+select|insert\s+into|delete\s+from|update\s+set|drop\s+table|create\s+table|alter\s+table)\b",
                 r"(script|javascript|vbscript|onload|onerror)"
             ],
             'xss': [
@@ -230,6 +230,33 @@ class ThreatDetector:
                     })
         
         return threats
+    
+    def detect_sql_injection(self, request) -> bool:
+        """Detect SQL injection attempts in request."""
+        request_data = str(request.GET) + str(request.POST) + str(request.body)
+        
+        for pattern in self.threat_patterns['sql_injection']:
+            if re.search(pattern, request_data, re.IGNORECASE):
+                return True
+        return False
+    
+    def detect_xss(self, request) -> bool:
+        """Detect XSS attempts in request."""
+        request_data = str(request.GET) + str(request.POST) + str(request.body)
+        
+        for pattern in self.threat_patterns['xss']:
+            if re.search(pattern, request_data, re.IGNORECASE):
+                return True
+        return False
+    
+    def detect_path_traversal(self, request) -> bool:
+        """Detect path traversal attempts in request."""
+        request_data = str(request.GET) + str(request.POST) + str(request.body)
+        
+        for pattern in self.threat_patterns['path_traversal']:
+            if re.search(pattern, request_data, re.IGNORECASE):
+                return True
+        return False
     
     def check_brute_force(self, email: str, ip_address: str, time_window: int = 300) -> bool:
         """Check for brute force attack patterns."""

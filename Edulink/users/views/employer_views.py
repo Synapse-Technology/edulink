@@ -68,8 +68,8 @@ class EmployerProfileDetailView(generics.RetrieveUpdateAPIView):
         AuditLog.objects.create(
             action='update',
             user=self.request.user,
-            model_name='EmployerProfile',
-            object_id=str(profile.id),
+            resource_type='EmployerProfile',
+            resource_id=str(profile.id),
             description=f'Updated employer profile: {profile.first_name} {profile.last_name}',
             ip_address=self.get_client_ip(self.request),
             metadata={

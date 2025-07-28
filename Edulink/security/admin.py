@@ -114,7 +114,7 @@ class UserSessionAdmin(admin.ModelAdmin):
         ('created_at', admin.DateFieldListFilter)
     ]
     search_fields = ['user__email', 'ip_address', 'session_key']
-    readonly_fields = ['session_key', 'created_at', 'device_info_display']
+    readonly_fields = ['session_key', 'created_at']
     date_hierarchy = 'created_at'
     ordering = ['-last_activity']
     
@@ -123,7 +123,7 @@ class UserSessionAdmin(admin.ModelAdmin):
             'fields': ('user', 'session_key', 'is_active')
         }),
         ('Location & Device', {
-            'fields': ('ip_address', 'user_agent', 'device_info_display')
+            'fields': ('ip_address', 'user_agent')
         }),
         ('Timestamps', {
             'fields': ('created_at', 'last_activity')
@@ -143,16 +143,7 @@ class UserSessionAdmin(admin.ModelAdmin):
         return f"{obj.session_key[:8]}...{obj.session_key[-8:]}"
     session_key_short.short_description = 'Session Key'
     
-    def device_info_display(self, obj):
-        """Display device info in a readable format."""
-        if obj.device_info:
-            import json
-            return format_html(
-                '<pre>{}</pre>',
-                json.dumps(obj.device_info, indent=2)
-            )
-        return 'No device info'
-    device_info_display.short_description = 'Device Info'
+
     
     def action_buttons(self, obj):
         """Display action buttons."""

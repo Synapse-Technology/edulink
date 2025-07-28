@@ -1,10 +1,9 @@
 from django.db import models
 from django.conf import settings
-from .profile_base import ProfileBase
 from institutions.models import Institution, Course
 
 
-class StudentProfile(ProfileBase):
+class StudentProfile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='student_profile')
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
@@ -24,10 +23,23 @@ class StudentProfile(ProfileBase):
     registration_number = models.CharField(max_length=50, unique=True)
     year_of_study = models.PositiveIntegerField()
     course = models.ForeignKey(Course, on_delete=models.SET_NULL, null=True, related_name='students')
+    
+    # University system integration fields
+    department = models.ForeignKey('institutions.Department', on_delete=models.SET_NULL, 
+                                   null=True, blank=True, related_name='students')
+    campus = models.ForeignKey('institutions.Campus', on_delete=models.SET_NULL,
+                               null=True, blank=True, related_name='students')
+    university_verified = models.BooleanField(default=False, 
+                                              help_text='Verified through university system integration')
+    national_id_verified = models.BooleanField(default=False,
+                                               help_text='National ID verified against university records')
+    last_university_sync = models.DateTimeField(null=True, blank=True,
+                                                 help_text='Last time data was synced with university system')
+    university_code_used = models.CharField(max_length=20, null=True, blank=True,
+                                            help_text='University registration code used during registration')
 
     # Additional fields
     national_id = models.CharField(max_length=20, unique=True)
-    academic_year = models.PositiveIntegerField()
     skills = models.JSONField(default=list, blank=True)
     interests = models.JSONField(default=list, blank=True)
     internship_status = models.CharField(
@@ -53,27 +65,67 @@ class StudentProfile(ProfileBase):
 
     @property
     def profile_completion(self):
-        fields = [
-            self.first_name,
-            self.last_name,
-            self.phone_number,
-            self.profile_picture,
-            self.institution,
-            self.registration_number,
-            self.academic_year,
-            self.skills,
-            self.interests,
-            self.resume,
-            self.github_url,
-            self.linkedin_url,
-        ]
-        total = len(fields)
-        filled = sum(1 for f in fields if f and (not isinstance(f, list) or len(f) > 0))
-        return int((filled / total) * 100)
+        """Calculate profile completion percentage safely"""
+        total_fields = 0
+        filled_fields = 0
+        
+        # Basic info fields
+        basic_fields = ['first_name', 'last_name', 'phone_number', 'national_id']
+        for field in basic_fields:
+            total_fields += 1
+            if hasattr(self, field) and getattr(self, field):
+                filled_fields += 1
+        
+        # Institution fields
+        if hasattr(self, 'institution') and self.institution:
+            filled_fields += 1
+        total_fields += 1
+        
+        if hasattr(self, 'registration_number') and self.registration_number:
+            filled_fields += 1
+        total_fields += 1
+        
+        if hasattr(self, 'year_of_study') and self.year_of_study:
+            filled_fields += 1
+        total_fields += 1
+        
+        if hasattr(self, 'course') and self.course:
+            filled_fields += 1
+        total_fields += 1
+        
+        # Skills and interests
+        if hasattr(self, 'skills') and self.skills and len(self.skills) > 0:
+            filled_fields += 1
+        total_fields += 1
+        
+        if hasattr(self, 'interests') and self.interests and len(self.interests) > 0:
+            filled_fields += 1
+        total_fields += 1
+        
+        # Profile picture and resume
+        if hasattr(self, 'profile_picture') and self.profile_picture and self.profile_picture.name != 'profile_pics/default.jpg':
+            filled_fields += 1
+        total_fields += 1
+        
+        if hasattr(self, 'resume') and self.resume:
+            filled_fields += 1
+        total_fields += 1
+        
+        # Social links (optional)
+        social_fields = ['github_url', 'linkedin_url', 'twitter_url']
+        social_filled = 0
+        for field in social_fields:
+            if hasattr(self, field) and getattr(self, field):
+                social_filled += 1
+        
+        # Count social links as one field if any are filled
+        if social_filled > 0:
+            filled_fields += 1
+        total_fields += 1
+        
+        return int((filled_fields / total_fields) * 100) if total_fields > 0 else 0
 
     def save(self, *args, **kwargs):
         if self.institution and not self.institution_name:
             self.institution_name = self.institution.name
-        if self.academic_year and not self.year_of_study:
-            self.year_of_study = self.academic_year
         super().save(*args, **kwargs)

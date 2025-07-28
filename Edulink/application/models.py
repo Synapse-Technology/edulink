@@ -3,13 +3,13 @@ from django.conf import settings
 from internship.models import (
     Internship,
 )  # Use the Internship model from the internship app
-from users.models.student_profile import StudentProfile
+from authentication.models import User
 from internship.models.base import BaseModel
 
 
 class Application(BaseModel):
     student = models.ForeignKey(
-        StudentProfile, on_delete=models.CASCADE, related_name="applications"
+        User, on_delete=models.CASCADE, related_name="applications"
     )
     internship = models.ForeignKey(
         Internship, on_delete=models.CASCADE, related_name="applications"

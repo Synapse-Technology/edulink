@@ -33,7 +33,7 @@ SECRET_KEY = "django-insecure-7z9(td$skyj--_ur+r4=f$)g*lm#&*t*$-xsey=ke1dstw8=c^
 DEBUG = True
 
 # Add type annotation for ALLOWED_HOSTS
-ALLOWED_HOSTS: list[str] = []
+ALLOWED_HOSTS: list[str] = ['localhost', '127.0.0.1', '0.0.0.0']
 
 CORS_ALLOW_ALL_ORIGINS = True
 
@@ -185,6 +185,9 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = "static/"
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
 
 # Media files (User uploaded content)
 MEDIA_URL = '/media/'
@@ -201,7 +204,7 @@ PASSWORD_RESET_URL_TEMPLATE = (
     "http://localhost:8000/api/auth/reset-password/{uid}/{token}/"
 )
 
-# Security Configuration
+# Security Configuration (Privacy-First Approach)
 SECURITY_SETTINGS = {
     'MAX_LOGIN_ATTEMPTS': 5,
     'LOGIN_ATTEMPT_TIMEOUT': 300,  # 5 minutes
@@ -213,6 +216,12 @@ SECURITY_SETTINGS = {
     'ENABLE_THREAT_DETECTION': True,
     'ENABLE_SESSION_SECURITY': True,
     'ENABLE_AUDIT_LOGGING': True,
+    
+    # Privacy-First Security Settings
+    'ANONYMIZE_IP_ADDRESSES': True,  # Mask IP addresses for privacy
+    'MINIMAL_LOGGING': True,         # Log only what's necessary for security
+    'DATA_RETENTION_DAYS': 90,       # Automatic data cleanup after 90 days
+    'GDPR_COMPLIANT': True,          # Enable GDPR compliance features
 }
 
 # Security Headers
@@ -238,4 +247,50 @@ CSRF_COOKIE_SAMESITE = 'Lax'
 SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin'
 
+# Additional Security Policies
+# Allow camera and microphone for development
+SECURE_PERMISSIONS_POLICY = {
+    'geolocation': ['self'],
+    'microphone': ['self'],
+    'camera': ['self'],
+}
+
+# Privacy-First Data Collection Settings
+# These settings control what data is collected and logged for security purposes
+# Set to False to minimize data collection and enhance privacy
+SECURITY_TRACK_SESSION_IPS = False      # Don't track IP addresses in sessions
+SECURITY_TRACK_USER_AGENTS = False      # Don't track user agents in sessions
+SECURITY_LOG_IP_ADDRESSES = False       # Don't log IP addresses in security events
+SECURITY_LOG_USER_AGENTS = False        # Don't log user agents in security events
+SECURITY_LOG_DETAILED_METADATA = False  # Only log minimal metadata
+
+# Development Security Settings
+# Allow localhost access during development
+DEVELOPMENT_MODE = True
+LOCALHOST_ALLOWED_IPS = ['127.0.0.1', '::1', 'localhost']
+SKIP_SECURITY_FOR_LOCALHOST = True
+
+# Rate limiting settings - more lenient for development
+API_RATE_LIMIT = 1000  # Increased from default
+API_RATE_WINDOW = 3600
+AUTH_RATE_LIMIT = 50   # Increased from default
+AUTH_RATE_WINDOW = 300
+
+# Data Protection Compliance
+DATA_PROTECTION_ENABLED = True
+GDPR_COMPLIANCE = True
+DATA_RETENTION_DAYS = 90
+ANONYMIZE_LOGS = True
+MINIMAL_DATA_COLLECTION = True
+
 GOOGLE_GEMINI_API_KEY = os.environ.get("GOOGLE_GEMINI_API_KEY")
+
+# Content Security Policy
+CONTENT_SECURITY_POLICY = {
+    'default-src': "'self'",
+    'script-src': "'self' 'unsafe-inline'",
+    'style-src': "'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com",
+    'font-src': "'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com",
+    'img-src': "'self' data: https:",
+    'connect-src': "'self'",
+}

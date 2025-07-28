@@ -10,13 +10,16 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.core.mail import send_mail
 from django.conf import settings
 from users.models import UserRole, StudentProfile, InstitutionProfile, EmployerProfile
-from institutions.models import Institution
+from institutions.models import Institution, MasterInstitution
 from django.utils import timezone
 from django.db import transaction
 import random
 from security.models import SecurityEvent, FailedLoginAttempt, UserSession, AuditLog
 from security.utils import ThreatDetector
 from users.roles import RoleChoices
+from difflib import SequenceMatcher
+
+from institutions.models import UniversityRegistrationCode, CodeUsageLog
 
 
 def validate_unique_email(value):
@@ -122,7 +125,8 @@ class StudentRegistrationSerializer(serializers.Serializer):
             "course": validated_data.get("course"),
             "year_of_study": academic_year,
             "institution_name": institution.name,
-            # Set verification status based on institution verification
+            "registration_method": "institution_search",  # Track registration method
+            "university_verified": institution.is_verified,  # Use university_verified field
             "is_verified": institution.is_verified,
             "email_verified": True,  # Set to True since we're creating the user
         }
@@ -145,10 +149,10 @@ class StudentRegistrationSerializer(serializers.Serializer):
 
         # Log user registration security event
         request = self.context.get('request')
-        ip_address = None
+        ip_address = '127.0.0.1'  # Default IP address
         user_agent = ''
         if request:
-            ip_address = self.get_client_ip(request)
+            ip_address = self.get_client_ip(request) or '127.0.0.1'
             user_agent = request.META.get('HTTP_USER_AGENT', '')
 
         SecurityEvent.objects.create(
@@ -205,7 +209,606 @@ class StudentRegistrationSerializer(serializers.Serializer):
         return user
 
     def get_client_ip(self, request):
+        """Extract client IP address from request with comprehensive fallback."""
+        if not request:
+            return None
+            
+        # Try X-Forwarded-For header (for proxies/load balancers)
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            # Take the first IP in the chain (original client)
+            ip = x_forwarded_for.split(',')[0].strip()
+            if ip and ip != 'unknown':
+                return ip
+        
+        # Try X-Real-IP header (nginx proxy)
+        x_real_ip = request.META.get('HTTP_X_REAL_IP')
+        if x_real_ip and x_real_ip != 'unknown':
+            return x_real_ip.strip()
+        
+        # Try CF-Connecting-IP (Cloudflare)
+        cf_ip = request.META.get('HTTP_CF_CONNECTING_IP')
+        if cf_ip and cf_ip != 'unknown':
+            return cf_ip.strip()
+        
+        # Fall back to REMOTE_ADDR
+        remote_addr = request.META.get('REMOTE_ADDR')
+        if remote_addr:
+            return remote_addr.strip()
+        
+        return None
+    
+    def get_ip_with_metadata(self, request):
+        """Get IP address with metadata about detection method."""
+        if not request:
+            return '0.0.0.0', {'ip_source': 'unavailable', 'reason': 'no_request_context'}
+        
+        # Try different IP detection methods
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0].strip()
+            if ip and ip != 'unknown':
+                return ip, {
+                    'ip_source': 'x_forwarded_for',
+                    'proxy_chain': x_forwarded_for,
+                    'behind_proxy': True
+                }
+        
+        x_real_ip = request.META.get('HTTP_X_REAL_IP')
+        if x_real_ip and x_real_ip != 'unknown':
+            return x_real_ip.strip(), {
+                'ip_source': 'x_real_ip',
+                'behind_proxy': True
+            }
+        
+        cf_ip = request.META.get('HTTP_CF_CONNECTING_IP')
+        if cf_ip and cf_ip != 'unknown':
+            return cf_ip.strip(), {
+                'ip_source': 'cloudflare',
+                'behind_proxy': True
+            }
+        
+        remote_addr = request.META.get('REMOTE_ADDR')
+        if remote_addr:
+            return remote_addr.strip(), {
+                'ip_source': 'remote_addr',
+                'behind_proxy': False
+            }
+        
+        # Last resort - use special IP to indicate unknown
+        return '0.0.0.0', {
+            'ip_source': 'unknown',
+            'reason': 'no_ip_headers_found'
+        }
+
+
+class UnifiedStudentRegistrationSerializer(serializers.Serializer):
+    """
+    Unified student registration serializer that handles both university code and university search methods.
+    Automatically detects registration method and applies appropriate validation.
+    """
+    
+    # Common fields for all registration methods
+    email = serializers.EmailField(validators=[validate_unique_email])
+    password = serializers.CharField(write_only=True, validators=[validate_password])
+    password_confirm = serializers.CharField(write_only=True)
+    first_name = serializers.CharField(max_length=100)
+    last_name = serializers.CharField(max_length=100)
+    phone_number = serializers.CharField(max_length=20, validators=[validate_unique_phone_number])
+    national_id = serializers.CharField(max_length=20)
+    
+    # Method-specific fields
+    registration_method = serializers.ChoiceField(
+        choices=['university_code', 'university_search'],
+        required=True
+    )
+    
+    # University code method fields
+    university_code = serializers.CharField(max_length=20, required=False)
+    year_of_study = serializers.IntegerField(required=False)
+    course = serializers.CharField(max_length=100, required=False)
+    gender = serializers.ChoiceField(
+        choices=[('M', 'Male'), ('F', 'Female'), ('O', 'Other')],
+        required=False
+    )
+    
+    # University search method fields
+    institution_name = serializers.CharField(max_length=255, required=False)
+    registration_number = serializers.CharField(max_length=50, required=False)
+    academic_year = serializers.IntegerField(required=False)
+    course_code = serializers.CharField(max_length=50, required=False)
+    
+    def validate(self, data):
+        """
+        Validate data based on registration method and apply method-specific validation.
+        """
+        registration_method = data.get('registration_method')
+        
+        # Validate password confirmation
+        if data.get('password') != data.get('password_confirm'):
+            raise serializers.ValidationError({
+                'password_confirm': 'Passwords do not match.'
+            })
+        
+        # Remove password_confirm from data as it's not needed for user creation
+        data.pop('password_confirm', None)
+        
+        # Apply method-specific validation
+        if registration_method == 'university_code':
+            return self._validate_university_code_method(data)
+        elif registration_method == 'university_search':
+            return self._validate_university_search_method(data)
+        else:
+            raise serializers.ValidationError({
+                'registration_method': 'Invalid registration method specified.'
+            })
+    
+    def _validate_university_code_method(self, data):
+        """
+        Validate university code registration method.
+        """
+        # Check required fields for university code method
+        required_fields = ['university_code', 'year_of_study']
+        missing_fields = [field for field in required_fields if not data.get(field)]
+        
+        if missing_fields:
+            raise serializers.ValidationError({
+                field: 'This field is required for university code registration.'
+                for field in missing_fields
+            })
+        
+        # Validate university code
+        university_code = data.get('university_code', '').upper()
+        try:
+            code = UniversityRegistrationCode.objects.get(code=university_code)
+            is_valid, error_message = code.is_valid()
+            
+            if not is_valid:
+                # Log invalid code attempt
+                request = self.context.get('request')
+                ip_address = self.get_client_ip(request) if request else '127.0.0.1'
+                
+                SecurityEvent.objects.create(
+                    event_type='invalid_university_code',
+                    severity='medium',
+                    description=f'Invalid university code attempt: {university_code}',
+                    user=None,
+                    ip_address=ip_address,
+                    user_agent=request.META.get('HTTP_USER_AGENT', '') if request else '',
+                    metadata={
+                        'university_code': university_code,
+                        'error_message': error_message,
+                        'email': data.get('email')
+                    }
+                )
+                
+                raise serializers.ValidationError({
+                    'university_code': error_message
+                })
+            
+            data['registration_code'] = code
+            data['institution'] = code.institution
+            
+        except UniversityRegistrationCode.DoesNotExist:
+            # Log invalid code attempt
+            request = self.context.get('request')
+            ip_address = self.get_client_ip(request) if request else '127.0.0.1'
+            
+            SecurityEvent.objects.create(
+                event_type='invalid_university_code',
+                severity='medium',
+                description=f'Non-existent university code attempt: {university_code}',
+                user=None,
+                ip_address=ip_address,
+                user_agent=request.META.get('HTTP_USER_AGENT', '') if request else '',
+                metadata={
+                    'university_code': university_code,
+                    'email': data.get('email')
+                }
+            )
+            
+            raise serializers.ValidationError({
+                'university_code': 'Invalid university code.'
+            })
+        
+        # Validate unique fields
+        self._validate_unique_fields(data)
+        
+        return data
+    
+    def _validate_university_search_method(self, data):
+        """
+        Validate university search registration method.
+        """
+        # Check required fields for university search method
+        required_fields = ['institution_name', 'registration_number']
+        missing_fields = [field for field in required_fields if not data.get(field)]
+        
+        if missing_fields:
+            raise serializers.ValidationError({
+                field: 'This field is required for university search registration.'
+                for field in missing_fields
+            })
+        
+        # Validate institution exists and is verified
+        try:
+            institution = Institution.objects.get(name=data['institution_name'])
+            if not institution.is_verified:
+                raise serializers.ValidationError({
+                    'institution_name': 'The specified institution is not verified yet.'
+                })
+            data['institution'] = institution
+        except Institution.DoesNotExist:
+            raise serializers.ValidationError({
+                'institution_name': 'The specified institution does not exist.'
+            })
+        
+        # Validate course if provided
+        if data.get('course_code'):
+            try:
+                course = institution.courses.get(code=data['course_code'])
+                data['course'] = course
+            except Exception:
+                raise serializers.ValidationError({
+                    'course_code': 'Invalid course code for the specified institution.'
+                })
+        
+        # Validate unique fields
+        self._validate_unique_fields(data)
+        
+        return data
+    
+    def _validate_unique_fields(self, data):
+        """
+        Validate unique fields across both registration methods.
+        """
+        # Validate unique national_id
+        if StudentProfile.objects.filter(national_id=data['national_id']).exists():
+            raise serializers.ValidationError({
+                'national_id': 'A student with this national ID already exists.'
+            })
+        
+        # Validate unique registration_number (for university search method)
+        if data.get('registration_number'):
+            if StudentProfile.objects.filter(
+                registration_number=data['registration_number']
+            ).exists():
+                raise serializers.ValidationError({
+                    'registration_number': 'A student with this registration number already exists.'
+                })
+    
+    @transaction.atomic
+    def create(self, validated_data):
+        """
+        Create user and student profile based on registration method.
+        """
+        registration_method = validated_data.pop('registration_method')
+        
+        if registration_method == 'university_code':
+            return self._create_university_code_registration(validated_data)
+        elif registration_method == 'university_search':
+            return self._create_university_search_registration(validated_data)
+    
+    def _create_university_code_registration(self, validated_data):
+        """
+        Create user and profile for university code registration.
+        """
+        # Extract data
+        registration_code = validated_data.pop('registration_code')
+        institution = validated_data.pop('institution')
+        university_code = validated_data.get('university_code')
+        
+        # Create user
+        user = User.objects.create_user(
+            email=validated_data['email'],
+            password=validated_data['password'],
+            role='student',
+            phone_number=validated_data['phone_number'],
+            national_id=validated_data['national_id'],
+            institution=institution.name,
+            is_email_verified=False
+        )
+        
+        # Create student profile
+        student_profile = StudentProfile.objects.create(
+            user=user,
+            first_name=validated_data['first_name'],
+            last_name=validated_data['last_name'],
+            phone_number=validated_data['phone_number'],
+            national_id=validated_data['national_id'],
+            year_of_study=validated_data['year_of_study'],
+            institution=institution,
+            institution_name=institution.name,
+            registration_method='university_code',
+            university_verified=True,
+            university_code_used=university_code,
+            is_verified=True,
+            course=validated_data.get('course'),
+            gender=validated_data.get('gender')
+        )
+        
+        # Update registration code usage
+        registration_code.current_uses += 1
+        registration_code.save()
+        
+        # Log code usage
+        request = self.context.get('request')
+        ip_address = self.get_client_ip(request) if request else None
+        user_agent = request.META.get('HTTP_USER_AGENT', '') if request else ''
+        
+        CodeUsageLog.objects.create(
+            registration_code=registration_code,
+            email=user.email,
+            usage_status='success',
+            ip_address=ip_address,
+            user_agent=user_agent,
+            student_profile=student_profile
+        )
+        
+        # Log security event
+        SecurityEvent.objects.create(
+            event_type='user_registration',
+            severity='low',
+            description=f'Student registered using university code: {user.email}',
+            user=user,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            metadata={
+                'email': user.email,
+                'role': 'student',
+                'registration_method': 'university_code',
+                'university_code': university_code,
+                'institution_name': institution.name
+            }
+        )
+        
+        # Send welcome email and verification
+        self._send_welcome_email(user, student_profile)
+        
+        return user
+    
+    def _create_university_search_registration(self, validated_data):
+        """
+        Create user and profile for university search registration.
+        """
+        # Extract data
+        institution = validated_data.pop('institution')
+        
+        # Create user
+        user = User.objects.create_user(
+            email=validated_data['email'],
+            password=validated_data['password'],
+            role='student',
+            phone_number=validated_data['phone_number'],
+            national_id=validated_data['national_id'],
+            institution=institution.name,
+            is_email_verified=False
+        )
+        
+        # Create student profile
+        student_profile = StudentProfile.objects.create(
+            user=user,
+            first_name=validated_data['first_name'],
+            last_name=validated_data['last_name'],
+            phone_number=validated_data['phone_number'],
+            national_id=validated_data['national_id'],
+            registration_number=validated_data.get('registration_number'),
+            academic_year=validated_data.get('academic_year'),
+            year_of_study=validated_data.get('academic_year', 1),
+            institution=institution,
+            institution_name=institution.name,
+            registration_method='university_search',
+            university_verified=institution.is_verified,
+            is_verified=institution.is_verified,
+            course=validated_data.get('course')
+        )
+        
+        # Log security event
+        request = self.context.get('request')
+        ip_address = self.get_client_ip(request) if request else None
+        user_agent = request.META.get('HTTP_USER_AGENT', '') if request else ''
+        
+        SecurityEvent.objects.create(
+            event_type='user_registration',
+            severity='low',
+            description=f'Student registered using university search: {user.email}',
+            user=user,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            metadata={
+                'email': user.email,
+                'role': 'student',
+                'registration_method': 'university_search',
+                'institution_name': institution.name,
+                'registration_number': validated_data.get('registration_number')
+            }
+        )
+        
+        # Send welcome email and verification
+        self._send_welcome_email(user, student_profile)
+        
+        return user
+    
+    def _send_welcome_email(self, user, student_profile):
+        """
+        Send welcome email and email verification.
+        """
+        # Create welcome notification
+        from notifications.models import Notification
+        
+        Notification.objects.create(
+            user=user,
+            message=f"Welcome to EduLink KE, {student_profile.first_name}! We're excited to have you.",
+            notification_type="email",
+            status="pending",
+        )
+        
+        # Send email verification
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = default_token_generator.make_token(user)
+        verify_url = f"http://localhost:8000/api/auth/verify-email/{uid}/{token}/"
+        
+        send_mail(
+            "Verify your EduLink account",
+            f"Hi {student_profile.first_name},\n\nPlease verify your email by clicking the link below:\n{verify_url}\n\nThank you for joining EduLink!",
+            settings.DEFAULT_FROM_EMAIL,
+            [user.email],
+            fail_silently=False,
+        )
+    
+    def get_client_ip(self, request):
         """Extract client IP address from request."""
+        if not request:
+            return None
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
+
+    """
+    Student registration serializer using university-generated registration codes
+    """
+    email = serializers.EmailField(validators=[validate_unique_email])
+    password = serializers.CharField(write_only=True, validators=[validate_password])
+    first_name = serializers.CharField(max_length=100)
+    last_name = serializers.CharField(max_length=100)
+    phone_number = serializers.CharField(
+        max_length=20, validators=[validate_unique_phone_number]
+    )
+    national_id = serializers.CharField(max_length=20)
+    registration_number = serializers.CharField(max_length=50)
+    year_of_study = serializers.IntegerField()
+    university_code = serializers.CharField(max_length=20)
+    course_code = serializers.CharField(max_length=50, required=False)
+
+    def validate(self, data):
+        # Validate university code
+        university_code = data.get('university_code', '').upper()
+        try:
+            code = UniversityRegistrationCode.objects.get(code=university_code)
+            is_valid, error_message = code.is_valid()
+            
+            if not is_valid:
+                raise serializers.ValidationError({
+                    'university_code': error_message
+                })
+            
+            data['registration_code'] = code
+            data['institution'] = code.institution
+            
+        except UniversityRegistrationCode.DoesNotExist:
+            raise serializers.ValidationError({
+                'university_code': 'Invalid university code'
+            })
+
+        # Validate unique fields
+        if StudentProfile.objects.filter(national_id=data["national_id"]).exists():
+            raise serializers.ValidationError({
+                "national_id": "A student with this national ID already exists."
+            })
+
+        if StudentProfile.objects.filter(
+            registration_number=data["registration_number"]
+        ).exists():
+            raise serializers.ValidationError({
+                "registration_number": "A student with this registration number already exists."
+            })
+
+        # Validate course if provided
+        if "course_code" in data and data["course_code"]:
+            try:
+                course = data['institution'].courses.get(code=data["course_code"])
+                data["course"] = course
+            except Exception:
+                raise serializers.ValidationError({
+                    "course_code": "Invalid course code for the specified institution."
+                })
+
+        return data
+
+    @transaction.atomic
+    def create(self, validated_data):
+        # Extract data
+        registration_code = validated_data.pop('registration_code')
+        institution = validated_data.pop('institution')
+        phone_number = validated_data.pop("phone_number")
+        national_id = validated_data.pop("national_id")
+        university_code = validated_data.pop('university_code')
+        
+        profile_data = {
+            "first_name": validated_data.pop("first_name"),
+            "last_name": validated_data.pop("last_name"),
+            "phone_number": phone_number,
+            "national_id": national_id,
+            "registration_number": validated_data.pop("registration_number"),
+            "year_of_study": validated_data.pop("year_of_study"),
+            "institution": institution,
+            "course": validated_data.get("course"),
+            "institution_name": institution.name,
+            "university_verified": True,  # Verified through university code
+            "university_code_used": university_code,
+            "is_verified": True,
+        }
+
+        # Create user
+        user = User.objects.create_user(
+            email=validated_data["email"],
+            password=validated_data["password"],
+            role="student",
+            phone_number=phone_number,
+            national_id=national_id,
+            institution=institution.name,
+            is_email_verified=True,
+        )
+
+        # Create StudentProfile
+        student_profile = StudentProfile.objects.create(
+            user=user, **profile_data
+        )
+
+        # Update registration code usage
+        registration_code.current_uses += 1
+        registration_code.save()
+
+        # Log successful code usage
+        request = self.context.get('request')
+        ip_address = self.get_client_ip(request) if request else None
+        user_agent = request.META.get('HTTP_USER_AGENT', '') if request else ''
+        
+        CodeUsageLog.objects.create(
+            registration_code=registration_code,
+            email=user.email,
+            usage_status='success',
+            ip_address=ip_address,
+            user_agent=user_agent,
+            student_profile=student_profile
+        )
+
+        # Log security event
+        SecurityEvent.objects.create(
+            event_type='user_registration',
+            severity='low',
+            description=f'Student registered using university code: {user.email}',
+            user=user,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            metadata={
+                'email': user.email,
+                'role': 'student',
+                'registration_type': 'university_code',
+                'university_code': university_code,
+                'institution_name': institution.name
+            }
+        )
+
+        return student_profile
+
+    def get_client_ip(self, request):
+        """Extract client IP address from request."""
+        if not request:
+            return None
         x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
         if x_forwarded_for:
             ip = x_forwarded_for.split(',')[0]
@@ -222,6 +825,42 @@ class InstitutionRegistrationSerializer(BaseProfileSerializer):
     website = serializers.URLField(required=False)
     position = serializers.CharField(max_length=100, required=False)
     national_id = serializers.CharField(max_length=20)
+
+    def _find_matching_master_institution(self, institution_name, institution_type):
+        """
+        Find a matching MasterInstitution record using fuzzy string matching.
+        Returns the best match if similarity is above threshold, otherwise None.
+        """
+        # First try exact match
+        exact_match = MasterInstitution.objects.filter(
+            name__iexact=institution_name.strip()
+        ).first()
+        if exact_match:
+            return exact_match
+        
+        # Try fuzzy matching with different similarity thresholds
+        master_institutions = MasterInstitution.objects.all()
+        best_match = None
+        best_similarity = 0.0
+        
+        for master_inst in master_institutions:
+            # Calculate similarity ratio
+            similarity = SequenceMatcher(None, 
+                institution_name.lower().strip(), 
+                master_inst.name.lower().strip()
+            ).ratio()
+            
+            # Boost similarity if institution types match
+            if (master_inst.institution_type and 
+                institution_type.lower() in master_inst.institution_type.lower()):
+                similarity += 0.1
+            
+            # Update best match if this is better
+            if similarity > best_similarity and similarity >= 0.85:  # 85% similarity threshold
+                best_similarity = similarity
+                best_match = master_inst
+        
+        return best_match
 
     @transaction.atomic
     def create(self, validated_data):
@@ -246,16 +885,27 @@ class InstitutionRegistrationSerializer(BaseProfileSerializer):
             national_id=validated_data.pop("national_id"),  # Save national_id to user
         )
 
-        # Create Institution
-        institution = Institution.objects.create(  # type: ignore[attr-defined]
-            name=validated_data["institution_name"],
-            institution_type=validated_data["institution_type"],
-            registration_number=validated_data["registration_number"],
-            email=validated_data["email"],
-            phone_number=phone_number,
-            address=validated_data["address"],
-            website=validated_data.get("website"),
+        # Find matching MasterInstitution
+        master_institution = self._find_matching_master_institution(
+            validated_data["institution_name"],
+            validated_data["institution_type"]
         )
+        
+        # Create Institution with optional master_institution link
+        institution_data = {
+            "name": validated_data["institution_name"],
+            "institution_type": validated_data["institution_type"],
+            "registration_number": validated_data["registration_number"],
+            "email": validated_data["email"],
+            "phone_number": phone_number,
+            "address": validated_data["address"],
+            "website": validated_data.get("website"),
+        }
+        
+        if master_institution:
+            institution_data["master_institution"] = master_institution
+        
+        institution = Institution.objects.create(**institution_data)  # type: ignore[attr-defined]
 
         # Create UserRole
         UserRole.objects.create(  # type: ignore[attr-defined]
@@ -269,11 +919,24 @@ class InstitutionRegistrationSerializer(BaseProfileSerializer):
 
         # Log user registration security event
         request = self.context.get('request')
-        ip_address = None
+        ip_address = '127.0.0.1'  # Default IP address
         user_agent = ''
         if request:
-            ip_address = self.get_client_ip(request)
+            ip_address = self.get_client_ip(request) or '127.0.0.1'
             user_agent = request.META.get('HTTP_USER_AGENT', '')
+
+        # Prepare metadata with master institution linking info
+        metadata = {
+            'email': user.email,
+            'role': 'institution_admin',
+            'registration_type': 'institution_admin_registration',
+            'institution_name': validated_data["institution_name"],
+            'master_institution_linked': master_institution is not None
+        }
+        
+        if master_institution:
+            metadata['master_institution_id'] = master_institution.id
+            metadata['master_institution_name'] = master_institution.name
 
         SecurityEvent.objects.create(
             event_type='user_registration',
@@ -282,12 +945,7 @@ class InstitutionRegistrationSerializer(BaseProfileSerializer):
             user=user,
             ip_address=ip_address,
             user_agent=user_agent,
-            metadata={
-                'email': user.email,
-                'role': 'institution_admin',
-                'registration_type': 'institution_admin_registration',
-                'institution_name': validated_data["institution_name"]
-            }
+            metadata=metadata
         )
         
         # Create audit log
@@ -390,10 +1048,10 @@ class EmployerRegistrationSerializer(BaseProfileSerializer):
 
         # Log user registration security event
         request = self.context.get('request')
-        ip_address = None
+        ip_address = '127.0.0.1'  # Default IP address
         user_agent = ''
         if request:
-            ip_address = self.get_client_ip(request)
+            ip_address = self.get_client_ip(request) or '127.0.0.1'
             user_agent = request.META.get('HTTP_USER_AGENT', '')
 
         SecurityEvent.objects.create(
@@ -525,7 +1183,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         # Get request from context for IP address
         request = self.context.get('request')
-        ip_address = self.get_client_ip(request) if request else None
+        ip_address = self.get_client_ip(request) if request else '127.0.0.1'
         
         try:
             data = super().validate(attrs)
@@ -644,15 +1302,19 @@ class PasswordResetRequestSerializer(serializers.Serializer):
         )
         reset_url = url_template.format(uid=uid, token=token)
 
-        # Get request context for logging
+        # Get request context for logging with enhanced IP detection
         request = self.context.get('request')
-        ip_address = None
+        ip_address, ip_metadata = self.get_ip_with_metadata(request)
         user_agent = ''
         if request:
-            ip_address = self.get_client_ip(request)
             user_agent = request.META.get('HTTP_USER_AGENT', '')
 
         # Log password reset request security event
+        metadata = {
+            'email': user.email,
+            'reset_method': 'email_link',
+            'ip_detection': ip_metadata
+        }
         SecurityEvent.objects.create(
             event_type='password_reset_request',
             severity='medium',
@@ -660,10 +1322,7 @@ class PasswordResetRequestSerializer(serializers.Serializer):
             user=user,
             ip_address=ip_address,
             user_agent=user_agent,
-            metadata={
-                'email': user.email,
-                'reset_method': 'email_link'
-            }
+            metadata=metadata
         )
 
         # Create audit log
@@ -721,10 +1380,10 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
     def save(self):
         # Get request context for logging
         request = self.context.get('request')
-        ip_address = None
+        ip_address = '127.0.0.1'  # Default IP address
         user_agent = ''
         if request:
-            ip_address = self.get_client_ip(request)
+            ip_address = self.get_client_ip(request) or '127.0.0.1'
             user_agent = request.META.get('HTTP_USER_AGENT', '')
 
         # Log password reset confirmation security event
@@ -819,11 +1478,11 @@ class InviteSerializer(serializers.ModelSerializer):
         
         # Log invite creation security event
         request = self.context.get('request')
-        ip_address = None
+        ip_address = '127.0.0.1'  # Default IP address
         user_agent = ''
         created_by = None
         if request:
-            ip_address = self.get_client_ip(request)
+            ip_address = self.get_client_ip(request) or '127.0.0.1'
             user_agent = request.META.get('HTTP_USER_AGENT', '')
             created_by = request.user if request.user.is_authenticated else None
 
@@ -916,10 +1575,10 @@ class InvitedUserRegisterSerializer(serializers.ModelSerializer):
         
         # Log invite usage security event
         request = self.context.get('request')
-        ip_address = None
+        ip_address = '127.0.0.1'  # Default IP address
         user_agent = ''
         if request:
-            ip_address = self.get_client_ip(request)
+            ip_address = self.get_client_ip(request) or '127.0.0.1'
             user_agent = request.META.get('HTTP_USER_AGENT', '')
 
         SecurityEvent.objects.create(
@@ -1010,10 +1669,10 @@ class RegisterSerializer(serializers.ModelSerializer):
         
         # Log registration security event
         request = self.context.get('request')
-        ip_address = None
+        ip_address = '127.0.0.1'  # Default IP address
         user_agent = ''
         if request:
-            ip_address = self.get_client_ip(request)
+            ip_address = self.get_client_ip(request) or '127.0.0.1'
             user_agent = request.META.get('HTTP_USER_AGENT', '')
 
         if invite:
@@ -1104,10 +1763,10 @@ class TwoFALoginSerializer(serializers.Serializer):
         if not user:
             # Log failed 2FA login attempt
             request = self.context.get('request')
-            ip_address = None
+            ip_address = '127.0.0.1'  # Default IP address
             user_agent = ''
             if request:
-                ip_address = self.get_client_ip(request)
+                ip_address = self.get_client_ip(request) or '127.0.0.1'
                 user_agent = request.META.get('HTTP_USER_AGENT', '')
 
             SecurityEvent.objects.create(
@@ -1129,10 +1788,10 @@ class TwoFALoginSerializer(serializers.Serializer):
 
         # Log OTP generation security event
         request = self.context.get('request')
-        ip_address = None
+        ip_address = '127.0.0.1'  # Default IP address
         user_agent = ''
         if request:
-            ip_address = self.get_client_ip(request)
+            ip_address = self.get_client_ip(request) or '127.0.0.1'
             user_agent = request.META.get('HTTP_USER_AGENT', '')
 
         SecurityEvent.objects.create(
@@ -1173,10 +1832,10 @@ class VerifyOTPSerializer(serializers.Serializer):
 
     def validate(self, data):
         request = self.context.get('request')
-        ip_address = None
+        ip_address = '127.0.0.1'  # Default IP address
         user_agent = ''
         if request:
-            ip_address = self.get_client_ip(request)
+            ip_address = self.get_client_ip(request) or '127.0.0.1'
             user_agent = request.META.get('HTTP_USER_AGENT', '')
 
         try:

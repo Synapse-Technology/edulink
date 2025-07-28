@@ -402,15 +402,32 @@
     
           <!-- Step 3: Academic Information -->
           <div class="form-step" id="step3">
-            <select name="institution_name" required>
-              <option value="">-- Select Institution --</option>
-              <option value="JKUAT">JKUAT</option>
-              <option value="Kenyatta University">Kenyatta University</option>
-              <option value="UoN">University of Nairobi</option> 
-              <option value="Moi">Moi University</option>
-              <option value="Egerton">Egerton University</option>
-              <option value="Mku">Mount Kenya University</option>
-            </select>
+            <!-- Registration Method Selection -->
+            <div class="registration-method-selector">
+              <label style="color: #c8e6c9; margin-bottom: 10px; display: block; font-weight: 600;">Choose Registration Method:</label>
+              <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <button type="button" class="method-btn active" data-method="search" style="flex: 1; padding: 10px; border: 2px solid #c8e6c9; background: rgba(200, 230, 201, 0.1); color: #c8e6c9; border-radius: 8px; cursor: pointer; font-weight: 600;">Search Institution</button>
+                <button type="button" class="method-btn" data-method="code" style="flex: 1; padding: 10px; border: 2px solid rgba(200, 230, 201, 0.3); background: transparent; color: rgba(200, 230, 201, 0.7); border-radius: 8px; cursor: pointer; font-weight: 600;">University Code</button>
+              </div>
+            </div>
+
+            <!-- Search Method -->
+            <div id="searchMethod" class="registration-method">
+              <div class="institution-search-container" style="position: relative; margin-bottom: 15px;">
+                <input type="text" id="institutionSearch" placeholder="Search for your institution..." style="width: 100%; padding: 12px 14px; border: none; border-radius: 10px; background-color: rgba(255, 255, 255, 0.82); color: #222; font-size: 15px;" />
+                <div id="searchResults" class="search-results" style="position: absolute; top: 100%; left: 0; right: 0; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-height: 200px; overflow-y: auto; z-index: 1000; display: none;"></div>
+              </div>
+              <input type="hidden" name="institution_id" id="selectedInstitutionId" />
+              <div id="selectedInstitution" class="selected-institution" style="display: none; padding: 12px; background: rgba(200, 230, 201, 0.1); border: 1px solid #c8e6c9; border-radius: 8px; margin-bottom: 15px; color: #c8e6c9;"></div>
+            </div>
+
+            <!-- University Code Method -->
+            <div id="codeMethod" class="registration-method" style="display: none;">
+              <input type="text" id="universityCode" placeholder="Enter University Code (e.g., UON2024, JKUAT2024)" style="width: 100%; padding: 12px 14px; border: none; border-radius: 10px; background-color: rgba(255, 255, 255, 0.82); color: #222; font-size: 15px; margin-bottom: 15px;" />
+              <button type="button" id="validateCodeBtn" style="width: 100%; padding: 10px; background: linear-gradient(90deg,rgb(56, 142, 135) 0%,rgb(69, 197, 159) 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; margin-bottom: 15px;">Validate Code</button>
+              <div id="codeValidationResult" style="display: none;"></div>
+            </div>
+
             <input type="text" name="registration_number" placeholder="University Registration Number" required />
             <input type="number" name="academic_year" placeholder="Current Year of Study" required min="1" max="8" />
             <input type="text" name="course_code" placeholder="Course Code (leave blank if unsure)" />
@@ -435,7 +452,39 @@
   </main>
 
   <script src="assets/js/edulink-chatbot.js"></script>
+  <script src="assets/js/institution-search.js"></script>
   <script>
+    // Define global functions before DOM loads
+    function togglePassword(element) {
+      const passwordInput = element.previousElementSibling;
+      const icon = element.querySelector('i');
+      
+      if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        icon.classList.remove('bi-eye-fill');
+        icon.classList.add('bi-eye-slash-fill');
+      } else {
+        passwordInput.type = 'password';
+        icon.classList.remove('bi-eye-slash-fill');
+        icon.classList.add('bi-eye-fill');
+      }
+    }
+
+    function showErrorToast(message) {
+      const errorToast = document.getElementById('errorToast');
+      const errorToastMsg = document.getElementById('errorToastMsg');
+      errorToastMsg.textContent = message;
+      errorToast.style.display = 'flex';
+    }
+
+    function hideErrorToast() {
+      const errorToast = document.getElementById('errorToast');
+      errorToast.style.display = 'none';
+    }
+
+    // Define API base URL
+    const API_BASE_URL = 'http://127.0.0.1:8000/api';
+    
     document.addEventListener('DOMContentLoaded', function() {
       let currentStep = 0;
       const steps = document.querySelectorAll('.form-step');
@@ -445,6 +494,12 @@
       const form = document.getElementById('registerForm');
       const formMessage = document.getElementById('formMessage');
       const stepDots = document.querySelectorAll('.step-dot');
+      
+      // Institution search variables
+      let selectedInstitution = null;
+      let currentRegistrationMethod = 'search';
+
+
 
       function showStep(stepIndex) {
         steps.forEach((step, index) => {
@@ -462,9 +517,14 @@
 
       function validateStep(stepIndex) {
         let valid = true;
-        const inputs = steps[stepIndex].querySelectorAll('input, select');
+        const inputs = steps[stepIndex].querySelectorAll('input:not([type="hidden"]), select');
         
         inputs.forEach(input => {
+          // Skip validation for search inputs and hidden fields
+          if (input.id === 'institutionSearch' || input.id === 'universityCode') {
+            return;
+          }
+          
           if (!input.checkValidity()) {
             input.reportValidity(); // Shows the browser's default bubble message
             valid = false;
@@ -484,6 +544,26 @@
              }
           }
         }
+        
+        // Validate institution selection for step 3
+        if (stepIndex === 2) {
+          const selectedInstitutionId = document.getElementById('selectedInstitutionId').value;
+          
+          if (!selectedInstitutionId) {
+            if (currentRegistrationMethod === 'search') {
+              formMessage.textContent = "Please search and select your institution.";
+            } else {
+              formMessage.textContent = "Please enter and validate your university code.";
+            }
+            formMessage.style.color = "#ffb3b3";
+            valid = false;
+          } else if (valid) {
+            if (formMessage.textContent.includes("institution") || formMessage.textContent.includes("university code")) {
+              formMessage.textContent = "";
+            }
+          }
+        }
+        
         return valid;
       }
 
@@ -520,6 +600,22 @@
         const data = Object.fromEntries(formData.entries());
         delete data.confirm_password;
         delete data.course_code; // Remove course code from data before sending
+        
+        // Add registration method indicator
+        data.registration_method = currentRegistrationMethod;
+        
+        // Fix method-specific data preparation
+        if (currentRegistrationMethod === 'code') {
+          // For university code method, remove institution_name to prevent wrong method detection
+          delete data.institution_name;
+          // Ensure university_code is included
+          data.university_code = document.getElementById('universityCode').value;
+        } else {
+          // For search method, ensure institution_name is included
+          if (selectedInstitution) {
+            data.institution_name = selectedInstitution.name;
+          }
+        }
 
         try {
           const response = await fetch('http://127.0.0.1:8000/api/auth/register/', {
@@ -554,32 +650,177 @@
         }
       });
 
+      // Initialize institution search and method switching
+      initializeInstitutionSearch();
+      initializeMethodSwitching();
+      initializeUniversityCodeValidation();
+      
+      // Show initial step
       showStep(currentStep);
 
     });
-    function togglePassword(span) {
-      const input = span.previousElementSibling;
-      const icon = span.querySelector('i');
-      if (input.type === "password") {
-        input.type = "text";
-        icon.className = 'bi bi-eye-slash-fill';
+    
+    // Institution search functionality is now handled by the external script
+    // The optimized search manager will be initialized automatically
+    
+    function initializeInstitutionSearch() {
+      // The new search manager handles all search functionality
+      // We just need to listen for institution selection events
+      document.addEventListener('institutionSelected', function(event) {
+        const institution = event.detail.institution;
+        handleInstitutionSelection(institution);
+      });
+    }
+    
+    function handleInstitutionSelection(institution) {
+      selectedInstitution = institution;
+      const form = document.getElementById('registrationForm');
+      
+      // Set the institution ID for form submission
+      if (institution.status === 'registered') {
+        // Also store the institution name for backward compatibility
+        let institutionNameInput = form.querySelector('input[name="institution_name"]');
+        if (!institutionNameInput) {
+          institutionNameInput = document.createElement('input');
+          institutionNameInput.type = 'hidden';
+          institutionNameInput.name = 'institution_name';
+          form.appendChild(institutionNameInput);
+        }
+        institutionNameInput.value = institution.name;
       } else {
-        input.type = "password";
-        icon.className = 'bi bi-eye-fill';
+        // For non-registered institutions, we'll handle this in the backend
+        let institutionNameInput = form.querySelector('input[name="institution_name"]');
+        if (!institutionNameInput) {
+          institutionNameInput = document.createElement('input');
+          institutionNameInput.type = 'hidden';
+          institutionNameInput.name = 'institution_name';
+          form.appendChild(institutionNameInput);
+        }
+        institutionNameInput.value = institution.name;
       }
     }
-    // Add error toast functions
-    function showErrorToast(message) {
-      const toast = document.getElementById('errorToast');
-      const msg = document.getElementById('errorToastMsg');
-      msg.innerHTML = message;
-      toast.style.display = 'flex';
-      toast.style.animation = 'fadeInDown 0.5s';
+    
+    // Method switching functionality
+    function initializeMethodSwitching() {
+      const methodBtns = document.querySelectorAll('.method-btn');
+      const searchMethod = document.getElementById('searchMethod');
+      const codeMethod = document.getElementById('codeMethod');
+      
+      methodBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+          const method = this.dataset.method;
+          currentRegistrationMethod = method;
+          
+          // Update button styles
+          methodBtns.forEach(b => {
+            b.classList.remove('active');
+            b.style.border = '2px solid rgba(200, 230, 201, 0.3)';
+            b.style.background = 'transparent';
+            b.style.color = 'rgba(200, 230, 201, 0.7)';
+          });
+          
+          this.classList.add('active');
+          this.style.border = '2px solid #c8e6c9';
+          this.style.background = 'rgba(200, 230, 201, 0.1)';
+          this.style.color = '#c8e6c9';
+          
+          // Show/hide methods
+          if (method === 'search') {
+            searchMethod.style.display = 'block';
+            codeMethod.style.display = 'none';
+          } else {
+            searchMethod.style.display = 'none';
+            codeMethod.style.display = 'block';
+          }
+          
+          // Clear previous selections
+          clearInstitutionSelection();
+        });
+      });
     }
-    function hideErrorToast() {
-      const toast = document.getElementById('errorToast');
-      toast.style.display = 'none';
+    
+    // University code validation
+    function initializeUniversityCodeValidation() {
+      const validateBtn = document.getElementById('validateCodeBtn');
+      const universityCodeInput = document.getElementById('universityCode');
+      const validationResult = document.getElementById('codeValidationResult');
+      
+      validateBtn.addEventListener('click', async function() {
+        const code = universityCodeInput.value.trim();
+        
+        if (!code) {
+          showValidationResult('Please enter a university code', 'error');
+          return;
+        }
+        
+        this.textContent = 'Validating...';
+        this.disabled = true;
+        
+        try {
+          const response = await fetch(`${API_BASE_URL}/institutions/validate-code/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ university_code: code })
+          });
+          
+          const data = await response.json();
+          
+          if (response.ok && data.valid) {
+            showValidationResult(`✓ Valid code for ${data.institution.display_name}`, 'success');
+            
+            // Set the institution data for form submission
+            selectedInstitution = data.institution;
+            const selectedInstitutionId = document.getElementById('selectedInstitutionId');
+            selectedInstitutionId.value = data.institution.id;
+            
+            // Remove any existing hidden institution name inputs to prevent duplicates
+            const existingInputs = form.querySelectorAll('input[name="institution_name"]');
+            existingInputs.forEach(input => input.remove());
+            
+            // Store institution data for later use (will be added in form submission based on method)
+            window.validatedInstitution = data.institution;
+            
+          } else {
+            showValidationResult('⚠ Invalid university code or institution not verified', 'error');
+          }
+        } catch (error) {
+          console.error('Validation error:', error);
+          showValidationResult('Validation failed. Please try again.', 'error');
+        }
+        
+        this.textContent = 'Validate Code';
+        this.disabled = false;
+      });
     }
+    
+    function showValidationResult(message, type) {
+      const validationResult = document.getElementById('codeValidationResult');
+      const color = type === 'success' ? '#4caf50' : '#f44336';
+      const bgColor = type === 'success' ? 'rgba(76, 175, 80, 0.1)' : 'rgba(244, 67, 54, 0.1)';
+      
+      validationResult.innerHTML = `
+        <div style="padding: 12px; background: ${bgColor}; border: 1px solid ${color}; border-radius: 8px; color: ${color}; font-weight: 600;">
+          ${message}
+        </div>
+      `;
+      validationResult.style.display = 'block';
+    }
+    
+    function clearInstitutionSelection() {
+      selectedInstitution = null;
+      document.getElementById('institutionSearch').value = '';
+      document.getElementById('universityCode').value = '';
+      document.getElementById('selectedInstitution').style.display = 'none';
+      document.getElementById('codeValidationResult').style.display = 'none';
+      document.getElementById('selectedInstitutionId').value = '';
+      
+      // Remove any existing hidden institution name inputs
+      const form = document.getElementById('registerForm');
+      const existingInputs = form.querySelectorAll('input[name="institution_name"]');
+      existingInputs.forEach(input => input.remove());
+    }
+
+
   </script>
 </body>
 </html>

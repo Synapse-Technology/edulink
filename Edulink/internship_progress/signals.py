@@ -4,6 +4,9 @@ from django.utils import timezone
 from application.models import Application
 from dashboards.models import InternshipProgress, AnalyticsEvent
 from .models import LogbookEntry
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @receiver(post_save, sender=Application)
@@ -48,7 +51,7 @@ def update_progress_on_application_change(sender, instance, created, **kwargs):
     
     except Exception as e:
         # Log error but don't break the application flow
-        print(f"Error updating progress for application {instance.id}: {e}")
+        logger.error(f'Error updating progress for application {instance.id}: {e}', exc_info=True)
 
 
 @receiver(post_delete, sender=Application)
@@ -87,7 +90,7 @@ def update_progress_on_application_delete(sender, instance, **kwargs):
         progress.save()
     
     except Exception as e:
-        print(f"Error updating progress after application deletion: {e}")
+        logger.error(f'Error updating progress after application deletion: {e}', exc_info=True)
 
 
 @receiver(post_save, sender=LogbookEntry)
@@ -116,4 +119,4 @@ def update_progress_on_logbook_entry(sender, instance, created, **kwargs):
             )
     
     except Exception as e:
-        print(f"Error creating analytics event for logbook entry {instance.id}: {e}")
+        logger.error(f'Error creating analytics event for logbook entry {instance.id}: {e}', exc_info=True)

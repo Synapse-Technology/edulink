@@ -1,7 +1,12 @@
-from rest_framework import generics, status
+from rest_framework import generics, status, permissions
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.decorators import api_view, permission_classes
 from django.shortcuts import get_object_or_404
+from django.contrib.auth import get_user_model
+from django.db import transaction
+from django.utils import timezone
+from django.core.exceptions import ValidationError
 from .models import Application
 from .serializers import (
     ApplicationSerializer,
@@ -11,8 +16,13 @@ from .serializers import (
     ApplicationListSerializer,
     ApplicationStatisticsSerializer,
 )
+from .validators import ApplicationValidator, InternshipValidator
 from internship.models.internship import Internship
 from dashboards.models import StudentActivityLog
+from notifications.models import Notification
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class ApplyToInternshipView(generics.CreateAPIView):
@@ -20,16 +30,44 @@ class ApplyToInternshipView(generics.CreateAPIView):
     permission_classes = [IsAuthenticated]
 
     def perform_create(self, serializer):
-        application = serializer.save(student=self.request.user)
-        # Log activity for streaks
-        from django.utils import timezone
-        student_profile = getattr(self.request.user, 'student_profile', None)
-        if student_profile:
-            StudentActivityLog.objects.get_or_create(
-                student=student_profile,
-                activity_date=timezone.now().date(),
-                activity_type='applied_internship'
-            )
+        """Create application with comprehensive validation"""
+        internship = serializer.validated_data['internship']
+        user = self.request.user
+        
+        try:
+            # Comprehensive validation
+            ApplicationValidator.validate_internship_eligibility(user, internship)
+            ApplicationValidator.validate_duplicate_application(user, internship)
+            ApplicationValidator.validate_application_limit(user, internship)
+            ApplicationValidator.validate_internship_requirements(user, internship)
+            
+            # Save the application
+            application = serializer.save(student=user)
+            
+            # Log activity for streaks
+            student_profile = getattr(user, 'student_profile', None)
+            if student_profile:
+                StudentActivityLog.objects.get_or_create(
+                    student=student_profile,
+                    activity_date=timezone.now().date(),
+                    activity_type='applied_internship'
+                )
+            
+            # Create notification
+            try:
+                Notification.objects.create(
+                    user=internship.employer.user,
+                    title="New Application Received",
+                    message=f"New application from {user.get_full_name()} for {internship.title}",
+                    notification_type='application_received'
+                )
+            except Exception as e:
+                logger.error(f"Failed to create notification: {e}")
+                
+        except ValidationError as e:
+            # Convert Django ValidationError to DRF ValidationError
+            from rest_framework.exceptions import ValidationError as DRFValidationError
+            raise DRFValidationError(e.messages if hasattr(e, 'messages') else str(e))
 
     def create(self, request, *args, **kwargs):
         internship = get_object_or_404(Internship, pk=request.data.get("internship_id"))
@@ -95,9 +133,46 @@ class ApplicationStatusUpdateView(generics.UpdateAPIView):
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
+        new_status = request.data.get('status')
+        
+        # Validate status transition
+        if new_status:
+            try:
+                ApplicationValidator.validate_application_status_transition(
+                    instance, new_status, request.user
+                )
+            except ValidationError as e:
+                from rest_framework.exceptions import ValidationError as DRFValidationError
+                raise DRFValidationError(e.messages if hasattr(e, 'messages') else str(e))
+        
         serializer = self.get_serializer(instance, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
+        
+        # Store old status for comparison
+        old_status = instance.status
         self.perform_update(serializer)
+        
+        # Set status-specific timestamps
+        if new_status and new_status != old_status:
+            if new_status == 'under_review':
+                instance.reviewed_at = timezone.now()
+            elif new_status == 'accepted':
+                instance.accepted_at = timezone.now()
+            elif new_status == 'rejected':
+                instance.rejected_at = timezone.now()
+            instance.save()
+            
+            # Create status change notification
+            try:
+                Notification.objects.create(
+                    user=instance.student,
+                    title="Application Status Updated",
+                    message=f"Your application for {instance.internship.title} has been {new_status.replace('_', ' ')}",
+                    notification_type='application_status_change'
+                )
+            except Exception as e:
+                logger.error(f"Failed to create status change notification: {e}")
+        
         return Response(
             {
                 "message": "Application status updated",

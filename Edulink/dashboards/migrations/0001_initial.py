@@ -10,7 +10,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ("application", "0002_initial"),
+        ("application", "0001_initial"),
         ("internship", "0001_initial"),
         ("users", "0003_studentprofile_github_url_and_more"),
     ]

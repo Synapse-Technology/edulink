@@ -41,11 +41,7 @@ def handle_user_login(sender, request, user, **kwargs):
                 'ip_address': ip_address,
                 'user_agent': user_agent,
                 'is_active': True,
-                'last_activity': timezone.now(),
-                'device_info': {
-                    'user_agent': user_agent,
-                    'ip_address': ip_address
-                }
+                'last_activity': timezone.now()
             }
         )
     
@@ -53,8 +49,8 @@ def handle_user_login(sender, request, user, **kwargs):
     AuditLog.objects.create(
         action='login',
         user=user,
-        model_name='User',
-        object_id=str(user.pk),
+        resource_type='User',
+        resource_id=str(user.pk),
         description=f'User {user.email} logged in',
         ip_address=ip_address,
         user_agent=user_agent,
@@ -98,8 +94,8 @@ def handle_user_logout(sender, request, user, **kwargs):
         AuditLog.objects.create(
             action='logout',
             user=user,
-            model_name='User',
-            object_id=str(user.pk),
+            resource_type='User',
+            resource_id=str(user.pk),
             description=f'User {user.email} logged out',
             ip_address=ip_address,
             user_agent=user_agent,
@@ -190,8 +186,8 @@ def handle_model_save(sender, instance, created, **kwargs):
         AuditLog.objects.create(
             action=action,
             user=user,
-            model_name=model_name,
-            object_id=str(instance.pk),
+            resource_type=model_name,
+            resource_id=str(instance.pk),
             description=f'{action.title()} {model_name} object',
             ip_address='127.0.0.1',  # Default IP, should be captured from request context
             metadata={
@@ -229,8 +225,8 @@ def handle_model_delete(sender, instance, **kwargs):
         AuditLog.objects.create(
             action='delete',
             user=user,
-            model_name=model_name,
-            object_id=str(instance.pk),
+            resource_type=model_name,
+            resource_id=str(instance.pk),
             description=f'Delete {model_name} object',
             ip_address='127.0.0.1',  # Default IP, should be captured from request context
             metadata={
