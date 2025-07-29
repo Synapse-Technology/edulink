@@ -315,7 +315,15 @@
           body: JSON.stringify({ email, password })
         });
         
-        const data = await response.json();
+        let data;
+        try {
+          data = await response.json();
+        } catch (jsonErr) {
+          // Not valid JSON, probably a server error
+          formMessage.textContent = 'Server error: Invalid response. Please try again later.';
+          formMessage.style.color = '#ffb3b3';
+          return;
+        }
         
         if (response.ok) {
           // Store tokens and user data
@@ -334,7 +342,7 @@
           // Route based on user role
           setTimeout(() => {
             if (data.user.role === 'student') {
-              window.location.href = 'dashboards/student_dash.html';
+              window.location.href = 'dashboards/student/student_dash.html';
             } else if (data.user.role === 'employer') {
               window.location.href = 'dashboards/employer_dash.html';
             } else if (data.user.role === 'institution_admin') {

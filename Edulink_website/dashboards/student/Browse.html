@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Browse Internships - EduLink KE</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <link href="../../assets/css/main.css" rel="stylesheet">
+  <script src="../../assets/js/main.js"></script>
+  <link href="../../assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+  <link href="https://unpkg.com/phosphor-icons@2.0.3/src/css/phosphor.css" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+    }
+    @media (min-width: 768px) {
+      #sidebar {
+        transform: translateX(0) !important;
+      }
+    }
+    /* --- DARK MODE THEME (copied from student_dash.html) --- */
+    .dark-mode {
+      background: #181c24 !important;
+      color: #eaf6fb !important;
+      transition: background 0.3s, color 0.3s;
+    }
+    .dark-mode aside#sidebar {
+      background: #23272f !important;
+      color: #eaf6fb !important;
+      border-right: 1px solid #23272f;
+    }
+    .dark-mode aside#sidebar a {
+      color: #eaf6fb !important;
+      background: transparent !important;
+    }
+    .dark-mode aside#sidebar a.bg-teal-700, .dark-mode aside#sidebar a:hover {
+      background: #14b8a6 !important;
+      color: #fff !important;
+    }
+    .dark-mode main, .dark-mode .bg-white, .dark-mode .bg-gray-50, .dark-mode .bg-teal-50, .dark-mode .bg-blue-50 {
+      background: #23272f !important;
+      color: #eaf6fb !important;
+      border-color: #23272f !important;
+      box-shadow: 0 2px 16px 0 #14b8a622 !important;
+    }
+    .dark-mode .rounded-xl, .dark-mode .rounded-2xl {
+      box-shadow: 0 2px 16px 0 #14b8a622 !important;
+    }
+    .dark-mode .shadow, .dark-mode .shadow-lg, .dark-mode .shadow-xl {
+      box-shadow: 0 2px 16px 0 #14b8a622 !important;
+    }
+    .dark-mode .border, .dark-mode .border-teal-100, .dark-mode .border-gray-200 {
+      border-color: #23272f !important;
+    }
+    .dark-mode .text-teal-700, .dark-mode .text-teal-800 {
+      color: #6ee7b7 !important;
+    }
+    .dark-mode .text-gray-500, .dark-mode .text-gray-600, .dark-mode .text-gray-700, .dark-mode .text-gray-800 {
+      color: #b6c2d1 !important;
+    }
+    .dark-mode .profile-pic {
+      border-color: #6ee7b7 !important;
+      box-shadow: 0 1px 8px #14b8a6cc;
+    }
+    .dark-mode .rounded-full, .dark-mode .rounded-lg {
+      background: #23272f !important;
+      color: #eaf6fb !important;
+    }
+    .dark-mode .bg-teal-600 {
+      background: #14b8a6 !important;
+      color: #fff !important;
+    }
+    .dark-mode .hover\:bg-teal-700:hover {
+      background: #0d9488 !important;
+      color: #fff !important;
+    }
+    .dark-mode .border-t {
+      border-top: 1px solid #23272f !important;
+    }
+    .dark-mode .border-b {
+      border-bottom: 1px solid #23272f !important;
+    }
+    .dark-mode .shadow-sm {
+      box-shadow: 0 1px 8px 0 #14b8a622 !important;
+    }
+    .dark-mode .footer, .dark-mode footer {
+      background: #181c24 !important;
+      color: #b6c2d1 !important;
+      border-top: 1px solid #23272f !important;
+    }
+    .dark-mode .active, .dark-mode .bg-teal-700, .dark-mode .selected {
+      box-shadow: 0 0 16px 2px #14b8a6cc !important;
+      background: #14b8a6 !important;
+      color: #fff !important;
+    }
+    .dark-mode *, .dark-mode *:before, .dark-mode *:after {
+      transition: background 0.3s, color 0.3s, box-shadow 0.3s, border-color 0.3s;
+    }
+    #notificationBtn, #darkModeToggle {
+      background: none !important;
+      border: none !important;
+      box-shadow: none !important;
+      padding: 0 !important;
+    }
+    .dark-mode #notificationBtn, .dark-mode #darkModeToggle {
+      background: none !important;
+      border: none !important;
+      box-shadow: none !important;
+      padding: 0 !important;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen relative">
+  <div class="flex flex-col md:flex-row m-0 p-0 h-screen">
+    <!-- Sidebar (responsive, sticky on desktop) -->
+    <aside id="sidebar" class="hidden md:flex flex-col justify-between z-30 p-0 fixed md:static top-0 left-0 h-full md:h-screen w-[230px] bg-teal-500 text-white transition-transform duration-300" style="background: #14b8a6;">
+      <div>
+        <div class="text-center py-6 mb-2 border-b border-teal-700">
+          <span style="font-family: 'Pacifico', cursive; font-size: 1.7rem; color: #fff; font-weight: 400; letter-spacing: 1px;">EduLink</span>
+        </div>
+        <nav class="flex flex-col pt-8 px-4 gap-1">
+          <a href="./student_dash.html" class="block px-3 py-2 rounded hover:bg-teal-700 flex items-center text-sm"><i class="ph ph-gauge mr-3 text-base"></i>Dashboard</a>
+          <a href="./Browse.html" class="block px-3 py-2 rounded hover:bg-teal-700 bg-teal-700 flex items-center text-sm"><i class="ph ph-magnifying-glass mr-3 text-base"></i>Browse Internships</a>
+          <a href="./application_tracker.html" class="block px-3 py-2 rounded hover:bg-teal-700 flex items-center text-sm"><i class="ph ph-list-checks mr-3 text-base"></i>Application Tracker</a>
+          <a href="./my_internships.html" class="block px-3 py-2 rounded hover:bg-teal-700 flex items-center text-sm"><i class="ph ph-briefcase mr-3 text-base"></i>My Internship</a>
+          <a href="./progress.html" class="block px-3 py-2 rounded hover:bg-teal-700 flex items-center text-sm"><i class="ph ph-book-open mr-3 text-base"></i>Reports & Logbooks</a>
+          <a href="#" class="block px-3 py-2 rounded hover:bg-teal-700 flex items-center text-sm"><i class="ph ph-file-text mr-3 text-base"></i>CV & Toolkit</a>
+          <a href="#" class="block px-3 py-2 rounded hover:bg-teal-700 flex items-center text-sm"><i class="ph ph-lifebuoy mr-3 text-base"></i>Support</a>
+        </nav>
+      </div>
+      <div class="mt-auto px-4 pb-6 pt-4">
+        <a href="#" id="logoutBtn" class="block px-3 py-2 rounded hover:bg-teal-700 flex items-center text-sm"><i class="ph ph-sign-out mr-3 text-base"></i>Log Out</a>
+      </div>
+    </aside>
+    <!-- Mobile menu button -->
+    <button id="mobileMenuBtn" class="md:hidden fixed top-4 left-4 z-40 bg-teal-600 text-white p-2 rounded-full shadow-lg focus:outline-none" aria-label="Open menu">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+    </button>
+    <!-- Main Content (responsive, scrollable) -->
+    <main class="flex-1 p-2 sm:p-4 md:p-6 min-h-0 h-screen md:ml-0 ml-0 overflow-y-auto" style="background: linear-gradient(120deg, #f0fdfa 0%, #e0f2fe 100%);">
+      <!-- Rounded Pill Header (copy from dashboard) -->
+      <div class="flex items-center justify-end h-14 bg-white rounded-full shadow mb-6 px-4 w-full max-w-full mt-6">
+        <a href="./messages.html" class="flex items-center justify-center mr-4" title="Messages" style="background: none; border: none; padding: 0;"><i class="bi bi-chat-dots" style="font-size: 1.5rem; color: #14b8a6; text-shadow: 0 1px 2px rgba(20,184,166,0.15);"></i></a>
+        <button class="header-action flex items-center justify-center mr-4" title="Notifications" style="background: none; border: none; padding: 0;"><i class="bi bi-bell" style="font-size: 1.5rem; color: #14b8a6; text-shadow: 0 1px 2px rgba(20,184,166,0.15);"></i></button>
+        <a href="./profile.html" class="flex items-center justify-center ml-1" title="Profile">
+          <img id="profilePic" src="../../assets/img/default.jpg" class="profile-pic border-4" style="border-color: #0d9488;" alt="Profile" />
+        </a>
+        <button id="darkModeToggle" class="header-action flex items-center justify-center ml-1" title="Toggle dark mode" style="background: none; border: none; padding: 0; margin-left: 1rem;"><i id="darkModeIcon" class="bi bi-moon" style="font-size: 1.5rem; color: #14b8a6; text-shadow: 0 1px 2px rgba(20,184,166,0.15);"></i></button>
+      </div>
+
+      <h1 class="text-2xl font-bold text-teal-800 mb-6">Browse Internships</h1>
+
+      <!-- Search & Filters -->
+      <div class="flex flex-col md:flex-row items-center gap-4 mb-6">
+        <input type="text" placeholder="Search by title or company..." class="w-full md:w-1/2 px-4 py-2 rounded border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-400">
+        <select class="px-3 py-2 rounded border text-sm border-gray-300 shadow-sm">
+          <option value="">Location</option>
+          <option>Nairobi</option>
+          <option>Mombasa</option>
+          <option>Remote</option>
+        </select>
+        <select class="px-3 py-2 rounded border text-sm border-gray-300 shadow-sm">
+          <option value="">Category</option>
+          <option>Software</option>
+          <option>Finance</option>
+          <option>Marketing</option>
+        </select>
+        <select class="px-3 py-2 rounded border text-sm border-gray-300 shadow-sm">
+          <option value="">Duration</option>
+          <option>1 Month</option>
+          <option>2 Months</option>
+          <option>3+ Months</option>
+        </select>
+      </div>
+
+      <!-- Internship Cards -->
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="bg-white p-5 rounded-lg shadow">
+          <div class="flex justify-between items-center mb-2">
+            <h3 class="text-lg font-semibold">Software Developer Intern</h3>
+            <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">✅ Verified</span>
+          </div>
+          <p class="text-sm text-gray-600">Safaricom • Nairobi • Remote</p>
+          <p class="text-xs text-gray-500 mt-1">Duration: 3 Months</p>
+          <button class="mt-3 bg-teal-600 text-white px-4 py-2 text-sm rounded hover:bg-teal-700">Apply Now</button>
+        </div>
+
+        <div class="bg-white p-5 rounded-lg shadow">
+          <div class="flex justify-between items-center mb-2">
+            <h3 class="text-lg font-semibold">Data Analyst Assistant</h3>
+            <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">✅ Verified</span>
+          </div>
+          <p class="text-sm text-gray-600">Kenya Bureau of Statistics • Nairobi</p>
+          <p class="text-xs text-gray-500 mt-1">Duration: 2 Months</p>
+          <button class="mt-3 bg-teal-600 text-white px-4 py-2 text-sm rounded hover:bg-teal-700">Apply Now</button>
+        </div>
+
+        <div class="bg-white p-5 rounded-lg shadow">
+          <div class="flex justify-between items-center mb-2">
+            <h3 class="text-lg font-semibold">Marketing Intern</h3>
+            <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">✅ Verified</span>
+          </div>
+          <p class="text-sm text-gray-600">Equity Group Foundation • Remote</p>
+          <p class="text-xs text-gray-500 mt-1">Duration: 1 Month</p>
+          <button class="mt-3 bg-teal-600 text-white px-4 py-2 text-sm rounded hover:bg-teal-700">Apply Now</button>
+        </div>
+      </div>
+
+      <!-- Load More -->
+      <div class="text-center mt-8">
+        <button class="px-6 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm">Load More</button>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // Mobile sidebar toggle
+    const sidebar = document.getElementById('sidebar');
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    let sidebarOpen = false;
+    mobileMenuBtn.addEventListener('click', function() {
+      sidebarOpen = !sidebarOpen;
+      if (sidebarOpen) {
+        sidebar.classList.remove('hidden');
+        sidebar.classList.add('flex', 'fixed', 'top-0', 'left-0', 'h-full', 'w-[230px]', 'z-50');
+        document.body.classList.add('overflow-hidden');
+      } else {
+        sidebar.classList.add('hidden');
+        sidebar.classList.remove('flex', 'fixed', 'top-0', 'left-0', 'h-full', 'w-[230px]', 'z-50');
+        document.body.classList.remove('overflow-hidden');
+      }
+    });
+    // Close sidebar on outside click (mobile)
+    document.addEventListener('click', function(e) {
+      if (sidebarOpen && !sidebar.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
+        sidebar.classList.add('hidden');
+        sidebar.classList.remove('flex', 'fixed', 'top-0', 'left-0', 'h-full', 'w-[230px]', 'z-50');
+        document.body.classList.remove('overflow-hidden');
+        sidebarOpen = false;
+      }
+    });
+    // Unified profile picture loading function
+    function loadProfilePicture() {
+      const profilePic = document.getElementById('profilePic');
+      if (!profilePic) return;
+
+      // Priority 1: Check localStorage first (fastest, most recent)
+      const savedPhoto = localStorage.getItem('profilePhoto');
+      if (savedPhoto) {
+        profilePic.src = savedPhoto;
+        return;
+      }
+
+      // Priority 2: Fetch from API
+      const accessToken = localStorage.getItem('access_token');
+      if (!accessToken) return;
+
+      fetch('http://localhost:8000/api/users/student/profile/', {
+        headers: { 'Authorization': 'Bearer ' + accessToken }
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.profile_picture) {
+            profilePic.src = data.profile_picture;
+            localStorage.setItem('profilePhoto', data.profile_picture);
+          } else {
+            profilePic.src = '../../assets/img/default.jpg';
+          }
+        })
+        .catch(() => { 
+          profilePic.src = '../../assets/img/default.jpg'; 
+        });
+    }
+
+    // Shared function to update header profile picture
+    function updateHeaderProfilePicture(imageSrc) {
+      const profilePic = document.getElementById('profilePic');
+      if (profilePic) {
+        profilePic.src = imageSrc;
+      }
+    }
+
+    // Global function for other pages to use
+    window.updateHeaderProfilePicture = updateHeaderProfilePicture;
+
+    // Load profile picture
+    loadProfilePicture();
+
+    // --- DARK MODE TOGGLE LOGIC ---
+    const darkModeToggle = document.getElementById('darkModeToggle');
+    const darkModeIcon = document.getElementById('darkModeIcon');
+    function setDarkMode(enabled) {
+      if (enabled) {
+        document.body.classList.add('dark-mode');
+        if (darkModeIcon) {
+          darkModeIcon.classList.remove('bi-moon');
+          darkModeIcon.classList.add('bi-sun');
+        }
+      } else {
+        document.body.classList.remove('dark-mode');
+        if (darkModeIcon) {
+          darkModeIcon.classList.remove('bi-sun');
+          darkModeIcon.classList.add('bi-moon');
+        }
+      }
+    }
+    // Load preference on page load
+    const darkPref = localStorage.getItem('darkMode');
+    setDarkMode(darkPref === 'true');
+    if (darkModeToggle) {
+      darkModeToggle.addEventListener('click', function() {
+        const isDark = document.body.classList.toggle('dark-mode');
+        if (darkModeIcon) {
+          if (isDark) {
+            darkModeIcon.classList.remove('bi-moon');
+            darkModeIcon.classList.add('bi-sun');
+          } else {
+            darkModeIcon.classList.remove('bi-sun');
+            darkModeIcon.classList.add('bi-moon');
+          }
+        }
+        localStorage.setItem('darkMode', isDark);
+      });
+    }
+
+    // --- Logout Button Functionality ---
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        localStorage.removeItem('access_token');
+        window.location.href = '/Edulink_website/login.html';
+      });
+    }
+  </script>
+</body> 

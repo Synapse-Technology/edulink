@@ -53,8 +53,8 @@ class SecurityMiddleware(MiddlewareMixin):
         if threats:
             self.handle_threats(request, threats)
         
-        # Session security
-        if request.user.is_authenticated:
+        # Session security (only if user is available and authenticated)
+        if hasattr(request, 'user') and request.user.is_authenticated:
             self.validate_session_security(request)
         
         return None
@@ -350,7 +350,7 @@ class SecurityMiddleware(MiddlewareMixin):
                 event_type=event_type,
                 severity=severity,
                 description=description,
-                user=request.user if request.user.is_authenticated else None,
+                user=request.user if hasattr(request, 'user') and request.user.is_authenticated else None,
                 ip_address=request._client_ip,
                 user_agent=request.META.get('HTTP_USER_AGENT', ''),
                 metadata={
@@ -420,7 +420,7 @@ class RateLimitMiddleware(MiddlewareMixin):
     
     def default_key_func(self, request):
         """Default function to generate rate limit key."""
-        if request.user.is_authenticated:
+        if hasattr(request, 'user') and request.user.is_authenticated:
             return f"user:{request.user.pk}"
         else:
             client_ip = self.get_client_ip(request)
@@ -507,7 +507,7 @@ class SessionSecurityMiddleware(MiddlewareMixin):
     
     def process_request(self, request):
         """Validate session security."""
-        if not request.user.is_authenticated:
+        if not hasattr(request, 'user') or not request.user.is_authenticated:
             return None
         
         session = request.session
