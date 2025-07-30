@@ -2,6 +2,8 @@ import logging
 import time
 import json
 import hashlib
+import sys
+import os
 from django.utils.deprecation import MiddlewareMixin
 from django.http import HttpResponseForbidden, JsonResponse
 from django.core.cache import cache
@@ -10,12 +12,23 @@ from django.utils import timezone
 from django.conf import settings
 from django.urls import resolve
 from django.core.exceptions import PermissionDenied
+from django.core.management import get_commands
 from security.models import SecurityEvent, FailedLoginAttempt, UserSession
 from security.utils import ThreatDetector
+from security.apps import is_audit_logging_enabled
 import re
 
 User = get_user_model()
 logger = logging.getLogger('security')
+
+
+def should_skip_security_logging():
+    """Determine if security logging should be skipped."""
+    # Skip if audit logging is disabled
+    if not is_audit_logging_enabled():
+        return True
+    
+    return False
 
 
 class SecurityMiddleware(MiddlewareMixin):
@@ -228,14 +241,20 @@ class SecurityMiddleware(MiddlewareMixin):
         
         logger.critical(f"Blocked IP {ip_address}: {reason}")
         
-        # Create security event
-        SecurityEvent.objects.create(
-            event_type='ip_blocked',
-            severity='critical',
-            description=f"IP address blocked: {reason}",
-            ip_address=ip_address,
-            metadata={'reason': reason}
-        )
+        # Create security event only if audit logging is enabled
+        if not should_skip_security_logging():
+            try:
+                # ContentType dependency removed - no longer need to check table existence
+                
+                SecurityEvent.objects.create(
+                    event_type='ip_blocked',
+                    severity='critical',
+                    description=f"IP address blocked: {reason}",
+                    ip_address=ip_address,
+                    metadata={'reason': reason}
+                )
+            except Exception as e:
+                logger.error(f"Failed to log IP blocking event: {str(e)}")
     
     def validate_session_security(self, request):
         """Validate session security and handle concurrent sessions with privacy controls."""
@@ -419,6 +438,13 @@ class SecurityMiddleware(MiddlewareMixin):
     def log_security_event(self, request, event_type, severity, description):
         """Log a security event with privacy-first data minimization."""
         try:
+            # Skip security logging when disabled (e.g., during migrations)
+            if should_skip_security_logging():
+                logger.debug(f"Skipping security event logging: {event_type} (audit logging disabled)")
+                return
+            
+            # ContentType dependency removed - no longer need to check table existence
+            
             # Apply data minimization based on settings
             ip_address = None
             user_agent = None

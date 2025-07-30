@@ -47,7 +47,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_email_verified = models.BooleanField(default=False)  # type: ignore[attr-defined]
 
     # Extended fields
-    institution = models.CharField(max_length=255, blank=True, null=True)  # <-- still a CharField!
+    # Institution will be handled through profile relationships
+    # Removed CharField to prevent data inconsistency with StudentProfile.institution ForeignKey
     phone_number = models.CharField(max_length=20, blank=True, null=True)
     national_id = models.CharField(max_length=20, blank=True, null=True)
     email_verified = models.BooleanField(default=False)

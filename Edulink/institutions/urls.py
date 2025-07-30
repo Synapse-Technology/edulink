@@ -9,6 +9,8 @@ from .views import (
     validate_university_code,
     get_all_institutions,
     institution_autocomplete,
+    InstitutionDashboardStatsView,
+    InstitutionRecentActivityView,
 )
 
 urlpatterns = [
@@ -16,6 +18,10 @@ urlpatterns = [
     path('my-students/', InstitutionStudentListView.as_view(), name='institution-students'),
     path('applications/', InstitutionApplicationListView.as_view(), name='institution-applications'),
     path('application/<int:id>/status/', ApplicationStatusUpdateView.as_view(), name='application-status-update'),
+    
+    # Dashboard endpoints
+    path('dashboard/stats/', InstitutionDashboardStatsView.as_view(), name='institution-dashboard-stats'),
+    path('dashboard/activity/', InstitutionRecentActivityView.as_view(), name='institution-recent-activity'),
     
     # New endpoints for institution search and registration
     path('all/', get_all_institutions, name='all-institutions'),

@@ -61,7 +61,7 @@ INSTALLED_APPS = [
     "employers",
     "users",
     "chatbot",
-    "security",  # Security app for comprehensive security management
+    "security",
     "institutions",
     "internship",
     "dashboards",
@@ -215,7 +215,7 @@ SECURITY_SETTINGS = {
     'RATE_LIMIT_WINDOW': 3600,  # 1 hour
     'ENABLE_THREAT_DETECTION': True,
     'ENABLE_SESSION_SECURITY': True,
-    'ENABLE_AUDIT_LOGGING': True,
+    'ENABLE_AUDIT_LOGGING': True,  # NOW MIGRATION-AWARE
     
     # Privacy-First Security Settings
     'ANONYMIZE_IP_ADDRESSES': True,  # Mask IP addresses for privacy

@@ -386,3 +386,30 @@ class StudentVerificationLog(models.Model):
 
     def __str__(self):
         return f"{self.registration_number} - {self.verification_status}"
+
+
+class StudentInvite(models.Model):
+    """Model for student invitation tokens"""
+    institution = models.ForeignKey(Institution, on_delete=models.CASCADE)
+    token = models.CharField(max_length=255, unique=True)
+    email = models.EmailField()
+    registration_number = models.CharField(max_length=50, blank=True)
+    is_used = models.BooleanField(default=False)
+    used_at = models.DateTimeField(null=True, blank=True)
+    expires_at = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey('authentication.User', on_delete=models.CASCADE)
+    
+    class Meta:
+        unique_together = ('institution', 'email')
+        indexes = [
+            models.Index(fields=['token']),
+            models.Index(fields=['institution', 'is_used']),
+        ]
+    
+    def __str__(self):
+        return f"Invite for {self.email} to {self.institution.name}"
+    
+    def is_expired(self):
+        from django.utils import timezone
+        return timezone.now() > self.expires_at

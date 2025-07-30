@@ -7,6 +7,8 @@ from users.serializers.student_serializer import StudentProfileSerializer
 from application.models import Application
 from application.serializers import ApplicationSerializer, ApplicationStatusUpdateSerializer
 from .models import Institution
+from django.db.models import Count, Q
+from datetime import datetime, timedelta
 from .serializers import (
     InstitutionSerializer, MasterInstitutionSerializer, 
     InstitutionSearchSerializer, UniversityCodeValidationSerializer,
@@ -202,6 +204,95 @@ class InstitutionApplicationListView(generics.ListAPIView):
     def get_queryset(self):
         institution = self.request.user.institution_profile.institution
         return Application.objects.filter(student__institution=institution)  # type: ignore[attr-defined]
+
+
+class InstitutionDashboardStatsView(generics.GenericAPIView):
+    """
+    Get dashboard statistics for the authenticated institution admin.
+    """
+    permission_classes = [IsAuthenticated, IsInstitutionAdmin]
+    
+    def get(self, request):
+        institution = request.user.institution_profile.institution
+        
+        # Get student count
+        total_students = StudentProfile.objects.filter(institution=institution).count()
+        
+        # Get application statistics
+        applications = Application.objects.filter(student__institution=institution)
+        total_applications = applications.count()
+        
+        # Application status breakdown
+        pending_applications = applications.filter(status='pending').count()
+        reviewed_applications = applications.filter(status='reviewed').count()
+        accepted_applications = applications.filter(status='accepted').count()
+        rejected_applications = applications.filter(status='rejected').count()
+        
+        # Recent applications (last 30 days)
+        thirty_days_ago = datetime.now() - timedelta(days=30)
+        recent_applications = applications.filter(application_date__gte=thirty_days_ago).count()
+        
+        # Active students (students with applications in last 90 days)
+        ninety_days_ago = datetime.now() - timedelta(days=90)
+        active_students = StudentProfile.objects.filter(
+            institution=institution,
+            application__application_date__gte=ninety_days_ago
+        ).distinct().count()
+        
+        stats = {
+            'total_students': total_students,
+            'active_students': active_students,
+            'total_applications': total_applications,
+            'recent_applications': recent_applications,
+            'application_status': {
+                'pending': pending_applications,
+                'reviewed': reviewed_applications,
+                'accepted': accepted_applications,
+                'rejected': rejected_applications
+            },
+            'institution_info': {
+                'name': institution.name,
+                'is_verified': institution.is_verified,
+                'registration_number': institution.registration_number,
+                'institution_type': institution.institution_type
+            }
+        }
+        
+        return Response(stats, status=status.HTTP_200_OK)
+
+
+class InstitutionRecentActivityView(generics.GenericAPIView):
+    """
+    Get recent activity for the authenticated institution admin.
+    """
+    permission_classes = [IsAuthenticated, IsInstitutionAdmin]
+    
+    def get(self, request):
+        institution = request.user.institution_profile.institution
+        limit = int(request.GET.get('limit', 10))
+        
+        # Get recent applications
+        recent_applications = Application.objects.filter(
+            student__institution=institution
+        ).select_related('student', 'internship').order_by('-application_date')[:limit]
+        
+        activities = []
+        for app in recent_applications:
+            activities.append({
+                'type': 'application',
+                'title': f'New application from {app.student.first_name} {app.student.last_name}',
+                'description': f'Applied for {app.internship.title}',
+                'timestamp': app.application_date,
+                'status': app.status,
+                'student_name': f'{app.student.first_name} {app.student.last_name}',
+                'internship_title': app.internship.title,
+                'application_id': app.id
+            })
+        
+        return Response({
+            'activities': activities,
+            'total': len(activities)
+        }, status=status.HTTP_200_OK)
 
 
 @api_view(['GET'])

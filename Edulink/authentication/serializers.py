@@ -15,7 +15,33 @@ from django.utils import timezone
 from django.db import transaction
 import random
 from security.models import SecurityEvent, FailedLoginAttempt, UserSession, AuditLog
+import logging
+
+# Configure logger for debugging
+logger = logging.getLogger(__name__)
 from security.utils import ThreatDetector
+
+
+def safe_create_security_event(**kwargs):
+    """Safely create SecurityEvent with proper parameter mapping."""
+    try:
+        # Handle legacy 'details' parameter
+        if 'details' in kwargs:
+            details_value = kwargs.pop('details')
+            if 'description' not in kwargs:
+                kwargs['description'] = details_value
+            logger.warning(f"Converted 'details' to 'description': {details_value}")
+        
+        # Ensure required fields have defaults
+        kwargs.setdefault('ip_address', '127.0.0.1')
+        kwargs.setdefault('user_agent', '')
+        kwargs.setdefault('metadata', {})
+        
+        logger.debug(f"Creating SecurityEvent with params: {kwargs}")
+        return SecurityEvent.objects.create(**kwargs)
+    except Exception as e:
+        logger.error(f"Failed to create SecurityEvent: {e}, params: {kwargs}")
+        raise
 from users.roles import RoleChoices
 from difflib import SequenceMatcher
 
@@ -1234,16 +1260,22 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
                     user=user,
                     ip_address=ip_address,
                     user_agent=request.META.get('HTTP_USER_AGENT', ''),
-                    details={'email': user.email}
+                    description=f'Successful login for user {user.email}',
+                    metadata={'email': user.email}
                 )
                 
                 # Create user session record
+                session_key = request.session.session_key
+                if not session_key:
+                    # Generate a unique session key if none exists
+                    import uuid
+                    session_key = str(uuid.uuid4())
+                    
                 UserSession.objects.create(
                     user=user,
-                    session_key=request.session.session_key or '',
+                    session_key=session_key,
                     ip_address=ip_address,
-                    user_agent=request.META.get('HTTP_USER_AGENT', ''),
-                    login_time=timezone.now()
+                    user_agent=request.META.get('HTTP_USER_AGENT', '')
                 )
             
             return data
@@ -1255,14 +1287,15 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
                     email=attrs['email'],
                     ip_address=ip_address,
                     user_agent=request.META.get('HTTP_USER_AGENT', ''),
-                    failure_reason=str(e)
+                    reason='invalid_credentials'
                 )
                 
                 SecurityEvent.objects.create(
                     event_type='login_failed',
                     ip_address=ip_address,
                     user_agent=request.META.get('HTTP_USER_AGENT', ''),
-                    details={'email': attrs['email'], 'reason': str(e)}
+                    description=f"Login failed for {attrs['email']}: {str(e)}",
+                    metadata={'email': attrs['email'], 'reason': str(e)}
                 )
             
             raise e

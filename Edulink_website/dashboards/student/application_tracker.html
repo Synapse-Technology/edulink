@@ -464,7 +464,7 @@
       document.getElementById('applicationTable').classList.add('hidden');
       
       try {
-        const response = await fetch('http://localhost:8000/api/application/my-applications/', {
+        const response = await fetch('http://127.0.0.1:8000/api/application/my-applications/', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -834,7 +834,7 @@
         const accessToken = localStorage.getItem('access_token');
         if (!accessToken) return;
 
-        fetch('http://localhost:8000/api/users/student/profile/', {
+        fetch('http://127.0.0.1:8000/api/users/student/profile/', {
           headers: { 'Authorization': 'Bearer ' + accessToken }
         })
           .then(res => res.json())

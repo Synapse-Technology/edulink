@@ -2,8 +2,8 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from django.utils import timezone
-from .models import Employer
-from .serializers import EmployerSerializer
+from users.models.employer_profile import EmployerProfile
+from users.serializers.employer_serializers import EmployerProfileSerializer
 from security.models import SecurityEvent, AuditLog
 from users.serializers.employer_serializers import EmployerProfileSerializer
 from internship.models.internship import Internship
@@ -12,8 +12,8 @@ from application.serializers import ApplicationSerializer
 from .permissions import IsEmployerOwner
 
 class CreateEmployerView(generics.CreateAPIView):
-    queryset = Employer.objects.all()
-    serializer_class = EmployerSerializer
+    queryset = EmployerProfile.objects.all()
+    serializer_class = EmployerProfileSerializer
     permission_classes = [IsAuthenticated]
     
     def get_client_ip(self, request):
@@ -115,8 +115,8 @@ class EmployerProfileDetailView(generics.RetrieveUpdateAPIView):
         )
 
 class VerifyEmployerView(generics.UpdateAPIView):
-    queryset = Employer.objects.all()
-    serializer_class = EmployerSerializer
+    queryset = EmployerProfile.objects.all()
+    serializer_class = EmployerProfileSerializer
     permission_classes = [IsAdminUser]
     
     def get_client_ip(self, request):

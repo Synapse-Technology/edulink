@@ -33,6 +33,7 @@ from .serializers import (
 
 from rest_framework.decorators import api_view, permission_classes
 from django.utils import timezone
+from django.middleware.csrf import get_token
 from authentication.models import Invite
 from users.models import StudentProfile
 from institutions.models import Institution, UniversityRegistrationCode, CodeUsageLog
@@ -41,6 +42,16 @@ import logging
 import json
 
 User = get_user_model()
+
+
+class CSRFTokenView(APIView):
+    """View to get CSRF token for frontend authentication."""
+    permission_classes = [AllowAny]
+    
+    def get(self, request):
+        """Return CSRF token."""
+        csrf_token = get_token(request)
+        return Response({'csrfToken': csrf_token})
 
 
 class PasswordResetConfirmTemplateView(View):

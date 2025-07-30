@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Application Management - EduLink KE</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .application-filters {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .filter-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            align-items: end;
+        }
+        
+        .application-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .application-card:hover {
+            transform: translateY(-2px);
+        }
+        
+        .application-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        
+        .application-info h3 {
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+        
+        .application-meta {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .application-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .application-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .detail-label {
+            font-weight: 600;
+            color: #4a5568;
+            font-size: 0.9rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .detail-value {
+            color: #666;
+        }
+        
+        .status-select {
+            padding: 0.5rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 5px;
+            background: white;
+        }
+        
+        .review-section {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e2e8f0;
+        }
+        
+        .review-notes {
+            width: 100%;
+            min-height: 80px;
+            padding: 0.75rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 5px;
+            resize: vertical;
+            font-family: inherit;
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 2rem;
+        }
+        
+        .pagination button {
+            padding: 0.5rem 1rem;
+            border: 1px solid #e2e8f0;
+            background: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .pagination button:hover:not(:disabled) {
+            background: #f7fafc;
+        }
+        
+        .pagination button.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .bulk-actions {
+            background: #f7fafc;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+        
+        .bulk-actions.show {
+            display: block;
+        }
+        
+        .application-checkbox {
+            margin-right: 1rem;
+        }
+        
+        @media (max-width: 768px) {
+            .application-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .application-actions {
+                justify-content: stretch;
+            }
+            
+            .application-actions .btn {
+                flex: 1;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <h1><i class="fas fa-file-alt"></i> Application Management</h1>
+            <div class="header-actions">
+                <a href="dashboard.html" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+                <span id="welcomeMessage" class="welcome-message">Welcome</span>
+                <button class="logout-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Filters -->
+        <div class="application-filters">
+            <h3 style="margin-bottom: 1rem;">Filter Applications</h3>
+            <div class="filter-row">
+                <div class="form-group">
+                    <label for="statusFilter">Status</label>
+                    <select id="statusFilter" onchange="filterApplications()">
+                        <option value="">All Statuses</option>
+                        <option value="pending">Pending</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                        <option value="under_review">Under Review</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="dateFilter">Date Range</label>
+                    <select id="dateFilter" onchange="filterApplications()">
+                        <option value="">All Time</option>
+                        <option value="today">Today</option>
+                        <option value="week">This Week</option>
+                        <option value="month">This Month</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="searchFilter">Search</label>
+                    <input type="text" id="searchFilter" placeholder="Student name, company..." oninput="filterApplications()">
+                </div>
+                
+                <div class="form-group">
+                    <label>&nbsp;</label>
+                    <button class="btn btn-primary" onclick="loadApplications()">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bulk Actions -->
+        <div id="bulkActions" class="bulk-actions">
+            <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                <span id="selectedCount">0 applications selected</span>
+                <select id="bulkStatus">
+                    <option value="">Change Status</option>
+                    <option value="approved">Approve</option>
+                    <option value="rejected">Reject</option>
+                    <option value="under_review">Under Review</option>
+                </select>
+                <button class="btn btn-primary" onclick="applyBulkAction()">
+                    <i class="fas fa-check"></i> Apply
+                </button>
+                <button class="btn btn-secondary" onclick="clearSelection()">
+                    <i class="fas fa-times"></i> Clear
+                </button>
+            </div>
+        </div>
+
+        <!-- Applications List -->
+        <div id="applicationsList">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Loading applications...</p>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div id="pagination" class="pagination" style="display: none;"></div>
+    </div>
+
+    <!-- Review Modal -->
+    <div id="reviewModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Review Application</h3>
+                <button class="modal-close" onclick="closeReviewModal()">&times;</button>
+            </div>
+            <div id="modalBody">
+                <!-- Modal content will be populated dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <script src="api.js"></script>
+    <script>
+        // Check authentication
+        if (!checkAuthentication()) {
+            return;
+        }
+
+        let currentApplications = [];
+        let filteredApplications = [];
+        let selectedApplications = new Set();
+        let currentPage = 1;
+        const itemsPerPage = 10;
+
+        // Load applications on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadApplications();
+        });
+
+        // Load applications from API
+        async function loadApplications() {
+            try {
+                const data = await InstitutionAPIs.Applications.getApplications();
+                currentApplications = data.results || data || [];
+                filteredApplications = [...currentApplications];
+                renderApplications();
+            } catch (error) {
+                document.getElementById('applicationsList').innerHTML = `
+                    <div class="alert alert-error">
+                        <i class="fas fa-exclamation-triangle"></i> Failed to load applications: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Filter applications
+        function filterApplications() {
+            const statusFilter = document.getElementById('statusFilter').value;
+            const dateFilter = document.getElementById('dateFilter').value;
+            const searchFilter = document.getElementById('searchFilter').value.toLowerCase();
+
+            filteredApplications = currentApplications.filter(app => {
+                // Status filter
+                if (statusFilter && app.status !== statusFilter) return false;
+                
+                // Date filter
+                if (dateFilter) {
+                    const appDate = new Date(app.created_at || app.date_applied);
+                    const now = new Date();
+                    
+                    switch(dateFilter) {
+                        case 'today':
+                            if (appDate.toDateString() !== now.toDateString()) return false;
+                            break;
+                        case 'week':
+                            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                            if (appDate < weekAgo) return false;
+                            break;
+                        case 'month':
+                            const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                            if (appDate < monthAgo) return false;
+                            break;
+                    }
+                }
+                
+                // Search filter
+                if (searchFilter) {
+                    const searchText = `${app.student?.user?.first_name || ''} ${app.student?.user?.last_name || ''} ${app.internship?.title || ''} ${app.internship?.company || ''}`.toLowerCase();
+                    if (!searchText.includes(searchFilter)) return false;
+                }
+                
+                return true;
+            });
+
+            currentPage = 1;
+            renderApplications();
+        }
+
+        // Render applications
+        function renderApplications() {
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const pageApplications = filteredApplications.slice(startIndex, endIndex);
+
+            if (pageApplications.length === 0) {
+                document.getElementById('applicationsList').innerHTML = `
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> No applications found matching your criteria.
+                    </div>
+                `;
+                document.getElementById('pagination').style.display = 'none';
+                return;
+            }
+
+            const applicationsHtml = pageApplications.map(app => `
+                <div class="application-card">
+                    <div class="application-header">
+                        <div class="application-info">
+                            <input type="checkbox" class="application-checkbox" 
+                                   onchange="toggleSelection(${app.id})" 
+                                   ${selectedApplications.has(app.id) ? 'checked' : ''}>
+                            <h3>${app.internship?.title || 'Unknown Position'}</h3>
+                            <div class="application-meta">
+                                <i class="fas fa-user"></i> ${app.student?.user?.first_name || ''} ${app.student?.user?.last_name || ''}
+                                <span style="margin: 0 1rem;">•</span>
+                                <i class="fas fa-building"></i> ${app.internship?.company || 'Unknown Company'}
+                                <span style="margin: 0 1rem;">•</span>
+                                <i class="fas fa-calendar"></i> ${new Date(app.created_at || app.date_applied).toLocaleDateString()}
+                            </div>
+                        </div>
+                        <div class="application-actions">
+                            <span class="status-badge status-${app.status}">${app.status}</span>
+                            <button class="btn btn-primary" onclick="reviewApplication(${app.id})">
+                                <i class="fas fa-eye"></i> Review
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="application-details">
+                        <div class="detail-item">
+                            <span class="detail-label">Student Email</span>
+                            <span class="detail-value">${app.student?.user?.email || 'N/A'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Location</span>
+                            <span class="detail-value">${app.internship?.location || 'N/A'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Duration</span>
+                            <span class="detail-value">${app.internship?.duration || 'N/A'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Application Status</span>
+                            <span class="detail-value">
+                                <select class="status-select" onchange="updateApplicationStatus(${app.id}, this.value)">
+                                    <option value="pending" ${app.status === 'pending' ? 'selected' : ''}>Pending</option>
+                                    <option value="under_review" ${app.status === 'under_review' ? 'selected' : ''}>Under Review</option>
+                                    <option value="approved" ${app.status === 'approved' ? 'selected' : ''}>Approved</option>
+                                    <option value="rejected" ${app.status === 'rejected' ? 'selected' : ''}>Rejected</option>
+                                </select>
+                            </span>
+                        </div>
+                    </div>
+                    
+                    ${app.review_notes ? `
+                        <div class="review-section">
+                            <div class="detail-label">Review Notes</div>
+                            <div class="detail-value">${app.review_notes}</div>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+
+            document.getElementById('applicationsList').innerHTML = applicationsHtml;
+            renderPagination();
+            updateBulkActions();
+        }
+
+        // Render pagination
+        function renderPagination() {
+            const totalPages = Math.ceil(filteredApplications.length / itemsPerPage);
+            
+            if (totalPages <= 1) {
+                document.getElementById('pagination').style.display = 'none';
+                return;
+            }
+
+            let paginationHtml = `
+                <button onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+            `;
+
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+                    paginationHtml += `
+                        <button onclick="changePage(${i})" ${i === currentPage ? 'class="active"' : ''}>
+                            ${i}
+                        </button>
+                    `;
+                } else if (i === currentPage - 3 || i === currentPage + 3) {
+                    paginationHtml += '<span>...</span>';
+                }
+            }
+
+            paginationHtml += `
+                <button onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            `;
+
+            document.getElementById('pagination').innerHTML = paginationHtml;
+            document.getElementById('pagination').style.display = 'flex';
+        }
+
+        // Change page
+        function changePage(page) {
+            const totalPages = Math.ceil(filteredApplications.length / itemsPerPage);
+            if (page >= 1 && page <= totalPages) {
+                currentPage = page;
+                renderApplications();
+            }
+        }
+
+        // Toggle application selection
+        function toggleSelection(applicationId) {
+            if (selectedApplications.has(applicationId)) {
+                selectedApplications.delete(applicationId);
+            } else {
+                selectedApplications.add(applicationId);
+            }
+            updateBulkActions();
+        }
+
+        // Update bulk actions visibility
+        function updateBulkActions() {
+            const bulkActions = document.getElementById('bulkActions');
+            const selectedCount = document.getElementById('selectedCount');
+            
+            if (selectedApplications.size > 0) {
+                bulkActions.classList.add('show');
+                selectedCount.textContent = `${selectedApplications.size} application${selectedApplications.size > 1 ? 's' : ''} selected`;
+            } else {
+                bulkActions.classList.remove('show');
+            }
+        }
+
+        // Clear selection
+        function clearSelection() {
+            selectedApplications.clear();
+            document.querySelectorAll('.application-checkbox').forEach(cb => cb.checked = false);
+            updateBulkActions();
+        }
+
+        // Apply bulk action
+        async function applyBulkAction() {
+            const status = document.getElementById('bulkStatus').value;
+            if (!status) {
+                alert('Please select a status to apply.');
+                return;
+            }
+
+            if (selectedApplications.size === 0) {
+                alert('Please select applications to update.');
+                return;
+            }
+
+            try {
+                const promises = Array.from(selectedApplications).map(id => 
+                    InstitutionAPIs.Applications.updateApplicationStatus(id, status)
+                );
+                
+                await Promise.all(promises);
+                
+                // Show success message
+                const successDiv = document.createElement('div');
+                successDiv.className = 'alert alert-success';
+                successDiv.innerHTML = `<i class="fas fa-check-circle"></i> Successfully updated ${selectedApplications.size} application(s)`;
+                document.querySelector('.container').insertBefore(successDiv, document.querySelector('.application-filters'));
+                
+                setTimeout(() => successDiv.remove(), 5000);
+                
+                clearSelection();
+                loadApplications();
+            } catch (error) {
+                alert(`Failed to update applications: ${error.message}`);
+            }
+        }
+
+        // Update single application status
+        async function updateApplicationStatus(applicationId, status) {
+            try {
+                await InstitutionAPIs.Applications.updateApplicationStatus(applicationId, status);
+                
+                // Update local data
+                const app = currentApplications.find(a => a.id === applicationId);
+                if (app) {
+                    app.status = status;
+                }
+                
+                // Re-filter and render
+                filterApplications();
+            } catch (error) {
+                alert(`Failed to update application status: ${error.message}`);
+                // Reload to reset the select value
+                loadApplications();
+            }
+        }
+
+        // Review application (open modal)
+        function reviewApplication(applicationId) {
+            const app = currentApplications.find(a => a.id === applicationId);
+            if (!app) return;
+
+            const modalBody = document.getElementById('modalBody');
+            modalBody.innerHTML = `
+                <div class="application-details">
+                    <div class="detail-item">
+                        <span class="detail-label">Student Name</span>
+                        <span class="detail-value">${app.student?.user?.first_name || ''} ${app.student?.user?.last_name || ''}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Email</span>
+                        <span class="detail-value">${app.student?.user?.email || 'N/A'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Position</span>
+                        <span class="detail-value">${app.internship?.title || 'N/A'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Company</span>
+                        <span class="detail-value">${app.internship?.company || 'N/A'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Application Date</span>
+                        <span class="detail-value">${new Date(app.created_at || app.date_applied).toLocaleDateString()}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Current Status</span>
+                        <span class="detail-value">
+                            <span class="status-badge status-${app.status}">${app.status}</span>
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="form-group" style="margin-top: 1.5rem;">
+                    <label for="modalStatus">Update Status</label>
+                    <select id="modalStatus">
+                        <option value="pending" ${app.status === 'pending' ? 'selected' : ''}>Pending</option>
+                        <option value="under_review" ${app.status === 'under_review' ? 'selected' : ''}>Under Review</option>
+                        <option value="approved" ${app.status === 'approved' ? 'selected' : ''}>Approved</option>
+                        <option value="rejected" ${app.status === 'rejected' ? 'selected' : ''}>Rejected</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="modalNotes">Review Notes</label>
+                    <textarea id="modalNotes" class="review-notes" placeholder="Add your review notes here...">${app.review_notes || ''}</textarea>
+                </div>
+                
+                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                    <button class="btn btn-primary" onclick="saveReview(${applicationId})">
+                        <i class="fas fa-save"></i> Save Review
+                    </button>
+                    <button class="btn btn-secondary" onclick="closeReviewModal()">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                </div>
+            `;
+
+            document.getElementById('reviewModal').classList.add('show');
+        }
+
+        // Save review
+        async function saveReview(applicationId) {
+            const status = document.getElementById('modalStatus').value;
+            const notes = document.getElementById('modalNotes').value;
+
+            try {
+                await InstitutionAPIs.Applications.updateApplicationStatus(applicationId, status, notes);
+                
+                // Update local data
+                const app = currentApplications.find(a => a.id === applicationId);
+                if (app) {
+                    app.status = status;
+                    app.review_notes = notes;
+                }
+                
+                closeReviewModal();
+                filterApplications();
+                
+                // Show success message
+                const successDiv = document.createElement('div');
+                successDiv.className = 'alert alert-success';
+                successDiv.innerHTML = '<i class="fas fa-check-circle"></i> Application review saved successfully';
+                document.querySelector('.container').insertBefore(successDiv, document.querySelector('.application-filters'));
+                
+                setTimeout(() => successDiv.remove(), 5000);
+            } catch (error) {
+                alert(`Failed to save review: ${error.message}`);
+            }
+        }
+
+        // Close review modal
+        function closeReviewModal() {
+            document.getElementById('reviewModal').classList.remove('show');
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('reviewModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeReviewModal();
+            }
+        });
+    </script>
+</body>
+</html>

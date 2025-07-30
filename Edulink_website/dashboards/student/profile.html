@@ -466,7 +466,7 @@
           profileLoading.style.display = '';
           profileFormSection.style.display = 'none';
           startLoadingMessages();
-          fetch('http://localhost:8000/api/users/student/profile/', { 
+          fetch('http://127.0.0.1:8000/api/users/student/profile/', { 
             headers: { 
               'Authorization': 'Bearer ' + accessToken,
               'Accept': 'application/json'
@@ -586,7 +586,7 @@
             formData.append('profile_picture', profilePhotoFile);
           }
 
-          fetch('http://localhost:8000/api/users/student/profile/', {
+          fetch('http://127.0.0.1:8000/api/users/student/profile/', {
             method: 'PUT',
             headers: {
               'Authorization': 'Bearer ' + accessToken,
@@ -750,7 +750,7 @@
       const profilePic = document.getElementById('profilePic');
       const accessToken = localStorage.getItem('access_token');
       if (profilePic && accessToken) {
-        fetch('http://localhost:8000/api/users/student/profile/', {
+        fetch('http://127.0.0.1:8000/api/users/student/profile/', {
           headers: { 'Authorization': 'Bearer ' + accessToken }
         })
           .then(res => res.json())

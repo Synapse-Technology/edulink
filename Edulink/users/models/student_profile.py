@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from django.core.validators import URLValidator, RegexValidator
 from institutions.models import Institution, Course
 
 
@@ -16,20 +17,36 @@ class StudentProfile(models.Model):
     deleted_at = models.DateTimeField(null=True, blank=True)
 
     # Institution-related fields
-    institution = models.ForeignKey(Institution, on_delete=models.SET_NULL,
-                                    null=True, blank=True, related_name='students')
+    institution = models.ForeignKey(Institution, on_delete=models.PROTECT,
+                                    null=True, blank=True, related_name='students', db_index=True)
     is_verified = models.BooleanField(default=False)
     institution_name = models.CharField(max_length=255, null=True, blank=True)
-    registration_number = models.CharField(max_length=50, unique=True)
-    year_of_study = models.PositiveIntegerField()
-    course = models.ForeignKey(Course, on_delete=models.SET_NULL, null=True, related_name='students')
+    registration_number = models.CharField(
+        max_length=50, 
+        unique=True,
+        validators=[RegexValidator(
+            regex=r'^[A-Z0-9-/]+$',
+            message='Registration number must contain only uppercase letters, numbers, hyphens, and slashes.'
+        )]
+    )
+    year_of_study = models.PositiveIntegerField(
+        choices=[
+            (1, 'First Year'),
+            (2, 'Second Year'),
+            (3, 'Third Year'),
+            (4, 'Fourth Year'),
+            (5, 'Fifth Year'),
+            (6, 'Sixth Year'),
+        ]
+    )
+    course = models.ForeignKey(Course, on_delete=models.PROTECT, null=True, related_name='students', db_index=True)
     
     # University system integration fields
-    department = models.ForeignKey('institutions.Department', on_delete=models.SET_NULL, 
-                                   null=True, blank=True, related_name='students')
+    department = models.ForeignKey('institutions.Department', on_delete=models.PROTECT, 
+                                   null=True, blank=True, related_name='students', db_index=True)
     campus = models.ForeignKey('institutions.Campus', on_delete=models.SET_NULL,
                                null=True, blank=True, related_name='students')
-    university_verified = models.BooleanField(default=False, 
+    university_verified = models.BooleanField(default=False, db_index=True,
                                               help_text='Verified through university system integration')
     national_id_verified = models.BooleanField(default=False,
                                                help_text='National ID verified against university records')
@@ -39,7 +56,14 @@ class StudentProfile(models.Model):
                                             help_text='University registration code used during registration')
 
     # Additional fields
-    national_id = models.CharField(max_length=20, unique=True)
+    national_id = models.CharField(
+        max_length=20, 
+        unique=True,
+        validators=[RegexValidator(
+            regex=r'^[0-9A-Z]+$',
+            message='National ID must contain only numbers and uppercase letters.'
+        )]
+    )
     skills = models.JSONField(default=list, blank=True)
     interests = models.JSONField(default=list, blank=True)
     internship_status = models.CharField(
@@ -49,16 +73,32 @@ class StudentProfile(models.Model):
             ('in_progress', 'In Progress'),
             ('completed', 'Completed')
         ],
-        default='not_started'
+        default='not_started',
+        db_index=True
     )
 
-    github_url = models.URLField(blank=True, null=True)
-    linkedin_url = models.URLField(blank=True, null=True)
-    twitter_url = models.URLField(blank=True, null=True)
+    github_url = models.URLField(blank=True, null=True, validators=[URLValidator()])
+    linkedin_url = models.URLField(blank=True, null=True, validators=[URLValidator()])
+    twitter_url = models.URLField(blank=True, null=True, validators=[URLValidator()])
     resume = models.FileField(upload_to='resumes/', blank=True, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['institution', 'course']),
+            models.Index(fields=['internship_status', 'year_of_study']),
+            models.Index(fields=['university_verified', 'created_at']),
+            models.Index(fields=['registration_number']),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['institution', 'registration_number'],
+                condition=models.Q(registration_number__isnull=False),
+                name='unique_registration_per_institution'
+            )
+        ]
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} - {self.registration_number}"

@@ -21,6 +21,7 @@ from .views import (
     StudentRegistrationView,
     validate_university_code,
     get_code_usage_stats,
+    CSRFTokenView,
 )
 from django.contrib.auth import authenticate, login, logout
 from django.shortcuts import render, redirect
@@ -82,5 +83,11 @@ urlpatterns = [
         "stats/code/<str:code>/",
         get_code_usage_stats,
         name="get_code_usage_stats"
+    ),
+    # CSRF token endpoint
+    path(
+        "csrf/",
+        CSRFTokenView.as_view(),
+        name="csrf_token"
     ),
 ]
