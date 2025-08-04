@@ -10,7 +10,6 @@ class StudentProfile(ProfileBase):
     last_name = models.CharField(max_length=100)
     phone_number = models.CharField(max_length=20)
     profile_picture = models.ImageField(upload_to='profile_pics/', default='profile_pics/default.jpg')
-    email_verified = models.BooleanField(default=False)
     phone_verified = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     last_login_at = models.DateTimeField(null=True, blank=True)
@@ -41,16 +40,40 @@ class StudentProfile(ProfileBase):
         default='not_started'
     )
 
+    github_url = models.URLField(blank=True, null=True)
+    linkedin_url = models.URLField(blank=True, null=True)
+    twitter_url = models.URLField(blank=True, null=True)
+    resume = models.FileField(upload_to='resumes/', blank=True, null=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} - {self.registration_number}"
 
+    @property
+    def profile_completion(self):
+        fields = [
+            self.first_name,
+            self.last_name,
+            self.phone_number,
+            self.profile_picture,
+            self.institution,
+            self.registration_number,
+            self.academic_year,
+            self.skills,
+            self.interests,
+            self.resume,
+            self.github_url,
+            self.linkedin_url,
+        ]
+        total = len(fields)
+        filled = sum(1 for f in fields if f and (not isinstance(f, list) or len(f) > 0))
+        return int((filled / total) * 100)
+
     def save(self, *args, **kwargs):
         if self.institution and not self.institution_name:
             self.institution_name = self.institution.name
         if self.academic_year and not self.year_of_study:
             self.year_of_study = self.academic_year
-
         super().save(*args, **kwargs)

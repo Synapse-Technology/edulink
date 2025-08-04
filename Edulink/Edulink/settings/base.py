@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     "institutions",
     "internship",
     "dashboards",
+    "internship_progress",
     "notifications",  # Added notifications app
     "application",  # Ensure application app is registered
 ]
@@ -187,6 +188,10 @@ STATIC_URL = "static/"
 STATICFILES_DIRS = [
     # Static files directories can be added here if needed
 ]
+
+# Media files (User uploaded content)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Media files (User uploaded content)
 MEDIA_URL = '/media/'

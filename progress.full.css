@@ -1,0 +1,81 @@
+body {
+  font-family: 'Poppins', 'Raleway', sans-serif;
+  font-size: 1.08rem;
+}
+/* --- DARK MODE THEME (copied from student_dash.html) --- */
+.dark-mode {
+  background: #181c24 !important;
+  color: #eaf6fb !important;
+  transition: background 0.3s, color 0.3s;
+}
+.dark-mode aside#sidebar {
+  background: #23272f !important;
+  color: #eaf6fb !important;
+  border-right: 1px solid #23272f;
+}
+.dark-mode aside#sidebar a {
+  color: #eaf6fb !important;
+  background: transparent !important;
+}
+.dark-mode aside#sidebar a.bg-teal-700, .dark-mode aside#sidebar a:hover {
+  background: #14b8a6 !important;
+  color: #fff !important;
+}
+.dark-mode main, .dark-mode .bg-white {
+  background: #23272f !important;
+  color: #eaf6fb !important;
+  border-color: #23272f !important;
+  box-shadow: 0 2px 16px 0 #14b8a622 !important;
+}
+.dark-mode .shadow, .dark-mode .shadow-lg {
+  box-shadow: 0 2px 16px 0 #14b8a622 !important;
+}
+.dark-mode .border {
+  border-color: #23272f !important;
+}
+.dark-mode .text-teal-700 {
+  color: #6ee7b7 !important;
+}
+.dark-mode .text-gray-500, .dark-mode .text-gray-800 {
+  color: #b6c2d1 !important;
+}
+.dark-mode .profile-pic {
+  border-color: #6ee7b7 !important;
+  box-shadow: 0 1px 8px #14b8a6cc;
+}
+.dark-mode .rounded-full {
+  background: #23272f !important;
+  color: #eaf6fb !important;
+}
+.dark-mode .bg-teal-600 {
+  background: #14b8a6 !important;
+  color: #fff !important;
+}
+.dark-mode .border-b {
+  border-bottom: 1px solid #23272f !important;
+}
+.dark-mode .footer, .dark-mode footer {
+  background: #181c24 !important;
+  color: #b6c2d1 !important;
+  border-top: 1px solid #23272f !important;
+}
+.dark-mode .active, .dark-mode .bg-teal-700 {
+  box-shadow: 0 0 16px 2px #14b8a6cc !important;
+  background: #14b8a6 !important;
+  color: #fff !important;
+}
+.dark-mode *, .dark-mode *:before, .dark-mode *:after {
+  transition: background 0.3s, color 0.3s, box-shadow 0.3s, border-color 0.3s;
+}
+#notificationBtn, #darkModeToggle {
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+.dark-mode #notificationBtn, .dark-mode #darkModeToggle {
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+} 
