@@ -1,0 +1,10 @@
+/* Main content area margin to accommodate fixed sidebar */
+.main-content {
+    margin-left: 16rem; /* w-64 = 16rem */
+}
+
+/* Active link in sidebar */
+.sidebar-active {
+    background-color: #017981; /* bg-teal-700 */
+    color: white;
+} 
