@@ -87,13 +87,30 @@ class UniversityCodeValidationSerializer(serializers.Serializer):
     
     def validate_university_code(self, value):
         """Validate that university code exists and is active"""
+        from .models import UniversityRegistrationCode
         try:
-            institution = Institution.objects.get(
-                university_code=value.upper(),
-                is_verified=True
+            registration_code = UniversityRegistrationCode.objects.select_related(
+                'institution'
+            ).get(
+                code=value.upper(),
+                is_active=True
             )
+            
+            # Check if the code is valid (not expired, not over usage limit)
+            is_valid, error_message = registration_code.is_valid()
+            if not is_valid:
+                raise serializers.ValidationError(
+                    f"Registration code is invalid: {error_message}"
+                )
+            
+            # Ensure the institution is verified
+            if not registration_code.institution.is_verified:
+                raise serializers.ValidationError(
+                    "Institution is not verified"
+                )
+            
             return value.upper()
-        except Institution.DoesNotExist:
+        except UniversityRegistrationCode.DoesNotExist:
             raise serializers.ValidationError(
                 "Invalid university code or institution not verified."
             )

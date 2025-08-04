@@ -42,8 +42,8 @@ class SecurityConfig(AppConfig):
         # This handles cases where the app starts without running migrations
         if not self._is_migration_context():
             global _audit_logging_enabled
-            _audit_logging_enabled = True
-            logger.info("Security app ready. Audit logging enabled (no migration context detected).")
+            _audit_logging_enabled = True  # Re-enabled for debugging
+            logger.info("Security app ready. Audit logging re-enabled for debugging.")
     
     def _is_migration_context(self):
         """Check if we're currently in a migration context."""

@@ -49,10 +49,17 @@ class InternshipListView(generics.ListAPIView):
         if hasattr(self.request.user, 'student_profile'):  # type: ignore[attr-defined]
             # Students can see public internships and institution-specific ones
             student_institution = self.request.user.student_profile.institution  # type: ignore[attr-defined]
-            queryset = queryset.filter(
-                Q(visibility='public') |
-                Q(visibility='institution-only', institution=student_institution)
-            )
+            # Get the InstitutionProfile that corresponds to the student's institution
+            try:
+                from users.models import InstitutionProfile
+                institution_profile = InstitutionProfile.objects.get(institution=student_institution)
+                queryset = queryset.filter(
+                    Q(visibility='public') |
+                    Q(visibility='institution-only', institution=institution_profile)
+                )
+            except InstitutionProfile.DoesNotExist:
+                # If no InstitutionProfile exists for this institution, only show public internships
+                queryset = queryset.filter(visibility='public')
         else:
             # Non-students can only see public internships
             queryset = queryset.filter(visibility='public')

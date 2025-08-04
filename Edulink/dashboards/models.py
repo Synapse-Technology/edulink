@@ -192,7 +192,7 @@ class InternshipProgress(models.Model):
         super().save(*args, **kwargs)
     
     def __str__(self):
-        return f"Progress for {self.student.user.first_name} {self.student.user.last_name} - {self.get_internship_status_display()}"
+        return f"Progress for {self.student.first_name} {self.student.last_name} - {self.get_internship_status_display()}"
     
     def calculate_profile_completion(self):
         """Enhanced profile completion calculation with detailed breakdown"""
@@ -274,7 +274,7 @@ class InternshipProgress(models.Model):
         from django.utils import timezone
         # Find the most recent accepted application with a future or current end_date
         accepted_apps = Application.objects.filter(
-            student=self.student,
+            student=self.student.user,
             status='accepted',
             internship__end_date__gte=timezone.now().date()
         ).order_by('-internship__end_date')

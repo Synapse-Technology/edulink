@@ -119,4 +119,4 @@ class ApplicationHistoryView(generics.ListAPIView):
     permission_classes = [IsAuthenticated, IsStudent]
 
     def get_queryset(self):
-        return Application.objects.filter(student=self.request.user.studentprofile)
+        return Application.objects.filter(student=self.request.user)

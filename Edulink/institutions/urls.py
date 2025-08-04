@@ -11,6 +11,7 @@ from .views import (
     institution_autocomplete,
     InstitutionDashboardStatsView,
     InstitutionRecentActivityView,
+    GenerateRegistrationCodeView,
 )
 
 urlpatterns = [
@@ -22,6 +23,7 @@ urlpatterns = [
     # Dashboard endpoints
     path('dashboard/stats/', InstitutionDashboardStatsView.as_view(), name='institution-dashboard-stats'),
     path('dashboard/activity/', InstitutionRecentActivityView.as_view(), name='institution-recent-activity'),
+    path('generate-code/', GenerateRegistrationCodeView.as_view(), name='generate-registration-code'),
     
     # New endpoints for institution search and registration
     path('all/', get_all_institutions, name='all-institutions'),

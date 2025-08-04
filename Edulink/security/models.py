@@ -103,7 +103,7 @@ class SecurityEvent(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='new', db_index=True)
     
     # Network and session info
-    ip_address = models.GenericIPAddressField(validators=[validate_ip_address], db_index=True)
+    ip_address = models.GenericIPAddressField(validators=[validate_ip_address], db_index=True, null=True, blank=True)
     user_agent = models.TextField(blank=True)
     session_key = models.CharField(max_length=40, blank=True, db_index=True)
     referer = models.URLField(blank=True, max_length=500)

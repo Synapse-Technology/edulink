@@ -124,17 +124,89 @@ const AuthAPI = {
     }
 };
 
-// Dashboard Stats API
-const DashboardAPI = {
-    // Get dashboard statistics
-    async getStats() {
-        return await apiCall(`${API_BASE}/dashboard/stats/`);
+// Cache management
+const CacheManager = {
+    // Cache duration in milliseconds (5 minutes)
+    CACHE_DURATION: 5 * 60 * 1000,
+    
+    // Set cache with timestamp
+    set(key, data) {
+        const cacheItem = {
+            data: data,
+            timestamp: Date.now()
+        };
+        localStorage.setItem(`cache_${key}`, JSON.stringify(cacheItem));
     },
     
-    // Get recent activity
-    async getRecentActivity() {
-        return await apiCall(`${API_BASE}/dashboard/activity/`);
+    // Get cache if not expired
+    get(key) {
+        const cached = localStorage.getItem(`cache_${key}`);
+        if (!cached) return null;
+        
+        const cacheItem = JSON.parse(cached);
+        const isExpired = Date.now() - cacheItem.timestamp > this.CACHE_DURATION;
+        
+        if (isExpired) {
+            localStorage.removeItem(`cache_${key}`);
+            return null;
+        }
+        
+        return cacheItem.data;
+    },
+    
+    // Clear specific cache
+    clear(key) {
+        localStorage.removeItem(`cache_${key}`);
+    },
+    
+    // Clear all cache
+    clearAll() {
+        const keys = Object.keys(localStorage);
+        keys.forEach(key => {
+            if (key.startsWith('cache_')) {
+                localStorage.removeItem(key);
+            }
+        });
     }
+};
+
+// Dashboard Stats API with caching
+const DashboardAPI = {
+    // Get dashboard statistics with caching
+    async getStats() {
+        const cached = CacheManager.get('dashboard_stats');
+        if (cached) {
+            return cached;
+        }
+        
+        const data = await apiCall(`${API_BASE}/dashboard/stats/`);
+        CacheManager.set('dashboard_stats', data);
+        return data;
+    },
+    
+    // Get recent activity with caching
+    async getRecentActivity() {
+        const cached = CacheManager.get('recent_activity');
+        if (cached) {
+            return cached;
+        }
+        
+        const data = await apiCall(`${API_BASE}/dashboard/activity/`);
+        CacheManager.set('recent_activity', data);
+        return data;
+    },
+    
+    // Force refresh dashboard data
+    async refreshStats() {
+        CacheManager.clear('dashboard_stats');
+        return await this.getStats();
+    },
+    
+    // Force refresh activity data
+     async refreshActivity() {
+         CacheManager.clear('recent_activity');
+         return await this.getRecentActivity();
+     }
 };
 
 // Departments API
@@ -195,6 +267,11 @@ const ApplicationsAPI = {
 
 // Institution Profile API
 const InstitutionAPI = {
+    // Get current institution profile
+    async getProfile() {
+        return await apiCall(`${API_BASE}/profile/`);
+    },
+    
     // Create new institution
     async createInstitution(institutionData) {
         return await apiCall('/institutions/create/', {
@@ -213,7 +290,8 @@ window.InstitutionAPIs = {
     Reports: ReportsAPI,
     Students: StudentsAPI,
     Applications: ApplicationsAPI,
-    Institution: InstitutionAPI
+    Institution: InstitutionAPI,
+    Cache: CacheManager
 };
 
 // Backward compatibility - export individual functions

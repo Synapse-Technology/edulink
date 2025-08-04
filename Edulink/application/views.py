@@ -233,7 +233,7 @@ class ApplicationStatisticsView(generics.GenericAPIView):
             }
         elif hasattr(request.user, "student_profile"):
             applications = Application.objects.filter(
-                student=request.user.student_profile  # type: ignore[attr-defined]
+                student=request.user  # type: ignore[attr-defined]
             )  # type: ignore[attr-defined]
             stats = {
                 "total_applications": applications.count(),
@@ -256,5 +256,5 @@ class InstitutionApplicationListView(generics.ListAPIView):
     def get_queryset(self):
         if hasattr(self.request.user, "institution_profile"):
             institution = self.request.user.institution_profile.institution  # type: ignore[attr-defined]
-            return Application.objects.filter(student__institution=institution)  # type: ignore[attr-defined]
+            return Application.objects.filter(student__student_profile__institution=institution)  # type: ignore[attr-defined]
         return Application.objects.none()  # type: ignore[attr-defined]

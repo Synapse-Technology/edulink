@@ -54,6 +54,27 @@ class StudentProfile(models.Model):
                                                  help_text='Last time data was synced with university system')
     university_code_used = models.CharField(max_length=20, null=True, blank=True,
                                             help_text='University registration code used during registration')
+    registration_method = models.CharField(
+        max_length=20,
+        choices=[
+            ('university_code', 'University Code'),
+            ('university_search', 'University Search')
+        ],
+        default='university_search',
+        help_text='Method used for registration'
+    )
+    academic_year = models.PositiveIntegerField(null=True, blank=True, help_text='Academic year for university search method')
+    gender = models.CharField(
+        max_length=1,
+        choices=[
+            ('M', 'Male'),
+            ('F', 'Female'),
+            ('O', 'Other')
+        ],
+        null=True,
+        blank=True,
+        help_text='Student gender'
+    )
 
     # Additional fields
     national_id = models.CharField(
@@ -102,6 +123,19 @@ class StudentProfile(models.Model):
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} - {self.registration_number}"
+    
+    def clean(self):
+        """Ensure that `user` field is a proper User instance."""
+        super().clean()
+        if not isinstance(self.user, User):
+            raise ValidationError("StudentProfile.user must be a valid User instance.")
+
+    @property
+    def user_instance(self):
+        """Safe accessor for the associated User instance."""
+        if not isinstance(self.user, User):
+            raise TypeError(f"Expected User instance for student.user, got {type(self.user).__name__}")
+        return self.user
 
     @property
     def profile_completion(self):

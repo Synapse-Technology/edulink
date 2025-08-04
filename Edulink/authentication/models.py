@@ -90,11 +90,11 @@ class User(AbstractBaseUser, PermissionsMixin):
     def profile(self):
         """Get the user's profile based on their role"""
         if self.role == RoleChoices.STUDENT:
-            return getattr(self, "studentprofile", None)
+            return getattr(self, "student_profile", None)
         elif self.role == RoleChoices.INSTITUTION_ADMIN:
-            return getattr(self, "institutionprofile", None)
+            return getattr(self, "institution_profile", None)
         elif self.role == RoleChoices.EMPLOYER:
-            return getattr(self, "employerprofile", None)
+            return getattr(self, "employer_profile", None)
         return None
 
 

@@ -17,7 +17,7 @@ def update_progress_on_application_change(sender, instance, created, **kwargs):
         progress, _ = InternshipProgress.objects.get_or_create(student=student)
         
         # Update application counts
-        applications = Application.objects.filter(student=student)
+        applications = Application.objects.filter(student=student.user)
         progress.total_applications = applications.count()
         progress.applications_this_month = applications.filter(
             application_date__month=timezone.now().month,
@@ -62,7 +62,7 @@ def update_progress_on_application_delete(sender, instance, **kwargs):
         progress, _ = InternshipProgress.objects.get_or_create(student=student)
         
         # Recalculate application counts
-        applications = Application.objects.filter(student=student)
+        applications = Application.objects.filter(student=student.user)
         progress.total_applications = applications.count()
         progress.applications_this_month = applications.filter(
             application_date__month=timezone.now().month,

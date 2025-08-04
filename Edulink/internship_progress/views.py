@@ -50,7 +50,7 @@ class LogbookEntryListCreateView(generics.ListCreateAPIView):
             return LogbookEntry.objects.filter(internship__employer=user.employerprofile)
         elif hasattr(user, 'institutionprofile'):
             # Institution staff see logbook entries for their students
-            return LogbookEntry.objects.filter(student__institution=user.institutionprofile.institution)
+            return LogbookEntry.objects.filter(student__student_profile__institution=user.institutionprofile.institution)
         else:
             return LogbookEntry.objects.none()
 
@@ -171,6 +171,14 @@ class InternshipProgressCalculationView(generics.RetrieveAPIView):
     def get(self, request, *args, **kwargs):
         """Calculate internship progress based on current internship status."""
         try:
+            # Check if user has student_profile
+            if not hasattr(request.user, 'student_profile'):
+                return Response({
+                    'error': 'User does not have a student profile',
+                    'progress_percentage': 0,
+                    'status': 'no_profile'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
             student = request.user.student_profile
             progress_data = self._calculate_comprehensive_progress(student)
             return Response(progress_data, status=status.HTTP_200_OK)
@@ -196,7 +204,7 @@ class InternshipProgressCalculationView(generics.RetrieveAPIView):
     def _get_current_internship(self, student):
         """Get the student's current active internship."""
         accepted_applications = Application.objects.filter(
-            student=student,
+            student=student.user,
             status='accepted'
         ).select_related('internship')
         
@@ -211,7 +219,7 @@ class InternshipProgressCalculationView(generics.RetrieveAPIView):
     
     def _get_pre_internship_progress(self, student):
         """Calculate progress for students without active internship."""
-        applications = Application.objects.filter(student=student)
+        applications = Application.objects.filter(student=student.user)
         total_applications = applications.count()
         accepted_applications = applications.filter(status='accepted').count()
         
@@ -254,7 +262,7 @@ class InternshipProgressCalculationView(generics.RetrieveAPIView):
     def _get_next_internship(self, student):
         """Get the next upcoming internship for the student."""
         accepted_applications = Application.objects.filter(
-            student=student,
+            student=student.user,
             status='accepted'
         ).select_related('internship')
         
@@ -329,8 +337,8 @@ class InternshipProgressCalculationView(generics.RetrieveAPIView):
                 'start_date': internship.start_date.isoformat(),
                 'end_date': internship.end_date.isoformat(),
             },
-            'total_applications': Application.objects.filter(student=student).count(),
-            'accepted_applications': Application.objects.filter(student=student, status='accepted').count(),
+            'total_applications': Application.objects.filter(student=student.user).count(),
+            'accepted_applications': Application.objects.filter(student=student.user, status='accepted').count(),
             'logbook_entries': total_entries,
             'weeks_completed': elapsed_weeks,
             'total_weeks': total_weeks,

@@ -6,7 +6,7 @@ from users.models.student_profile import StudentProfile
 from users.serializers.student_serializer import StudentProfileSerializer
 from application.models import Application
 from application.serializers import ApplicationSerializer, ApplicationStatusUpdateSerializer
-from .models import Institution
+from .models import Institution, UniversityRegistrationCode
 from django.db.models import Count, Q
 from datetime import datetime, timedelta
 from .serializers import (
@@ -203,7 +203,7 @@ class InstitutionApplicationListView(generics.ListAPIView):
 
     def get_queryset(self):
         institution = self.request.user.institution_profile.institution
-        return Application.objects.filter(student__institution=institution)  # type: ignore[attr-defined]
+        return Application.objects.filter(student__student_profile__institution=institution)  # type: ignore[attr-defined]
 
 
 class InstitutionDashboardStatsView(generics.GenericAPIView):
@@ -219,7 +219,7 @@ class InstitutionDashboardStatsView(generics.GenericAPIView):
         total_students = StudentProfile.objects.filter(institution=institution).count()
         
         # Get application statistics
-        applications = Application.objects.filter(student__institution=institution)
+        applications = Application.objects.filter(student__student_profile__institution=institution)
         total_applications = applications.count()
         
         # Application status breakdown
@@ -236,7 +236,7 @@ class InstitutionDashboardStatsView(generics.GenericAPIView):
         ninety_days_ago = datetime.now() - timedelta(days=90)
         active_students = StudentProfile.objects.filter(
             institution=institution,
-            application__application_date__gte=ninety_days_ago
+            user__applications__application_date__gte=ninety_days_ago
         ).distinct().count()
         
         stats = {
@@ -273,7 +273,7 @@ class InstitutionRecentActivityView(generics.GenericAPIView):
         
         # Get recent applications
         recent_applications = Application.objects.filter(
-            student__institution=institution
+            student__student_profile__institution=institution
         ).select_related('student', 'internship').order_by('-application_date')[:limit]
         
         activities = []
@@ -695,10 +695,31 @@ def validate_university_code(request):
     university_code = serializer.validated_data['university_code']
     
     try:
-        institution = Institution.objects.select_related('master_institution').get(
-            university_code=university_code,
-            is_verified=True
+        # First, look up the registration code
+        registration_code = UniversityRegistrationCode.objects.select_related(
+            'institution__master_institution'
+        ).get(
+            code=university_code,
+            is_active=True
         )
+        
+        # Check if the code is valid (not expired, not over usage limit)
+        is_valid, error_message = registration_code.is_valid()
+        if not is_valid:
+            return Response({
+                'valid': False,
+                'error': f'Registration code is invalid: {error_message}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Get the associated institution
+        institution = registration_code.institution
+        
+        # Ensure the institution is verified
+        if not institution.is_verified:
+            return Response({
+                'valid': False,
+                'error': 'Institution is not verified'
+            }, status=status.HTTP_400_BAD_REQUEST)
         
         response_data = {
             'valid': True,
@@ -735,7 +756,7 @@ def validate_university_code(request):
         
         return Response(response_data)
         
-    except Institution.DoesNotExist:
+    except UniversityRegistrationCode.DoesNotExist:
         return Response({
             'valid': False,
             'error': 'Invalid university code or institution not verified'
@@ -810,4 +831,100 @@ class ApplicationStatusUpdateView(generics.UpdateAPIView):
         Ensure that the admin can only update applications from their own institution.
         """
         institution = self.request.user.institution_profile.institution
-        return Application.objects.filter(student__institution=institution)  # type: ignore[attr-defined]
+        return Application.objects.filter(student__student_profile__institution=institution)  # type: ignore[attr-defined]
+
+
+class GenerateRegistrationCodeView(generics.GenericAPIView):
+    """
+    Generate a new registration code for the authenticated institution admin.
+    """
+    permission_classes = [IsAuthenticated, IsInstitutionAdmin]
+    
+    def post(self, request):
+        from .models import UniversityRegistrationCode
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        try:
+            institution = request.user.institution_profile.institution
+            
+            # Get parameters from request
+            max_uses = request.data.get('max_uses', 50)
+            expires_days = request.data.get('expires_days', 365)
+            
+            # Generate the code
+            user_name = "Unknown User"
+            if hasattr(request.user, 'institution_profile') and request.user.institution_profile:
+                profile = request.user.institution_profile
+                user_name = f"{profile.first_name} {profile.last_name}"
+            elif hasattr(request.user, 'student_profile') and request.user.student_profile:
+                profile = request.user.student_profile
+                user_name = f"{profile.first_name} {profile.last_name}"
+            elif request.user.email:
+                user_name = request.user.email
+            
+            code = UniversityRegistrationCode.generate_code(
+                institution=institution,
+                created_by=user_name
+            )
+            
+            # Set expiration and max uses
+            code.max_uses = max_uses
+            code.expires_at = timezone.now() + timedelta(days=expires_days)
+            code.save()
+            
+            # Log security event
+            SecurityEvent.objects.create(
+                event_type='data_access',
+                severity='medium',
+                description=f'Registration code generated: {code.code} by {request.user.email}',
+                user=request.user,
+                ip_address=self.get_client_ip(request),
+                user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                metadata={
+                    'institution': institution.name,
+                    'code': code.code,
+                    'max_uses': max_uses,
+                    'expires_days': expires_days
+                }
+            )
+            
+            return Response({
+                'success': True,
+                'message': 'Registration code generated successfully',
+                'code': {
+                    'code': code.code,
+                    'institution': institution.name,
+                    'max_uses': code.max_uses,
+                    'current_uses': code.current_uses,
+                    'expires_at': code.expires_at.isoformat(),
+                    'created_at': code.created_at.isoformat(),
+                    'is_active': code.is_active
+                }
+            }, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            # Log error
+            SecurityEvent.objects.create(
+                event_type='error',
+                severity='high',
+                description=f'Failed to generate registration code: {str(e)}',
+                user=request.user,
+                ip_address=self.get_client_ip(request),
+                user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                metadata={'error': str(e)}
+            )
+            
+            return Response({
+                'success': False,
+                'message': f'Failed to generate registration code: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def get_client_ip(self, request):
+        """Extract client IP address from request."""
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip

@@ -262,16 +262,27 @@ def get_client_ip(request):
 
 
 def _get_model_fields(instance):
+    import logging
+    logger = logging.getLogger(__name__)
     fields = {}
     for field in instance._meta.fields:
         try:
             value = getattr(instance, field.name)
-            if hasattr(value, 'isoformat'):
-                value = value.isoformat()
-            elif hasattr(value, '__str__'):
-                value = str(value)
-            fields[field.name] = value
-        except Exception:
+            if value is not None:
+                if hasattr(value, 'isoformat'):
+                    fields[field.name] = value.isoformat()
+                else:
+                    # Add detailed logging before str() conversion
+                    logger.info(f"Converting field '{field.name}' of type {type(value)} to string for {instance.__class__.__name__}")
+                    try:
+                        fields[field.name] = str(value)
+                    except Exception as str_error:
+                        logger.error(f"Error in str() conversion for field '{field.name}' of {instance.__class__.__name__}: {str_error}")
+                        fields[field.name] = f'str() error: {str_error}'
+            else:
+                fields[field.name] = None
+        except Exception as e:
+            logger.error(f"Error serializing field '{field.name}' for {instance.__class__.__name__}: {e}")
             fields[field.name] = 'Unable to serialize'
     return fields
 

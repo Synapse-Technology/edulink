@@ -313,7 +313,7 @@ class CodeUsageLog(models.Model):
     )
     
     # Security tracking
-    ip_address = models.GenericIPAddressField()
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
     user_agent = models.TextField(blank=True)
     
     # Additional context
