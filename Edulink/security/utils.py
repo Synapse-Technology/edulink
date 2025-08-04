@@ -198,9 +198,9 @@ class ThreatDetector:
     def __init__(self):
         self.threat_patterns = {
             'sql_injection': [
-                r"(union\s+select|insert\s+into|delete\s+from|drop\s+table|update\s+set)",
-                r"(';\s*--|'\s*or\s+'|'\s*and\s+')",
-                r"(exec\s*\(|sp_|xp_)"
+                r"('|(\-\-)|(;)|(\||\|)|(\*|\*))",
+                r"\b(union\s+select|insert\s+into|delete\s+from|update\s+set|drop\s+table|create\s+table|alter\s+table)\b",
+                r"(script|javascript|vbscript|onload|onerror)"
             ],
             'xss': [
                 r"<script[^>]*>.*?</script>",
@@ -233,7 +233,7 @@ class ThreatDetector:
     
     def detect_sql_injection(self, request) -> bool:
         """Detect SQL injection attempts in request."""
-        request_data = str(request.GET) + str(request.POST) + str(getattr(request, 'body', b''))
+        request_data = str(request.GET) + str(request.POST) + str(request.body)
         
         for pattern in self.threat_patterns['sql_injection']:
             if re.search(pattern, request_data, re.IGNORECASE):
@@ -242,7 +242,7 @@ class ThreatDetector:
     
     def detect_xss(self, request) -> bool:
         """Detect XSS attempts in request."""
-        request_data = str(request.GET) + str(request.POST) + str(getattr(request, 'body', b''))
+        request_data = str(request.GET) + str(request.POST) + str(request.body)
         
         for pattern in self.threat_patterns['xss']:
             if re.search(pattern, request_data, re.IGNORECASE):
@@ -251,7 +251,7 @@ class ThreatDetector:
     
     def detect_path_traversal(self, request) -> bool:
         """Detect path traversal attempts in request."""
-        request_data = str(request.GET) + str(request.POST) + request.path
+        request_data = str(request.GET) + str(request.POST) + str(request.body)
         
         for pattern in self.threat_patterns['path_traversal']:
             if re.search(pattern, request_data, re.IGNORECASE):

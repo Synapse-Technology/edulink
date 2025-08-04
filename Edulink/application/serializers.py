@@ -4,12 +4,17 @@ from internship.models.internship import Internship
 
 
 class InternshipSimpleSerializer(serializers.ModelSerializer):
+    employer_name = serializers.CharField(source='employer.company_name', read_only=True)
+    company_name = serializers.CharField(source='employer.company_name', read_only=True)
+    
     class Meta:
         model = Internship
         fields = [
             "id",
             "title",
             "employer",
+            "employer_name",
+            "company_name",
             "location",
             "start_date",
             "end_date",
@@ -23,6 +28,12 @@ class ApplicationSerializer(serializers.ModelSerializer):
         queryset=Internship.objects.all(), source="internship", write_only=True  # type: ignore[attr-defined]
     )
     student = serializers.StringRelatedField(read_only=True)
+    # Add frontend-expected field names
+    internship_title = serializers.CharField(source='internship.title', read_only=True)
+    company = serializers.CharField(source='internship.employer.company_name', read_only=True)
+    location = serializers.CharField(source='internship.location', read_only=True)
+    applied_on = serializers.DateTimeField(source='application_date', read_only=True)
+    created_at = serializers.DateTimeField(source='application_date', read_only=True)
 
     class Meta:
         model = Application
@@ -31,11 +42,18 @@ class ApplicationSerializer(serializers.ModelSerializer):
             "student",
             "internship",
             "internship_id",
+            "internship_title",
+            "company",
+            "location",
             "status",
-            "submitted_at",
+            "applied_on",
+            "created_at",
+            "application_date",
             "updated_at",
+            "cover_letter",
+            "resume",
         ]
-        read_only_fields = ["id", "student", "submitted_at", "updated_at", "status"]
+        read_only_fields = ["id", "student", "application_date", "updated_at"]
 
 
 class ApplicationCreateSerializer(serializers.ModelSerializer):

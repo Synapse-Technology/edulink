@@ -1,6 +1,9 @@
 import logging
 import time
 import json
+import hashlib
+import sys
+import os
 from django.utils.deprecation import MiddlewareMixin
 from django.http import HttpResponseForbidden, JsonResponse
 from django.core.cache import cache
@@ -9,13 +12,23 @@ from django.utils import timezone
 from django.conf import settings
 from django.urls import resolve
 from django.core.exceptions import PermissionDenied
+from django.core.management import get_commands
 from security.models import SecurityEvent, FailedLoginAttempt, UserSession
 from security.utils import ThreatDetector
+from security.apps import is_audit_logging_enabled
 import re
-import hashlib
 
 User = get_user_model()
 logger = logging.getLogger('security')
+
+
+def should_skip_security_logging():
+    """Determine if security logging should be skipped."""
+    # Skip if audit logging is disabled
+    if not is_audit_logging_enabled():
+        return True
+    
+    return False
 
 
 class SecurityMiddleware(MiddlewareMixin):
@@ -35,6 +48,16 @@ class SecurityMiddleware(MiddlewareMixin):
         client_ip = self.get_client_ip(request)
         request._client_ip = client_ip
         
+        # Skip security checks for localhost in development mode
+        if getattr(settings, 'SKIP_SECURITY_FOR_LOCALHOST', False):
+            localhost_ips = getattr(settings, 'LOCALHOST_ALLOWED_IPS', ['127.0.0.1', '::1'])
+            if client_ip in localhost_ips or client_ip == 'localhost':
+                return None
+        
+        # Skip security checks for admin paths
+        if request.path.startswith('/admin/'):
+            return None
+        
         # Check for blocked IPs
         if self.is_ip_blocked(client_ip):
             logger.warning(f"Blocked request from IP: {client_ip}")
@@ -53,7 +76,7 @@ class SecurityMiddleware(MiddlewareMixin):
         if threats:
             self.handle_threats(request, threats)
         
-        # Session security (only if user is available and authenticated)
+        # Session security
         if hasattr(request, 'user') and request.user.is_authenticated:
             self.validate_session_security(request)
         
@@ -218,17 +241,23 @@ class SecurityMiddleware(MiddlewareMixin):
         
         logger.critical(f"Blocked IP {ip_address}: {reason}")
         
-        # Create security event
-        SecurityEvent.objects.create(
-            event_type='ip_blocked',
-            severity='critical',
-            description=f"IP address blocked: {reason}",
-            ip_address=ip_address,
-            metadata={'reason': reason}
-        )
+        # Create security event only if audit logging is enabled
+        if not should_skip_security_logging():
+            try:
+                # ContentType dependency removed - no longer need to check table existence
+                
+                SecurityEvent.objects.create(
+                    event_type='ip_blocked',
+                    severity='critical',
+                    description=f"IP address blocked: {reason}",
+                    ip_address=ip_address,
+                    metadata={'reason': reason}
+                )
+            except Exception as e:
+                logger.error(f"Failed to log IP blocking event: {str(e)}")
     
     def validate_session_security(self, request):
-        """Validate session security for authenticated users."""
+        """Validate session security and handle concurrent sessions with privacy controls."""
         user = request.user
         session_key = request.session.session_key
         
@@ -236,30 +265,67 @@ class SecurityMiddleware(MiddlewareMixin):
             return
         
         try:
-            user_session = UserSession.objects.get(
+            # Prepare session data based on privacy settings
+            session_defaults = {
+                'last_activity': timezone.now()
+            }
+            
+            # Only store IP if session tracking is enabled
+            if getattr(settings, 'SECURITY_TRACK_SESSION_IPS', False):
+                session_defaults['ip_address'] = request._client_ip
+            
+            # Only store user agent if enabled
+            if getattr(settings, 'SECURITY_TRACK_USER_AGENTS', False):
+                session_defaults['user_agent'] = request.META.get('HTTP_USER_AGENT', '')
+            
+            # Update or create session record
+            user_session, created = UserSession.objects.get_or_create(
                 user=user,
                 session_key=session_key,
-                is_active=True
+                defaults=session_defaults
             )
             
-            # Check for session hijacking
-            current_ip = request._client_ip
-            if user_session.ip_address != current_ip:
-                self.handle_session_hijacking(request, user_session)
+            if not created:
+                # Check for session hijacking only if IP tracking is enabled
+                if getattr(settings, 'SECURITY_TRACK_SESSION_IPS', False) and hasattr(user_session, 'ip_address'):
+                    current_ip = request._client_ip
+                    if user_session.ip_address and user_session.ip_address != current_ip:
+                        self.handle_session_hijacking(request, user_session)
+                        return
+                
+                # Update last activity
+                user_session.last_activity = timezone.now()
+                user_session.save()
             
-            # Update last activity
-            user_session.last_activity = timezone.now()
-            user_session.save()
-            
-        except UserSession.DoesNotExist:
-            # Create new session record
-            UserSession.objects.create(
+            # Check for concurrent sessions (optional enforcement)
+            max_sessions = getattr(settings, 'MAX_CONCURRENT_SESSIONS', 5)
+            active_sessions = UserSession.objects.filter(
                 user=user,
-                session_key=session_key,
-                ip_address=request._client_ip,
-                user_agent=request.META.get('HTTP_USER_AGENT', ''),
                 is_active=True
-            )
+            ).count()
+            
+            if active_sessions > max_sessions:
+                # Deactivate oldest sessions
+                oldest_sessions = UserSession.objects.filter(
+                    user=user,
+                    is_active=True
+                ).order_by('last_activity')[:-max_sessions]
+                
+                for session in oldest_sessions:
+                    session.is_active = False
+                    session.logout_reason = 'forced'
+                    session.save()
+                    
+                    # Log security event
+                    self.log_security_event(
+                        request,
+                        'forced_logout',
+                        'medium',
+                        'Session terminated due to concurrent session limit'
+                    )
+        
+        except Exception as e:
+            logger.error(f"Session validation error: {e}")
     
     def handle_session_hijacking(self, request, user_session):
         """Handle potential session hijacking."""
@@ -268,7 +334,7 @@ class SecurityMiddleware(MiddlewareMixin):
             request,
             'session_hijacking_attempt',
             'critical',
-            f"Potential session hijacking detected for user {request.user.username}"
+            f"Potential session hijacking detected for user {request.user.username if hasattr(request, 'user') and request.user.is_authenticated else 'unknown'}"
         )
         
         # Invalidate session
@@ -283,9 +349,20 @@ class SecurityMiddleware(MiddlewareMixin):
         """Add security headers to response."""
         # Content Security Policy
         if not response.get('Content-Security-Policy'):
-            csp = getattr(settings, 'CONTENT_SECURITY_POLICY', 
-                "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';")
-            response['Content-Security-Policy'] = csp
+            if hasattr(settings, 'CONTENT_SECURITY_POLICY'):
+                csp_setting = getattr(settings, 'CONTENT_SECURITY_POLICY')
+                if isinstance(csp_setting, dict):
+                    csp_parts = []
+                    for directive, sources in csp_setting.items():
+                        if isinstance(sources, str):
+                            csp_parts.append(f"{directive} {sources}")
+                        elif isinstance(sources, list):
+                            csp_parts.append(f"{directive} {' '.join(sources)}")
+                    response['Content-Security-Policy'] = '; '.join(csp_parts)
+                else:
+                    response['Content-Security-Policy'] = csp_setting
+            else:
+                response['Content-Security-Policy'] = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';"
         
         # X-Frame-Options
         if not response.get('X-Frame-Options'):
@@ -305,7 +382,18 @@ class SecurityMiddleware(MiddlewareMixin):
         
         # Permissions Policy
         if not response.get('Permissions-Policy'):
-            response['Permissions-Policy'] = 'geolocation=(), microphone=(), camera=()'
+            if hasattr(settings, 'SECURE_PERMISSIONS_POLICY'):
+                policy_parts = []
+                for directive, sources in settings.SECURE_PERMISSIONS_POLICY.items():
+                    if isinstance(sources, list):
+                        if sources:
+                            sources_str = ' '.join(f'"{source}"' if source != 'self' else 'self' for source in sources)
+                            policy_parts.append(f"{directive}=({sources_str})")
+                        else:
+                            policy_parts.append(f"{directive}=()")
+                response['Permissions-Policy'] = ', '.join(policy_parts)
+            else:
+                response['Permissions-Policy'] = 'geolocation=(), microphone=(), camera=()'
         
         return response
     
@@ -333,8 +421,12 @@ class SecurityMiddleware(MiddlewareMixin):
         if response.status_code == 404 and request.path.endswith(('.php', '.asp', '.jsp')):
             return True
         
+        # Skip suspicious parameter check for legitimate API endpoints
+        if request.path.startswith('/api/institutions/search/'):
+            return False
+        
         # Requests with suspicious parameters
-        suspicious_params = ['union', 'select', 'script', 'alert', '../', '..\\', 'eval(']
+        suspicious_params = ['union', 'script', 'alert', '../', '..\\', 'eval(']
         query_string = request.META.get('QUERY_STRING', '')
         
         for param in suspicious_params:
@@ -344,21 +436,51 @@ class SecurityMiddleware(MiddlewareMixin):
         return False
     
     def log_security_event(self, request, event_type, severity, description):
-        """Log a security event."""
+        """Log a security event with privacy-first data minimization."""
         try:
-            SecurityEvent.objects.create(
-                event_type=event_type,
-                severity=severity,
-                description=description,
-                user=request.user if hasattr(request, 'user') and request.user.is_authenticated else None,
-                ip_address=request._client_ip,
-                user_agent=request.META.get('HTTP_USER_AGENT', ''),
-                metadata={
+            # Skip security logging when disabled (e.g., during migrations)
+            if should_skip_security_logging():
+                logger.debug(f"Skipping security event logging: {event_type} (audit logging disabled)")
+                return
+            
+            # ContentType dependency removed - no longer need to check table existence
+            
+            # Apply data minimization based on settings
+            ip_address = None
+            user_agent = None
+            metadata = {}
+            
+            # Only collect IP if explicitly enabled
+            if getattr(settings, 'SECURITY_LOG_IP_ADDRESSES', False):
+                ip_address = request._client_ip
+            
+            # Only collect user agent if explicitly enabled
+            if getattr(settings, 'SECURITY_LOG_USER_AGENTS', False):
+                user_agent = request.META.get('HTTP_USER_AGENT', '')
+            
+            # Only collect detailed metadata if enabled
+            if getattr(settings, 'SECURITY_LOG_DETAILED_METADATA', False):
+                metadata = {
                     'path': request.path,
                     'method': request.method,
                     'query_string': request.META.get('QUERY_STRING', ''),
                     'referer': request.META.get('HTTP_REFERER', '')
                 }
+            else:
+                # Minimal metadata for security purposes
+                metadata = {
+                    'path': request.path,
+                    'method': request.method
+                }
+            
+            SecurityEvent.objects.create(
+                event_type=event_type,
+                severity=severity,
+                description=description,
+                user=request.user if hasattr(request, 'user') and request.user.is_authenticated else None,
+                ip_address=ip_address,
+                user_agent=user_agent,
+                metadata=metadata
             )
         except Exception as e:
             logger.error(f"Failed to log security event: {str(e)}")
@@ -391,6 +513,17 @@ class RateLimitMiddleware(MiddlewareMixin):
     
     def should_skip_rate_limiting(self, request):
         """Determine if rate limiting should be skipped."""
+        # Skip rate limiting for localhost in development mode
+        if getattr(settings, 'SKIP_SECURITY_FOR_LOCALHOST', False):
+            client_ip = self.get_client_ip(request)
+            localhost_ips = getattr(settings, 'LOCALHOST_ALLOWED_IPS', ['127.0.0.1', '::1'])
+            if client_ip in localhost_ips or client_ip == 'localhost':
+                return True
+        
+        # Always skip rate limiting for admin paths
+        if request.path.startswith('/admin/'):
+            return True
+            
         skip_paths = getattr(settings, 'RATE_LIMIT_SKIP_PATHS', [])
         
         for path in skip_paths:
@@ -455,15 +588,25 @@ class RateLimitMiddleware(MiddlewareMixin):
     
     def rate_limit_response(self, request):
         """Return rate limit exceeded response."""
-        # Log rate limit event
+        # Log rate limit event with privacy controls
         try:
+            # Apply data minimization
+            ip_address = None
+            user_agent = None
+            
+            if getattr(settings, 'SECURITY_LOG_IP_ADDRESSES', False):
+                ip_address = self.get_client_ip(request)
+            
+            if getattr(settings, 'SECURITY_LOG_USER_AGENTS', False):
+                user_agent = request.META.get('HTTP_USER_AGENT', '')
+            
             SecurityEvent.objects.create(
                 event_type='rate_limit_exceeded',
                 severity='medium',
                 description=f"Rate limit exceeded for {request.path}",
-                user=request.user if request.user.is_authenticated else None,
-                ip_address=self.get_client_ip(request),
-                user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                user=request.user if hasattr(request, 'user') and request.user.is_authenticated else None,
+                ip_address=ip_address,
+                user_agent=user_agent,
                 metadata={
                     'path': request.path,
                     'method': request.method
@@ -544,14 +687,20 @@ class IPWhitelistMiddleware(MiddlewareMixin):
         if not request.path.startswith('/admin/'):
             return None
         
+        # Get client IP
+        client_ip = self.get_client_ip(request)
+        
+        # Allow localhost access in development mode
+        if getattr(settings, 'SKIP_SECURITY_FOR_LOCALHOST', False):
+            localhost_ips = getattr(settings, 'LOCALHOST_ALLOWED_IPS', ['127.0.0.1', '::1'])
+            if client_ip in localhost_ips or client_ip == 'localhost':
+                return None
+        
         # Get allowed IPs
         allowed_ips = getattr(settings, 'ADMIN_ALLOWED_IPS', [])
         
         if not allowed_ips:
             return None  # No restrictions
-        
-        # Get client IP
-        client_ip = self.get_client_ip(request)
         
         # Check if IP is allowed
         if client_ip not in allowed_ips:

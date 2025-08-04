@@ -4,32 +4,33 @@ from .views import (
     InstitutionStudentListView,
     InstitutionApplicationListView,
     ApplicationStatusUpdateView,
+    RegisterInstitutionView,
+    search_institutions,
+    validate_university_code,
+    get_all_institutions,
+    institution_autocomplete,
     InstitutionDashboardStatsView,
-    InstitutionDepartmentsView,
-    InstitutionInternshipsView,
-    InstitutionReportsView,
-    institution_dashboard_view,
-    institution_login_view
+    InstitutionRecentActivityView,
+    GenerateRegistrationCodeView,
 )
 
 app_name = 'institutions'
 
 urlpatterns = [
-    # Authentication
-    path('login/', institution_login_view, name='login'),
+    path('profile/', InstitutionProfileDetailView.as_view(), name='institution-profile'),
+    path('my-students/', InstitutionStudentListView.as_view(), name='institution-students'),
+    path('applications/', InstitutionApplicationListView.as_view(), name='institution-applications'),
+    path('application/<int:id>/status/', ApplicationStatusUpdateView.as_view(), name='application-status-update'),
     
-    # Dashboard HTML view
-    path('dashboard/', institution_dashboard_view, name='dashboard'),
+    # Dashboard endpoints
+    path('dashboard/stats/', InstitutionDashboardStatsView.as_view(), name='institution-dashboard-stats'),
+    path('dashboard/activity/', InstitutionRecentActivityView.as_view(), name='institution-recent-activity'),
+    path('generate-code/', GenerateRegistrationCodeView.as_view(), name='generate-registration-code'),
     
-    # API endpoints
-    path('api/dashboard/stats/', InstitutionDashboardStatsView.as_view(), name='dashboard_stats'),
-    path('api/departments/', InstitutionDepartmentsView.as_view(), name='departments'),
-    path('api/internships/', InstitutionInternshipsView.as_view(), name='internships'),
-    path('api/reports/', InstitutionReportsView.as_view(), name='reports'),
-    
-    # Other endpoints
-    path('create/', CreateInstitutionView.as_view(), name='create_institution'),
-    path('api/my-students/', InstitutionStudentListView.as_view(), name='my_students'),
-    path('applications/', InstitutionApplicationListView.as_view(), name='applications'),
-    path('applications/<int:application_id>/status/', ApplicationStatusUpdateView.as_view(), name='update_application_status'),
+    # New endpoints for institution search and registration
+    path('all/', get_all_institutions, name='all-institutions'),
+    path('search/', search_institutions, name='institution-search'),
+    path('autocomplete/', institution_autocomplete, name='institution-autocomplete'),
+    path('validate-code/', validate_university_code, name='validate-university-code'),
+    path('register/', RegisterInstitutionView.as_view(), name='register-institution'),
 ]

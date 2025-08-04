@@ -2,10 +2,12 @@
 <html lang="en">
 <head>
   <script>
-    // Redirect to login if not authenticated
-    const accessToken = localStorage.getItem('access_token');
-    if (!accessToken) {
-      window.location.href = '/Edulink_website/login.html';
+    // Token validation function (used later in DOMContentLoaded)
+    function isValidTokenFormat(token) {
+      if (!token || typeof token !== 'string') return false;
+      // Basic JWT format check (3 parts separated by dots)
+      const parts = token.split('.');
+      return parts.length === 3 && parts.every(part => part.length > 0);
     }
   </script>
   <meta charset="UTF-8" />
@@ -933,19 +935,29 @@
       }
       renderTrendsChart(data);
     }
+    // Helper function to validate JWT token format
+    function isValidTokenFormat(token) {
+      if (!token || typeof token !== 'string') return false;
+      // Basic JWT format check (3 parts separated by dots)
+      const parts = token.split('.');
+      return parts.length === 3 && parts.every(part => part.length > 0);
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
       // --- Robust Access Token Check ---
       const accessToken = localStorage.getItem('access_token');
-      if (!accessToken || typeof accessToken !== 'string' || accessToken.length < 10) {
-        // No token or clearly invalid token, redirect to login
-        window.location.href = '/Edulink_website/login.html';
-        return;
-      }
-
+      
       // Helper: Redirect to login and clear token
       function forceLogout() {
         localStorage.removeItem('access_token');
-        window.location.href = '/Edulink_website/login.html';
+        window.location.href = '../../login.html';
+      }
+      
+      // Validate token format and existence
+      if (!accessToken || !isValidTokenFormat(accessToken)) {
+        console.warn('Invalid or missing access token, redirecting to login');
+        forceLogout();
+        return;
       }
 
       // Spinner and loading messages
@@ -977,7 +989,7 @@
       startDashboardLoadingMessages();
 
       // --- Fetch dashboard data and update UI ---
-      fetch('http://localhost:8000/api/dashboards/student/', {
+      fetch('http://127.0.0.1:8000/api/dashboards/student/', {
         headers: {
           'Authorization': 'Bearer ' + accessToken,
           'Accept': 'application/json'
@@ -986,9 +998,10 @@
         .then(res => {
           if (!res.ok) {
             if (res.status === 401 || res.status === 403) {
-              // Token missing, expired, or invalid: force logout
+              // Token expired or invalid: redirect to login
+              console.warn('Token expired or invalid, redirecting to login');
               forceLogout();
-              return Promise.reject('Unauthorized');
+              return;
             }
             return res.json().then(err => { throw new Error(err.detail || 'An error occurred.'); });
           }
@@ -1093,24 +1106,36 @@
           
           // Load additional dashboard data
           loadProgressData();
+          loadInternshipProgressData();
           loadAnalyticsData();
           loadAchievementsData();
           loadCalendarData();
         })
         .catch(err => {
           stopDashboardLoadingMessages();
-          // Optionally show an error message or modal here
+          console.error('Dashboard data fetch error:', err);
+          // If there's a network error or other issues, redirect to login for security
+          if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+            console.warn('Network error detected, redirecting to login for security');
+            forceLogout();
+          }
         });
 
       // Load Progress Data
       function loadProgressData() {
-        fetch('http://localhost:8000/api/dashboards/progress/', {
+        fetch('http://127.0.0.1:8000/api/dashboards/progress/', {
           headers: {
             'Authorization': 'Bearer ' + accessToken,
             'Accept': 'application/json'
           }
         })
         .then(res => {
+          if (res.status === 401 || res.status === 403) {
+            console.warn('Authentication failed for progress data');
+            localStorage.removeItem('access_token');
+            window.location.href = '../../login.html';
+            return;
+          }
           if (!res.ok) {
             throw new Error('Progress data not available');
           }
@@ -1143,30 +1168,62 @@
           // Update milestones
           updateMilestones(data.next_milestones || []);
 
-          // After DOMContentLoaded, update the internship progress ring
-          updateInternshipProgressRing(data);
+          // Internship progress is now loaded separately
         })
         .catch(err => {
           console.error('Error loading progress data:', err);
-          // Set default values
-          const profileCompletion = document.getElementById('profile-completion-percentage');
-          const profileProgressBar = document.getElementById('profile-progress-bar');
-          if (profileCompletion && profileProgressBar) {
-            profileCompletion.textContent = '0%';
-            profileProgressBar.style.width = '0%';
-          }
+          // Redirect to login for security
+          localStorage.removeItem('access_token');
+          window.location.href = '../../login.html';
         });
       }
 
-      // Load Analytics Data
-      function loadAnalyticsData() {
-        fetch('http://localhost:8000/api/dashboards/analytics/', {
+      // Load Internship Progress Data
+      function loadInternshipProgressData() {
+        fetch('http://127.0.0.1:8000/api/internship-progress/progress/', {
           headers: {
             'Authorization': 'Bearer ' + accessToken,
             'Accept': 'application/json'
           }
         })
         .then(res => {
+          if (res.status === 401 || res.status === 403) {
+            console.warn('Authentication failed for internship progress data');
+            localStorage.removeItem('access_token');
+            window.location.href = '../../login.html';
+            return;
+          }
+          if (!res.ok) {
+            throw new Error('Internship progress data not available');
+          }
+          return res.json();
+        })
+        .then(data => {
+          // Update the internship progress ring with comprehensive data
+          updateInternshipProgressRing(data);
+        })
+        .catch(err => {
+          console.error('Error loading internship progress data:', err);
+          // Show default state for progress ring
+          updateInternshipProgressRing(null);
+        });
+      }
+
+      // Load Analytics Data
+      function loadAnalyticsData() {
+        fetch('http://127.0.0.1:8000/api/dashboards/analytics/', {
+          headers: {
+            'Authorization': 'Bearer ' + accessToken,
+            'Accept': 'application/json'
+          }
+        })
+        .then(res => {
+          if (res.status === 401 || res.status === 403) {
+            console.warn('Authentication failed for analytics data');
+            localStorage.removeItem('access_token');
+            window.location.href = '../../login.html';
+            return;
+          }
           if (!res.ok) {
             throw new Error('Analytics data not available');
           }
@@ -1195,28 +1252,27 @@
         })
         .catch(err => {
           console.error('Error loading analytics data:', err);
-          // Set default values
-          const successRate = document.getElementById('success-rate');
-          const avgResponseTime = document.getElementById('avg-response-time');
-          const thisMonthApps = document.getElementById('this-month-apps');
-          const totalApplications = document.getElementById('total-applications');
-
-          if (successRate) successRate.textContent = '0%';
-          if (avgResponseTime) avgResponseTime.textContent = '-';
-          if (thisMonthApps) thisMonthApps.textContent = '0';
-          if (totalApplications) totalApplications.textContent = '0';
+          // Redirect to login for security
+          localStorage.removeItem('access_token');
+          window.location.href = '../../login.html';
         });
       }
 
       // Load Achievements Data
       function loadAchievementsData() {
-        fetch('http://localhost:8000/api/dashboards/achievements/', {
+        fetch('http://127.0.0.1:8000/api/dashboards/achievements/', {
           headers: {
             'Authorization': 'Bearer ' + accessToken,
             'Accept': 'application/json'
           }
         })
         .then(res => {
+          if (res.status === 401 || res.status === 403) {
+            console.warn('Authentication failed for achievements data');
+            localStorage.removeItem('access_token');
+            window.location.href = '../../login.html';
+            return;
+          }
           if (!res.ok) {
             throw new Error('Achievements data not available');
           }
@@ -1227,20 +1283,27 @@
         })
         .catch(err => {
           console.error('Error loading achievements data:', err);
-          // Show empty state
-          updateAchievementsGrid([]);
+          // Redirect to login for security
+          localStorage.removeItem('access_token');
+          window.location.href = '../../login.html';
         });
       }
 
       // Load Calendar Data
       function loadCalendarData() {
-        fetch('http://localhost:8000/api/dashboards/calendar-events/upcoming/', {
+        fetch('http://127.0.0.1:8000/api/dashboards/calendar-events/upcoming/', {
           headers: {
             'Authorization': 'Bearer ' + accessToken,
             'Accept': 'application/json'
           }
         })
         .then(res => {
+          if (res.status === 401 || res.status === 403) {
+            console.warn('Authentication failed for calendar data');
+            localStorage.removeItem('access_token');
+            window.location.href = '../../login.html';
+            return;
+          }
           if (!res.ok) {
             throw new Error('Calendar data not available');
           }
@@ -1252,8 +1315,9 @@
         })
         .catch(err => {
           console.error('Error loading calendar data:', err);
-          // Show empty state
-          updateUpcomingEvents([]);
+          // Redirect to login for security
+          localStorage.removeItem('access_token');
+          window.location.href = '../../login.html';
         });
       }
 
@@ -1436,17 +1500,25 @@
             if (!eventId) return;
             if (!confirm('Are you sure you want to delete this event?')) return;
             try {
-              const res = await fetch(`http://localhost:8000/api/dashboards/calendar-events/${eventId}/`, {
+              const res = await fetch(`http://127.0.0.1:8000/api/dashboards/calendar-events/${eventId}/`, {
                 method: 'DELETE',
                 headers: {
                   'Authorization': 'Bearer ' + accessToken,
                   'Accept': 'application/json'
                 }
               });
+              if (res.status === 401 || res.status === 403) {
+                console.warn('Authentication failed for delete event');
+                localStorage.removeItem('access_token');
+                window.location.href = '../../login.html';
+                return;
+              }
               if (!res.ok && res.status !== 204) throw new Error('Failed to delete event');
               await loadCalendarData();
             } catch (err) {
-              showErrorModal('Could not delete event. Please try again.');
+              console.error('Error deleting event:', err);
+              localStorage.removeItem('access_token');
+              window.location.href = '../../login.html';
             }
           });
         });
@@ -1563,13 +1635,18 @@
         }
 
         // Priority 2: Fetch from API
-        fetch('http://localhost:8000/api/users/student/profile/', {
+        fetch('http://127.0.0.1:8000/api/users/student/profile/', {
           headers: { 'Authorization': 'Bearer ' + accessToken }
         })
           .then(res => {
-            if (!res.ok && (res.status === 401 || res.status === 403)) {
-              forceLogout();
-              return Promise.reject('Unauthorized');
+            if (res.status === 401 || res.status === 403) {
+              console.warn('Authentication failed for profile picture');
+              localStorage.removeItem('access_token');
+              window.location.href = '../../login.html';
+              return;
+            }
+            if (!res.ok) {
+              throw new Error('Failed to load profile');
             }
             return res.json();
           })
@@ -1581,8 +1658,10 @@
               profilePic.src = '../../assets/img/default.jpg';
             }
           })
-          .catch(() => { 
-            profilePic.src = '../../assets/img/default.jpg'; 
+          .catch(err => { 
+            console.error('Error loading profile picture:', err);
+            localStorage.removeItem('access_token');
+            window.location.href = '../../login.html';
           });
       }
 
@@ -1602,6 +1681,7 @@
 
       // Load additional dashboard data
       loadProgressData();
+      loadInternshipProgressData();
       loadAnalyticsData();
       loadAchievementsData();
       loadCalendarData();
@@ -1739,10 +1819,21 @@
 
       // 8. Main Dashboard Loader
       function loadDashboard() {
-        fetch('http://localhost:8000/api/dashboards/student/', {
+        fetch('http://127.0.0.1:8000/api/dashboards/student/', {
           headers: { 'Authorization': 'Bearer ' + accessToken }
         })
-          .then(res => res.json())
+          .then(res => {
+            if (res.status === 401 || res.status === 403) {
+              console.warn('Authentication failed for dashboard loader');
+              localStorage.removeItem('access_token');
+              window.location.href = '../../login.html';
+              return;
+            }
+            if (!res.ok) {
+              throw new Error('Failed to load dashboard');
+            }
+            return res.json();
+          })
           .then(data => {
             updateStatusCards(data);
             updateApplicationsTable(data);
@@ -1751,6 +1842,11 @@
             renderTrendsChart(data);
             renderCalendar(data.upcoming_events);
             // ...other updates
+          })
+          .catch(err => {
+            console.error('Error loading dashboard:', err);
+            localStorage.removeItem('access_token');
+            window.location.href = '../../login.html';
           });
       }
 
@@ -1819,7 +1915,7 @@
         logoutBtn.addEventListener('click', function(e) {
           e.preventDefault();
           localStorage.removeItem('access_token');
-          window.location.href = '/Edulink_website/login.html';
+          window.location.href = '../../login.html';
         });
       }
 
@@ -1865,7 +1961,7 @@
           try {
             let res;
             if (editingEventId) {
-              res = await fetch(`http://localhost:8000/api/dashboards/calendar-events/${editingEventId}/`, {
+              res = await fetch(`http://127.0.0.1:8000/api/dashboards/calendar-events/${editingEventId}/`, {
                 method: 'PATCH',
                 headers: {
                   'Authorization': 'Bearer ' + accessToken,
@@ -1875,7 +1971,7 @@
                 body: JSON.stringify(payload)
               });
             } else {
-              res = await fetch('http://localhost:8000/api/dashboards/calendar-events/', {
+              res = await fetch('http://127.0.0.1:8000/api/dashboards/calendar-events/', {
                 method: 'POST',
                 headers: {
                   'Authorization': 'Bearer ' + accessToken,
@@ -1885,13 +1981,21 @@
                 body: JSON.stringify(payload)
               });
             }
+            if (res.status === 401 || res.status === 403) {
+              console.warn('Authentication failed for save event');
+              localStorage.removeItem('access_token');
+              window.location.href = '../../login.html';
+              return;
+            }
             if (!res.ok) throw new Error('Failed to save event');
             await loadCalendarData();
             addEventModal.style.display = 'none';
             addEventForm.reset();
             editingEventId = null;
           } catch (err) {
-            showErrorModal('Could not save event. Please try again.');
+            console.error('Error saving event:', err);
+            localStorage.removeItem('access_token');
+            window.location.href = '../../login.html';
           }
         });
       }
@@ -1976,17 +2080,25 @@
             if (!eventId) return;
             if (!confirm('Are you sure you want to delete this event?')) return;
             try {
-              const res = await fetch(`http://localhost:8000/api/dashboards/calendar-events/${eventId}/`, {
+              const res = await fetch(`http://127.0.0.1:8000/api/dashboards/calendar-events/${eventId}/`, {
                 method: 'DELETE',
                 headers: {
                   'Authorization': 'Bearer ' + accessToken,
                   'Accept': 'application/json'
                 }
               });
+              if (res.status === 401 || res.status === 403) {
+                console.warn('Authentication failed for delete event');
+                localStorage.removeItem('access_token');
+                window.location.href = '../../login.html';
+                return;
+              }
               if (!res.ok && res.status !== 204) throw new Error('Failed to delete event');
               await loadCalendarData();
             } catch (err) {
-              showErrorModal('Could not delete event. Please try again.');
+              console.error('Error deleting event:', err);
+              localStorage.removeItem('access_token');
+              window.location.href = '../../login.html';
             }
           });
         });
@@ -2011,19 +2123,27 @@
       // Load Calendar Data (fetch all events from backend)
       async function loadCalendarData() {
         try {
-          const res = await fetch('http://localhost:8000/api/dashboards/calendar-events/', {
+          const res = await fetch('http://127.0.0.1:8000/api/dashboards/calendar-events/', {
             headers: {
               'Authorization': 'Bearer ' + accessToken,
               'Accept': 'application/json'
             }
           });
+          if (res.status === 401 || res.status === 403) {
+            console.warn('Authentication failed for calendar events');
+            localStorage.removeItem('access_token');
+            window.location.href = '../../login.html';
+            return;
+          }
           if (!res.ok) throw new Error('Failed to fetch events');
           const data = await res.json();
           allCalendarEvents = data;
           renderFullCalendar(allCalendarEvents);
           updateUpcomingEvents(allCalendarEvents.filter(ev => !ev.is_completed && new Date(ev.start_date) >= new Date()).sort((a, b) => new Date(a.start_date) - new Date(b.start_date)).slice(0, 10));
         } catch (err) {
-          updateUpcomingEvents([]);
+          console.error('Error loading calendar events:', err);
+          localStorage.removeItem('access_token');
+          window.location.href = '../../login.html';
         }
       }
       // Patch renderFullCalendar to use backend event format
@@ -2164,17 +2284,25 @@
             if (!eventId) return;
             if (!confirm('Are you sure you want to delete this event?')) return;
             try {
-              const res = await fetch(`http://localhost:8000/api/dashboards/calendar-events/${eventId}/`, {
+              const res = await fetch(`http://127.0.0.1:8000/api/dashboards/calendar-events/${eventId}/`, {
                 method: 'DELETE',
                 headers: {
                   'Authorization': 'Bearer ' + accessToken,
                   'Accept': 'application/json'
                 }
               });
+              if (res.status === 401 || res.status === 403) {
+                console.warn('Authentication failed for delete event');
+                localStorage.removeItem('access_token');
+                window.location.href = '../../login.html';
+                return;
+              }
               if (!res.ok && res.status !== 204) throw new Error('Failed to delete event');
               await loadCalendarData();
             } catch (err) {
-              showErrorModal('Could not delete event. Please try again.');
+              console.error('Error deleting event:', err);
+              localStorage.removeItem('access_token');
+              window.location.href = '../../login.html';
             }
           });
         });
@@ -2191,40 +2319,57 @@
       // On page load, fetch all events
       loadCalendarData();
 
-      // After DOMContentLoaded, update the internship progress ring
+      // Update internship progress ring with comprehensive data
       function updateInternshipProgressRing(data) {
-        // Data should include: onboarded (bool), start_date, end_date
         const ring = document.getElementById('internship-progress-ring');
         const percentText = document.getElementById('internship-progress-percentage');
         const statusText = document.getElementById('internship-progress-status');
         const message = document.getElementById('internship-progress-message');
         const CIRCUM = 2 * Math.PI * 52;
+        
         if (!ring || !percentText || !statusText || !message) return;
-        if (data && data.onboarded && data.start_date && data.end_date) {
-          const start = new Date(data.start_date);
-          const end = new Date(data.end_date);
-          const now = new Date();
-          let percent = 0;
-          if (now < start) {
-            percent = 0;
-            statusText.textContent = 'Not started';
-            message.textContent = 'Your internship has not started yet.';
-          } else if (now > end) {
-            percent = 100;
-            statusText.textContent = 'Completed';
-            message.textContent = 'Congratulations! You have completed your internship.';
-          } else {
-            percent = Math.round(((now - start) / (end - start)) * 100);
-            statusText.textContent = 'In Progress';
-            message.textContent = `You're ${percent}% through your internship!`;
-          }
-          percentText.textContent = percent + '%';
-          ring.setAttribute('stroke-dashoffset', CIRCUM - (CIRCUM * percent / 100));
-        } else {
+        
+        if (!data) {
+          // No data available - show default state
           percentText.textContent = '0%';
-          statusText.textContent = '';
+          statusText.textContent = 'No Data';
           ring.setAttribute('stroke-dashoffset', CIRCUM);
-          message.textContent = "You're not onboarded to an internship yet. Progress will appear here when you start.";
+          message.textContent = "Unable to load internship progress data.";
+          return;
+        }
+        
+        if (data.status === 'pre_internship') {
+          // Pre-internship phase - show application progress
+          const percent = Math.round(data.progress_percentage || 0);
+          percentText.textContent = percent + '%';
+          statusText.textContent = data.phase || 'Pre-Internship';
+          ring.setAttribute('stroke-dashoffset', CIRCUM - (CIRCUM * percent / 100));
+          
+          if (data.next_milestone) {
+            message.textContent = `Next: ${data.next_milestone.description}`;
+          } else {
+            message.textContent = data.message || 'Keep applying to internships!';
+          }
+        } else if (data.status === 'active_internship') {
+          // Active internship phase - show time and logbook progress
+          const percent = Math.round(data.progress_percentage || 0);
+          percentText.textContent = percent + '%';
+          statusText.textContent = data.phase || 'Active Internship';
+          ring.setAttribute('stroke-dashoffset', CIRCUM - (CIRCUM * percent / 100));
+          
+          if (data.internship) {
+            const completedEntries = data.logbook_progress?.completed_entries || 0;
+            const totalEntries = data.logbook_progress?.total_expected_entries || 0;
+            message.textContent = `Week ${data.current_week || 1} • ${completedEntries}/${totalEntries} logbook entries completed`;
+          } else {
+            message.textContent = data.message || 'Internship in progress';
+          }
+        } else {
+          // No internship or unknown status
+          percentText.textContent = '0%';
+          statusText.textContent = 'Not Started';
+          ring.setAttribute('stroke-dashoffset', CIRCUM);
+          message.textContent = data.message || "You're not enrolled in an internship yet. Progress will appear here when you start.";
         }
       }
       // Example usage: updateInternshipProgressRing({ onboarded: true, start_date: '2024-06-01', end_date: '2024-09-01' });

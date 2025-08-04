@@ -1,19 +1,19 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Employer
+from users.models.employer_profile import EmployerProfile
 from users.serializers.profile_serializer import ProfileBaseSerializer
 
 User = get_user_model()
 
 
 class EmployerSerializer(ProfileBaseSerializer):
-    """Serializer for Employer model."""
+    """Serializer for EmployerProfile model."""
     
     email = serializers.EmailField(source='user.email', read_only=True)
     user_role = serializers.CharField(source='user.role', read_only=True)
     
     class Meta(ProfileBaseSerializer.Meta):
-        model = Employer
+        model = EmployerProfile
         fields = ProfileBaseSerializer.Meta.fields + [
             'email',
             'user_role',
@@ -31,14 +31,14 @@ class EmployerSerializer(ProfileBaseSerializer):
 
 
 class EmployerCreateSerializer(serializers.ModelSerializer):
-    """Serializer for creating Employer profiles."""
+    """Serializer for creating EmployerProfile profiles."""
     
     email = serializers.EmailField(source='user.email')
     password = serializers.CharField(source='user.password', write_only=True)
     role = serializers.CharField(source='user.role', default='employer')
     
     class Meta:
-        model = Employer
+        model = EmployerProfile
         fields = [
             'email',
             'password',
@@ -68,5 +68,5 @@ class EmployerCreateSerializer(serializers.ModelSerializer):
         )
         
         # Create employer profile
-        employer = Employer.objects.create(user=user, **validated_data)
+        employer = EmployerProfile.objects.create(user=user, **validated_data)
         return employer

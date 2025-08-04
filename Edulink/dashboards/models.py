@@ -8,96 +8,263 @@ from application.models import Application
 from internship.models import Internship
 from django.utils import timezone
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.core.exceptions import ValidationError
 import json
+import uuid
+from datetime import datetime, timedelta
 
 User = get_user_model()
 
 
 class InternshipProgress(models.Model):
-    """Track student's internship journey progress"""
+    """Enhanced model to track student's internship journey progress with analytics"""
+    
+    INTERNSHIP_STATUS_CHOICES = [
+        ('not_started', 'Not Started'),
+        ('searching', 'Actively Searching'),
+        ('applied', 'Applications Submitted'),
+        ('interviewing', 'In Interview Process'),
+        ('offer_received', 'Offer Received'),
+        ('internship_active', 'Currently Interning'),
+        ('internship_completed', 'Internship Completed'),
+        ('on_hold', 'Search On Hold'),
+    ]
+    
+    GOAL_STATUS_CHOICES = [
+        ('not_set', 'Not Set'),
+        ('in_progress', 'In Progress'),
+        ('achieved', 'Achieved'),
+        ('overdue', 'Overdue'),
+        ('paused', 'Paused'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     student = models.OneToOneField(StudentProfile, on_delete=models.CASCADE, related_name='internship_progress')
     
-    # Profile completion
+    # Enhanced profile completion
     profile_completion = models.PositiveIntegerField(
         default=0, 
         validators=[MinValueValidator(0), MaxValueValidator(100)],
-        help_text="Profile completion percentage"
+        help_text="Profile completion percentage",
+        db_index=True
+    )
+    profile_completion_details = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Detailed breakdown of profile completion status"
     )
     
-    # Application milestones
+    # Enhanced application milestones
     first_application_date = models.DateTimeField(null=True, blank=True)
-    total_applications = models.PositiveIntegerField(default=0)
+    total_applications = models.PositiveIntegerField(default=0, db_index=True)
     applications_this_month = models.PositiveIntegerField(default=0)
+    applications_this_week = models.PositiveIntegerField(default=0)
+    applications_this_quarter = models.PositiveIntegerField(default=0)
+    pending_applications = models.PositiveIntegerField(default=0)
+    accepted_applications = models.PositiveIntegerField(default=0)
+    rejected_applications = models.PositiveIntegerField(default=0)
+    withdrawn_applications = models.PositiveIntegerField(default=0)
     
-    # Interview tracking
+    # Enhanced interview tracking
     total_interviews = models.PositiveIntegerField(default=0)
     interviews_this_month = models.PositiveIntegerField(default=0)
+    upcoming_interviews = models.PositiveIntegerField(default=0)
+    completed_interviews = models.PositiveIntegerField(default=0)
+    cancelled_interviews = models.PositiveIntegerField(default=0)
     interview_success_rate = models.FloatField(default=0.0)
+    average_interview_rating = models.DecimalField(
+        max_digits=3,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0.0), MaxValueValidator(5.0)]
+    )
     
-    # Acceptance tracking
+    # Enhanced acceptance tracking
     total_acceptances = models.PositiveIntegerField(default=0)
     first_acceptance_date = models.DateTimeField(null=True, blank=True)
+    offers_received = models.PositiveIntegerField(default=0)
+    offers_accepted = models.PositiveIntegerField(default=0)
+    offers_declined = models.PositiveIntegerField(default=0)
+    offers_expired = models.PositiveIntegerField(default=0)
     
-    # Skills development
+    # Current internship status
+    internship_status = models.CharField(
+        max_length=20,
+        choices=INTERNSHIP_STATUS_CHOICES,
+        default='not_started',
+        db_index=True
+    )
+    internship_completion_percentage = models.PositiveIntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(100)]
+    )
+    
+    # Enhanced skills development
     skills_developed = models.JSONField(default=list, blank=True)
     skills_targeted = models.JSONField(default=list, blank=True)
+    skills_in_progress = models.JSONField(default=list, blank=True)
+    certifications_earned = models.JSONField(default=list, blank=True)
+    certifications_in_progress = models.JSONField(default=list, blank=True)
+    courses_completed = models.PositiveIntegerField(default=0)
+    learning_hours = models.PositiveIntegerField(default=0, help_text="Total learning hours")
+    projects_completed = models.PositiveIntegerField(default=0)
     
-    # Activity streak
+    # Enhanced activity streak
     current_streak = models.PositiveIntegerField(default=0)
     longest_streak = models.PositiveIntegerField(default=0)
     last_activity_date = models.DateField(null=True, blank=True)
+    total_activity_days = models.PositiveIntegerField(default=0)
+    total_session_time = models.DurationField(default=timedelta(0))
     
-    # Goals and targets
-    monthly_application_goal = models.PositiveIntegerField(default=10)
+    # Enhanced goals and targets
+    monthly_application_goal = models.PositiveIntegerField(
+        default=10,
+        validators=[MinValueValidator(1), MaxValueValidator(50)]
+    )
+    weekly_application_goal = models.PositiveIntegerField(
+        default=3,
+        validators=[MinValueValidator(1), MaxValueValidator(20)]
+    )
+    goal_status = models.CharField(
+        max_length=15,
+        choices=GOAL_STATUS_CHOICES,
+        default='not_set'
+    )
+    goal_deadline = models.DateField(null=True, blank=True)
     target_industries = models.JSONField(default=list, blank=True)
     target_companies = models.JSONField(default=list, blank=True)
     
+    # Performance metrics
+    overall_performance_score = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0.0,
+        validators=[MinValueValidator(0.0), MaxValueValidator(100.0)]
+    )
+    
+    # Networking and connections
+    network_connections = models.PositiveIntegerField(default=0)
+    mentor_connections = models.PositiveIntegerField(default=0)
+    industry_events_attended = models.PositiveIntegerField(default=0)
+    
+    # Feedback and ratings
+    average_employer_rating = models.DecimalField(
+        max_digits=3,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0.0), MaxValueValidator(5.0)]
+    )
+    total_feedback_received = models.PositiveIntegerField(default=0)
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    last_milestone_achieved = models.DateTimeField(null=True, blank=True)
     
     class Meta:
         verbose_name_plural = "Internship Progress"
+        ordering = ['-updated_at']
+        indexes = [
+            models.Index(fields=['student', 'internship_status']),
+            models.Index(fields=['profile_completion']),
+            models.Index(fields=['total_applications', 'accepted_applications']),
+            models.Index(fields=['current_streak', 'last_activity_date']),
+            models.Index(fields=['goal_status', 'goal_deadline']),
+            models.Index(fields=['overall_performance_score']),
+        ]
+    
+    def clean(self):
+        """Enhanced validation for internship progress."""
+        # Validate application counts
+        total_processed = (self.accepted_applications + self.rejected_applications + 
+                          self.withdrawn_applications)
+        if total_processed > self.total_applications:
+            raise ValidationError("Total processed applications cannot exceed total applications.")
+        
+        # Validate goal deadline
+        if self.goal_deadline and self.goal_deadline < timezone.now().date():
+            if self.goal_status not in ['achieved', 'overdue']:
+                self.goal_status = 'overdue'
+    
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
     
     def __str__(self):
-        return f"Progress for {self.student.user.first_name} {self.student.user.last_name}"
+        return f"Progress for {self.student.first_name} {self.student.last_name} - {self.get_internship_status_display()}"
     
     def calculate_profile_completion(self):
-        """Calculate profile completion percentage based on filled fields"""
+        """Enhanced profile completion calculation with detailed breakdown"""
         profile = self.student
         total_fields = 0
         filled_fields = 0
+        completion_details = {
+            'basic_info': {'total': 0, 'filled': 0, 'fields': []},
+            'education': {'total': 0, 'filled': 0, 'fields': []},
+            'skills': {'total': 0, 'filled': 0, 'fields': []},
+            'media': {'total': 0, 'filled': 0, 'fields': []}
+        }
         
         # Basic info fields
         basic_fields = ['bio', 'phone_number', 'date_of_birth', 'gender', 'address']
         for field in basic_fields:
             total_fields += 1
-            if getattr(profile, field):
+            completion_details['basic_info']['total'] += 1
+            field_filled = bool(getattr(profile, field, None))
+            if field_filled:
                 filled_fields += 1
+                completion_details['basic_info']['filled'] += 1
+            completion_details['basic_info']['fields'].append({
+                'name': field,
+                'filled': field_filled
+            })
         
         # Education fields
-        if profile.education_level:
-            filled_fields += 1
-        total_fields += 1
-        
-        if profile.institution:
-            filled_fields += 1
-        total_fields += 1
+        education_fields = ['education_level', 'institution', 'major', 'graduation_year']
+        for field in education_fields:
+            total_fields += 1
+            completion_details['education']['total'] += 1
+            field_filled = bool(getattr(profile, field, None))
+            if field_filled:
+                filled_fields += 1
+                completion_details['education']['filled'] += 1
+            completion_details['education']['fields'].append({
+                'name': field,
+                'filled': field_filled
+            })
         
         # Skills and interests
-        if profile.skills:
-            filled_fields += 1
-        total_fields += 1
+        skills_fields = ['skills', 'interests']
+        for field in skills_fields:
+            total_fields += 1
+            completion_details['skills']['total'] += 1
+            field_value = getattr(profile, field, None)
+            field_filled = bool(field_value and (isinstance(field_value, list) and len(field_value) > 0))
+            if field_filled:
+                filled_fields += 1
+                completion_details['skills']['filled'] += 1
+            completion_details['skills']['fields'].append({
+                'name': field,
+                'filled': field_filled
+            })
         
-        if profile.interests:
-            filled_fields += 1
-        total_fields += 1
-        
-        # Profile picture
-        if profile.profile_picture:
-            filled_fields += 1
-        total_fields += 1
+        # Profile picture and resume
+        media_fields = ['profile_picture', 'resume']
+        for field in media_fields:
+            total_fields += 1
+            completion_details['media']['total'] += 1
+            field_filled = bool(getattr(profile, field, None))
+            if field_filled:
+                filled_fields += 1
+                completion_details['media']['filled'] += 1
+            completion_details['media']['fields'].append({
+                'name': field,
+                'filled': field_filled
+            })
         
         self.profile_completion = int((filled_fields / total_fields) * 100) if total_fields > 0 else 0
+        self.profile_completion_details = completion_details
         self.save()
         return self.profile_completion
 
@@ -107,7 +274,7 @@ class InternshipProgress(models.Model):
         from django.utils import timezone
         # Find the most recent accepted application with a future or current end_date
         accepted_apps = Application.objects.filter(
-            student=self.student,
+            student=self.student.user,
             status='accepted',
             internship__end_date__gte=timezone.now().date()
         ).order_by('-internship__end_date')
@@ -128,6 +295,173 @@ class InternshipProgress(models.Model):
     def internship_end_date(self):
         internship = self.current_internship
         return internship.end_date if internship else None
+    
+    @property
+    def application_success_rate(self):
+        """Calculate the success rate of applications."""
+        if self.total_applications == 0:
+            return 0
+        return round((self.accepted_applications / self.total_applications) * 100, 2)
+    
+    @property
+    def interview_conversion_rate(self):
+        """Calculate the rate of applications that lead to interviews."""
+        if self.total_applications == 0:
+            return 0
+        return round((self.total_interviews / self.total_applications) * 100, 2)
+    
+    @property
+    def offer_conversion_rate(self):
+        """Calculate the rate of interviews that lead to offers."""
+        if self.total_interviews == 0:
+            return 0
+        return round((self.offers_received / self.total_interviews) * 100, 2)
+    
+    @property
+    def is_monthly_goal_met(self):
+        """Check if monthly application goal is met."""
+        return self.applications_this_month >= self.monthly_application_goal
+    
+    @property
+    def is_weekly_goal_met(self):
+        """Check if weekly application goal is met."""
+        return self.applications_this_week >= self.weekly_application_goal
+    
+    @property
+    def days_since_last_application(self):
+        """Calculate days since last application."""
+        if not self.first_application_date:
+            return None
+        return (timezone.now().date() - self.first_application_date.date()).days
+    
+    @property
+    def internship_progress_percentage(self):
+        """Calculate internship progress based on dates."""
+        internship = self.current_internship
+        if not internship or not (internship.start_date and internship.end_date):
+            return 0
+        
+        today = timezone.now().date()
+        if today < internship.start_date:
+            return 0
+        elif today > internship.end_date:
+            return 100
+        
+        total_days = (internship.end_date - internship.start_date).days
+        elapsed_days = (today - internship.start_date).days
+        return min(round((elapsed_days / total_days) * 100, 2), 100)
+    
+    def update_activity_streak(self):
+        """Enhanced activity streak tracking."""
+        today = timezone.now().date()
+        
+        if self.last_activity_date:
+            if self.last_activity_date == today:
+                # Already logged activity today, no change needed
+                return
+            elif self.last_activity_date == today - timedelta(days=1):
+                # Activity yesterday, increment streak
+                self.current_streak += 1
+                if self.current_streak > self.longest_streak:
+                    self.longest_streak = self.current_streak
+            else:
+                # Gap in activity, reset streak
+                self.current_streak = 1
+        else:
+            # First activity
+            self.current_streak = 1
+            self.longest_streak = 1
+        
+        self.last_activity_date = today
+        self.total_activity_days += 1
+        self.save()
+    
+    def calculate_performance_score(self):
+        """Calculate overall performance score based on various metrics."""
+        score = 0
+        
+        # Profile completion (20%)
+        score += (self.profile_completion * 0.2)
+        
+        # Application success rate (25%)
+        if self.total_applications > 0:
+            score += (self.application_success_rate * 0.25)
+        
+        # Activity engagement (15%)
+        activity_score = min(self.current_streak * 2, 30)  # Cap at 30
+        score += (activity_score * 0.15)
+        
+        # Goal achievement (20%)
+        goal_score = 0
+        if self.is_monthly_goal_met:
+            goal_score += 50
+        if self.is_weekly_goal_met:
+            goal_score += 30
+        score += (min(goal_score, 100) * 0.2)
+        
+        # Skills and development (20%)
+        skills_score = min(len(self.skills_developed) * 5, 100)
+        score += (skills_score * 0.2)
+        
+        self.overall_performance_score = min(round(score, 2), 100.0)
+        return self.overall_performance_score
+    
+    def reset_weekly_metrics(self):
+        """Reset weekly metrics (called by scheduled task)."""
+        self.applications_this_week = 0
+        self.save()
+    
+    def reset_monthly_metrics(self):
+        """Reset monthly metrics (called by scheduled task)."""
+        self.applications_this_month = 0
+        self.save()
+    
+    def reset_quarterly_metrics(self):
+        """Reset quarterly metrics (called by scheduled task)."""
+        self.applications_this_quarter = 0
+        self.save()
+
+
+class ProgressMilestone(models.Model):
+    """Model to track specific milestones in a student's internship journey."""
+    
+    MILESTONE_TYPES = [
+        ('profile_complete', 'Profile Completed'),
+        ('first_application', 'First Application Submitted'),
+        ('first_interview', 'First Interview Scheduled'),
+        ('first_offer', 'First Offer Received'),
+        ('internship_started', 'Internship Started'),
+        ('internship_completed', 'Internship Completed'),
+        ('skill_acquired', 'New Skill Acquired'),
+        ('certification_earned', 'Certification Earned'),
+        ('goal_achieved', 'Goal Achieved'),
+        ('streak_milestone', 'Activity Streak Milestone'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    progress = models.ForeignKey(
+        InternshipProgress,
+        on_delete=models.CASCADE,
+        related_name='milestones'
+    )
+    milestone_type = models.CharField(max_length=30, choices=MILESTONE_TYPES, db_index=True)
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    achieved_at = models.DateTimeField(auto_now_add=True)
+    metadata = models.JSONField(default=dict, blank=True)
+    
+    class Meta:
+        ordering = ['-achieved_at']
+        verbose_name = 'Progress Milestone'
+        verbose_name_plural = 'Progress Milestones'
+        indexes = [
+            models.Index(fields=['progress', 'milestone_type']),
+            models.Index(fields=['milestone_type', 'achieved_at']),
+        ]
+        unique_together = ['progress', 'milestone_type', 'achieved_at']
+    
+    def __str__(self):
+        return f"{self.title} - {self.progress.student.user.first_name} {self.progress.student.user.last_name}"
 
 
 class Achievement(models.Model):

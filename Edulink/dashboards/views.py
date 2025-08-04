@@ -2,6 +2,7 @@ from rest_framework import status, generics, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.db.models import Q, Count, Avg
@@ -31,10 +32,14 @@ class StudentDashboardAPIView(generics.RetrieveAPIView):
     
     def get_object(self):
         """Get dashboard data for current student"""
+        # Check if user has student_profile
+        if not hasattr(self.request.user, 'student_profile') or not self.request.user.student_profile:
+            raise ValidationError("User does not have a student profile")
+        
         student = self.request.user.student_profile
         
         # Get applications
-        applications = Application.objects.filter(student=student)
+        applications = Application.objects.filter(student=student.user)
         
         # Get recent applications
         recent_applications = applications.order_by('-application_date')[:5]
@@ -82,12 +87,19 @@ class DashboardOverviewView(generics.RetrieveAPIView):
     
     def get_object(self):
         """Get or create progress object for current student"""
+        # Check if user has student_profile
+        if not hasattr(self.request.user, 'student_profile') or not self.request.user.student_profile:
+            raise ValidationError("User does not have a student profile")
+        
         student = self.request.user.student_profile
         today = timezone.now().date()
         # Log dashboard view activity
         StudentActivityLog.objects.get_or_create(student=student, activity_date=today, activity_type='dashboard_view')
         # Applications (single source of truth)
-        applications = Application.objects.filter(student=student)
+        # Safety assertion to catch type mismatches early
+        from authentication.models import User
+        assert isinstance(student.user, User), f"Expected student.user to be a User instance, got {type(student.user)}"
+        applications = Application.objects.filter(student=student.user)
         total_applications = applications.count()
         recent_applications_qs = applications.order_by('-application_date')[:5]
         recent_applications = [
@@ -169,7 +181,7 @@ class DashboardOverviewView(generics.RetrieveAPIView):
 
     def _update_progress_from_applications(self, progress):
         """Update progress data from existing applications"""
-        applications = Application.objects.filter(student=progress.student)
+        applications = Application.objects.filter(student=progress.student.user)  
         
         if applications.exists():
             progress.total_applications = applications.count()
@@ -242,6 +254,10 @@ class InternshipProgressView(generics.RetrieveUpdateAPIView):
     
     def get_object(self):
         """Get or create progress object for current student"""
+        # Check if user has student_profile
+        if not hasattr(self.request.user, 'student_profile') or not self.request.user.student_profile:
+            raise ValidationError("User does not have a student profile")
+        
         student = self.request.user.student_profile
         progress, created = InternshipProgress.objects.get_or_create(student=student)
         
@@ -252,7 +268,7 @@ class InternshipProgressView(generics.RetrieveUpdateAPIView):
     
     def _update_progress_from_applications(self, progress):
         """Update progress data from existing applications"""
-        applications = Application.objects.filter(student=progress.student)
+        applications = Application.objects.filter(student=progress.student.user)
         
         if applications.exists():
             progress.total_applications = applications.count()
@@ -280,6 +296,10 @@ class ProgressUpdateView(generics.UpdateAPIView):
     
     def get_object(self):
         """Get progress object for current student"""
+        # Check if user has student_profile
+        if not hasattr(self.request.user, 'student_profile') or not self.request.user.student_profile:
+            raise ValidationError("User does not have a student profile")
+        
         student = self.request.user.student_profile
         progress, created = InternshipProgress.objects.get_or_create(student=student)
         return progress
@@ -298,6 +318,10 @@ class AchievementViewSet(viewsets.ReadOnlyModelViewSet):
     def progress(self, request, pk=None):
         """Get progress towards specific achievement"""
         achievement = self.get_object()
+        # Check if user has student_profile
+        if not hasattr(request.user, 'student_profile') or not request.user.student_profile:
+            raise ValidationError("User does not have a student profile")
+        
         student = request.user.student_profile
         
         # Check if already earned
@@ -329,20 +353,20 @@ class AchievementViewSet(viewsets.ReadOnlyModelViewSet):
             progress_percentage = current_value
         
         elif achievement.achievement_type == 'application':
-            applications = Application.objects.filter(student=student)
+            applications = Application.objects.filter(student=student.user)
             current_value = applications.count()
             target_value = criteria.get('target_applications', 5)
             progress_percentage = min((current_value / target_value) * 100, 100)
         
         elif achievement.achievement_type == 'interview':
             # Count applications with interview status
-            applications = Application.objects.filter(student=student)
+            applications = Application.objects.filter(student=student.user)
             current_value = applications.filter(status='reviewed').count()
             target_value = criteria.get('target_interviews', 1)
             progress_percentage = min((current_value / target_value) * 100, 100)
         
         elif achievement.achievement_type == 'acceptance':
-            applications = Application.objects.filter(student=student, status='accepted')
+            applications = Application.objects.filter(student=student.user, status='accepted')
             current_value = applications.count()
             target_value = criteria.get('target_acceptances', 1)
             progress_percentage = min((current_value / target_value) * 100, 100)
@@ -369,6 +393,10 @@ class StudentAchievementView(generics.ListAPIView):
     
     def get_queryset(self):
         """Get achievements for current student"""
+        # Check if user has student_profile
+        if not hasattr(self.request.user, 'student_profile') or not self.request.user.student_profile:
+            raise ValidationError("User does not have a student profile")
+        
         student = self.request.user.student_profile
         return StudentAchievement.objects.filter(student=student)
 
@@ -380,6 +408,10 @@ class AnalyticsEventView(generics.CreateAPIView):
     
     def perform_create(self, serializer):
         """Create analytics event for current student"""
+        # Check if user has student_profile
+        if not hasattr(self.request.user, 'student_profile') or not self.request.user.student_profile:
+            raise ValidationError("User does not have a student profile")
+        
         serializer.save(student=self.request.user.student_profile)
 
 
@@ -390,6 +422,10 @@ class CalendarEventViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         """Get calendar events for current student"""
+        # Check if user has student_profile
+        if not hasattr(self.request.user, 'student_profile') or not self.request.user.student_profile:
+            raise ValidationError("User does not have a student profile")
+        
         student = self.request.user.student_profile
         return CalendarEvent.objects.filter(student=student)
     
@@ -401,11 +437,19 @@ class CalendarEventViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         """Create calendar event for current student"""
+        # Check if user has student_profile
+        if not hasattr(self.request.user, 'student_profile') or not self.request.user.student_profile:
+            raise ValidationError("User does not have a student profile")
+        
         serializer.save(student=self.request.user.student_profile)
     
     @action(detail=False, methods=['get'])
     def upcoming(self, request):
         """Get upcoming events"""
+        # Check if user has student_profile
+        if not hasattr(request.user, 'student_profile') or not request.user.student_profile:
+            raise ValidationError("User does not have a student profile")
+        
         student = request.user.student_profile
         events = CalendarEvent.objects.filter(
             student=student,
@@ -419,6 +463,10 @@ class CalendarEventViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def overdue(self, request):
         """Get overdue events"""
+        # Check if user has student_profile
+        if not hasattr(request.user, 'student_profile') or not request.user.student_profile:
+            raise ValidationError("User does not have a student profile")
+        
         student = request.user.student_profile
         events = CalendarEvent.objects.filter(
             student=student,
@@ -448,6 +496,10 @@ class DashboardInsightView(generics.ListAPIView):
     
     def get_queryset(self):
         """Get insights for current student"""
+        # Check if user has student_profile
+        if not hasattr(self.request.user, 'student_profile') or not self.request.user.student_profile:
+            raise ValidationError("User does not have a student profile")
+        
         student = self.request.user.student_profile
         return DashboardInsight.objects.filter(
             student=student,
@@ -490,7 +542,7 @@ class AnalyticsDashboardView(generics.RetrieveAPIView):
             
             # Application analytics
             applications = Application.objects.filter(
-                student=student,
+                student=student.user,
                 application_date__range=[start_date, end_date]
             )
             
@@ -564,7 +616,7 @@ class AnalyticsDashboardView(generics.RetrieveAPIView):
     
     def _get_industry_preferences(self, student):
         """Get industry preferences from applications"""
-        applications = Application.objects.filter(student=student)
+        applications = Application.objects.filter(student=student.user)
         internships = Internship.objects.filter(applications__in=applications)
         
         # Group by category (industry)
