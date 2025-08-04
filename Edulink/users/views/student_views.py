@@ -18,12 +18,8 @@ class StudentProfileDetailView(generics.RetrieveUpdateAPIView):
     permission_classes = [IsAuthenticated, IsStudent]
 
     def get_object(self):
-<<<<<<< HEAD
-        return StudentProfile.objects.get(user=self.request.user)
-=======
         profile = getattr(self.request.user, 'student_profile', None)
         return profile
->>>>>>> feature/react
 
     def get(self, request, *args, **kwargs):
         import traceback
@@ -98,13 +94,10 @@ class StudentProfileDetailView(generics.RetrieveUpdateAPIView):
             
             return Response(response_data)
         else:
-<<<<<<< HEAD
-            # Create new profile if it doesn't exist
-            serializer = self.get_serializer(data=request.data)
-
-        serializer.is_valid(raise_exception=True)
-        serializer.save(user=request.user)
-        return Response(serializer.data)
+            return Response(
+                {"detail": "Invalid data provided", "errors": serializer.errors},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 class ApplicationCreateView(generics.CreateAPIView):
     """
@@ -127,9 +120,3 @@ class ApplicationHistoryView(generics.ListAPIView):
 
     def get_queryset(self):
         return Application.objects.filter(student=self.request.user.studentprofile)
-=======
-            return Response(
-                {"detail": "Invalid data provided", "errors": serializer.errors},
-                status=status.HTTP_400_BAD_REQUEST
-            )
->>>>>>> feature/react
