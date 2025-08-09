@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from users.models.profile_base import ProfileBase
 
+
 class ProfileBaseSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProfileBase
@@ -10,11 +11,11 @@ class ProfileBaseSerializer(serializers.ModelSerializer):
             'last_name',
             'phone_number',
             'profile_picture',
-            'email_verified',
             'phone_verified',
             'is_active',
             'last_login_at',
             'created_at',
             'updated_at',
         ]
-        read_only_fields = ['email_verified', 'phone_verified', 'is_active', 'last_login_at', 'created_at', 'updated_at']
+        read_only_fields = ['phone_verified',
+                            'is_active', 'last_login_at', 'created_at', 'updated_at']

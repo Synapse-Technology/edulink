@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Login Flow</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .debug-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        button { padding: 10px 15px; margin: 5px; }
+        input { padding: 8px; margin: 5px; width: 200px; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Login Flow Debug Tool</h1>
+    
+    <div class="debug-section">
+        <h2>1. Test Login</h2>
+        <input type="email" id="email" placeholder="Email" value="obuyahcarol1@gmail.com">
+        <input type="password" id="password" placeholder="Password" value="">
+        <button onclick="testLogin()">Test Login</button>
+        <div id="loginResult"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>2. Check LocalStorage</h2>
+        <button onclick="checkLocalStorage()">Check Stored Tokens</button>
+        <div id="storageResult"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>3. Test API Call</h2>
+        <button onclick="testApiCall()">Test Dashboard API</button>
+        <div id="apiResult"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>4. Clear Storage</h2>
+        <button onclick="clearStorage()">Clear All Tokens</button>
+        <div id="clearResult"></div>
+    </div>
+
+    <script>
+        async function testLogin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('loginResult');
+            
+            if (!email || !password) {
+                resultDiv.innerHTML = '<p class="error">Please enter email and password</p>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<p class="info">Testing login...</p>';
+            
+            try {
+                const response = await fetch('http://127.0.0.1:8000/api/auth/login/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Store tokens exactly like the real login page
+                    localStorage.setItem('access_token', data.access);
+                    localStorage.setItem('refresh_token', data.refresh);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    
+                    resultDiv.innerHTML = `
+                        <p class="success">✓ Login successful!</p>
+                        <p class="info">Access token saved: ${data.access ? 'YES' : 'NO'}</p>
+                        <p class="info">Refresh token saved: ${data.refresh ? 'YES' : 'NO'}</p>
+                        <p class="info">User role: ${data.user?.role || 'Unknown'}</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <p class="error">✗ Login failed</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="error">✗ Network error: ${error.message}</p>`;
+            }
+        }
+        
+        function checkLocalStorage() {
+            const resultDiv = document.getElementById('storageResult');
+            const accessToken = localStorage.getItem('access_token');
+            const refreshToken = localStorage.getItem('refresh_token');
+            const user = localStorage.getItem('user');
+            
+            function isValidTokenFormat(token) {
+                if (!token || typeof token !== 'string') return false;
+                const parts = token.split('.');
+                return parts.length === 3 && parts.every(part => part.length > 0);
+            }
+            
+            resultDiv.innerHTML = `
+                <p><strong>Access Token:</strong></p>
+                <p class="${accessToken ? 'success' : 'error'}">Present: ${accessToken ? 'YES' : 'NO'}</p>
+                <p class="${isValidTokenFormat(accessToken) ? 'success' : 'error'}">Valid Format: ${isValidTokenFormat(accessToken) ? 'YES' : 'NO'}</p>
+                ${accessToken ? `<pre>${accessToken}</pre>` : ''}
+                
+                <p><strong>Refresh Token:</strong></p>
+                <p class="${refreshToken ? 'success' : 'error'}">Present: ${refreshToken ? 'YES' : 'NO'}</p>
+                
+                <p><strong>User Data:</strong></p>
+                <p class="${user ? 'success' : 'error'}">Present: ${user ? 'YES' : 'NO'}</p>
+                ${user ? `<pre>${user}</pre>` : ''}
+            `;
+        }
+        
+        async function testApiCall() {
+            const resultDiv = document.getElementById('apiResult');
+            const accessToken = localStorage.getItem('access_token');
+            
+            if (!accessToken) {
+                resultDiv.innerHTML = '<p class="error">No access token found. Please login first.</p>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<p class="info">Testing API call...</p>';
+            
+            try {
+                const response = await fetch('http://127.0.0.1:8000/api/dashboards/student/', {
+                    headers: {
+                        'Authorization': 'Bearer ' + accessToken,
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <p class="${response.ok ? 'success' : 'error'}">Status: ${response.status} ${response.statusText}</p>
+                    <p class="info">Response:</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="error">✗ API call failed: ${error.message}</p>`;
+            }
+        }
+        
+        function clearStorage() {
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            localStorage.removeItem('user');
+            localStorage.removeItem('profilePicUrl');
+            
+            document.getElementById('clearResult').innerHTML = '<p class="success">✓ All tokens cleared</p>';
+        }
+        
+        // Auto-check storage on page load
+        window.onload = function() {
+            checkLocalStorage();
+        };
+    </script>
+</body>
+</html>

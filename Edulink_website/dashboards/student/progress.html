@@ -1,0 +1,1396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EduLink KE - Progress Report</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+  <link href="../../assets/css/main.css" rel="stylesheet">
+  <script src="../../assets/js/main.js"></script>
+  <link href="../../assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+  <link href="https://unpkg.com/phosphor-icons@2.0.3/src/css/phosphor.css" rel="stylesheet">
+  <link href="assets/css/progress.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 min-h-screen relative">
+  <div class="flex flex-col md:flex-row m-0 p-0 min-h-screen">
+    <!-- Sidebar (responsive, sticky on desktop) -->
+    <aside id="sidebar" class="hidden md:flex flex-col justify-between z-30 p-0 fixed md:static top-0 left-0 h-full md:h-screen w-[230px] bg-teal-500 text-white transition-transform duration-300" style="background: #14b8a6;">
+      <div>
+        <div class="text-center py-6 mb-2 border-b border-teal-700">
+          <span style="font-family: 'Pacifico', cursive; font-size: 1.7rem; color: #fff; font-weight: 400; letter-spacing: 1px;">EduLink</span>
+        </div>
+        <nav class="flex flex-col pt-8 px-4 gap-1">
+          <a href="./student_dash.html" class="block px-3 py-2 rounded hover:bg-teal-700 flex items-center text-sm"><i class="ph ph-gauge mr-3 text-base"></i>Dashboard</a>
+          <a href="./Browse.html" class="block px-3 py-2 rounded hover:bg-teal-700 flex items-center text-sm"><i class="ph ph-magnifying-glass mr-3 text-base"></i>Browse Internships</a>
+          <a href="./application_tracker.html" class="block px-3 py-2 rounded hover:bg-teal-700 flex items-center text-sm"><i class="ph ph-list-checks mr-3 text-base"></i>Application Tracker</a>
+          <a href="./my_internships.html" class="block px-3 py-2 rounded hover:bg-teal-700 flex items-center text-sm"><i class="ph ph-briefcase mr-3 text-base"></i>My Internship</a>
+          <a href="./progress.html" class="block px-3 py-2 rounded hover:bg-teal-700 bg-teal-700 flex items-center text-sm"><i class="ph ph-book-open mr-3 text-base"></i>Reports & Logbooks</a>
+          <a href="#" class="block px-3 py-2 rounded hover:bg-teal-700 flex items-center text-sm"><i class="ph ph-file-text mr-3 text-base"></i>CV & Toolkit</a>
+          <a href="#" class="block px-3 py-2 rounded hover:bg-teal-700 flex items-center text-sm"><i class="ph ph-lifebuoy mr-3 text-base"></i>Support</a>
+        </nav>
+      </div>
+      <div class="mt-auto px-4 pb-6 pt-4">
+        <a href="#" id="logoutBtn" class="block px-3 py-2 rounded hover:bg-teal-700 flex items-center text-sm"><i class="ph ph-sign-out mr-3 text-base"></i>Log Out</a>
+      </div>
+    </aside>
+    <!-- Main Content (responsive, scrollable) -->
+    <main class="flex-1 p-2 sm:p-4 md:p-6 min-h-0 h-screen md:ml-0 ml-0 overflow-y-auto" style="background: linear-gradient(120deg, #f0fdfa 0%, #e0f2fe 100%);">
+      <!-- Rounded Pill Header (responsive, with hamburger menu) -->
+      <div class="flex items-center justify-between h-14 bg-white rounded-full shadow mb-6 px-4 w-full max-w-full mt-6 relative">
+        <!-- Hamburger menu in header (mobile only) -->
+        <button id="mobileMenuBtn" class="md:hidden flex items-center justify-center mr-2 bg-teal-600 text-white p-2 rounded-full shadow-lg focus:outline-none" aria-label="Open menu">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+        </button>
+        <div class="flex-1 flex items-center justify-end">
+          <a href="./messages.html" class="flex items-center justify-center mr-4" title="Messages" style="background: none; border: none; padding: 0;"><i class="bi bi-chat-dots" style="font-size: 1.5rem; color: #14b8a6; text-shadow: 0 1px 2px rgba(20,184,166,0.15);"></i></a>
+          <button id="notificationBtn" title="Notifications" style="background: none; border: none; padding: 0; margin-right: 1rem;"><i class="bi bi-bell" style="font-size: 1.5rem; color: #14b8a6; text-shadow: 0 1px 2px rgba(20,184,166,0.15);"></i></button>
+          <a href="./profile.html" class="flex items-center justify-center ml-1" title="Profile">
+            <img id="profilePic" src="../../assets/img/default.jpg" class="profile-pic" alt="Profile" />
+          </a>
+          <button id="darkModeToggle" title="Toggle dark mode" style="background: none; border: none; padding: 0; margin-left: 1rem;"><i id="darkModeIcon" class="bi bi-moon" style="font-size: 1.5rem; color: #14b8a6; text-shadow: 0 1px 2px rgba(20,184,166,0.15);"></i></button>
+        </div>
+      </div>
+
+      <!-- Progress Report & Logbook Title with Lines -->
+      <div class="section-title-center">
+        <span class="line"></span>
+        <h2>Progress Report &amp; Logbook</h2>
+        <span class="line"></span>
+      </div>
+      <div class="text-center text-gray-500 mb-2" style="font-size:0.98em;">Track daily and weekly tasks, and supervisor feedback.</div>
+      <div id="internshipSelectorContainer" class="w-full max-w-4xl mx-auto mb-4 flex flex-col sm:flex-row items-center gap-3">
+        <label for="internshipSelector" class="font-semibold text-gray-700 text-sm">Select Internship:</label>
+        <select id="internshipSelector" class="border rounded px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 bg-white w-full sm:w-96">
+          <option value="" disabled selected>Loading internships...</option>
+        </select>
+      </div>
+      <div id="selectedInternshipInfo" class="w-full max-w-4xl mx-auto mb-2 text-center font-semibold text-teal-700 text-lg"></div>
+      <!-- Calendar and Daily Task Section (restored) -->
+      <div id="calendar" class="bg-white p-4 shadow rounded mb-6 h-[600px]"></div>
+      <!-- Action Buttons: Submit Week for Review & Download Logbook -->
+      <div class="w-full flex flex-col sm:flex-row justify-between items-stretch sm:items-center mt-2 mb-8 gap-2 sm:gap-0 max-w-4xl mx-auto px-2">
+        <button id="downloadLogbookBtn" class="bg-gray-100 border border-gray-300 text-teal-700 px-3 py-1 rounded font-semibold shadow-sm hover:bg-teal-50 hover:text-teal-800 transition flex items-center gap-2 text-xs w-full sm:w-auto">
+          <i class="bi bi-download text-sm"></i> Download Logbook
+        </button>
+        <button id="submitWeekBtn" class="bg-teal-600 text-white px-3 py-1 rounded font-semibold shadow-sm hover:bg-teal-700 transition flex items-center gap-2 text-xs w-full sm:w-auto">
+          <i class="bi bi-send text-sm"></i> Submit Week for Review
+        </button>
+      </div>
+      <!-- Enhanced Add Task Section -->
+      <!-- Removed inline Add Task form. All task adding is now via modal only. -->
+
+      <!-- Reviewed & Pending Review Weekly Logs Table -->
+      <section id="weeklyLogsSection" class="mt-10">
+        <div id="weeklyLogsHeaderBar" class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3 sm:gap-6 px-2 sm:px-0 w-full max-w-4xl mx-auto section-header-container">
+          <h3 class="text-base sm:text-lg font-semibold text-gray-800 flex-1 text-left mb-2 sm:mb-0 whitespace-nowrap truncate">Weekly Logs (Reviewed & Pending)</h3>
+          <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 items-stretch sm:items-center w-full sm:w-auto">
+            <input id="logSearch" type="text" placeholder="Search week, status, activity..." class="border rounded px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 bg-transparent w-full sm:w-56" style="background: none;" />
+            <select id="logStatusFilter" class="border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 bg-transparent w-full sm:w-40" style="background: none;">
+              <option value="">All Statuses</option>
+              <option value="Reviewed">Reviewed</option>
+              <option value="Pending Review">Pending Review</option>
+            </select>
+            <button class="bg-teal-600 text-white px-3 py-1 rounded text-sm font-semibold hover:bg-teal-700 transition w-full sm:w-auto" disabled>Export All (PDF)</button>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <div style="max-height: 420px; overflow-y: auto; border-radius: 0.5em;">
+            <table class="min-w-full text-sm border border-gray-200" id="weeklyLogsTable">
+              <thead class="bg-teal-50 border-b border-gray-200 sticky top-0 z-10">
+                <tr>
+                  <th class="py-2 px-2 text-left border-r border-gray-200">Week</th>
+                  <th class="py-2 px-2 text-left border-r border-gray-200">Status</th>
+                  <th class="py-2 px-2 text-left border-r border-gray-200">Activities</th>
+                  <th class="py-2 px-2 text-left border-r border-gray-200">Supervisor Comment</th>
+                  <th class="py-2 px-2 text-left border-r border-gray-200">Date Submitted</th>
+                  <th class="py-2 px-2 text-left">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="weeklyLogsBody">
+                <!-- Dummy data rows will be injected by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+      <style>
+        /* Remove white background from search/filter bar */
+        #logSearch, #logStatusFilter {
+          background: none !important;
+        }
+        /* Classic table tweaks */
+        #weeklyLogsTable {
+          border-collapse: collapse;
+          background: #fff;
+        }
+        #weeklyLogsTable th, #weeklyLogsTable td {
+          border-right: 1px solid #e5e7eb;
+          border-bottom: 1px solid #e5e7eb;
+          padding: 0.6em 0.7em;
+        }
+        #weeklyLogsTable th:last-child, #weeklyLogsTable td:last-child {
+          border-right: none;
+        }
+        #weeklyLogsTable tr.even, #weeklyLogsTable tbody tr:nth-child(even) {
+          background: #f9fafb;
+        }
+        #weeklyLogsTable tr:hover {
+          background: #e0f2f1;
+        }
+        #weeklyLogsTable thead {
+          background: #f0fdfa;
+        }
+        #weeklyLogsTable thead th {
+          position: sticky;
+          top: 0;
+          z-index: 2;
+          background: #f0fdfa;
+        }
+        /* Scrollbar styling for table body */
+        .overflow-x-auto > div {
+          scrollbar-width: thin;
+          scrollbar-color: #14b8a6 #f0fdfa;
+        }
+        .overflow-x-auto > div::-webkit-scrollbar {
+          width: 8px;
+        }
+        .overflow-x-auto > div::-webkit-scrollbar-thumb {
+          background: #14b8a6;
+          border-radius: 4px;
+        }
+        .overflow-x-auto > div::-webkit-scrollbar-track {
+          background: #f0fdfa;
+        }
+        @media (max-width: 700px) {
+          #weeklyLogsTable th, #weeklyLogsTable td { padding: 0.5em 0.4em; font-size: 0.95em; }
+        }
+        /* Dark mode: only apply when body has .dark-mode */
+        body.dark-mode .overflow-x-auto > div {
+          background: #181c24 !important;
+          border-radius: 1.2em;
+          box-shadow: 0 8px 40px 0 #14b8a633 !important;
+        }
+        body.dark-mode #weeklyLogsTable {
+          background: #181c24 !important;
+          border: 2px solid #14b8a6 !important;
+          color: #eaf6fb !important;
+          border-radius: 1.2em;
+          overflow: hidden;
+          font-family: 'Poppins', 'Raleway', sans-serif;
+          transition: background 0.3s, color 0.3s;
+        }
+        body.dark-mode #weeklyLogsTable th {
+          background: linear-gradient(90deg, #153f3f 0%, #14b8a6 100%) !important;
+          color: #fff !important;
+          font-weight: 700;
+          border-bottom: 2px solid #14b8a6 !important;
+          letter-spacing: 0.03em;
+          font-size: 1.05em;
+          text-shadow: 0 2px 8px #14b8a655;
+        }
+        body.dark-mode #weeklyLogsTable td {
+          background: #181c24 !important;
+          color: #eaf6fb !important;
+          border-color: #30343c !important;
+          font-size: 0.98em;
+          transition: background 0.2s, color 0.2s;
+        }
+        body.dark-mode #weeklyLogsTable tr.even, body.dark-mode #weeklyLogsTable tbody tr:nth-child(even) {
+          background: #232736 !important;
+        }
+        body.dark-mode #weeklyLogsTable tr:hover {
+          background: #153f3f !important;
+          box-shadow: 0 2px 16px 0 #14b8a655;
+        }
+        body.dark-mode #weeklyLogsTable thead th {
+          position: sticky;
+          top: 0;
+          z-index: 2;
+          background: linear-gradient(90deg, #153f3f 0%, #14b8a6 100%) !important;
+        }
+        body.dark-mode #weeklyLogsTable .status-badge {
+          background: #232736 !important;
+          color: #fff !important;
+          border-radius: 999px !important;
+          font-weight: 700 !important;
+          font-size: 0.92em !important;
+          padding: 0.25em 0.9em !important;
+          letter-spacing: 0.02em !important;
+          text-shadow: 0 1px 4px #10162455 !important;
+          border: 1.5px solid #232736 !important;
+          box-shadow: 0 0 12px 0 #232736 !important;
+          transition: box-shadow 0.2s, background 0.2s !important;
+          animation: status-glow 2.2s infinite;
+        }
+        body.dark-mode #weeklyLogsTable .status-badge.reviewed {
+          background: #22c55e !important;
+          border-color: #22c55e !important;
+          box-shadow: 0 0 16px 2px #22c55e99 !important;
+        }
+        body.dark-mode #weeklyLogsTable .status-badge.pending {
+          background: #f59e42 !important;
+          border-color: #f59e42 !important;
+          box-shadow: 0 0 16px 2px #f59e4299 !important;
+        }
+        body.dark-mode #weeklyLogsTable .status-badge.revision {
+          background: #f87171 !important;
+          border-color: #f87171 !important;
+          box-shadow: 0 0 16px 2px #f8717199 !important;
+        }
+        @keyframes status-glow {
+          0% { box-shadow: 0 0 8px 0 #232736; }
+          50% { box-shadow: 0 0 24px 4px #14b8a6; }
+          100% { box-shadow: 0 0 8px 0 #232736; }
+        }
+        body.dark-mode .section-header-container {
+          background: linear-gradient(90deg, #101624 0%, #153f3f 100%);
+          border-radius: 1em;
+          box-shadow: 0 4px 24px 0 #14b8a633;
+          border: 1.5px solid #14b8a6;
+          padding: 1.1em 1.2em;
+        }
+        body.dark-mode .section-header-container h3 {
+          color: #eaf6fb !important;
+        }
+        body.dark-mode .section-header-container input,
+        body.dark-mode .section-header-container select {
+          background: #232736 !important;
+          color: #eaf6fb !important;
+          border-color: #14b8a6 !important;
+        }
+        body.dark-mode .section-header-container button {
+          background: #14b8a6 !important;
+          color: #fff !important;
+          border: none;
+        }
+        body.dark-mode .section-header-container button[disabled] {
+          background: #232736 !important;
+          color: #b6c2d1 !important;
+        }
+        body.dark-mode #weeklyLogsHeaderBar {
+          background: linear-gradient(90deg, #101624 0%, #153f3f 100%) !important;
+          border-radius: 1em !important;
+          box-shadow: 0 4px 24px 0 #14b8a633 !important;
+          border: 1.5px solid #14b8a6 !important;
+          padding: 1.1em 1.2em !important;
+        }
+        body.dark-mode #weeklyLogsHeaderBar h3 {
+          color: #eaf6fb !important;
+        }
+        body.dark-mode #weeklyLogsHeaderBar input,
+        body.dark-mode #weeklyLogsHeaderBar select {
+          background: #232736 !important;
+          color: #eaf6fb !important;
+          border-color: #14b8a6 !important;
+        }
+        body.dark-mode #weeklyLogsHeaderBar button {
+          background: #14b8a6 !important;
+          color: #fff !important;
+          border: none !important;
+        }
+        body.dark-mode #weeklyLogsHeaderBar button[disabled] {
+          background: #232736 !important;
+          color: #b6c2d1 !important;
+        }
+        body.dark-mode #weeklyLogsSection {
+          background: linear-gradient(90deg, #101624 0%, #153f3f 100%) !important;
+          border-radius: 1.2em !important;
+          box-shadow: 0 8px 40px 0 #14b8a633 !important;
+          border: 2px solid #14b8a6 !important;
+          padding: 1.5em 0.5em !important;
+        }
+        body.dark-mode #weeklyLogsSection * {
+          color: #eaf6fb !important;
+        }
+
+        body.dark-mode #weekModalBg {
+  background: rgba(16,22,36,0.92) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+}
+body.dark-mode #weekModalContent {
+  background: linear-gradient(120deg, #181c24 60%, #153f3f 100%) !important;
+  color: #eaf6fb !important;
+  border-radius: 1.5em !important;
+  border: 2px solid #14b8a6 !important;
+  box-shadow: 0 8px 40px 0 #14b8a633 !important;
+}
+body.dark-mode #weekModalContent h4 {
+  color: #38bdf8 !important;
+  letter-spacing: 0.01em;
+}
+body.dark-mode #weekModalContent strong {
+  color: #6ee7b7 !important;
+}
+body.dark-mode #weekModalContent ul,
+body.dark-mode #weekModalContent li,
+body.dark-mode #weekModalContent div,
+body.dark-mode #weekModalContent span {
+  color: #eaf6fb !important;
+}
+body.dark-mode #weekModalContent button {
+  background: #14b8a6 !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 0.7em !important;
+  box-shadow: 0 0 12px 0 #14b8a6cc !important;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+body.dark-mode #weekModalContent button:hover {
+  background: #38bdf8 !important;
+  box-shadow: 0 0 18px 2px #38bdf8cc !important;
+}
+body.dark-mode #closeWeekModal {
+  color: #38bdf8 !important;
+  background: transparent !important;
+  text-shadow: 0 0 8px #14b8a6cc;
+}
+body.dark-mode #closeWeekModal:hover {
+  color: #6ee7b7 !important;
+  text-shadow: 0 0 16px #38bdf8cc;
+}
+        body.dark-mode #modalSupervisorComment {
+          background: #232736 !important;
+          color: #eaf6fb !important;
+          border: 1.5px solid #38bdf8 !important;
+          box-shadow: 0 1px 6px 0 #10162433 !important;
+        }
+      </style>
+      <script>
+        // --- Internship Dropdown Logic ---
+        let acceptedInternships = [];
+        let selectedInternshipId = null;
+
+        async function loadAcceptedInternships() {
+          const token = localStorage.getItem('access_token');
+          const response = await fetch('/api/application/my-applications/', {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          });
+          const data = await response.json();
+          acceptedInternships = (data.results || data).filter(app => app.status === 'accepted');
+          const selector = document.getElementById('internshipSelector');
+          selector.innerHTML = '';
+          if (!acceptedInternships.length) {
+            selector.innerHTML = '<option value="" disabled selected>No accepted internships</option>';
+            document.getElementById('selectedInternshipInfo').textContent = '';
+            return;
+          }
+          acceptedInternships.forEach(app => {
+            selector.innerHTML += `<option value="${app.internship.id}">${app.internship.title} at ${app.internship.employer_name}</option>`;
+          });
+          // Select first by default
+          selectedInternshipId = acceptedInternships[0].internship.id;
+          selector.value = selectedInternshipId;
+          updateSelectedInternshipInfo();
+          fetchWeeklyLogs();
+        }
+        document.getElementById('internshipSelector').addEventListener('change', function() {
+          selectedInternshipId = this.value;
+          updateSelectedInternshipInfo();
+          fetchWeeklyLogs();
+        });
+        function updateSelectedInternshipInfo() {
+          const app = acceptedInternships.find(a => a.internship.id == selectedInternshipId);
+          if (app) {
+            document.getElementById('selectedInternshipInfo').textContent = `Logbook for: ${app.internship.title} at ${app.internship.employer_name}`;
+          } else {
+            document.getElementById('selectedInternshipInfo').textContent = '';
+          }
+        }
+        // --- Update fetchWeeklyLogs to use selectedInternshipId ---
+        async function fetchWeeklyLogs() {
+          if (!selectedInternshipId) {
+            document.getElementById('weeklyLogsBody').innerHTML = '<tr><td colspan="6" class="text-center text-gray-400">Select an internship to view logs.</td></tr>';
+            return;
+          }
+          const token = localStorage.getItem('access_token');
+          const response = await fetch(`/api/internship-progress/logbook/?internship=${selectedInternshipId}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          });
+          if (!response.ok) {
+            document.getElementById('weeklyLogsBody').innerHTML = '<tr><td colspan="6" class="text-center text-red-500">Failed to load logbook data.</td></tr>';
+            return;
+          }
+          const data = await response.json();
+          renderWeeklyLogs(data);
+        }
+
+        function renderWeeklyLogs(logs) {
+          const tbody = document.getElementById('weeklyLogsBody');
+          if (!logs.length) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-gray-400">No logbook entries found.</td></tr>';
+            return;
+          }
+          tbody.innerHTML = logs.map(log => `
+            <tr>
+              <td>
+                Week ${log.week_number}<br><span class="text-xs text-gray-400">${log.date_range || ''}</span>
+              </td>
+              <td>
+                <span class="status-badge ${log.status === 'Reviewed' ? 'reviewed' : (log.status === 'Pending Review' ? 'pending' : 'revision')}">${log.status}</span>
+              </td>
+              <td>
+                <ul>${log.activities.map(act => `<li>${act}</li>`).join('')}</ul>
+              </td>
+              <td>${log.supervisor_comment || '-'}</td>
+              <td>${log.date_submitted ? new Date(log.date_submitted).toLocaleDateString() : '-'}</td>
+              <td>
+                <button class="bg-teal-600 text-white px-2 py-1 rounded text-xs font-semibold hover:bg-teal-700 transition" onclick="viewLogDetails(${log.id})">View</button>
+              </td>
+            </tr>
+          `).join('');
+        }
+
+        // Dummy for modal view (implement as needed)
+        async function viewLogDetails(logId) {
+          const token = localStorage.getItem('access_token');
+          const response = await fetch(`/api/internship-progress/logbook/${logId}/`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          });
+          if (!response.ok) {
+            alert('Failed to load logbook entry details.');
+            return;
+          }
+          const log = await response.json();
+          // Populate modal fields
+          document.getElementById('modalWeekNum').textContent = log.week_number;
+          document.getElementById('modalWeekRange').textContent = log.date_range || '';
+          // Activities: parse if JSON, else fallback to text
+          let activities = [];
+          try {
+            activities = typeof log.activities === 'string' ? JSON.parse(log.activities) : log.activities;
+          } catch {
+            activities = Array.isArray(log.activities) ? log.activities : [log.activities];
+          }
+          document.getElementById('modalActivities').innerHTML = activities.map(act => `<li>${act}</li>`).join('');
+          document.getElementById('modalSupervisorComment').textContent = log.supervisor_comment || '-';
+          // Show modal
+          document.getElementById('weekModalBg').classList.remove('hidden');
+        }
+        // Modal close button
+        document.getElementById('closeWeekModal').onclick = function() {
+          document.getElementById('weekModalBg').classList.add('hidden');
+        };
+
+        // On page load, fetch logs
+        document.addEventListener('DOMContentLoaded', fetchWeeklyLogs);
+      </script>
+
+      <!-- Week Details Modal -->
+      <div id="weekModalBg" class="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-teal-200/60 via-white/60 to-blue-200/60 backdrop-blur-[6px] bg-opacity-80 transition-all duration-300 hidden">
+        <div id="weekModalContent" class="relative max-w-lg w-full p-10 rounded-3xl shadow-2xl animate-fade-in border-2 border-teal-100" style="background: #fff; box-shadow: 0 8px 40px 0 #14b8a633;">
+          <button id="closeWeekModal" class="absolute top-4 right-4 flex items-center justify-center w-14 h-14 rounded-full bg-white/90 shadow-lg hover:bg-teal-50 transition text-gray-400 hover:text-teal-600 text-4xl font-bold focus:outline-none border border-teal-100" aria-label="Close">&times;</button>
+          <h4 class="text-3xl font-extrabold text-teal-700 tracking-tight mb-4 flex items-center gap-2">Week <span id="modalWeekNum"></span> <span class="text-xs text-gray-400 ml-2" id="modalWeekRange"></span></h4>
+          <div class="mb-6">
+            <strong class="block text-teal-700 mb-2 text-lg">Activities:</strong>
+            <ul id="modalActivities" class="list-disc pl-7 text-base text-gray-800 space-y-1"></ul>
+          </div>
+          <div class="mb-4">
+            <strong class="block text-teal-700 mb-2 text-lg">Supervisor Comment:</strong>
+            <div id="modalSupervisorComment" class="mt-1 text-base text-gray-700 bg-teal-50 rounded-xl p-4 border border-teal-100 shadow-inner"></div>
+          </div>
+        </div>
+      </div>
+      <style>
+        @keyframes fade-in {
+          from { opacity: 0; transform: translateY(30px) scale(0.98); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .animate-fade-in {
+          animation: fade-in 0.35s cubic-bezier(.4,0,.2,1);
+        }
+        #weekModalContent {
+          background: #fff !important;
+          border-radius: 1.5em !important;
+          border: 2px solid #5eead4 !important;
+          box-shadow: 0 8px 40px 0 #14b8a633 !important;
+          color: #134e4a !important;
+        }
+        #weekModalContent h4 {
+          color: #14b8a6 !important;
+          letter-spacing: 0.01em;
+        }
+        #weekModalContent strong {
+          color: #0f766e !important;
+        }
+        #weekModalContent ul,
+        #weekModalContent li,
+        #weekModalContent div,
+        #weekModalContent span {
+          color: #134e4a !important;
+        }
+        #weekModalContent button {
+          background: #fff !important;
+          color: #14b8a6 !important;
+          border: 2px solid #5eead4 !important;
+          border-radius: 999px !important;
+          box-shadow: 0 2px 12px 0 #14b8a622 !important;
+          transition: background 0.2s, box-shadow 0.2s, color 0.2s;
+        }
+        #weekModalContent button:hover {
+          background: #5eead4 !important;
+          color: #fff !important;
+          box-shadow: 0 0 18px 2px #5eead4cc !important;
+        }
+        #closeWeekModal {
+          color: #14b8a6 !important;
+          background: #fff !important;
+          text-shadow: 0 0 8px #5eead4cc;
+        }
+        #closeWeekModal:hover {
+          color: #fff !important;
+          background: #14b8a6 !important;
+          text-shadow: 0 0 16px #5eead4cc;
+        }
+        body.dark-mode #weekModalContent {
+          background: linear-gradient(120deg, #181c24 60%, #153f3f 100%) !important;
+          color: #eaf6fb !important;
+          border-radius: 1.5em !important;
+          border: 2px solid #14b8a6 !important;
+          box-shadow: 0 8px 40px 0 #14b8a633 !important;
+        }
+        body.dark-mode #weekModalContent h4 {
+          color: #38bdf8 !important;
+        }
+        body.dark-mode #weekModalContent strong {
+          color: #6ee7b7 !important;
+        }
+        body.dark-mode #weekModalContent ul,
+        body.dark-mode #weekModalContent li,
+        body.dark-mode #weekModalContent div,
+        body.dark-mode #weekModalContent span {
+          color: #eaf6fb !important;
+        }
+        body.dark-mode #weekModalContent button {
+          background: #232736 !important;
+          color: #38bdf8 !important;
+          border: 2px solid #38bdf8 !important;
+        }
+        body.dark-mode #weekModalContent button:hover {
+          background: #38bdf8 !important;
+          color: #232736 !important;
+        }
+        body.dark-mode #closeWeekModal {
+          color: #38bdf8 !important;
+          background: #232736 !important;
+        }
+        body.dark-mode #closeWeekModal:hover {
+          color: #232736 !important;
+          background: #38bdf8 !important;
+        }
+        body.dark-mode #modalSupervisorComment {
+          background: #232736 !important;
+          color: #eaf6fb !important;
+          border: 1.5px solid #38bdf8 !important;
+          box-shadow: 0 1px 6px 0 #10162433 !important;
+        }
+      </style>
+      <footer class="text-center text-sm text-gray-400 mt-16">
+        &copy; 2025 EduLink KE. Empowering Students with Verified Internships.
+      </footer>
+    </main>
+  </div>
+<script>
+
+   var addTaskForm = null;
+   var addTaskDateInput = null;
+   var addTaskDayDateSpan = null;
+   var addTaskDescInput = null;
+   var addTaskStatusSelect = null;
+  // --- DATE FORMAT HELPER ---
+  function formatDateDM(date) {
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const d = new Date(date);
+    return `${days[d.getDay()]} ${d.getDate()}/${d.getMonth() + 1}`;
+  }
+
+  // Example: update week labels in the table
+  function getWeekRangeLabel(weekStartDate) {
+    const start = new Date(weekStartDate);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 4); // 5-day week
+    return `${formatDateDM(start)} – ${formatDateDM(end)}`;
+  }
+
+  // Update static table rows to use new format (for demo, replace with dynamic data in real app)
+  document.addEventListener('DOMContentLoaded', function () {
+    const calendarEl = document.getElementById('calendar');
+    // addTaskForm = document.getElementById('addTaskForm'); // Removed inline form
+    // addTaskDateInput = document.getElementById('addTaskDate'); // Removed inline form
+    // addTaskDayDateSpan = document.getElementById('addTaskDayDate'); // Removed inline form
+    // addTaskDescInput = document.getElementById('addTaskDesc'); // Removed inline form
+    // addTaskStatusSelect = document.getElementById('addTaskStatus'); // Removed inline form
+    let selectedDate = null;
+
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+      locale: 'en-GB',
+      initialView: 'dayGridWeek',      // Show only a week
+      firstDay: 0,                     // Start week on Sunday
+      height: 600,
+      dateClick: function (info) {
+        // Use the new logic for Add Task section
+        onCalendarDateClick(info.dateStr);
+      },
+      events: loadStoredTasks(),
+      eventContent: function(arg) {
+        // Split by line breaks if present, or by ' (' for state
+        const lines = arg.event.title.split('\n').map(line => {
+          // If you want to split task and state, you can use:
+          // return line.split(' (').join('<br>(');
+          return line;
+        });
+        return { html: lines.join('<br>') };
+      },
+      dayHeaderFormat: {
+        weekday: 'short',
+        day: '2-digit',
+        month: '2-digit',
+        omitCommas: true
+      },
+      titleFormat: function(info) {
+        // Use the marker property, which is a native JS Date
+        const startDate = info.start.marker;
+        const endDate = new Date(info.end.marker);
+        endDate.setDate(endDate.getDate() - 1);
+        function pad(n) { return n < 10 ? '0' + n : n; }
+        const startStr = `${pad(startDate.getDate())}/${pad(startDate.getMonth() + 1)}`;
+        const endStr = `${pad(endDate.getDate())}/${pad(endDate.getMonth() + 1)}`;
+        const yearStr = endDate.getFullYear();
+        return `${startStr} – ${endStr}, ${yearStr}`;
+      }
+    });
+
+    calendar.render();
+
+    window.saveTask = function () {
+      if (!selectedDate) return;
+      
+      const task = document.getElementById('addTaskDescModal').value; // Get from modal
+      const state = document.getElementById('addTaskStatusModal').value; // Get from modal
+
+      // Save to localStorage
+      localStorage.setItem(`${selectedDate}_task`, task);
+      localStorage.setItem(`${selectedDate}_state`, state);
+
+      // Remove existing event for this date (if any)
+      const existingEvents = calendar.getEvents();
+      existingEvents.forEach(event => {
+        if (event.startStr === selectedDate) {
+          event.remove();
+        }
+      });
+
+      // Add updated event
+      calendar.addEvent({
+        title: `${task}\n (${state})`,
+        start: selectedDate,
+        allDay: true
+      });
+
+      alert('Task updated and shown on calendar!');
+      closeAddTaskModal(); // Close modal after saving
+    };
+
+    function loadStoredTasks() {
+      const events = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key.endsWith('_task')) {
+          const date = key.replace('_task', '');
+          const task = localStorage.getItem(key);
+          const state = localStorage.getItem(`${date}_state`) || 'In Progress';
+          events.push({
+            title: `${task} (${state})`,
+            start: date,
+            allDay: true
+          });
+        }
+      }
+      return events;
+    }
+
+    window.editComment = function(cell) {
+      const currentText = cell.textContent;
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = currentText;
+      input.className = 'w-full px-2 py-1 border rounded';
+
+      input.addEventListener('blur', () => {
+        cell.innerHTML = input.value;
+        cell.classList.remove('italic', 'text-gray-400');
+      });
+
+      cell.innerHTML = '';
+      cell.appendChild(input);
+      input.focus();
+    }
+
+    // --- Logout Button Functionality ---
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        localStorage.removeItem('access_token');
+        window.location.href = '../../login.html';
+      });
+    }
+
+    // Unified profile picture loading function
+    function loadProfilePicture() {
+      const profilePic = document.getElementById('profilePic');
+      if (!profilePic) return;
+
+      // Priority 1: Check localStorage first (fastest, most recent)
+      const savedPhoto = localStorage.getItem('profilePhoto');
+      if (savedPhoto) {
+        profilePic.src = savedPhoto;
+        return;
+      }
+
+      // Priority 2: Fetch from API
+      const accessToken = localStorage.getItem('access_token');
+      if (!accessToken) return;
+
+      fetch('http://127.0.0.1:8000/api/users/student/profile/', {
+        headers: { 'Authorization': 'Bearer ' + accessToken }
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.profile_picture) {
+            profilePic.src = data.profile_picture;
+            localStorage.setItem('profilePhoto', data.profile_picture);
+          } else {
+            profilePic.src = '../../assets/img/default.jpg';
+          }
+        })
+        .catch(() => { 
+          profilePic.src = '../../assets/img/default.jpg'; 
+        });
+    }
+
+    // Shared function to update header profile picture
+    function updateHeaderProfilePicture(imageSrc) {
+      const profilePic = document.getElementById('profilePic');
+      if (profilePic) {
+        profilePic.src = imageSrc;
+      }
+    }
+
+    // Global function for other pages to use
+    window.updateHeaderProfilePicture = updateHeaderProfilePicture;
+
+    // Load profile picture
+    loadProfilePicture();
+
+    // --- DARK MODE TOGGLE LOGIC ---
+    const darkModeToggle = document.getElementById('darkModeToggle');
+    const darkModeIcon = document.getElementById('darkModeIcon');
+    function setDarkMode(enabled) {
+      if (enabled) {
+        document.body.classList.add('dark-mode');
+        if (darkModeIcon) {
+          darkModeIcon.classList.remove('bi-moon');
+          darkModeIcon.classList.add('bi-sun');
+        }
+      } else {
+        document.body.classList.remove('dark-mode');
+        if (darkModeIcon) {
+          darkModeIcon.classList.remove('bi-sun');
+          darkModeIcon.classList.add('bi-moon');
+        }
+      }
+    }
+    // Load preference on page load
+    const darkPref = localStorage.getItem('darkMode');
+    setDarkMode(darkPref === 'true');
+    if (darkModeToggle) {
+      darkModeToggle.addEventListener('click', function() {
+        const isDark = document.body.classList.toggle('dark-mode');
+        if (darkModeIcon) {
+          if (isDark) {
+            darkModeIcon.classList.remove('bi-moon');
+            darkModeIcon.classList.add('bi-sun');
+          } else {
+            darkModeIcon.classList.remove('bi-sun');
+            darkModeIcon.classList.add('bi-moon');
+          }
+        }
+        localStorage.setItem('darkMode', isDark);
+      });
+    }
+
+    // --- ENHANCED LOGBOOK TABLE & MODAL ---
+    function showCommentModal(comment) {
+      document.getElementById('modalCommentText').textContent = comment;
+      document.getElementById('commentModal').classList.remove('hidden');
+    }
+    function closeCommentModal() {
+      document.getElementById('commentModal').classList.add('hidden');
+    }
+    function downloadLogbook() {
+      alert('Download logbook as PDF coming soon!');
+    }
+    // Show submit button if all days are filled (simulate for now)
+    var submitWeekBtn = document.getElementById('submitWeekBtn');
+    if (submitWeekBtn) {
+      submitWeekBtn.style.display = '';
+      submitWeekBtn.onclick = function() {
+        alert('Week submitted for review! (Backend integration coming soon)');
+        this.style.display = 'none';
+      };
+    }
+    var downloadLogbookBtn = document.getElementById('downloadLogbookBtn');
+    if (downloadLogbookBtn) {
+      downloadLogbookBtn.onclick = function() {
+        alert('Download logbook as PDF coming soon!');
+      };
+    }
+
+    // Update week labels in table
+    const weekLabels = document.querySelectorAll('.week-label[data-week-start]');
+    weekLabels.forEach(function(label) {
+      const weekStart = label.getAttribute('data-week-start');
+      label.querySelector('.week-range').textContent = `(${getWeekRangeLabel(weekStart)})`;
+    });
+    
+    // Activities are already properly formatted in the HTML structure
+    // No need to process data-logs since they're hardcoded for demo
+
+    // Define form field variables in the global scope so all functions can access them
+
+
+    // Assign form field variables after DOM is loaded
+    // addTaskForm = document.getElementById('addTaskForm'); // Removed inline form
+    // addTaskDateInput = document.getElementById('addTaskDate'); // Removed inline form
+    // addTaskDayDateSpan = document.getElementById('addTaskDayDate'); // Removed inline form
+    // addTaskDescInput = document.getElementById('addTaskDesc'); // Removed inline form
+    // addTaskStatusSelect = document.getElementById('addTaskStatus'); // Removed inline form
+
+    // Set initial date display for Add Task
+    // if (addTaskDateInput && addTaskDayDateSpan) { // Removed inline form
+    //   addTaskDayDateSpan.textContent = formatDayDate(addTaskDateInput.value);
+    // }
+
+    // Hide form after submit
+    // if (addTaskForm) { // Removed inline form
+    //   addTaskForm.addEventListener('submit', function(e) {
+    //     e.preventDefault();
+    //     window.saveTask();
+    //     if (addTaskForm) addTaskForm.style.display = 'none';
+    //   });
+    // }
+
+    // Cancel/Close button logic (already checked)
+    // const cancelTaskBtn = document.getElementById('cancelTaskBtn'); // Removed inline form
+    // if (cancelTaskBtn) {
+    //   cancelTaskBtn.onclick = function() {
+    //     if (addTaskForm) addTaskForm.style.display = 'none';
+    //   };
+    // }
+
+    // Mobile sidebar toggle
+    const sidebar = document.getElementById('sidebar');
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    let sidebarOpen = false;
+    if (mobileMenuBtn && sidebar) {
+      mobileMenuBtn.addEventListener('click', function() {
+        sidebarOpen = !sidebarOpen;
+        if (sidebarOpen) {
+          sidebar.classList.remove('hidden');
+          sidebar.classList.add('flex', 'fixed', 'top-0', 'left-0', 'h-full', 'w-[230px]', 'z-50');
+          document.body.classList.add('overflow-hidden');
+        } else {
+          sidebar.classList.add('hidden');
+          sidebar.classList.remove('flex', 'fixed', 'top-0', 'left-0', 'h-full', 'w-[230px]', 'z-50');
+          document.body.classList.remove('overflow-hidden');
+        }
+      });
+      // Close sidebar on outside click (mobile)
+      document.addEventListener('click', function(e) {
+        if (sidebarOpen && !sidebar.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
+          sidebar.classList.add('hidden');
+          sidebar.classList.remove('flex', 'fixed', 'top-0', 'left-0', 'h-full', 'w-[230px]', 'z-50');
+          document.body.classList.remove('overflow-hidden');
+          sidebarOpen = false;
+        }
+      });
+    }
+
+    // Modal form event listeners
+    // const modalForm = document.getElementById('addTaskFormModal'); // Removed inline form
+    
+    // if (modalForm) { // Removed inline form
+    //   modalForm.addEventListener('submit', function(e) {
+    //     e.preventDefault();
+    //     const date = document.getElementById('addTaskDateModal').value;
+    //     const desc = document.getElementById('addTaskDescModal').value;
+    //     const status = document.getElementById('addTaskStatusModal').value;
+    //     // Save to localStorage
+    //     localStorage.setItem(`${date}_task`, desc);
+    //     localStorage.setItem(`${date}_state`, status);
+    //     closeAddTaskModal();
+    //     // Optionally, update calendar events here
+    //     window.location.reload(); // quick way to refresh events
+    //   });
+    // }
+    
+    // Collapsible table functionality
+    window.toggleWeek = function(weekNumber) {
+      const headerRow = document.querySelector(`tr.week-header[data-week="${weekNumber}"]`);
+      const contentRow = document.querySelector(`tr.week-content[data-week="${weekNumber}"]`);
+      const activityCell = headerRow.querySelector('.activity-details-cell');
+      
+      if (contentRow.style.display === 'none') {
+        // Expand with smooth animation
+        contentRow.style.display = 'table-row';
+        headerRow.classList.add('expanded');
+        
+        // Update activity details cell with actual content
+        if (activityCell) {
+          const activitiesList = contentRow.querySelector('.activities-list');
+          if (activitiesList) {
+            const activityItems = activitiesList.querySelectorAll('.activity-item');
+            let activityText = '';
+            activityItems.forEach((item, index) => {
+              const date = item.querySelector('.activity-date').textContent;
+              const text = item.querySelector('.activity-text').textContent;
+              activityText += `${date}: ${text}`;
+              if (index < activityItems.length - 1) activityText += '<br>';
+            });
+            activityCell.innerHTML = `<div class="activity-details-expanded">${activityText}</div>`;
+          }
+        }
+        
+        // Add entrance animation
+        contentRow.style.opacity = '0';
+        contentRow.style.transform = 'translateY(-10px)';
+        
+        setTimeout(() => {
+          contentRow.style.transition = 'all 0.3s ease';
+          contentRow.style.opacity = '1';
+          contentRow.style.transform = 'translateY(0)';
+        }, 10);
+      } else {
+        // Collapse with smooth animation
+        contentRow.style.transition = 'all 0.3s ease';
+        contentRow.style.opacity = '0';
+        contentRow.style.transform = 'translateY(-10px)';
+        
+        setTimeout(() => {
+          contentRow.style.display = 'none';
+          headerRow.classList.remove('expanded');
+          
+          // Restore placeholder in activity details cell
+          if (activityCell) {
+            activityCell.innerHTML = '<span class="activity-placeholder">Click to view activities</span>';
+          }
+        }, 300);
+      }
+    };
+
+    // --- WEEKLY LOGS TABLE: EVENT DELEGATION FOR VIEW BUTTON ---
+    var weeklyLogsBody = document.getElementById('weeklyLogsBody');
+    if (weeklyLogsBody) {
+      weeklyLogsBody.addEventListener('click', function(e) {
+        if (e.target.classList.contains('view-week-btn')) {
+          openWeekModal(e.target.getAttribute('data-idx'));
+        }
+      });
+    }
+
+    // Attach direct event listeners to modal close buttons
+    var closeBtn1 = document.getElementById('closeWeekModal');
+    if (closeBtn1) closeBtn1.addEventListener('click', closeWeekModal);
+    var closeBtn2 = document.getElementById('closeWeekModal2');
+    if (closeBtn2) closeBtn2.addEventListener('click', closeWeekModal);
+    // Only close modal when clicking the background, not the content
+    var weekModalBg = document.getElementById('weekModalBg');
+    if (weekModalBg) {
+      weekModalBg.addEventListener('click', function(e) {
+        if (e.target === this) closeWeekModal();
+      });
+    }
+
+    // Always hide Add Task modal on page load
+    var addTaskModalBg = document.getElementById('addTaskModalBg');
+    if (addTaskModalBg) {
+      addTaskModalBg.classList.remove('active');
+      addTaskModalBg.style.display = 'none';
+      addTaskModalBg.setAttribute('aria-hidden', 'true');
+    }
+    // Attach close event to Add Task modal X button
+    var closeAddTaskModalBtn = document.getElementById('closeAddTaskModalBtn');
+    if (closeAddTaskModalBtn && addTaskModalBg) {
+      closeAddTaskModalBtn.onclick = function() {
+        addTaskModalBg.classList.remove('active');
+        addTaskModalBg.style.display = 'none';
+        document.body.classList.remove('overflow-hidden');
+      };
+    }
+    // Attach close event to View Weekly modal X button
+    var weekModalBg = document.getElementById('weekModalBg');
+    var closeWeekModalBtn = document.getElementById('closeWeekModal');
+    if (closeWeekModalBtn && weekModalBg) {
+      closeWeekModalBtn.onclick = function() {
+        weekModalBg.classList.add('hidden');
+        weekModalBg.style.opacity = '';
+        document.body.classList.remove('overflow-hidden');
+      };
+    }
+  });
+
+  // Utility to format date as 'Day, DD/MM/YYYY'
+  function formatDayDate(dateStr) {
+    const date = new Date(dateStr);
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const day = days[date.getDay()];
+    const dd = String(date.getDate()).padStart(2, '0');
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const yyyy = date.getFullYear();
+    return `${day}, ${dd}/${mm}/${yyyy}`;
+  }
+  // --- CALENDAR DATE CLICK LOGIC ---
+  function onCalendarDateClick(dateStr) {
+    // Always open modal for both desktop and mobile
+    const desc = localStorage.getItem(`${dateStr}_task`) || '';
+    const status = localStorage.getItem(`${dateStr}_state`) || 'In Progress';
+    openAddTaskModal(dateStr, desc, status);
+  }
+  // --- ALLOW UPDATING TASKS FOR PAST DATES BEFORE REVIEW ---
+  // You would need to check if the week is reviewed before allowing update
+  // For demonstration, assume a function isWeekReviewed(dateStr) returns true/false
+  function isWeekReviewed(dateStr) {
+    // TODO: Replace with real logic from backend or state
+    return false; // For now, always allow update
+  }
+  // When showing the form for a past date, check if week is reviewed
+  function showAddTaskForm(dateStr) {
+    onCalendarDateClick(dateStr);
+    if (isWeekReviewed(dateStr)) {
+      // const updateBtn = addTaskForm.querySelector('button[type="submit"]'); // Removed inline form
+      // updateBtn.disabled = true;
+      // updateBtn.title = 'This week has been reviewed. You cannot update tasks.';
+      // updateBtn.style.opacity = 0.6;
+      // updateBtn.style.cursor = 'not-allowed';
+    }
+  }
+  // Hide form after submit
+  // addTaskForm.addEventListener('submit', function(e) { // Removed inline form
+  //   e.preventDefault();
+  //   window.saveTask();
+  //   addTaskForm.style.display = 'none';
+  // });
+
+function openAddTaskModal(dateStr, desc, status) {
+  const modalBg = document.getElementById('addTaskModalBg');
+  modalBg.classList.add('active');
+  modalBg.style.display = 'flex';
+  modalBg.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('overflow-hidden');
+  document.getElementById('addTaskDateModal').value = dateStr;
+  document.getElementById('addTaskDayDateModal').textContent = formatDayDate(dateStr);
+  document.getElementById('addTaskDescModal').value = desc || '';
+  document.getElementById('addTaskStatusModal').value = status || 'In Progress';
+}
+function closeAddTaskModal() {
+  const modalBg = document.getElementById('addTaskModalBg');
+  modalBg.classList.remove('active');
+  modalBg.style.display = 'none';
+  modalBg.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('overflow-hidden');
+}
+
+// Remove inline Add Task form from DOM on mobile
+// if (window.innerWidth <= 700) { // Removed inline form
+//   var form = document.getElementById('addTaskForm');
+//   if (form) form.parentNode.removeChild(form);
+// }
+
+// --- Placement/Acceptance Check ---
+async function checkInternshipPlacement() {
+  const token = localStorage.getItem('access_token');
+  // Fetch student's applications and check for accepted status
+  const response = await fetch('/api/application/my-applications/', {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+  if (!response.ok) {
+    // Hide Add Task and submit week if error
+    disableLogbookEntryUI('Could not verify internship placement.');
+    return;
+  }
+  const data = await response.json();
+  // Check for at least one accepted application
+  const hasAccepted = (data.results || data).some(app => app.status === 'accepted');
+  if (!hasAccepted) {
+    disableLogbookEntryUI('You must be placed/accepted in an internship to add logbook entries.');
+  }
+}
+function disableLogbookEntryUI(message) {
+  // Hide all other modals and block triggers
+  const modalsToHide = [
+    document.getElementById('addTaskModalBg'),
+    document.getElementById('weekModalBg')
+  ];
+  modalsToHide.forEach(function(modal) {
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.style.display = 'none';
+    }
+  });
+  // Optionally, disable modal triggers
+  const modalTriggers = document.querySelectorAll('[data-modal-trigger], .add-task-btn, .view-week-btn');
+  modalTriggers.forEach(function(btn) {
+    btn.disabled = true;
+    btn.classList.add('opacity-60', 'cursor-not-allowed');
+  });
+  // Show blocking modal for placement error
+  const modalBg = document.getElementById('placementErrorModalBg');
+  if (modalBg) {
+    modalBg.classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+    setTimeout(function() {
+      window.location.href = './student_dash.html';
+    }, 3000);
+  }
+}
+document.addEventListener('DOMContentLoaded', checkInternshipPlacement);
+
+</script>
+
+      <!-- Add Task Modal (Mobile) -->
+      <div id="addTaskModalBg" class="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-teal-200/60 via-white/60 to-blue-200/60 backdrop-blur-[6px] bg-opacity-80 transition-all duration-300">
+        <div id="addTaskModal" class="relative max-w-lg w-full p-10 rounded-3xl shadow-2xl animate-fade-in border-2 border-teal-100" style="background: #fff; box-shadow: 0 8px 40px 0 #14b8a633;">
+          <button id="closeAddTaskModalBtn" class="absolute top-4 right-4 flex items-center justify-center w-14 h-14 rounded-full bg-white/90 shadow-lg hover:bg-teal-50 transition text-gray-400 hover:text-teal-600 text-4xl font-bold focus:outline-none border border-teal-100" aria-label="Close">&times;</button>
+          <div class="flex flex-col items-center pt-8 pb-2 px-6">
+            <div class="w-16 h-16 mb-2 flex items-center justify-center rounded-full bg-gradient-to-br from-teal-400 via-cyan-300 to-blue-400 shadow-lg border-4 border-white">
+              <i class="bi bi-pencil-square text-white text-3xl drop-shadow"></i>
+            </div>
+            <h4 class="text-3xl font-extrabold text-teal-700 tracking-tight mb-4">Add/Edit Task</h4>
+            <div class="text-xs text-gray-500 mt-1 mb-2">Fill in your daily log details</div>
+          </div>
+          <div class="px-6 pb-2">
+            <label class="block text-teal-700 mb-2 text-lg font-semibold">Date</label>
+            <span id="addTaskDayDateModal" class="text-sm text-teal-700 bg-teal-50 rounded px-2 py-1 inline-block font-semibold shadow-sm"></span>
+            <input type="hidden" id="addTaskDateModal">
+          </div>
+          <div class="px-6 pb-2">
+            <label for="addTaskDescModal" class="block text-teal-700 mb-2 text-lg font-semibold">Task Description</label>
+            <textarea id="addTaskDescModal" rows="2" class="w-full border-0 rounded-xl px-4 py-2 text-base bg-gradient-to-br from-white via-teal-50 to-blue-50 focus:bg-white focus:ring-2 focus:ring-teal-400 focus:outline-none transition shadow-inner placeholder-gray-400" placeholder="Describe the task..."></textarea>
+          </div>
+          <div class="px-6 pb-4">
+            <label for="addTaskStatusModal" class="block text-teal-700 mb-2 text-lg font-semibold">Status</label>
+            <select id="addTaskStatusModal" class="w-full border-0 rounded-xl px-4 py-2 text-base bg-gradient-to-br from-white via-teal-50 to-blue-50 focus:bg-white focus:ring-2 focus:ring-teal-400 focus:outline-none transition shadow-inner">
+              <option value="In Progress">In Progress</option>
+              <option value="Completed">Completed</option>
+              <option value="Pending">Pending</option>
+            </select>
+          </div>
+          <div class="flex justify-end px-6 pb-7">
+            <button class="bg-gradient-to-r from-teal-500 via-cyan-400 to-blue-500 text-white px-6 py-2 rounded-xl font-bold shadow-lg hover:from-teal-600 hover:to-blue-600 hover:shadow-xl focus:ring-2 focus:ring-cyan-300 focus:outline-none text-base flex items-center gap-2 transition-all duration-200 animate-glow">
+              <i class="bi bi-check-circle text-lg"></i> Save
+            </button>
+          </div>
+        </div>
+      </div>
+      <style>
+        @keyframes fade-in {
+          from { opacity: 0; transform: translateY(30px) scale(0.98); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .animate-fade-in {
+          animation: fade-in 0.35s cubic-bezier(.4,0,.2,1);
+        }
+        @keyframes glow {
+          0% { box-shadow: 0 0 8px 0 #38bdf8; }
+          50% { box-shadow: 0 0 24px 4px #14b8a6; }
+          100% { box-shadow: 0 0 8px 0 #38bdf8; }
+        }
+        .animate-glow {
+          animation: glow 2.2s infinite;
+        }
+        body.dark-mode #addTaskModal, body.dark-mode #weekModalContent {
+          background: linear-gradient(120deg, #181c24 60%, #153f3f 100%) !important;
+          color: #eaf6fb !important;
+          border-radius: 1.5em !important;
+          border: 2px solid #14b8a6 !important;
+          box-shadow: 0 8px 40px 0 #14b8a633 !important;
+        }
+        body.dark-mode #addTaskModal h4, body.dark-mode #weekModalContent h4 {
+          color: #38bdf8 !important;
+        }
+        body.dark-mode #addTaskModal label, body.dark-mode #weekModalContent strong {
+          color: #6ee7b7 !important;
+        }
+        body.dark-mode #addTaskModal ul,
+        body.dark-mode #addTaskModal li,
+        body.dark-mode #addTaskModal div,
+        body.dark-mode #addTaskModal span,
+        body.dark-mode #weekModalContent ul,
+        body.dark-mode #weekModalContent li,
+        body.dark-mode #weekModalContent div,
+        body.dark-mode #weekModalContent span {
+          color: #eaf6fb !important;
+        }
+        body.dark-mode #addTaskModal button, body.dark-mode #weekModalContent button {
+          background: #232736 !important;
+          color: #38bdf8 !important;
+          border: 2px solid #38bdf8 !important;
+        }
+        body.dark-mode #addTaskModal button:hover, body.dark-mode #weekModalContent button:hover {
+          background: #38bdf8 !important;
+          color: #232736 !important;
+        }
+        body.dark-mode #closeAddTaskModalBtn, body.dark-mode #closeWeekModal {
+          color: #38bdf8 !important;
+          background: #232736 !important;
+        }
+        body.dark-mode #closeAddTaskModalBtn:hover, body.dark-mode #closeWeekModal:hover {
+          color: #232736 !important;
+          background: #38bdf8 !important;
+        }
+        body.dark-mode #addTaskModalBg {
+          background: rgba(16,22,36,0.92) !important;
+          backdrop-filter: blur(12px) !important;
+          -webkit-backdrop-filter: blur(12px) !important;
+        }
+        body.dark-mode #addTaskModal input,
+        body.dark-mode #addTaskModal textarea,
+        body.dark-mode #addTaskModal select {
+          background: #232736 !important;
+          color: #eaf6fb !important;
+          border: 2px solid #38bdf8 !important;
+          box-shadow: 0 1px 6px 0 #10162433 !important;
+          font-size: 1.08em !important;
+        }
+        body.dark-mode #addTaskModal input::placeholder,
+        body.dark-mode #addTaskModal textarea::placeholder {
+          color: #b6c2d1 !important;
+          opacity: 1 !important;
+        }
+        body.dark-mode #addTaskModal input:focus,
+        body.dark-mode #addTaskModal textarea:focus,
+        body.dark-mode #addTaskModal select:focus {
+          border-color: #38bdf8 !important;
+          background: #181c24 !important;
+          color: #eaf6fb !important;
+        }
+        @media (min-width: 700px) {
+          #addTaskModal {
+            max-width: 340px !important;
+            padding: 1.2rem !important;
+          }
+          #addTaskModal .pt-8 { padding-top: 1.2rem !important; }
+          #addTaskModal .pb-2 { padding-bottom: 0.7rem !important; }
+          #addTaskModal .pb-4 { padding-bottom: 0.7rem !important; }
+          #addTaskModal .pb-7 { padding-bottom: 1rem !important; }
+        }
+      </style>
+
+      <!-- Placement Error Modal -->
+      <div id="placementErrorModalBg" class="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-teal-200/60 via-white/60 to-blue-200/60 backdrop-blur-[6px] bg-opacity-80 transition-all duration-300 hidden">
+        <div id="placementErrorModalContent" class="relative max-w-md w-full p-8 rounded-3xl shadow-2xl animate-fade-in border-2 border-teal-100" style="background: #fff; box-shadow: 0 8px 40px 0 #14b8a633;">
+          <h4 class="text-2xl font-extrabold text-teal-700 tracking-tight mb-4 flex items-center gap-2"><i class="bi bi-exclamation-triangle text-yellow-500 text-3xl"></i> Placement Required</h4>
+          <div class="mb-4 text-gray-700 text-lg font-semibold text-center">Could not verify internship placement.<br>You must be placed/accepted in an internship to access your logbook.<br><span class='text-sm text-gray-500 block mt-2'>Redirecting to dashboard...</span></div>
+        </div>
+      </div>
+      <style>
+        /* Placement Error Modal Styles */
+        #placementErrorModalBg {
+          background: rgba(16,22,36,0.92) !important;
+          backdrop-filter: blur(10px) !important;
+          -webkit-backdrop-filter: blur(10px) !important;
+        }
+        #placementErrorModalContent {
+          background: #fff !important;
+          border-radius: 1.5em !important;
+          border: 2px solid #5eead4 !important;
+          box-shadow: 0 8px 40px 0 #14b8a633 !important;
+          color: #134e4a !important;
+        }
+        #placementErrorModalContent h4 {
+          color: #14b8a6 !important;
+          letter-spacing: 0.01em;
+        }
+        #placementErrorModalContent strong {
+          color: #0f766e !important;
+        }
+        #placementErrorModalContent button {
+          background: #fff !important;
+          color: #14b8a6 !important;
+          border: 2px solid #5eead4 !important;
+          border-radius: 999px !important;
+          box-shadow: 0 2px 12px 0 #14b8a622 !important;
+          transition: background 0.2s, box-shadow 0.2s, color 0.2s;
+        }
+        #placementErrorModalContent button:hover {
+          background: #5eead4 !important;
+          color: #fff !important;
+          box-shadow: 0 0 18px 2px #5eead4cc !important;
+        }
+        #closePlacementErrorModal {
+          color: #14b8a6 !important;
+          background: #fff !important;
+          text-shadow: 0 0 8px #5eead4cc;
+        }
+        #closePlacementErrorModal:hover {
+          color: #fff !important;
+          background: #14b8a6 !important;
+          text-shadow: 0 0 16px #5eead4cc;
+        }
+        body.dark-mode #placementErrorModalBg {
+          background: rgba(16,22,36,0.92) !important;
+        }
+        body.dark-mode #placementErrorModalContent {
+          background: linear-gradient(120deg, #181c24 60%, #153f3f 100%) !important;
+          color: #eaf6fb !important;
+          border-radius: 1.5em !important;
+          border: 2px solid #14b8a6 !important;
+          box-shadow: 0 8px 40px 0 #14b8a633 !important;
+        }
+        body.dark-mode #placementErrorModalContent h4 {
+          color: #38bdf8 !important;
+        }
+        body.dark-mode #placementErrorModalContent strong {
+          color: #6ee7b7 !important;
+        }
+        body.dark-mode #placementErrorModalContent button {
+          background: #232736 !important;
+          color: #38bdf8 !important;
+          border: 2px solid #38bdf8 !important;
+        }
+        body.dark-mode #placementErrorModalContent button:hover {
+          background: #38bdf8 !important;
+          color: #232736 !important;
+        }
+        body.dark-mode #closePlacementErrorModal {
+          color: #38bdf8 !important;
+          background: #232736 !important;
+        }
+        body.dark-mode #closePlacementErrorModal:hover {
+          color: #232736 !important;
+          background: #38bdf8 !important;
+        }
+      </style>
+
+  
+</body>
+</html>

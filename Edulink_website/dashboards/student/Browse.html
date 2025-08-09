@@ -1,0 +1,1479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Browse Internships - EduLink KE</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <link href="../../assets/css/main.css" rel="stylesheet">
+  <script src="../../assets/js/main.js"></script>
+  <link href="../../assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+  <link href="https://unpkg.com/phosphor-icons@2.0.3/src/css/phosphor.css" rel="stylesheet">
+  <style>
+    /* --- Enhanced UI for Browse Internship Page --- */
+    body {
+      background: linear-gradient(120deg, #f0fdfa 0%, #e0f2fe 100%);
+    }
+    .browse-grid-bg {
+      background: linear-gradient(120deg, #e0f7f7 0%, #f8fafc 100%);
+      border-radius: 24px;
+      box-shadow: 0 8px 40px 0 #14b8a61a;
+      padding: 32px 18px 48px 18px;
+      margin-bottom: 48px;
+    }
+    .opportunities-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 36px;
+      margin-top: 0;
+    }
+    .opportunity-card {
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+      overflow: hidden;
+      transition: transform 0.18s, box-shadow 0.18s, border 0.18s;
+      display: flex;
+      flex-direction: column;
+      min-height: 420px;
+      position: relative;
+      border: 2px solid #e0f7f7;
+    }
+    .opportunity-card:hover {
+      transform: translateY(-8px) scale(1.025);
+      box-shadow: 0 12px 36px rgba(20,184,166,0.13);
+      border-color: #14b8a6;
+    }
+    .opportunity-card.featured {
+      border: 2.5px solid #22c55e;
+      box-shadow: 0 8px 32px #22c55e22;
+    }
+    .opportunity-card .card-img {
+      width: 100%;
+      height: 170px;
+      overflow: hidden;
+      background: linear-gradient(90deg, #e0f7f7 60%, #f8fafc 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-bottom: 1.5px solid #e0f7f7;
+      position: relative;
+    }
+    .opportunity-card .card-img img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.3s;
+      border-radius: 0 0 12px 12px;
+    }
+    .opportunity-card:hover .card-img img {
+      transform: scale(1.07);
+    }
+    .opportunity-card .card-content {
+      padding: 24px 20px 18px 20px;
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .opportunity-card .company-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 2.5px solid #e0f7f7;
+      margin-right: 12px;
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .opportunity-card .company-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+    }
+    .opportunity-card .badge {
+      font-size: 0.97em;
+      padding: 6px 13px;
+      border-radius: 9px;
+      margin-right: 8px;
+      font-weight: 600;
+      background: #e0f7f7;
+      color: #009999;
+      display: inline-block;
+    }
+    .opportunity-card .badge.tech { background: #e0f7f7; color: #009999; }
+    .opportunity-card .badge.marketing { background: #ffe066; color: #b68900; }
+    .opportunity-card .badge.finance { background: #e0e7ff; color: #3b4890; }
+    .opportunity-card .badge.health { background: #d1fae5; color: #047857; }
+    .opportunity-card .badge.engineering { background: #f3e8ff; color: #7c3aed; }
+    .opportunity-card .badge.featured { background: #22c55e; color: #fff; }
+    .opportunity-card .badge.verified {
+      background: #38bdf8;
+      color: #fff;
+      margin-left: 4px;
+      font-size: 0.93em;
+      padding: 5px 10px;
+      border-radius: 7px;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .opportunity-card .tags {
+      margin-top: 10px;
+      margin-bottom: 10px;
+    }
+    .opportunity-card .tag {
+      display: inline-block;
+      background: #f0fdf4;
+      color: #22c55e;
+      border-radius: 7px;
+      font-size: 0.95em;
+      padding: 4px 12px;
+      margin-right: 7px;
+      margin-bottom: 2px;
+    }
+    .opportunity-card .location {
+      font-size: 1.05em;
+      color: #6c757d;
+      margin-bottom: 7px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .opportunity-card .salary {
+      font-size: 1.13em;
+      color: #009999;
+      font-weight: 600;
+      margin-bottom: 7px;
+    }
+    .opportunity-card .actions {
+      margin-top: 12px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: nowrap;
+      align-items: center;
+    }
+    .opportunity-card .actions .btn {
+      font-size: 1.08em;
+      border-radius: 9px;
+      font-weight: 600;
+      padding: 8px 16px;
+      transition: background 0.2s, color 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      max-width: 140px;
+      min-width: 0;
+      flex: 1 1 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .opportunity-card .actions .bookmark-btn {
+      width: 40px;
+      height: 40px;
+      min-width: 40px;
+      min-height: 40px;
+      max-width: 40px;
+      max-height: 40px;
+      border-radius: 50%;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f0fdfa;
+      transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+      font-size: 1.35em;
+      border: 1.5px solid #e0f7f7;
+      box-shadow: 0 2px 8px #14b8a61a;
+    }
+    .opportunity-card .actions .bookmark-btn:hover {
+      background: #e0f7f7;
+      color: #14b8a6;
+      box-shadow: 0 4px 16px #14b8a61a;
+    }
+    .opportunity-card .actions .btn-primary {
+      background: #009999;
+      color: #fff;
+      border: none;
+    }
+    .opportunity-card .actions .btn-primary:hover {
+      background: #22c55e;
+      color: #fff;
+    }
+    .opportunity-card .actions .btn-outline {
+      background: #fff;
+      color: #009999;
+      border: 1.5px solid #009999;
+    }
+    .opportunity-card .actions .btn-outline:hover {
+      background: #e0f7f7;
+      color: #009999;
+    }
+    .opportunity-card .actions .btn-success[disabled] {
+      background: #22c55e !important;
+      color: #fff !important;
+      width: 110px;
+      min-width: 0;
+      max-width: 140px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1 1 0;
+      font-size: 0.95em;
+    }
+    .share-group { position: relative; display: inline-block; }
+    .share-popover {
+      min-width: 120px;
+      padding: 8px 10px;
+      background: #fff;
+      box-shadow: 0 4px 16px #14b8a61a;
+      border-radius: 10px;
+      border: 1.5px solid #e0f7f7;
+      opacity: 0;
+      pointer-events: none;
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 0.5rem;
+      z-index: 9999;
+      transition: opacity 0.18s, transform 0.18s;
+      transform: translateY(8px) scale(0.98);
+      display: flex;
+      gap: 8px;
+    }
+    .share-popover.active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0) scale(1);
+    }
+    .share-popover button {
+      background: none;
+      border: none;
+      color: #14b8a6;
+      font-size: 1.3em;
+      border-radius: 6px;
+      transition: background 0.15s, color 0.15s;
+    }
+    .share-popover button:hover {
+      background: #e0f7f7;
+      color: #0f766e;
+    }
+    @media (max-width: 768px) {
+      .browse-grid-bg { padding: 12px 2px 24px 2px; }
+      .opportunities-grid { grid-template-columns: 1fr; gap: 18px; }
+      .opportunity-card .card-img { height: 140px; }
+    }
+    .browse-filters input[type="text"],
+    .browse-filters select {
+      background: linear-gradient(120deg, #e0f7f7 60%, #f0fdfa 100%) !important;
+      color: #134e4a;
+      border: 1.5px solid #b6e4e0;
+    }
+    .browse-filters input[type="text"]:focus,
+    .browse-filters select:focus {
+      background: linear-gradient(120deg, #c7f7f7 60%, #e0fdfa 100%) !important;
+      border-color: #14b8a6;
+      color: #134e4a;
+    }
+    .browse-filters select option {
+      background: #e0f7f7;
+      color: #134e4a;
+    }
+    #modalContent {
+      padding-top: 6rem;
+    }
+    #closeDetailsModal {
+      z-index: 10001 !important;
+    }
+    @media (max-width: 600px) {
+      .opportunity-card .actions {
+        flex-direction: row;
+        gap: 6px;
+        flex-wrap: nowrap;
+        align-items: center;
+      }
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen relative">
+  <script>
+    function closeSavedAndShowDetails(id) {
+      document.getElementById('savedModal').classList.add('hidden');
+      showInternshipDetails(id);
+    }
+    window.closeSavedAndShowDetails = closeSavedAndShowDetails;
+  </script>
+  <div class="flex flex-col md:flex-row m-0 p-0 h-screen">
+    <!-- Sidebar (responsive, sticky on desktop) -->
+    <aside id="sidebar" class="hidden md:flex flex-col justify-between z-30 p-0 fixed md:static top-0 left-0 h-full md:h-screen w-[230px] bg-teal-500 text-white transition-transform duration-300" style="background: #14b8a6;">
+      <div>
+        <div class="text-center py-6 mb-2 border-b border-teal-700">
+          <span style="font-family: 'Pacifico', cursive; font-size: 1.7rem; color: #fff; font-weight: 400; letter-spacing: 1px;">EduLink</span>
+        </div>
+        <nav class="flex flex-col pt-8 px-4 gap-1">
+          <a href="./student_dash.html" class="block px-3 py-2 rounded hover:bg-teal-700 flex items-center text-sm"><i class="ph ph-gauge mr-3 text-base"></i>Dashboard</a>
+          <a href="./Browse.html" class="block px-3 py-2 rounded hover:bg-teal-700 bg-teal-700 flex items-center text-sm"><i class="ph ph-magnifying-glass mr-3 text-base"></i>Browse Internships</a>
+          <a href="./application_tracker.html" class="block px-3 py-2 rounded hover:bg-teal-700 flex items-center text-sm"><i class="ph ph-list-checks mr-3 text-base"></i>Application Tracker</a>
+          <a href="./my_internships.html" class="block px-3 py-2 rounded hover:bg-teal-700 flex items-center text-sm"><i class="ph ph-briefcase mr-3 text-base"></i>My Internship</a>
+          <a href="./progress.html" class="block px-3 py-2 rounded hover:bg-teal-700 flex items-center text-sm"><i class="ph ph-book-open mr-3 text-base"></i>Reports & Logbooks</a>
+          <a href="#" class="block px-3 py-2 rounded hover:bg-teal-700 flex items-center text-sm"><i class="ph ph-file-text mr-3 text-base"></i>CV & Toolkit</a>
+          <a href="#" class="block px-3 py-2 rounded hover:bg-teal-700 flex items-center text-sm"><i class="ph ph-lifebuoy mr-3 text-base"></i>Support</a>
+        </nav>
+      </div>
+      <div class="mt-auto px-4 pb-6 pt-4">
+        <a href="#" id="logoutBtn" class="block px-3 py-2 rounded hover:bg-teal-700 flex items-center text-sm"><i class="ph ph-sign-out mr-3 text-base"></i>Log Out</a>
+      </div>
+    </aside>
+    <!-- Main Content (responsive, scrollable) -->
+    <main class="flex-1 p-2 sm:p-4 md:p-6 min-h-0 h-screen md:ml-0 ml-0 overflow-y-auto" style="background: linear-gradient(120deg, #f0fdfa 0%, #e0f2fe 100%);">
+      <!-- Rounded Pill Header (copy from dashboard) -->
+      <div class="flex items-center justify-between h-14 bg-white rounded-full shadow mb-6 px-4 w-full max-w-full mt-6">
+        <button id="mobileMenuBtn" class="md:hidden flex items-center justify-center bg-teal-600 text-white p-2 rounded-full shadow-lg focus:outline-none" aria-label="Open menu">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+        </button>
+        <div class="flex items-center flex-grow justify-end">
+          <a href="./messages.html" class="flex items-center justify-center mr-4" title="Messages" style="background: none; border: none; padding: 0;"><i class="bi bi-chat-dots" style="font-size: 1.5rem; color: #14b8a6; text-shadow: 0 1px 2px rgba(20,184,166,0.15);"></i></a>
+          <button class="header-action flex items-center justify-center mr-4" title="Notifications" style="background: none; border: none; padding: 0;"><i class="bi bi-bell" style="font-size: 1.5rem; color: #14b8a6; text-shadow: 0 1px 2px rgba(20,184,166,0.15);"></i></button>
+          <!-- Bookmark Icon Inserted Here -->
+          <button id="openSavedModalBtn" class="relative flex items-center justify-center mr-4 w-9 h-9 rounded-full bg-white dark:bg-[#153f3f] shadow-lg border border-teal-200 hover:bg-teal-50 dark:hover:bg-[#134e4a] transition-all group" title="View Saved Internships">
+            <span class="flex items-center justify-center w-6 h-6 rounded-full group-hover:bg-teal-100 dark:group-hover:bg-[#134e4a] transition-all">
+              <i class="bi bi-bookmark-fill text-xl" style="color: #14b8a6;"></i>
+            </span>
+            <span id="savedCountBadge" class="absolute -top-1 -right-1 bg-teal-500 text-white text-xs rounded-full px-1 py-0.5 font-bold" style="display:none;">0</span>
+          </button>
+          <a href="./profile.html" class="flex items-center justify-center ml-1" title="Profile">
+            <img id="profilePic" src="../../assets/img/default.jpg" class="profile-pic border-4" style="border-color: #0d9488;" alt="Profile" />
+          </a>
+          <button id="darkModeToggle" class="header-action flex items-center justify-center ml-1" title="Toggle dark mode" style="background: none; border: none; padding: 0; margin-left: 1rem;"><i id="darkModeIcon" class="bi bi-moon" style="font-size: 1.5rem; color: #14b8a6; text-shadow: 0 1px 2px rgba(20,184,166,0.15);"></i></button>
+        </div>
+      </div>
+
+      <!-- Centered Title with Lines -->
+      <div class="section-title-center flex items-center justify-center gap-4 my-8">
+        <span class="line flex-1 h-px bg-gray-300"></span>
+        <h1 class="text-2xl font-bold text-teal-800 text-center whitespace-nowrap">Browse Internships</h1>
+        <span class="line flex-1 h-px bg-gray-300"></span>
+      </div>
+
+      <!-- Action Icons (placeholder for future icons, right below header) -->
+      <div class="flex justify-end items-center mb-4" id="browseActionIcons">
+        <!-- Add suitable icons here in the future -->
+      </div>
+
+      <!-- Enhanced Search & Filters (Beautiful UI) -->
+      <div class="browse-filters flex flex-col md:flex-row md:items-center gap-4 mb-8 justify-center">
+        <div class="relative w-full md:w-1/2">
+          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg"><i class="bi bi-search"></i></span>
+          <input id="searchInput" type="text" placeholder="Search by title, company, or skill..." class="w-full pl-10 pr-4 py-3 rounded-full border border-gray-200 shadow focus:outline-none focus:ring-2 focus:ring-teal-400 bg-white text-base transition" />
+        </div>
+        <div class="flex flex-wrap gap-3 w-full md:w-auto justify-center">
+          <div class="relative">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"><i class="bi bi-geo-alt"></i></span>
+            <select id="locationFilter" class="pl-9 pr-4 py-2 rounded-full border border-gray-200 shadow text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-400 transition">
+              <option value="">Location</option>
+              <option>Nairobi</option>
+              <option>Mombasa</option>
+              <option>Remote</option>
+            </select>
+          </div>
+          <div class="relative">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"><i class="bi bi-tags"></i></span>
+            <select id="categoryFilter" class="pl-9 pr-4 py-2 rounded-full border border-gray-200 shadow text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-400 transition">
+              <option value="">Category</option>
+              <option>Tech</option>
+              <option>Finance</option>
+              <option>Marketing</option>
+            </select>
+          </div>
+          <div class="relative">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"><i class="bi bi-clock"></i></span>
+            <select id="durationFilter" class="pl-9 pr-4 py-2 rounded-full border border-gray-200 shadow text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-400 transition">
+              <option value="">Duration</option>
+              <option>1 Month</option>
+              <option>2 Months</option>
+              <option>3+ Months</option>
+            </select>
+          </div>
+          <div class="relative">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"><i class="bi bi-laptop"></i></span>
+            <select id="typeFilter" class="pl-9 pr-4 py-2 rounded-full border border-gray-200 shadow text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-400 transition">
+              <option value="">Type</option>
+              <option>Remote</option>
+              <option>On-site</option>
+              <option>Hybrid</option>
+            </select>
+          </div>
+          <div class="relative">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"><i class="bi bi-cash"></i></span>
+            <select id="paidFilter" class="pl-9 pr-4 py-2 rounded-full border border-gray-200 shadow text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-400 transition">
+              <option value="">Compensation</option>
+              <option>Paid</option>
+              <option>Unpaid</option>
+            </select>
+          </div>
+          <div class="relative">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"><i class="bi bi-sort-down"></i></span>
+            <select id="sortFilter" class="pl-9 pr-4 py-2 rounded-full border border-gray-200 shadow text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-400 transition">
+              <option value="">Sort By</option>
+              <option value="newest">Newest</option>
+              <option value="deadline">Deadline Soon</option>
+              <option value="popular">Most Popular</option>
+            </select>
+          </div>
+          <button id="clearFiltersBtn" class="flex items-center gap-2 px-4 py-2 rounded-full bg-teal-50 text-teal-700 text-sm font-semibold hover:bg-teal-100 border border-teal-200 shadow transition"><i class="bi bi-x-circle"></i> Clear</button>
+        </div>
+      </div>
+
+      <!-- Opportunities Grid (Internships) -->
+      <div class="container">
+        <div class="opportunities-grid" id="internshipGrid">
+          <!-- Cards will be rendered here by JS -->
+        </div>
+        <div class="flex justify-center mt-8" id="loadMoreContainer">
+          <button id="loadMoreBtn" class="px-6 py-3 rounded-full bg-teal-600 text-white font-semibold text-base shadow hover:bg-teal-700 transition">Load More</button>
+        </div>
+        <div class="flex justify-center mt-4" id="spinnerContainer" style="display:none;">
+          <div class="spinner-border animate-spin inline-block w-10 h-10 border-4 border-teal-400 border-t-transparent rounded-full" role="status"></div>
+        </div>
+      </div>
+      <script>
+        // State for internships and pagination
+        let internships = [];
+        let internshipsToShow = 6;
+        let internshipsNextPage = null;
+        const API_URL = "http://127.0.0.1:8000/api/internships/";
+
+        // Helper to map backend data to frontend card fields
+        function mapInternshipAPI(data) {
+          return {
+            id: data.id,
+            title: data.title,
+            company: data.employer_name || data.employer || "",
+            logo: data.employer_logo || "../../assets/img/partner1.png", // fallback
+            img: data.img || data.logo || "../../assets/img/course-1.jpg", // fallback
+            location: data.location || "Not specified",
+            category: data.category || "General",
+            salary: data.stipend ? `KES ${data.stipend}/mo` : "Not specified",
+            duration: data.duration || "Not specified",
+            tags: Array.isArray(data.skill_tags) ? data.skill_tags.map(tag => tag.name || tag) : [],
+            featured: data.is_verified || false,
+            badges: [data.category, data.is_verified ? "Featured" : null].filter(Boolean),
+            applicants: data.application_count || 0,
+            views: data.views || 0,
+            deadline: data.deadline,
+            description: data.description || "No description provided.",
+            responsibilities: Array.isArray(data.responsibilities) ? data.responsibilities : [],
+            qualifications: Array.isArray(data.qualifications) ? data.qualifications : [],
+            type: data.type || "Not specified",
+            status: data.status || "Active"
+          };
+        }
+
+        // Fetch internships from backend
+        async function fetchInternships(url = API_URL, append = false) {
+          const spinner = document.getElementById('spinnerContainer');
+          if (spinner) spinner.style.display = 'flex';
+          try {
+            const res = await fetch(url);
+            const data = await res.json();
+            // DRF pagination: results, next
+            const items = data.results || data;
+            if (append) {
+              internships = internships.concat(items.map(mapInternshipAPI));
+            } else {
+              internships = items.map(mapInternshipAPI);
+            }
+            internshipsNextPage = data.next || null;
+            renderAllInternshipSections();
+          } catch (e) {
+            console.error("Failed to fetch internships", e);
+          } finally {
+            if (spinner) spinner.style.display = 'none';
+          }
+        }
+
+        // On page load, fetch internships and applied status
+        document.addEventListener('DOMContentLoaded', async function() {
+          await fetchAppliedInternships();
+          fetchInternships();
+        });
+        // Helper for deadline countdown
+        function getCountdown(deadline) {
+          if (!deadline) return '';
+          const now = new Date();
+          const end = new Date(deadline);
+          const diff = end - now;
+          if (diff <= 0) return '<span class="text-red-500 font-semibold">Closed</span>';
+          const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+          const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+          if (days > 0) return `<span class='text-yellow-600 font-semibold'>${days}d ${hours}h left</span>`;
+          if (hours > 0) return `<span class='text-yellow-600 font-semibold'>${hours}h left</span>`;
+          return `<span class='text-yellow-600 font-semibold'>Less than 1h left</span>`;
+        }
+        // --- Persistent Save/Bookmark & Recently Viewed Logic ---
+        function getSavedInternshipIds() {
+          return JSON.parse(localStorage.getItem('savedInternships') || '[]');
+        }
+        function setSavedInternshipIds(ids) {
+          localStorage.setItem('savedInternships', JSON.stringify(ids));
+        }
+        function getRecentlyViewedIds() {
+          return JSON.parse(localStorage.getItem('recentlyViewedInternships') || '[]');
+        }
+        function setRecentlyViewedIds(ids) {
+          localStorage.setItem('recentlyViewedInternships', JSON.stringify(ids));
+        }
+        function isSaved(id) {
+          return getSavedInternshipIds().includes(id);
+        }
+        function saveInternship(id) {
+          let ids = getSavedInternshipIds();
+          if (!ids.includes(id)) {
+            ids.push(id);
+            setSavedInternshipIds(ids);
+          } else {
+            ids = ids.filter(x => x !== id);
+            setSavedInternshipIds(ids);
+          }
+          renderAllInternshipSections();
+        }
+        window.saveInternship = saveInternship;
+        function addRecentlyViewed(id) {
+          let ids = getRecentlyViewedIds();
+          ids = ids.filter(x => x !== id); // Remove if already present
+          ids.unshift(id); // Add to front
+          if (ids.length > 6) ids = ids.slice(0, 6);
+          setRecentlyViewedIds(ids);
+          renderAllInternshipSections();
+        }
+        // --- Application Status Logic ---
+        let appliedInternshipIds = [];
+        
+        function getAppliedInternshipIds() {
+          return appliedInternshipIds;
+        }
+        function setAppliedInternshipIds(ids) {
+          appliedInternshipIds = ids;
+          // Also update localStorage for offline support
+          localStorage.setItem('appliedInternships', JSON.stringify(ids));
+        }
+        function isApplied(id) {
+          return appliedInternshipIds.includes(id);
+        }
+        
+        // Fetch applied internships from backend
+        async function fetchAppliedInternships() {
+          const token = localStorage.getItem('access_token');
+          if (!token) {
+            // Fallback to localStorage if no token
+            appliedInternshipIds = JSON.parse(localStorage.getItem('appliedInternships') || '[]');
+            return;
+          }
+          
+          try {
+            const response = await fetch('http://127.0.0.1:8000/api/application/my-applications/', {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+            });
+            
+            if (response.ok) {
+              const data = await response.json();
+              const applications = data.results || data;
+              appliedInternshipIds = applications.map(app => app.internship?.id || app.internship_id).filter(Boolean);
+              // Update localStorage for offline support
+              localStorage.setItem('appliedInternships', JSON.stringify(appliedInternshipIds));
+            } else {
+              // Fallback to localStorage if API fails
+              appliedInternshipIds = JSON.parse(localStorage.getItem('appliedInternships') || '[]');
+            }
+          } catch (error) {
+            console.error('Error fetching applied internships:', error);
+            // Fallback to localStorage if API fails
+            appliedInternshipIds = JSON.parse(localStorage.getItem('appliedInternships') || '[]');
+          }
+        }
+        async function applyToInternship(id) {
+          // Show loading indicator
+          const applyBtn = document.querySelector(`button[onclick="applyToInternship(${id})"]`);
+          if (applyBtn) {
+            applyBtn.disabled = true;
+            applyBtn.innerHTML = '<i class="bi bi-hourglass-split animate-spin"></i> Applying...';
+          }
+          
+          try {
+            // Get the internship data
+            const internship = internships.find(i => i.id === id);
+            if (!internship) throw new Error('Internship not found');
+            
+            // Get token from localStorage
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+              window.location.href = '../../login.html';
+              return;
+            }
+            
+            // Make API call to submit application
+            const response = await fetch('http://127.0.0.1:8000/api/application/apply/', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                internship_id: id,
+                cover_letter: '', // Could be added in a future enhancement
+                resume_id: null, // Could be selected from user's saved resumes
+              }),
+            });
+            
+            if (!response.ok) {
+              throw new Error('Failed to submit application');
+            }
+            
+            // Refresh applied internships from backend to ensure data consistency
+            await fetchAppliedInternships();
+            
+            // Update UI
+            renderAllInternshipSections();
+            
+            // Show success message
+            Swal.fire({
+              title: 'Application Submitted!',
+              text: `Your application for ${internship.title} at ${internship.company} has been submitted successfully.`,
+              icon: 'success',
+              confirmButtonText: 'View My Applications',
+              showCancelButton: true,
+              cancelButtonText: 'Continue Browsing',
+              confirmButtonColor: '#0d9488',
+              cancelButtonColor: '#6b7280',
+            }).then((result) => {
+              if (result.isConfirmed) {
+                // Redirect to application tracker
+                window.location.href = 'application_tracker.html';
+              }
+            });
+            
+          } catch (error) {
+            console.error('Error applying to internship:', error);
+            
+            // Show error message
+            Swal.fire({
+              title: 'Application Failed',
+              text: 'There was an error submitting your application. Please try again later.',
+              icon: 'error',
+              confirmButtonText: 'OK',
+              confirmButtonColor: '#0d9488',
+            });
+            
+            // Reset button
+            if (applyBtn) {
+              applyBtn.disabled = false;
+              applyBtn.innerHTML = '<i class="bi bi-send"></i> Apply';
+            }
+          }
+        }
+        window.applyToInternship = applyToInternship;
+
+        // --- Share Logic ---
+        function shareInternship(internship) {
+          const url = window.location.origin + window.location.pathname + `#internship-${internship.id}`;
+          if (navigator.clipboard) {
+            navigator.clipboard.writeText(url);
+            alert('Link copied to clipboard!');
+          } else {
+            prompt('Copy this link:', url);
+          }
+        }
+        function shareWhatsApp(internship) {
+          const url = window.location.origin + window.location.pathname + `#internship-${internship.id}`;
+          const text = encodeURIComponent(`Check out this internship: ${internship.title} at ${internship.company} - ${url}`);
+          window.open(`https://wa.me/?text=${text}`, '_blank');
+        }
+        function shareLinkedIn(internship) {
+          const url = window.location.origin + window.location.pathname + `#internship-${internship.id}`;
+          const text = encodeURIComponent(`Check out this internship: ${internship.title} at ${internship.company}`);
+          window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}&title=${text}`,'_blank');
+        }
+        window.shareInternship = shareInternship;
+        window.shareWhatsApp = shareWhatsApp;
+        window.shareLinkedIn = shareLinkedIn;
+
+        // --- Rendering Functions ---
+        function renderInternshipCards(data, gridId = 'internshipGrid') {
+          const grid = document.getElementById(gridId);
+          if (!grid) return;
+          // Only show up to internshipsToShow
+          const visible = data.slice(0, internshipsToShow);
+          grid.innerHTML = visible.map(internship => {
+            const saved = isSaved(internship.id);
+            const applied = isApplied(internship.id);
+            return `
+              <div class="opportunity-card${internship.featured ? ' featured' : ''}" id="internship-card-${internship.id}">
+                <div class="card-img relative">
+                  <img src="${internship.img || internship.logo}" alt="${internship.title}">
+                  <div class="absolute top-2 right-2 flex gap-2">
+                    <span class="bg-white/90 dark:bg-[#23272f]/90 text-teal-700 dark:text-blue-200 text-xs px-2 py-1 rounded-full shadow flex items-center gap-1" title="Applicants"><i class="bi bi-people-fill"></i> ${internship.applicants}</span>
+                    <span class="bg-white/90 dark:bg-[#23272f]/90 text-gray-500 dark:text-blue-200 text-xs px-2 py-1 rounded-full shadow flex items-center gap-1" title="Views"><i class="bi bi-eye"></i> ${internship.views}</span>
+                    ${applied ? '<span class="bg-green-500 text-white text-xs px-2 py-1 rounded-full shadow flex items-center gap-1" title="Applied"><i class="bi bi-check-circle"></i> Applied</span>' : ''}
+                  </div>
+                </div>
+                <div class="card-content">
+                  <div class="d-flex align-items-center mb-2">
+                    <div class="company-avatar"><img src="${internship.logo}" alt="${internship.company}"></div>
+                    <span class="badge ${internship.category.toLowerCase()}">${internship.category}</span>
+                    ${internship.featured ? '<span class="badge featured ms-2">Featured</span>' : ''}
+                  </div>
+                  <h3 class="fw-bold mb-1">${internship.title}</h3>
+                  <div class="location"><i class="bi bi-geo-alt"></i> ${internship.location}</div>
+                  <div class="salary">${internship.salary || internship.stipend || ''}</div>
+                  <div class="tags mb-2">
+                    ${internship.tags.map(tag => `<span class="tag">${tag}</span>`).join(' ')}
+                  </div>
+                  <div class="flex items-center gap-2 mb-2">
+                    <span class="text-xs">${getCountdown(internship.deadline)}</span>
+                  </div>
+                  <div class="actions flex gap-2">
+                    ${applied ?
+                      `<button class="btn btn-success" disabled><i class="bi bi-check-circle"></i> Applied</button>` :
+                      `<button type="button" class="btn btn-primary" onclick="applyToInternship(${internship.id})"><i class="bi bi-send"></i> Apply</button>`
+                    }
+                    <button type="button" class="btn btn-outline details-btn" data-id="${internship.id}">Details</button>
+                    <button type="button" class="btn btn-outline px-2 py-1 bookmark-btn" title="${saved ? 'Remove from saved' : 'Save'}" onclick="saveInternship(${internship.id})">
+                      <i class="bi bi-bookmark${saved ? '-fill text-yellow-500' : ''}"></i>
+                    </button>
+                    <div class="relative share-group" style="display:inline-block;">
+                      <button type="button" class="btn btn-outline px-2 py-1 share-toggle-btn" title="Share" data-id="${internship.id}"><i class="bi bi-share"></i></button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('');
+          // Add event listeners to Details buttons
+          grid.querySelectorAll('.details-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+              showInternshipDetails(this.getAttribute('data-id'));
+            });
+          });
+          // Add event listeners for global share popover
+          grid.querySelectorAll('.share-toggle-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+              e.stopPropagation();
+              const id = this.getAttribute('data-id');
+              const internship = internships.find(i => i.id == id);
+              if (!internship) return;
+              const popover = document.getElementById('global-share-popover');
+              // Fill popover content with arrow, icons, and labels
+              popover.innerHTML = `
+                <div class="popover-arrow">
+                  <svg width="24" height="12" viewBox="0 0 24 12"><path d="M0 12 Q12 0 24 12" fill="#f0fdfa" stroke="#e0f7f7" stroke-width="1.5"/></svg>
+                </div>
+                <div class="share-actions">
+                  <div style="display:flex;flex-direction:column;align-items:center;">
+                    <button type="button" class="share-btn" title="Copy Link"><i class="bi bi-link-45deg"></i></button>
+                    <span class="share-label">Copy</span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;align-items:center;">
+                    <button type="button" class="share-btn" title="Share on WhatsApp"><i class="bi bi-whatsapp"></i></button>
+                    <span class="share-label">WhatsApp</span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;align-items:center;">
+                    <button type="button" class="share-btn" title="Share on LinkedIn"><i class="bi bi-linkedin"></i></button>
+                    <span class="share-label">LinkedIn</span>
+                  </div>
+                </div>
+              `;
+              // Add click handlers
+              popover.querySelector('.share-btn[title="Copy Link"]').onclick = function(ev) { ev.stopPropagation(); shareInternship(internship); };
+              popover.querySelector('.share-btn[title="Share on WhatsApp"]').onclick = function(ev) { ev.stopPropagation(); shareWhatsApp(internship); };
+              popover.querySelector('.share-btn[title="Share on LinkedIn"]').onclick = function(ev) { ev.stopPropagation(); shareLinkedIn(internship); };
+              // Position popover above the button
+              const rect = this.getBoundingClientRect();
+              popover.classList.add('active');
+              popover.style.left = (rect.left + window.scrollX - (popover.offsetWidth / 2) + (rect.width / 2)) + 'px';
+              popover.style.top = (rect.top + window.scrollY - popover.offsetHeight - 10) + 'px';
+            });
+          });
+          // Show/hide Load More button
+          const loadMoreContainer = document.getElementById('loadMoreContainer');
+          const loadMoreBtn = document.getElementById('loadMoreBtn');
+          if (loadMoreContainer) {
+            // If using backend pagination
+            if (internshipsNextPage) {
+              loadMoreContainer.style.display = 'flex';
+              if (loadMoreBtn) loadMoreBtn.textContent = 'Load More';
+            } else if (internshipsToShow < data.length) {
+              loadMoreContainer.style.display = 'flex';
+              if (loadMoreBtn) loadMoreBtn.textContent = 'Load More';
+            } else {
+              loadMoreContainer.style.display = 'none';
+            }
+          }
+        }
+        function renderAllInternshipSections() {
+          renderInternshipCards(internships);
+        }
+        // --- Modal: Add to Recently Viewed ---
+        function showInternshipDetails(id) {
+          const modal = document.getElementById('internshipDetailsModal');
+          const content = document.getElementById('modalContent');
+          const internship = internships.find(i => i.id == id);
+          if (modal && content && internship) {
+            addRecentlyViewed(internship.id);
+            const saved = isSaved(internship.id);
+            const applied = isApplied(internship.id);
+            
+            // New Structured HTML for the modal
+            content.innerHTML = `
+              <!-- Modal Header -->
+              <div class="modal-header">
+                <div class="company-avatar" style="width:64px;height:64px;"><img src="${internship.logo}" alt="${internship.company}"></div>
+                <div class="header-info">
+                  <h2 class="text-2xl font-bold text-teal-800 dark:text-teal-300">${internship.title}</h2>
+                  <p class="company-name">${internship.company}</p>
+                </div>
+                ${internship.featured ? '<span class="badge featured">Featured</span>' : ''}
+              </div>
+
+              <!-- Modal Body with Grid Layout -->
+              <div class="modal-body">
+                <!-- Left Column -->
+                <div class="modal-col-left">
+                  <h3 class="col-heading">Key Details</h3>
+                  <ul class="key-details">
+                    <li><i class="bi bi-geo-alt"></i> <span>${internship.location}</span></li>
+                    <li><i class="bi bi-cash-coin"></i> <span>${internship.salary || 'Not specified'}</span></li>
+                    <li><i class="bi bi-clock"></i> <span>${internship.duration || '3 Months'}</span></li>
+                    <li><i class="bi bi-calendar-x"></i> <span class="font-semibold text-red-500">${new Date(internship.deadline).toLocaleDateString()}</span></li>
+                  </ul>
+                  <h3 class="col-heading mt-4">Required Skills</h3>
+                  <div class="tags">${internship.tags.map(tag => `<span class='tag'>${tag}</span>`).join('')}</div>
+                </div>
+
+                <!-- Right Column -->
+                <div class="modal-col-right">
+                  <h3 class="col-heading">Job Description</h3>
+                  <p class="description">${internship.description || 'No description provided.'}</p>
+                  
+                  <h3 class="col-heading mt-4">Responsibilities</h3>
+                  <ul class="responsibilities">${(internship.responsibilities || []).map(r => `<li>${r}</li>`).join('')}</ul>
+                  
+                  <h3 class="col-heading mt-4">Qualifications</h3>
+                  <ul class="qualifications">${(internship.qualifications || []).map(q => `<li>${q}</li>`).join('')}</ul>
+                </div>
+              </div>
+
+              <!-- Modal Footer -->
+              <div class="modal-footer">
+                <button class="btn-save" onclick='toggleSaveAndRerenderModal(${internship.id})'>
+                  <i class="bi bi-bookmark${saved ? '-fill text-yellow-500' : ''}"></i>
+                </button>
+                <button class="btn-apply">
+                  <i class="bi bi-send"></i> Apply Now
+                </button>
+              </div>
+            `;
+
+            document.body.style.overflow = 'hidden';
+            modal.classList.remove('hidden');
+          }
+        }
+        window.showInternshipDetails = showInternshipDetails;
+        // Initial render
+        renderAllInternshipSections();
+      </script>
+
+      <!-- Skeleton Loader (hidden by default) -->
+      <div id="skeletonLoader" class="opportunities-grid mb-12" style="display:none;">
+        <div class="opportunity-card animate-pulse" style="height:420px;"></div>
+        <div class="opportunity-card animate-pulse" style="height:420px;"></div>
+        <div class="opportunity-card animate-pulse" style="height:420px;"></div>
+      </div>
+
+      <!-- Internship Details Modal -->
+      <div id="internshipDetailsModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-[10px] transition-all duration-300 hidden">
+        <div class="bg-white dark:bg-[#23272f] rounded-2xl shadow-2xl p-8 max-w-2xl w-full relative animate-fade-in border-2 border-teal-100" style="box-shadow: 0 12px 48px 0 #14b8a655, 0 2px 24px 0 #0002;">
+          <button id="closeDetailsModal" class="absolute top-4 right-4 text-3xl text-gray-400 hover:text-teal-600 bg-white/90 dark:bg-[#23272f] rounded-full w-14 h-14 flex items-center justify-center shadow-lg border border-teal-100 transition-all duration-200 hover:scale-110 hover:shadow-2xl" aria-label="Close">
+            <span class="sr-only">Close</span>
+            <span class="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 dark:bg-[#23272f] shadow"><svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="16" cy="16" r="15" fill="#f1f5f9" class="dark:fill-[#23272f]"/><path d="M11 11L21 21M21 11L11 21" stroke="#64748b" stroke-width="2.5" stroke-linecap="round"/></svg></span>
+          </button>
+          <div id="modalContent">Loading...</div>
+        </div>
+      </div>
+      <style>
+        /* Enhanced blurred modal background for all modals */
+        .modal-blur-bg, #internshipDetailsModal {
+          background: rgba(16, 24, 39, 0.65) !important;
+          backdrop-filter: blur(10px) saturate(1.2);
+          -webkit-backdrop-filter: blur(10px) saturate(1.2);
+          transition: background 0.3s, backdrop-filter 0.3s;
+        }
+        .dark-mode .modal-blur-bg, .dark-mode #internshipDetailsModal {
+          background: rgba(20, 30, 48, 0.82) !important;
+          backdrop-filter: blur(14px) saturate(1.3);
+          -webkit-backdrop-filter: blur(14px) saturate(1.3);
+        }
+        @keyframes fade-in {
+          from { opacity: 0; transform: translateY(30px) scale(0.98); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .animate-fade-in { animation: fade-in 0.35s cubic-bezier(.4,0,.2,1); }
+        #internshipDetailsModal > div {
+          background: #fff !important;
+          border-radius: 1.5em !important;
+          border: 2px solid #a7f3d0 !important;
+          box-shadow: 0 12px 48px 0 #14b8a655, 0 2px 24px 0 #0002 !important;
+          color: #134e4a !important;
+          max-height: 90vh;
+          display: flex;
+          flex-direction: column;
+        }
+        #modalContent {
+          padding: 0;
+          flex: 1;
+          overflow-y: hidden;
+          display: flex;
+          flex-direction: column;
+        }
+        .modal-header {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          padding: 1.5rem;
+          border-bottom: 1.5px solid #e0f7f7;
+        }
+        .modal-body {
+          flex: 1;
+          padding: 1.5rem;
+          overflow-y: auto;
+          display: grid;
+          grid-template-columns: 1fr 2fr;
+          gap: 2rem;
+        }
+        .modal-footer {
+          padding: 1rem 1.5rem;
+          border-top: 1.5px solid #e0f7f7;
+          display: flex;
+          justify-content: flex-end;
+          gap: 1rem;
+          background: #f8fafc;
+          border-radius: 0 0 1.5em 1.5em;
+        }
+        .modal-col-left .col-heading {
+          font-size: 1.1em;
+          font-weight: 600;
+          color: #0f766e;
+          margin-bottom: 0.75rem;
+        }
+        .key-details { list-style: none; padding: 0; }
+        .key-details li { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; color: #134e4a; }
+        .key-details i { font-size: 1.2em; color: #14b8a6; }
+        .responsibilities, .qualifications {
+          list-style-position: inside;
+          padding-left: 0.5rem;
+        }
+        .responsibilities li, .qualifications li {
+          margin-bottom: 0.25rem;
+        }
+        .btn-apply {
+          background: #14b8a6;
+          color: white;
+          padding: 0.75rem 1.5rem;
+          border-radius: 12px;
+          font-weight: 600;
+          border: none;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+        .btn-apply:hover { background: #0f766e; }
+        .btn-save {
+          background: #e0f7f7;
+          color: #14b8a6;
+          width: 48px;
+          height: 48px;
+          border-radius: 50%;
+          font-size: 1.4em;
+          border: none;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        #internshipDetailsModal h2 {
+          color: #14b8a6 !important;
+          letter-spacing: 0.01em;
+        }
+        #internshipDetailsModal strong {
+          color: #0f766e !important;
+        }
+        #internshipDetailsModal button {
+          background: transparent !important;
+          color: #14b8a6 !important;
+          border: none !important;
+          box-shadow: none !important;
+        }
+        #internshipDetailsModal button:hover {
+          background: transparent !important;
+          color: #0f766e !important;
+        }
+        body.dark-mode #internshipDetailsModal > div {
+          background: linear-gradient(120deg, #181c24 60%, #153f3f 100%) !important;
+          color: #eaf6fb !important;
+          border-radius: 1.5em !important;
+          border: 2px solid #14b8a6 !important;
+          box-shadow: 0 12px 48px 0 #14b8a655, 0 2px 24px 0 #0002 !important;
+        }
+        body.dark-mode #internshipDetailsModal h2 {
+          color: #38bdf8 !important;
+        }
+        body.dark-mode #internshipDetailsModal strong {
+          color: #6ee7b7 !important;
+        }
+        body.dark-mode #internshipDetailsModal button {
+          color: #38bdf8 !important;
+        }
+        body.dark-mode #internshipDetailsModal button:hover {
+          color: #6ee7b7 !important;
+        }
+      </style>
+      <script>
+        // Ensure showInternshipDetails is globally available and close button works
+        document.addEventListener('DOMContentLoaded', function() {
+          const closeBtn = document.getElementById('closeDetailsModal');
+          const modal = document.getElementById('internshipDetailsModal');
+          if (closeBtn && modal) {
+            closeBtn.onclick = function() {
+              modal.classList.add('hidden');
+              document.body.style.overflow = 'auto';
+            };
+          }
+          // Also close modal on background click
+          modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+              modal.classList.add('hidden');
+              document.body.style.overflow = 'auto';
+            }
+          });
+        });
+        // Make sure showInternshipDetails is attached to window
+        window.showInternshipDetails = showInternshipDetails;
+      </script>
+      <!-- Header Bookmark Icon -->
+      <!-- Removed fixed positioning and moved to pill header -->
+      <!-- Saved Internships Modal -->
+      <div id="savedModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-[14px] transition-all duration-300 hidden">
+        <div class="bg-white dark:bg-[#23272f] rounded-2xl shadow-2xl p-6 max-w-lg w-full relative animate-fade-in border-2 border-teal-100" style="box-shadow: 0 16px 64px 0 #14b8a655, 0 4px 32px 0 #0002;">
+          <button id="closeSavedModalBtn" class="absolute top-4 right-4 text-2xl text-gray-400 hover:text-teal-600 bg-white/90 dark:bg-[#23272f] rounded-full w-10 h-10 flex items-center justify-center shadow-lg border border-teal-100 transition-all duration-200 hover:scale-110 hover:shadow-2xl" aria-label="Close">
+            <span class="sr-only">Close</span>
+            <i class="bi bi-x"></i>
+          </button>
+          <h2 class="text-lg font-bold mb-4 text-teal-700 dark:text-blue-300 flex items-center"><i class="bi bi-bookmark-fill mr-2 text-yellow-400"></i>Saved Internships</h2>
+          <div id="savedModalGrid" class="flex flex-col gap-3 max-h-96 overflow-y-auto pr-1"></div>
+          <div id="noSavedMsg" class="text-center text-gray-400 py-8">No saved internships yet.</div>
+        </div>
+      </div>
+      <style>
+        /* Enhanced modal background for all modals */
+        .modal-blur-bg, #internshipDetailsModal, #savedModal {
+          background: rgba(16, 24, 39, 0.75) !important;
+          backdrop-filter: blur(14px) saturate(1.3);
+          -webkit-backdrop-filter: blur(14px) saturate(1.3);
+          transition: background 0.3s, backdrop-filter 0.3s;
+        }
+        .dark-mode .modal-blur-bg, .dark-mode #internshipDetailsModal, .dark-mode #savedModal {
+          background: rgba(20, 30, 48, 0.88) !important;
+          backdrop-filter: blur(18px) saturate(1.4);
+          -webkit-backdrop-filter: blur(18px) saturate(1.4);
+        }
+        /* Compact card for saved modal */
+        .saved-card {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          background: #f8fafc;
+          border-radius: 1em;
+          padding: 12px 18px;
+          box-shadow: 0 2px 12px #14b8a61a;
+          border: 1.5px solid #e0f7f7;
+          transition: box-shadow 0.18s, border 0.18s;
+        }
+        .saved-card:hover {
+          box-shadow: 0 6px 24px #14b8a633;
+          border-color: #14b8a6;
+        }
+        .saved-card .company-avatar {
+          width: 44px; height: 44px; min-width: 44px;
+        }
+        .saved-card .info {
+          flex: 1 1 auto;
+        }
+        .saved-card .title {
+          font-weight: 600; font-size: 1.08em; color: #134e4a;
+        }
+        .saved-card .company {
+          font-size: 0.97em; color: #64748b;
+        }
+        .saved-card .unsave-btn {
+          background: none; border: none; color: #e11d48; font-size: 1.3em; cursor: pointer; padding: 0 6px;
+        }
+        .saved-card .unsave-btn:hover { color: #be123c; }
+        .dark-mode .saved-card { background: #23272f; border-color: #334155; }
+        .dark-mode .saved-card .title { color: #e0f2fe; }
+        .dark-mode .saved-card .company { color: #94a3b8; }
+      </style>
+      <script>
+        // --- Enhanced Save/Bookmark Logic ---
+        function getSavedInternshipIds() {
+          return JSON.parse(localStorage.getItem('savedInternships') || '[]');
+        }
+        function setSavedInternshipIds(ids) {
+          localStorage.setItem('savedInternships', JSON.stringify(ids));
+        }
+        function isSaved(id) {
+          return getSavedInternshipIds().includes(id);
+        }
+        function saveInternship(id) {
+          let ids = getSavedInternshipIds();
+          if (!ids.includes(id)) {
+            ids.push(id);
+            setSavedInternshipIds(ids);
+          } else {
+            ids = ids.filter(x => x !== id);
+            setSavedInternshipIds(ids);
+          }
+          updateSavedCountBadge();
+          renderAllInternshipSections();
+          renderSavedModal();
+        }
+        window.saveInternship = saveInternship;
+        // --- Update saved counter badge live ---
+        function updateSavedCountBadge() {
+          const badge = document.getElementById('savedCountBadge');
+          const savedIds = getSavedInternshipIds();
+          if (badge) {
+            badge.textContent = savedIds.length;
+            badge.style.display = savedIds.length ? '' : 'none';
+          }
+        }
+        // --- Rendering Functions ---
+        
+        function renderAllInternshipSections() {
+          renderInternshipCards(internships);
+        }
+        // --- Modal Logic ---
+        function showInternshipDetails(id) {
+          const modal = document.getElementById('internshipDetailsModal');
+          const content = document.getElementById('modalContent');
+          const internship = internships.find(i => i.id == id);
+          if (modal && content && internship) {
+            addRecentlyViewed(internship.id);
+            const saved = isSaved(internship.id);
+            const applied = isApplied(internship.id);
+            content.innerHTML = `
+              <div class='flex items-center gap-4 mb-4'>
+                <div class='company-avatar' style='width:56px;height:56px;'><img src='${internship.logo}' alt='${internship.company}'></div>
+                <div>
+                  <div class='font-bold text-lg text-teal-700 dark:text-blue-300 mb-1'>${internship.company} ${internship.verified ? '<span class="badge verified"><i class="bi bi-patch-check"></i> Verified</span>' : ''}</div>
+                  <div class='text-xs text-gray-500 dark:text-gray-300'>${internship.location}</div>
+                </div>
+                ${internship.featured ? '<span class="badge featured ml-auto">Featured</span>' : ''}
+              </div>
+              <h2 class='text-xl font-bold mb-2'>${internship.title}</h2>
+              <div class='flex flex-wrap gap-2 mb-2'>
+                <span class='badge ${internship.category.toLowerCase()}'>${internship.category}</span>
+                <span class='badge'>${internship.duration || 'N/A'}</span>
+                <span class='badge'>${internship.salary || internship.stipend || ''}</span>
+              </div>
+              <div class='tags mb-2'>${internship.tags.map(tag => `<span class='tag'>${tag}</span>`).join('')}</div>
+              <div class='mb-2'><strong>Location:</strong> ${internship.location}</div>
+              <div class='mb-2'><strong>Deadline:</strong> ${internship.deadline || 'N/A'}</div>
+              <div class='mb-2'><strong>Description:</strong> <span class='text-gray-700 dark:text-gray-200'>${internship.description || 'No description provided.'}</span></div>
+              <div class='flex gap-3 mt-6'>
+                ${applied ? 
+                  `<button class='btn btn-success flex-1 py-3 rounded-full text-base font-semibold' disabled><i class='bi bi-check-circle'></i> Applied</button>` :
+                  `<button class='btn btn-primary flex-1 py-3 rounded-full text-base font-semibold' onclick='applyToInternship(${internship.id})'><i class='bi bi-send'></i> Apply Now</button>`
+                }
+                <button class='btn btn-outline flex-1 py-3 rounded-full text-base font-semibold' onclick='toggleSaveAndRerenderModal(${internship.id})'><i class='bi bi-bookmark${saved ? '-fill text-yellow-500' : ''}'></i> ${saved ? 'Saved' : 'Save'}</button>
+              </div>
+            `;
+            modal.classList.remove('hidden');
+          }
+        }
+        function toggleSaveAndRerenderModal(id) {
+          saveInternship(id);
+          showInternshipDetails(id);
+        }
+        window.showInternshipDetails = showInternshipDetails;
+        window.toggleSaveAndRerenderModal = toggleSaveAndRerenderModal;
+        // --- Recently Viewed Logic ---
+        function getRecentlyViewedIds() {
+          return JSON.parse(localStorage.getItem('recentlyViewedInternships') || '[]');
+        }
+        function setRecentlyViewedIds(ids) {
+          localStorage.setItem('recentlyViewedInternships', JSON.stringify(ids));
+        }
+        function addRecentlyViewed(id) {
+          let ids = getRecentlyViewedIds();
+          ids = ids.filter(x => x !== id);
+          ids.unshift(id);
+          if (ids.length > 6) ids = ids.slice(0, 6);
+          setRecentlyViewedIds(ids);
+        }
+        // --- Rendering Functions ---
+        function renderSavedModal() {
+          const savedIds = getSavedInternshipIds();
+          const saved = internships.filter(i => savedIds.includes(i.id));
+          const grid = document.getElementById('savedModalGrid');
+          const noMsg = document.getElementById('noSavedMsg');
+          if (!grid || !noMsg) return;
+          if (!saved.length) {
+            grid.innerHTML = '';
+            noMsg.style.display = '';
+            return;
+          }
+          noMsg.style.display = 'none';
+          grid.innerHTML = saved.map(internship => `
+            <div class="saved-card flex items-center gap-4">
+              <div class="company-avatar"><img src="${internship.logo}" alt="${internship.company}" class="rounded-full w-full h-full object-cover"></div>
+              <div class="info flex-1">
+                <div class="title">${internship.title}</div>
+                <div class="company">${internship.company}</div>
+              </div>
+              <button class="unsave-btn" title="Remove from saved" onclick="saveInternship(${internship.id})"><i class="bi bi-x-circle-fill"></i></button>
+              <button class="view-btn px-3 py-1 rounded-full bg-teal-500 text-white text-sm font-semibold shadow hover:bg-teal-600 transition ml-2" onclick="closeSavedAndShowDetails(${internship.id})"><i class="bi bi-eye"></i> View</button>
+            </div>
+          `).join('');
+        }
+        window.renderSavedModal = renderSavedModal;
+        // --- Event Listeners ---
+        document.addEventListener('DOMContentLoaded', function() {
+          const openBtn = document.getElementById('openSavedModalBtn');
+          const closeBtn = document.getElementById('closeSavedModalBtn');
+          const modal = document.getElementById('savedModal');
+          if (openBtn && modal) {
+            openBtn.onclick = function() { renderSavedModal(); modal.classList.remove('hidden'); };
+          }
+          if (closeBtn && modal) {
+            closeBtn.onclick = function() { modal.classList.add('hidden'); };
+          }
+          if (modal) {
+            modal.addEventListener('click', function(e) {
+              if (e.target === modal) modal.classList.add('hidden');
+            });
+          }
+          updateSavedCountBadge();
+        });
+        // Initial render
+        renderAllInternshipSections();
+      </script>
+      <!-- Global Share Popover -->
+      <div id="global-share-popover"></div>
+      <style>
+        #global-share-popover {
+          display: none;
+          position: absolute;
+          z-index: 99999;
+          min-width: 160px;
+          padding: 18px 18px 10px 18px;
+          background: linear-gradient(120deg, #f8fafc 60%, #e0f7f7 100%);
+          backdrop-filter: blur(8px);
+          box-shadow: 0 8px 32px 0 #14b8a655, 0 2px 24px 0 #0002;
+          border-radius: 16px;
+          border: 1.5px solid #e0f7f7;
+          gap: 18px;
+          transition: opacity 0.22s cubic-bezier(.4,0,.2,1), transform 0.22s cubic-bezier(.4,0,.2,1);
+          opacity: 0;
+          pointer-events: none;
+          transform: translateY(0) scale(0.98);
+        }
+        #global-share-popover.active {
+          display: flex !important;
+          opacity: 1;
+          pointer-events: auto;
+          transform: translateY(-12px) scale(1);
+        }
+        #global-share-popover .popover-arrow {
+          position: absolute;
+          bottom: -12px;
+          left: calc(50% - 12px);
+          width: 24px;
+          height: 12px;
+          overflow: visible;
+        }
+        #global-share-popover .popover-arrow svg {
+          display: block;
+        }
+        #global-share-popover .share-actions {
+          display: flex;
+          gap: 18px;
+          justify-content: center;
+        }
+        #global-share-popover .share-btn {
+          width: 48px;
+          height: 48px;
+          border-radius: 50%;
+          background: #f0fdfa;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.6em;
+          color: #14b8a6;
+          border: none;
+          box-shadow: 0 2px 8px #14b8a61a;
+          transition: background 0.18s, color 0.18s, transform 0.18s;
+          position: relative;
+        }
+        #global-share-popover .share-btn:hover {
+          background: #22c55e;
+          color: #fff;
+          transform: scale(1.08);
+        }
+        #global-share-popover .share-label {
+          display: block;
+          text-align: center;
+          font-size: 0.93em;
+          color: #0f766e;
+          margin-top: 4px;
+          font-weight: 500;
+          letter-spacing: 0.01em;
+        }
+      </style>
+      <script>
+        // Hide popover on outside click
+        document.addEventListener('click', function(e) {
+          const popover = document.getElementById('global-share-popover');
+          if (popover) {
+            popover.classList.remove('active');
+          }
+        });
+      </script>
+    </main>
+  </div>
+
+  <script>
+    // Mobile sidebar toggle
+    const sidebar = document.getElementById('sidebar');
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    let sidebarOpen = false;
+    mobileMenuBtn.addEventListener('click', function() {
+      sidebarOpen = !sidebarOpen;
+      if (sidebarOpen) {
+        sidebar.classList.remove('hidden');
+        sidebar.classList.add('flex', 'fixed', 'top-0', 'left-0', 'h-full', 'w-[230px]', 'z-50');
+        document.body.classList.add('overflow-hidden');
+      } else {
+        sidebar.classList.add('hidden');
+        sidebar.classList.remove('flex', 'fixed', 'top-0', 'left-0', 'h-full', 'w-[230px]', 'z-50');
+        document.body.classList.remove('overflow-hidden');
+      }
+    });
+    // Close sidebar on outside click (mobile)
+    document.addEventListener('click', function(e) {
+      if (sidebarOpen && !sidebar.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
+        sidebar.classList.add('hidden');
+        sidebar.classList.remove('flex', 'fixed', 'top-0', 'left-0', 'h-full', 'w-[230px]', 'z-50');
+        document.body.classList.remove('overflow-hidden');
+        sidebarOpen = false;
+      }
+    });
+    // Unified profile picture loading function
+    function loadProfilePicture() {
+      const profilePic = document.getElementById('profilePic');
+      if (!profilePic) return;
+
+      // Priority 1: Check localStorage first (fastest, most recent)
+      const savedPhoto = localStorage.getItem('profilePhoto');
+      if (savedPhoto) {
+        profilePic.src = savedPhoto;
+        return;
+      }
+
+      // Priority 2: Fetch from API
+      const accessToken = localStorage.getItem('access_token');
+      if (!accessToken) return;
+
+      fetch('http://127.0.0.1:8000/api/users/student/profile/', {
+        headers: { 'Authorization': 'Bearer ' + accessToken }
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.profile_picture) {
+            profilePic.src = data.profile_picture;
+            localStorage.setItem('profilePhoto', data.profile_picture);
+          } else {
+            profilePic.src = '../../assets/img/default.jpg';
+          }
+        })
+        .catch(() => { 
+          profilePic.src = '../../assets/img/default.jpg'; 
+        });
+    }
+
+    // Shared function to update header profile picture
+    function updateHeaderProfilePicture(imageSrc) {
+      const profilePic = document.getElementById('profilePic');
+      if (profilePic) {
+        profilePic.src = imageSrc;
+      }
+    }
+
+    // Global function for other pages to use
+    window.updateHeaderProfilePicture = updateHeaderProfilePicture;
+
+    // Load profile picture
+    loadProfilePicture();
+
+    // --- DARK MODE TOGGLE LOGIC ---
+    const darkModeToggle = document.getElementById('darkModeToggle');
+    const darkModeIcon = document.getElementById('darkModeIcon');
+    function setDarkMode(enabled) {
+      if (enabled) {
+        document.body.classList.add('dark-mode');
+        if (darkModeIcon) {
+          darkModeIcon.classList.remove('bi-moon');
+          darkModeIcon.classList.add('bi-sun');
+        }
+      } else {
+        document.body.classList.remove('dark-mode');
+        if (darkModeIcon) {
+          darkModeIcon.classList.remove('bi-sun');
+          darkModeIcon.classList.add('bi-moon');
+        }
+      }
+    }
+    // Load preference on page load
+    const darkPref = localStorage.getItem('darkMode');
+    setDarkMode(darkPref === 'true');
+    if (darkModeToggle) {
+      darkModeToggle.addEventListener('click', function() {
+        const isDark = !document.body.classList.contains('dark-mode');
+        setDarkMode(isDark);
+        localStorage.setItem('darkMode', isDark);
+      });
+    }
+
+    // --- Logout Button Functionality ---
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        localStorage.removeItem('access_token');
+        window.location.href = '../../login.html';
+      });
+    }
+  </script>
+  
+  <!-- SweetAlert2 JS -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
+</body>
