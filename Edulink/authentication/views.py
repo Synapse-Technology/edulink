@@ -171,8 +171,8 @@ class InviteRegisterTemplateView(View):
                     "company_name": request.POST.get("company_name"),
                     "industry": request.POST.get("industry"),
                     "company_size": request.POST.get("company_size"),
-                    "location": request.POST.get("location"),
-                    "website": request.POST.get("website"),
+                    "location": request.POST.get("company_address"),
+                    "website": request.POST.get("company_website"),
                     "department": request.POST.get("department"),
                     "position": request.POST.get("position"),
                 }

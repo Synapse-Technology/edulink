@@ -1,0 +1,169 @@
+version: '3.8'
+
+services:
+  # PostgreSQL databases
+  internship_db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: internship_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - internship_db_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  application_db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: application_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - application_db_data:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis for caching and message queue
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # RabbitMQ for message queue
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Internship Service
+  internship_service:
+    build:
+      context: ./internship_service
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      - DJANGO_SETTINGS_MODULE=internship_service.settings
+      - DATABASE_URL=postgresql://postgres:postgres@internship_db:5432/internship_db
+      - REDIS_URL=redis://redis:6379/0
+      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672/
+      - DEBUG=True
+      - SECRET_KEY=your-secret-key-here
+    depends_on:
+      internship_db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - ./internship_service:/app
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             gunicorn --bind 0.0.0.0:8001 --workers 3 --reload internship_service.wsgi:application"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Application Service
+  application_service:
+    build:
+      context: ./application_service
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8002"
+    environment:
+      - DJANGO_SETTINGS_MODULE=application_service.settings
+      - DATABASE_URL=postgresql://postgres:postgres@application_db:5432/application_db
+      - REDIS_URL=redis://redis:6379/1
+      - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672/
+      - INTERNSHIP_SERVICE_URL=http://internship_service:8001
+      - DEBUG=True
+      - SECRET_KEY=your-secret-key-here
+    depends_on:
+      application_db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      internship_service:
+        condition: service_healthy
+    volumes:
+      - ./application_service:/app
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             gunicorn --bind 0.0.0.0:8002 --workers 3 --reload application_service.wsgi:application"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # API Gateway
+  api_gateway:
+    build:
+      context: ./api_gateway
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - INTERNSHIP_SERVICE_URL=http://internship_service:8001
+      - APPLICATION_SERVICE_URL=http://application_service:8002
+      - DEBUG=True
+    depends_on:
+      internship_service:
+        condition: service_healthy
+      application_service:
+        condition: service_healthy
+    volumes:
+      - ./api_gateway:/app
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  internship_db_data:
+  application_db_data:
+  redis_data:
+  rabbitmq_data:
+
+networks:
+  default:
+    name: edulink_microservices

@@ -2,7 +2,10 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view, permission_classes
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, render
+from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
+from django.db.models import Q
 from .models import Notification
 from .serializers import NotificationSerializer
 # You might need to import tasks if you're using Celery for async sending
@@ -34,6 +37,49 @@ def mark_notification_as_read(request, pk):
     notification.save()
     serializer = NotificationSerializer(notification)
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def mark_all_notifications_as_read(request):
+    """
+    API endpoint to mark all notifications as read for the authenticated user.
+    """
+    notifications = Notification.objects.filter(user=request.user, is_read=False)
+    updated_count = notifications.update(is_read=True)
+    return Response(
+        {'message': f'{updated_count} notifications marked as read'}, 
+        status=status.HTTP_200_OK
+    )
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_notification(request, pk):
+    """
+    API endpoint to delete a specific notification.
+    """
+    notification = get_object_or_404(Notification, pk=pk, user=request.user)
+    notification.delete()
+    return Response(
+        {'message': 'Notification deleted successfully'}, 
+        status=status.HTTP_200_OK
+    )
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_all_notifications(request):
+    """
+    API endpoint to delete all notifications for the authenticated user.
+    """
+    notifications = Notification.objects.filter(user=request.user)
+    deleted_count = notifications.count()
+    notifications.delete()
+    return Response(
+        {'message': f'{deleted_count} notifications deleted successfully'}, 
+        status=status.HTTP_200_OK
+    )
 
 
 @api_view(['POST'])

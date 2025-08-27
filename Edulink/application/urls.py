@@ -10,6 +10,7 @@ from .views import (
     ApplicationWithdrawView,
     ApplicationStatisticsView,
     InstitutionApplicationListView,
+    RecentApplicationsView,
 )
 
 urlpatterns = [
@@ -54,5 +55,10 @@ urlpatterns = [
         "applications/institution/",
         InstitutionApplicationListView.as_view(),
         name="institution-applications",
+    ),
+    path(
+        "applications/recent/",
+        RecentApplicationsView.as_view(),
+        name="recent-applications",
     ),
 ]

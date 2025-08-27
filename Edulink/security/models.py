@@ -379,6 +379,7 @@ class FailedLoginAttempt(models.Model):
         ],
         default='invalid_credentials'
     )
+    metadata = models.JSONField(default=dict, blank=True)
     
     class Meta:
         ordering = ['-timestamp']

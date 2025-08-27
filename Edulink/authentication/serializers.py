@@ -855,7 +855,7 @@ class EmployerRegistrationSerializer(BaseProfileSerializer):
 
         # Create UserRole
         UserRole.objects.create(  # type: ignore[attr-defined]
-            user=user, role="employer"
+            user=user, role="employer", employer=employer_profile
         )
 
         # Log user registration security event

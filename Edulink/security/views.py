@@ -477,3 +477,17 @@ class MyLoginHistoryView(generics.ListAPIView):
 
     def get_queryset(self):
         return LoginHistory.objects.filter(user=self.request.user)
+
+
+class RecentUserActivitiesView(generics.ListAPIView):
+    """Get recent activities for the current user."""
+    
+    queryset = AuditLog.objects.all()
+    serializer_class = AuditLogSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        """Return the last 3 activities for the current user."""
+        return AuditLog.objects.filter(
+            user=self.request.user
+        ).order_by('-timestamp')[:3]

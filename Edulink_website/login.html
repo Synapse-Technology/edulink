@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Edulink KE - Login</title>
+  <script src="js/config.js"></script>
   
   <style>
     * {
@@ -306,12 +307,8 @@
       const password = this.password.value;
       
       try {
-        const response = await fetch('http://127.0.0.1:8000/api/auth/login/', {
+        const response = await ApiHelper.request(API_CONFIG.ENDPOINTS.AUTH.LOGIN, {
           method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
           body: JSON.stringify({ email, password })
         });
         
@@ -344,9 +341,9 @@
             if (data.user.role === 'student') {
               window.location.href = 'dashboards/student/student_dash.html';
             } else if (data.user.role === 'employer') {
-              window.location.href = 'dashboards/employer_dash.html';
+              window.location.href = 'dashboards/admin/employer/dashboard.html';
             } else if (data.user.role === 'institution_admin') {
-              window.location.href = 'dashboards/institution_dash.html';
+              window.location.href = 'dashboards/admin/institutions/dashboard.html';
             } else {
               // Default fallback
               window.location.href = 'index.html';
@@ -381,9 +378,8 @@
       forgotMessage1.style.color = '#e0e0e0';
       const email = this.email.value.trim();
       try {
-        const res = await fetch('http://127.0.0.1:8000/api/auth/password-reset/', {
+        const res = await ApiHelper.request(API_CONFIG.ENDPOINTS.AUTH.PASSWORD_RESET, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email })
         });
         const data = await res.json();

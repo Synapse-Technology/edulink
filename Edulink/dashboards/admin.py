@@ -1,7 +1,8 @@
 from django.contrib import admin
 from .models import (
     InternshipProgress, Achievement, StudentAchievement, 
-    AnalyticsEvent, CalendarEvent, DashboardInsight
+    AnalyticsEvent, CalendarEvent, DashboardInsight,
+    WorkflowTemplate, Workflow, WorkflowExecution, WorkflowAnalytics
 )
 
 
@@ -141,4 +142,97 @@ class DashboardInsightAdmin(admin.ModelAdmin):
     def is_expired(self, obj):
         return obj.is_expired
     is_expired.boolean = True
-    is_expired.short_description = 'Expired'
+
+
+@admin.register(WorkflowTemplate)
+class WorkflowTemplateAdmin(admin.ModelAdmin):
+    list_display = [
+        'name', 'category', 'is_active', 'is_public', 
+        'popularity_score', 'created_at'
+    ]
+    list_filter = ['category', 'is_active', 'is_public', 'created_at']
+    search_fields = ['name', 'description']
+    readonly_fields = ['popularity_score', 'created_at', 'updated_at']
+    
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('name', 'description', 'category')
+        }),
+        ('Settings', {
+            'fields': ('is_active', 'is_public', 'default_settings')
+        }),
+        ('Statistics', {
+            'fields': ('popularity_score',),
+            'classes': ('collapse',)
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        })
+    )
+
+
+@admin.register(Workflow)
+class WorkflowAdmin(admin.ModelAdmin):
+    list_display = [
+        'name', 'employer', 'workflow_type', 'is_active', 
+        'trigger_event', 'created_at'
+    ]
+    list_filter = ['workflow_type', 'is_active', 'trigger_event', 'created_at']
+    search_fields = ['name', 'description', 'employer__company_name']
+    readonly_fields = ['created_at', 'updated_at']
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('name', 'description', 'employer', 'template')
+        }),
+        ('Configuration', {
+            'fields': ('workflow_type', 'trigger_event', 'action_type', 'is_active')
+        }),
+        ('Settings', {
+            'fields': ('trigger_conditions', 'action_settings', 'schedule_settings')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        })
+    )
+
+
+@admin.register(WorkflowExecution)
+class WorkflowExecutionAdmin(admin.ModelAdmin):
+    list_display = [
+        'workflow_name', 'status', 'triggered_by', 
+        'created_at', 'duration_display'
+    ]
+    list_filter = ['status', 'workflow__workflow_type', 'created_at']
+    search_fields = ['workflow__name', 'triggered_by']
+    readonly_fields = ['created_at', 'duration']
+    
+    def workflow_name(self, obj):
+        return obj.workflow.name
+    workflow_name.short_description = 'Workflow'
+    
+    def duration_display(self, obj):
+        if obj.duration:
+            return f"{obj.duration.total_seconds():.2f}s"
+        return 'N/A'
+    duration_display.short_description = 'Duration'
+
+
+@admin.register(WorkflowAnalytics)
+class WorkflowAnalyticsAdmin(admin.ModelAdmin):
+    list_display = [
+        'workflow_name', 'date', 'total_executions', 'success_rate_display', 
+        'average_duration', 'tasks_automated'
+    ]
+    list_filter = ['date', 'workflow__workflow_type', 'period_type']
+    search_fields = ['workflow__name', 'workflow__employer__company_name']
+    readonly_fields = ['date']
+    
+    def workflow_name(self, obj):
+        return obj.workflow.name if obj.workflow else 'All Workflows'
+    workflow_name.short_description = 'Workflow'
+    
+    def success_rate_display(self, obj):
+        return f"{obj.success_rate:.1f}%"
+    success_rate_display.short_description = 'Success Rate'

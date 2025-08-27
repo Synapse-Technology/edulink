@@ -35,9 +35,6 @@ DEBUG = True
 # Add type annotation for ALLOWED_HOSTS
 ALLOWED_HOSTS: list[str] = ['localhost', '127.0.0.1', '0.0.0.0']
 
-CORS_ALLOW_ALL_ORIGINS = True
-
-
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 # For dev only, restrict in production!
 
@@ -56,6 +53,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django.contrib.sites",
     "rest_framework",
+    "rest_framework_simplejwt.token_blacklist",  # Required for JWT token blacklisting
     "corsheaders",
     "authentication",
     "employers",
@@ -98,6 +96,8 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "security.middleware.SessionSecurityMiddleware",  # Session security middleware
+    "dashboards.middleware.PageViewTrackingMiddleware",  # Page view tracking
+    "dashboards.middleware.ApplicationCountTrackingMiddleware",  # Application tracking
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -106,6 +106,21 @@ MIDDLEWARE = [
 CORS_ALLOW_ALL_ORIGINS = True
 # dev
 CORS_ALLOW_CREDENTIALS = True
+
+# Allow additional headers for security and caching
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+    'cache-control',
+    'pragma',
+]
 
 ROOT_URLCONF = "Edulink.urls"
 

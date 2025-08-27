@@ -1,0 +1,1 @@
+# Internships Django app for the Internship Service

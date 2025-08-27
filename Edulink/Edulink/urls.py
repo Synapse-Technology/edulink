@@ -33,7 +33,7 @@ urlpatterns = [
     path("", include("chatbot.urls")),
     path("api/internships/", include("internship.urls")),
     path("api/internship-progress/", include('internship_progress.urls')),
-    path("notifications/", include("notifications.urls")),
+    path("api/notifications/", include("notifications.urls")),
     path("api/dashboards/", include("dashboards.urls")),
     path("api/application/", include("application.urls")),
 ]

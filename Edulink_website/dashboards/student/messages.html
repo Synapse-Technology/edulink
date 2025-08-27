@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>EduLink KE - Messages</title>
+  <script src="../../js/config.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   <link href="../../assets/css/main.css" rel="stylesheet">
@@ -237,9 +238,7 @@
         const accessToken = localStorage.getItem('access_token');
         if (!accessToken) return;
 
-        fetch('http://127.0.0.1:8000/api/users/student/profile/', {
-          headers: { 'Authorization': 'Bearer ' + accessToken }
-        })
+        ApiHelper.request(API_CONFIG.ENDPOINTS.USERS.STUDENT_PROFILE)
           .then(res => res.json())
           .then(data => {
             if (data.profile_picture) {

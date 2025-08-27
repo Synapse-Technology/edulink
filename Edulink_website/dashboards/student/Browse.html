@@ -13,6 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
   <link href="https://unpkg.com/phosphor-icons@2.0.3/src/css/phosphor.css" rel="stylesheet">
+  <script src="../../js/config.js"></script>
   <style>
     /* --- Enhanced UI for Browse Internship Page --- */
     body {
@@ -450,7 +451,7 @@
         let internships = [];
         let internshipsToShow = 6;
         let internshipsNextPage = null;
-        const API_URL = "http://127.0.0.1:8000/api/internships/";
+        const API_URL = ApiHelper.getUrl(API_CONFIG.ENDPOINTS.INTERNSHIPS.LIST);
 
         // Helper to map backend data to frontend card fields
         function mapInternshipAPI(data) {
@@ -483,7 +484,9 @@
           const spinner = document.getElementById('spinnerContainer');
           if (spinner) spinner.style.display = 'flex';
           try {
-            const res = await fetch(url);
+            const res = await fetch(url, {
+              headers: ApiHelper.getAuthHeaders()
+            });
             const data = await res.json();
             // DRF pagination: results, next
             const items = data.results || data;
@@ -580,11 +583,8 @@
           }
           
           try {
-            const response = await fetch('http://127.0.0.1:8000/api/application/my-applications/', {
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-              },
+            const response = await ApiHelper.request(API_CONFIG.ENDPOINTS.APPLICATIONS.MY_APPLICATIONS, {
+              method: 'GET'
             });
             
             if (response.ok) {
@@ -624,17 +624,13 @@
             }
             
             // Make API call to submit application
-            const response = await fetch('http://127.0.0.1:8000/api/application/apply/', {
+            const response = await ApiHelper.request(API_CONFIG.ENDPOINTS.APPLICATIONS.APPLY, {
               method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-              },
               body: JSON.stringify({
                 internship_id: id,
                 cover_letter: '', // Could be added in a future enhancement
                 resume_id: null, // Could be selected from user's saved resumes
-              }),
+              })
             });
             
             if (!response.ok) {
@@ -1403,8 +1399,8 @@
       const accessToken = localStorage.getItem('access_token');
       if (!accessToken) return;
 
-      fetch('http://127.0.0.1:8000/api/users/student/profile/', {
-        headers: { 'Authorization': 'Bearer ' + accessToken }
+      ApiHelper.request(API_CONFIG.ENDPOINTS.USERS.STUDENT_PROFILE, {
+        method: 'GET'
       })
         .then(res => res.json())
         .then(data => {
