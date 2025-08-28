@@ -16,12 +16,8 @@
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <!-- Dashboard Backend Integration -->
   <!-- Dashboard Backend Integration - Modular Approach -->
-  <script src="js/modules/api-utils.js"></script>
-  <script src="js/modules/dom-utils.js"></script>
-  <script src="js/modules/chart-utils.js"></script>
-  <script src="js/modules/dashboard-manager.js"></script>
-  <script src="js/modules/lazy-loader.js"></script>
-  <script src="js/dashboard-backend.js"></script>
+  <script src="js/api-utils.js"></script>
+  <script src="js/opportunities-backend.js"></script>
   <!-- Security Module -->
   <script src="js/employer-auth-security.js"></script>
   <style>
@@ -315,10 +311,16 @@
             <h2 class="text-2xl font-bold text-gray-900 mb-2">Internship Opportunities</h2>
             <p class="text-gray-600">Manage your posted internship opportunities and create new ones</p>
           </div>
-          <button onclick="openPostInternshipModal()" class="btn-primary flex items-center space-x-2">
-            <i class="fas fa-plus"></i>
-            <span>Post New Opportunity</span>
-          </button>
+          <div class="flex items-center space-x-3">
+            <button onclick="exportOpportunities()" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors flex items-center space-x-2">
+              <i class="fas fa-download"></i>
+              <span>Export Data</span>
+            </button>
+            <button onclick="openPostInternshipModal()" class="btn-primary flex items-center space-x-2">
+              <i class="fas fa-plus"></i>
+              <span>Post New Opportunity</span>
+            </button>
+          </div>
         </div>
 
         <!-- Opportunities List -->
@@ -573,6 +575,21 @@
     // Initialize security module
     const security = new EmployerAuthSecurity();
     
+    // Initialize opportunities backend
+    let opportunitiesBackend;
+    
+    // Initialize backend on page load
+    async function initializeBackend() {
+      try {
+        opportunitiesBackend = new OpportunitiesBackend();
+        await opportunitiesBackend.initialize();
+        console.log('Opportunities backend initialized successfully');
+      } catch (error) {
+        console.warn('Failed to initialize opportunities backend:', error);
+        opportunitiesBackend = null;
+      }
+    }
+    
     // New functionality for enhanced features
     function openLogoSettings() {
       alert('This would open company logo management settings. In a real implementation, this would navigate to a settings page where employers can upload and manage their company logo.');
@@ -638,7 +655,7 @@
     }
     
     // Form submission
-    document.getElementById('internshipForm').addEventListener('submit', function(e) {
+    document.getElementById('internshipForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       
       // Check rate limiting for form submissions
@@ -758,64 +775,158 @@
           coverLetter: requireCoverLetter,
           customQuestions: customQuestions
         },
-        opportunityImage: opportunityImageData,
+        opportunityImage: opportunityImageFile, // Pass the actual file for backend
         companyLogo: 'from_settings' // Reference to company settings
       };
       
-      if (idx !== '') {
-        internships[idx] = data;
-      } else {
-        internships.push(data);
+      try {
+        if (opportunitiesBackend) {
+          if (idx !== '') {
+            // Update existing opportunity
+            await opportunitiesBackend.updateOpportunity(internships[idx].id, data);
+          } else {
+            // Create new opportunity
+            await opportunitiesBackend.createOpportunity(data);
+          }
+          
+          // Show success message and close modal
+          alert('Internship posted successfully!');
+          closePostInternshipModal();
+          
+          // Reload opportunities list
+          await loadOpportunities();
+        } else {
+          // Fallback to local storage
+          const opportunityImageData = opportunityImageFile ? {
+            name: opportunityImageFile.name,
+            size: opportunityImageFile.size,
+            type: opportunityImageFile.type,
+            lastModified: opportunityImageFile.lastModified
+          } : null;
+          
+          const localData = {
+            ...data,
+            opportunityImage: opportunityImageData,
+            id: idx !== '' ? internships[idx].id : Date.now()
+          };
+          
+          if (idx !== '') {
+            internships[idx] = localData;
+          } else {
+            internships.push(localData);
+          }
+          
+          localStorage.setItem('internships', JSON.stringify(internships));
+          
+          // Show success message and close modal
+          alert('Internship posted successfully!');
+          closePostInternshipModal();
+          
+          // Reload opportunities list
+          loadOpportunities();
+        }
+      } catch (error) {
+        console.error('Failed to save opportunity:', error);
+        alert('Failed to save opportunity. Please try again.');
       }
-      
-      localStorage.setItem('internships', JSON.stringify(internships));
-      
-      // Show success message and close modal
-      alert('Internship posted successfully!');
-      closePostInternshipModal();
-      
-      // Reload opportunities list
-      loadOpportunities();
     });
 
-    // Load opportunities from localStorage
-    function loadOpportunities() {
-      const internships = JSON.parse(localStorage.getItem('internships') || '[]');
-      const applications = JSON.parse(localStorage.getItem('applications') || '{}');
+    // Load opportunities from backend or localStorage
+    async function loadOpportunities() {
       const opportunitiesList = document.getElementById('opportunitiesList');
+      let internships = [];
+      let applications = {};
+      
+      try {
+        if (opportunitiesBackend) {
+          // Load from backend
+          const response = await opportunitiesBackend.loadOpportunities();
+          internships = response.results || [];
+          
+          // Load applications count for each opportunity
+          for (let opp of internships) {
+            try {
+              const appResponse = await opportunitiesBackend.getOpportunityApplications(opp.id);
+              applications[opp.id] = appResponse.results || [];
+            } catch (error) {
+              console.warn(`Failed to load applications for opportunity ${opp.id}:`, error);
+              applications[opp.id] = [];
+            }
+          }
+        } else {
+          // Fallback to localStorage
+          internships = JSON.parse(localStorage.getItem('internships') || '[]');
+          applications = JSON.parse(localStorage.getItem('applications') || '{}');
+        }
+      } catch (error) {
+        console.error('Failed to load opportunities:', error);
+        // Fallback to localStorage
+        internships = JSON.parse(localStorage.getItem('internships') || '[]');
+        applications = JSON.parse(localStorage.getItem('applications') || '{}');
+      }
       
       if (!internships.length) {
         opportunitiesList.innerHTML = '<div class="text-center text-gray-500 py-8">No opportunities posted yet. Click "Post New Opportunity" to get started.</div>';
         return;
       }
       
-      opportunitiesList.innerHTML = internships.map((opp, idx) => `
-        <div class="bg-gray-50 rounded-lg p-6 border border-gray-200">
-          <div class="flex items-center justify-between">
-            <div class="flex-1">
-              <h3 class="text-lg font-semibold text-gray-900">${opp.title}</h3>
-              <div class="flex items-center space-x-4 mt-2 text-sm text-gray-600">
-                <span><i class="fas fa-building mr-1"></i>${opp.department}</span>
-                <span><i class="fas fa-clock mr-1"></i>${opp.duration} months</span>
-                <span><i class="fas fa-dollar-sign mr-1"></i>$${opp.stipend}</span>
-                <span><i class="fas fa-users mr-1"></i>${(applications[opp.title] || []).length} applications</span>
-                <span><i class="fas fa-calendar mr-1"></i>Deadline: ${opp.deadline}</span>
+      opportunitiesList.innerHTML = internships.map((opp, idx) => {
+        const applicationCount = opportunitiesBackend ? 
+          (applications[opp.id] || []).length : 
+          (applications[opp.title] || []).length;
+        
+        return `
+          <div class="bg-gray-50 rounded-lg p-6 border border-gray-200">
+            <div class="flex items-center justify-between">
+              <div class="flex-1">
+                <h3 class="text-lg font-semibold text-gray-900">${opp.title}</h3>
+                <div class="flex items-center space-x-4 mt-2 text-sm text-gray-600">
+                  <span><i class="fas fa-building mr-1"></i>${opp.department}</span>
+                  <span><i class="fas fa-clock mr-1"></i>${opp.duration} months</span>
+                  <span><i class="fas fa-dollar-sign mr-1"></i>$${opp.stipend}</span>
+                  <span><i class="fas fa-users mr-1"></i>${applicationCount} applications</span>
+                  <span><i class="fas fa-calendar mr-1"></i>Deadline: ${opp.application_deadline || opp.deadline}</span>
+                </div>
+              </div>
+              <div class="flex items-center space-x-3">
+                <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">${opp.status}</span>
+                <button onclick="editInternship(${opportunitiesBackend ? opp.id : idx})" class="text-blue-600 hover:text-blue-800 font-medium">Edit</button>
+                <button onclick="deleteInternship(${opportunitiesBackend ? opp.id : idx})" class="text-red-600 hover:text-red-800 font-medium">Delete</button>
               </div>
             </div>
-            <div class="flex items-center space-x-3">
-              <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">${opp.status}</span>
-              <button onclick="editInternship(${idx})" class="text-blue-600 hover:text-blue-800 font-medium">Edit</button>
-              <button onclick="deleteInternship(${idx})" class="text-red-600 hover:text-red-800 font-medium">Delete</button>
-            </div>
           </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
     }
 
     // Edit internship function
-    function editInternship(idx) {
-      let internships = JSON.parse(localStorage.getItem('internships') || '[]');
-      const intern = internships[idx];
+    async function editInternship(idOrIdx) {
+      let internships = [];
+      let intern = null;
+      
+      try {
+        if (opportunitiesBackend) {
+          // Load from backend
+          const response = await opportunitiesBackend.loadOpportunities();
+          internships = response.results || [];
+          intern = internships.find(opp => opp.id === idOrIdx);
+        } else {
+          // Fallback to localStorage
+          internships = JSON.parse(localStorage.getItem('internships') || '[]');
+          intern = internships[idOrIdx];
+        }
+      } catch (error) {
+        console.error('Failed to load opportunity for editing:', error);
+        // Fallback to localStorage
+        internships = JSON.parse(localStorage.getItem('internships') || '[]');
+        intern = internships[idOrIdx];
+      }
+      
+      if (!intern) {
+        alert('Opportunity not found');
+        return;
+      }
+      
       const form = document.getElementById('internshipForm');
       
       document.getElementById('postInternshipModal').classList.remove('hidden');
@@ -823,32 +934,78 @@
       populateAudienceDropdown();
       
       // Populate form with existing data
-      form.querySelector('input[name="internshipId"]').value = idx;
+      form.querySelector('input[name="internshipId"]').value = opportunitiesBackend ? intern.id : idOrIdx;
       document.getElementById('positionTitle').value = intern.title;
       document.getElementById('department').value = intern.department;
       document.getElementById('duration').value = intern.duration;
       document.getElementById('stipend').value = intern.stipend;
-      document.getElementById('applicationDeadline').value = intern.deadline;
+      document.getElementById('applicationDeadline').value = intern.application_deadline || intern.deadline;
       document.getElementById('description').value = intern.description;
       document.getElementById('requirements').value = intern.requirements;
-      document.getElementById('workType').value = intern.workType;
-      document.getElementById('positions').value = intern.positions;
+      document.getElementById('workType').value = intern.workType || intern.work_type;
+      document.getElementById('positions').value = intern.positions || 1;
+      
+      // Set start date if available
+      if (intern.start_date) {
+        document.getElementById('startDate').value = intern.start_date;
+      }
     }
 
     // Delete internship function
-    function deleteInternship(idx) {
-      let internships = JSON.parse(localStorage.getItem('internships') || '[]');
+    async function deleteInternship(idOrIdx) {
       if (confirm('Are you sure you want to delete this opportunity?')) {
-        internships.splice(idx, 1);
-        localStorage.setItem('internships', JSON.stringify(internships));
-        loadOpportunities();
+        try {
+          if (opportunitiesBackend) {
+            // Delete from backend
+            await opportunitiesBackend.deleteOpportunity(idOrIdx);
+            await loadOpportunities();
+          } else {
+            // Fallback to localStorage
+            let internships = JSON.parse(localStorage.getItem('internships') || '[]');
+            internships.splice(idOrIdx, 1);
+            localStorage.setItem('internships', JSON.stringify(internships));
+            loadOpportunities();
+          }
+        } catch (error) {
+          console.error('Failed to delete opportunity:', error);
+          alert('Failed to delete opportunity. Please try again.');
+        }
       }
     }
 
     // Initialize page
-    document.addEventListener('DOMContentLoaded', function() {
-      loadOpportunities();
+    document.addEventListener('DOMContentLoaded', async function() {
+      await initializeBackend();
+      await loadOpportunities();
     });
+    
+    // Add export functionality
+    async function exportOpportunities() {
+      try {
+        if (opportunitiesBackend) {
+          await opportunitiesBackend.exportOpportunities('csv');
+        } else {
+          // Fallback: create CSV from localStorage data
+          const internships = JSON.parse(localStorage.getItem('internships') || '[]');
+          const csvContent = 'data:text/csv;charset=utf-8,' + 
+            'Title,Department,Duration,Stipend,Deadline,Status\n' +
+            internships.map(opp => 
+              `"${opp.title}","${opp.department}","${opp.duration}","${opp.stipend}","${opp.deadline || opp.application_deadline}","${opp.status}"`
+            ).join('\n');
+          
+          const encodedUri = encodeURI(csvContent);
+          const link = document.createElement('a');
+          link.setAttribute('href', encodedUri);
+          link.setAttribute('download', `opportunities_${new Date().toISOString().split('T')[0]}.csv`);
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+      } catch (error) {
+        console.error('Failed to export opportunities:', error);
+        alert('Failed to export opportunities. Please try again.');
+      }
+    }
   </script>
 </body>
 </html>

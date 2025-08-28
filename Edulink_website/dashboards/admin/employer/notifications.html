@@ -8,13 +8,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <!-- Dashboard Backend Integration - Modular Approach -->
-  <script src="js/modules/api-utils.js"></script>
-  <script src="js/modules/dom-utils.js"></script>
-  <script src="js/modules/chart-utils.js"></script>
-  <script src="js/modules/dashboard-manager.js"></script>
-  <script src="js/modules/lazy-loader.js"></script>
-  <script src="js/dashboard-backend.js"></script>
+  <!-- Backend Integration Scripts -->
+  <script src="js/api-utils.js"></script>
+  <script src="js/notifications-backend.js"></script>
   <style>
     :root {
       --primary: #2563eb;
@@ -214,6 +210,9 @@
         </div>
       </div>
       <div class="flex items-center space-x-4">
+        <button onclick="showNotificationSettings()" class="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors" title="Notification Settings">
+          <i class="fas fa-cog text-gray-600"></i>
+        </button>
         <button onclick="toggleTheme()" class="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors">
           <i class="fas fa-moon text-gray-600"></i>
         </button>
@@ -362,7 +361,48 @@
     </section>
   </main>
 
+  <!-- Notification Settings Modal -->
+  <div id="notification-settings-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+      <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div class="flex items-center justify-between p-6 border-b border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-900">Notification Settings</h3>
+          <button onclick="closeNotificationSettings()" class="text-gray-400 hover:text-gray-600">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="p-6">
+          <div class="space-y-4">
+            <div class="flex items-center justify-between">
+              <label for="email-notifications" class="text-sm font-medium text-gray-700">Email Notifications</label>
+              <input type="checkbox" id="email-notifications" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+            </div>
+            <div class="flex items-center justify-between">
+              <label for="push-notifications" class="text-sm font-medium text-gray-700">Push Notifications</label>
+              <input type="checkbox" id="push-notifications" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+            </div>
+            <div class="flex items-center justify-between">
+              <label for="sms-notifications" class="text-sm font-medium text-gray-700">SMS Notifications</label>
+              <input type="checkbox" id="sms-notifications" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center justify-end space-x-3 p-6 border-t border-gray-200">
+          <button onclick="closeNotificationSettings()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
+            Cancel
+          </button>
+          <button onclick="saveNotificationSettings()" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+            Save Settings
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
+    // Backend instance
+    let notificationsBackend = null;
+    
     // Notification Management System
     class NotificationManager {
       constructor() {
@@ -378,22 +418,14 @@
 
       async init() {
         try {
-          // Initialize dashboard API if available using singleton pattern
-          if (typeof EmployerDashboardAPI !== 'undefined') {
-            this.dashboardAPI = EmployerDashboardAPI.getInstance();
-            
-            // Only load notifications if dashboard is initialized
-            if (this.dashboardAPI.isInitialized) {
-              await this.loadNotifications();
-            } else {
-              console.log('Dashboard not yet initialized, using mock notifications');
-              this.loadMockNotifications();
-            }
-          } else {
-            // Fallback to mock data for demonstration
-            this.loadMockNotifications();
+          // Initialize notifications backend
+          if (typeof NotificationsBackend !== 'undefined') {
+            notificationsBackend = new NotificationsBackend();
+            await notificationsBackend.initialize();
           }
-          this.updateMessageHubStats();
+          
+          await this.loadNotifications();
+          await this.loadNotificationStatistics();
           this.renderNotifications();
         } catch (error) {
           console.error('Failed to initialize notification manager:', error);
@@ -404,11 +436,80 @@
 
       async loadNotifications() {
         try {
-          this.notifications = await this.dashboardAPI.loadNotifications();
+          if (notificationsBackend) {
+            const response = await notificationsBackend.loadNotifications(this.currentPage, this.itemsPerPage);
+            this.notifications = response.results || response;
+          } else {
+            this.loadMockNotifications();
+          }
           this.applyFilters();
         } catch (error) {
           console.error('Failed to load notifications:', error);
           this.loadMockNotifications();
+        }
+      }
+
+      async loadNotificationStatistics() {
+        try {
+          if (notificationsBackend) {
+            const stats = await notificationsBackend.loadNotificationStatistics();
+            this.updateMessageHubStats(stats);
+          } else {
+            this.updateMessageHubStats();
+          }
+        } catch (error) {
+          console.error('Failed to load notification statistics:', error);
+          this.updateMessageHubStats();
+        }
+      }
+
+      async loadNotificationPreferences() {
+        try {
+          if (notificationsBackend) {
+            const preferences = await notificationsBackend.getNotificationPreferences();
+            this.updatePreferencesUI(preferences);
+          }
+        } catch (error) {
+          console.error('Failed to load notification preferences:', error);
+        }
+      }
+
+      updatePreferencesUI(preferences) {
+        if (preferences) {
+          // Update preference checkboxes based on backend data
+          const emailCheckbox = document.getElementById('email-notifications');
+          const pushCheckbox = document.getElementById('push-notifications');
+          const smsCheckbox = document.getElementById('sms-notifications');
+          
+          if (emailCheckbox) emailCheckbox.checked = preferences.email_notifications || false;
+          if (pushCheckbox) pushCheckbox.checked = preferences.push_notifications || false;
+          if (smsCheckbox) smsCheckbox.checked = preferences.sms_notifications || false;
+        }
+      }
+
+      async saveNotificationPreferences() {
+        try {
+          const emailCheckbox = document.getElementById('email-notifications');
+          const pushCheckbox = document.getElementById('push-notifications');
+          const smsCheckbox = document.getElementById('sms-notifications');
+          
+          const preferences = {
+            email_notifications: emailCheckbox ? emailCheckbox.checked : false,
+            push_notifications: pushCheckbox ? pushCheckbox.checked : false,
+            sms_notifications: smsCheckbox ? smsCheckbox.checked : false
+          };
+          
+          if (notificationsBackend) {
+            await notificationsBackend.updateNotificationPreferences(preferences);
+            alert('Notification preferences saved successfully!');
+          } else {
+            // Store locally as fallback
+            localStorage.setItem('notificationPreferences', JSON.stringify(preferences));
+            alert('Notification preferences saved locally!');
+          }
+        } catch (error) {
+          console.error('Failed to save notification preferences:', error);
+          alert('Failed to save notification preferences. Please try again.');
         }
       }
 
@@ -569,16 +670,25 @@
         pagination.innerHTML = paginationHTML;
       }
 
-      updateMessageHubStats() {
-        const totalMessages = this.notifications.length;
-        const unreadMessages = this.notifications.filter(n => !n.is_read).length;
-        const systemAlerts = this.notifications.filter(n => n.notification_type === 'system').length;
-        const announcements = this.notifications.filter(n => n.notification_type === 'message').length;
+      updateMessageHubStats(stats = null) {
+        if (stats) {
+          // Use backend statistics
+          document.getElementById('total-messages').textContent = stats.total_notifications || 0;
+          document.getElementById('unread-messages').textContent = stats.unread_notifications || 0;
+          document.getElementById('system-alerts').textContent = stats.system_alerts || 0;
+          document.getElementById('announcements').textContent = stats.announcements || 0;
+        } else {
+          // Fallback to local calculation
+          const totalMessages = this.notifications.length;
+          const unreadMessages = this.notifications.filter(n => !n.is_read).length;
+          const systemAlerts = this.notifications.filter(n => n.notification_type === 'system').length;
+          const announcements = this.notifications.filter(n => n.notification_type === 'message').length;
 
-        document.getElementById('total-messages').textContent = totalMessages;
-        document.getElementById('unread-messages').textContent = unreadMessages;
-        document.getElementById('system-alerts').textContent = systemAlerts;
-        document.getElementById('announcements').textContent = announcements;
+          document.getElementById('total-messages').textContent = totalMessages;
+          document.getElementById('unread-messages').textContent = unreadMessages;
+          document.getElementById('system-alerts').textContent = systemAlerts;
+          document.getElementById('announcements').textContent = announcements;
+        }
       }
 
       updateBulkActions() {
@@ -605,36 +715,40 @@
 
       async markAsRead(notificationId) {
         try {
-          if (this.dashboardAPI) {
-            await this.dashboardAPI.markNotificationAsRead(notificationId);
+          if (notificationsBackend) {
+            await notificationsBackend.markAsRead(notificationId);
           }
           
+          // Update local state
           const notification = this.notifications.find(n => n.id === notificationId);
           if (notification) {
             notification.is_read = true;
           }
           
-          this.updateMessageHubStats();
+          await this.loadNotificationStatistics();
           this.renderNotifications();
         } catch (error) {
           console.error('Failed to mark notification as read:', error);
+          alert('Failed to mark notification as read. Please try again.');
         }
       }
 
       async deleteNotification(notificationId) {
         try {
-          if (this.dashboardAPI) {
-            await this.dashboardAPI.deleteNotification(notificationId);
+          if (notificationsBackend) {
+            await notificationsBackend.deleteNotification(notificationId);
           }
           
+          // Update local state
           this.notifications = this.notifications.filter(n => n.id !== notificationId);
           this.selectedNotifications.delete(notificationId);
-          
           this.applyFilters();
-          this.updateMessageHubStats();
+          
+          await this.loadNotificationStatistics();
           this.renderNotifications();
         } catch (error) {
           console.error('Failed to delete notification:', error);
+          alert('Failed to delete notification. Please try again.');
         }
       }
 
@@ -703,28 +817,73 @@
       notificationManager.renderNotifications();
     }
 
-    function searchNotifications() {
+    async function searchNotifications() {
       const searchInput = document.getElementById('search-input');
-      notificationManager.searchQuery = searchInput.value;
-      notificationManager.applyFilters();
-      notificationManager.renderNotifications();
-    }
-
-    function markAllAsRead() {
-      notificationManager.notifications.forEach(notification => {
-        notification.is_read = true;
-      });
-      notificationManager.updateMessageHubStats();
-      notificationManager.renderNotifications();
-    }
-
-    function clearAllNotifications() {
-      if (confirm('Are you sure you want to delete all notifications? This action cannot be undone.')) {
-        notificationManager.notifications = [];
-        notificationManager.selectedNotifications.clear();
-        notificationManager.applyFilters();
-        notificationManager.updateMessageHubStats();
+      const query = searchInput.value;
+      
+      try {
+        if (!query.trim()) {
+          notificationManager.searchQuery = '';
+          notificationManager.applyFilters();
+        } else {
+          if (notificationsBackend) {
+            // Use backend search
+            const searchResults = await notificationsBackend.searchNotifications(query);
+            notificationManager.filteredNotifications = searchResults;
+            notificationManager.currentPage = 1;
+          } else {
+            // Fallback to local search
+            notificationManager.searchQuery = query;
+            notificationManager.applyFilters();
+          }
+        }
         notificationManager.renderNotifications();
+      } catch (error) {
+        console.error('Search failed:', error);
+        // Fallback to local search on error
+        notificationManager.searchQuery = query;
+        notificationManager.applyFilters();
+        notificationManager.renderNotifications();
+      }
+    }
+
+    async function markAllAsRead() {
+      try {
+        if (notificationsBackend) {
+          await notificationsBackend.markAllAsRead();
+        }
+        
+        // Update local state
+        notificationManager.notifications.forEach(notification => {
+          notification.is_read = true;
+        });
+        
+        await notificationManager.loadNotificationStatistics();
+        notificationManager.renderNotifications();
+      } catch (error) {
+        console.error('Failed to mark all notifications as read:', error);
+        alert('Failed to mark all notifications as read. Please try again.');
+      }
+    }
+
+    async function clearAllNotifications() {
+      if (confirm('Are you sure you want to delete all notifications? This action cannot be undone.')) {
+        try {
+          if (notificationsBackend) {
+            await notificationsBackend.clearAllNotifications();
+          }
+          
+          // Update local state
+          notificationManager.notifications = [];
+          notificationManager.selectedNotifications.clear();
+          notificationManager.applyFilters();
+          
+          await notificationManager.loadNotificationStatistics();
+          notificationManager.renderNotifications();
+        } catch (error) {
+          console.error('Failed to clear all notifications:', error);
+          alert('Failed to clear all notifications. Please try again.');
+        }
       }
     }
 
@@ -746,29 +905,51 @@
       notificationManager.renderNotifications();
     }
 
-    function bulkMarkAsRead() {
-      notificationManager.selectedNotifications.forEach(id => {
-        const notification = notificationManager.notifications.find(n => n.id === id);
-        if (notification) {
-          notification.is_read = true;
+    async function bulkMarkAsRead() {
+      try {
+        if (notificationsBackend) {
+          const notificationIds = Array.from(notificationManager.selectedNotifications);
+          await notificationsBackend.bulkMarkAsRead(notificationIds);
         }
-      });
-      
-      notificationManager.selectedNotifications.clear();
-      notificationManager.updateMessageHubStats();
-      notificationManager.renderNotifications();
-    }
-
-    function bulkDelete() {
-      if (confirm(`Are you sure you want to delete ${notificationManager.selectedNotifications.size} notifications? This action cannot be undone.`)) {
-        notificationManager.notifications = notificationManager.notifications.filter(n => 
-          !notificationManager.selectedNotifications.has(n.id)
-        );
+        
+        // Update local state
+        notificationManager.selectedNotifications.forEach(id => {
+          const notification = notificationManager.notifications.find(n => n.id === id);
+          if (notification) {
+            notification.is_read = true;
+          }
+        });
         
         notificationManager.selectedNotifications.clear();
-        notificationManager.applyFilters();
-        notificationManager.updateMessageHubStats();
+        await notificationManager.loadNotificationStatistics();
         notificationManager.renderNotifications();
+      } catch (error) {
+        console.error('Failed to mark selected notifications as read:', error);
+        alert('Failed to mark selected notifications as read. Please try again.');
+      }
+    }
+
+    async function bulkDelete() {
+      if (confirm(`Are you sure you want to delete ${notificationManager.selectedNotifications.size} notifications? This action cannot be undone.`)) {
+        try {
+          if (notificationsBackend) {
+            const notificationIds = Array.from(notificationManager.selectedNotifications);
+            await notificationsBackend.bulkDeleteNotifications(notificationIds);
+          }
+          
+          // Update local state
+          notificationManager.notifications = notificationManager.notifications.filter(n => 
+            !notificationManager.selectedNotifications.has(n.id)
+          );
+          
+          notificationManager.selectedNotifications.clear();
+          notificationManager.applyFilters();
+          await notificationManager.loadNotificationStatistics();
+          notificationManager.renderNotifications();
+        } catch (error) {
+          console.error('Failed to delete selected notifications:', error);
+          alert('Failed to delete selected notifications. Please try again.');
+        }
       }
     }
 
@@ -791,9 +972,28 @@
       }
     }
 
+    function showNotificationSettings() {
+      document.getElementById('notification-settings-modal').style.display = 'block';
+      // Load current preferences when opening settings
+      if (notificationManager) {
+        notificationManager.loadNotificationPreferences();
+      }
+    }
+
+    function closeNotificationSettings() {
+      document.getElementById('notification-settings-modal').style.display = 'none';
+    }
+
+    async function saveNotificationSettings() {
+      if (notificationManager) {
+        await notificationManager.saveNotificationPreferences();
+        closeNotificationSettings();
+      }
+    }
+
     // Initialize on page load
     let notificationManager;
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
       // Load saved theme
       const savedTheme = localStorage.getItem('theme') || 'light';
       document.body.setAttribute('data-theme', savedTheme);
@@ -805,6 +1005,7 @@
       }
       
       notificationManager = new NotificationManager();
+      await notificationManager.loadNotificationPreferences();
     });
   </script>
 </body>

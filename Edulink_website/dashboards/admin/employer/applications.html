@@ -905,13 +905,39 @@
     let selectedApplications = new Set();
 
     // Load and display applications
-    function loadApplications() {
-      displayApplications(applications);
-      updateResultsCount(applications.length);
+    async function loadApplications() {
+      try {
+        if (window.applicationsBackend) {
+          const data = await window.applicationsBackend.loadApplications();
+          applications = data.applications || applications;
+        }
+        displayApplications(applications);
+        updateResultsCount(applications.length);
+      } catch (error) {
+        console.error('Error loading applications:', error);
+        // Fallback to existing data
+        displayApplications(applications);
+        updateResultsCount(applications.length);
+      }
     }
 
     // Update application statistics
-    function updateApplicationStatistics() {
+    async function updateApplicationStatistics() {
+      try {
+        if (window.applicationsBackend) {
+          const stats = await window.applicationsBackend.loadApplicationStatistics();
+          document.getElementById('totalApplications').textContent = stats.total;
+          document.getElementById('pendingApplications').textContent = stats.pending;
+          document.getElementById('reviewingApplications').textContent = stats.reviewing;
+          document.getElementById('approvedApplications').textContent = stats.approved;
+          document.getElementById('interviewApplications').textContent = stats.interview;
+          return;
+        }
+      } catch (error) {
+        console.error('Error loading application statistics:', error);
+      }
+      
+      // Fallback to local calculation
       const total = applications.length;
       const pending = applications.filter(a => a.status === 'pending').length;
       const reviewing = applications.filter(a => a.status === 'reviewing').length;
@@ -1168,19 +1194,30 @@
     }
 
     // Update application status
-    function updateApplicationStatus(id, newStatus) {
-      const applicationIndex = applications.findIndex(a => a.id === id);
-      if (applicationIndex === -1) return;
-
-      applications[applicationIndex].status = newStatus;
-      loadApplications();
-      updateApplicationStatistics();
-      
-      const statusText = newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
-      showNotification(`Application status updated to ${statusText}`, 'success');
-      
-      // Close modal if open
-      closeApplicationDetailsModal();
+    async function updateApplicationStatus(id, newStatus) {
+      try {
+        if (window.applicationsBackend) {
+          await window.applicationsBackend.updateApplicationStatus(id, newStatus);
+        }
+        
+        // Update local data
+        const applicationIndex = applications.findIndex(a => a.id === id);
+        if (applicationIndex !== -1) {
+          applications[applicationIndex].status = newStatus;
+        }
+        
+        loadApplications();
+        updateApplicationStatistics();
+        
+        const statusText = newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
+        showNotification(`Application status updated to ${statusText}`, 'success');
+        
+        // Close modal if open
+        closeApplicationDetailsModal();
+      } catch (error) {
+        console.error('Error updating application status:', error);
+        showNotification('Failed to update application status', 'error');
+      }
     }
 
     // Toggle application selection
@@ -1248,7 +1285,19 @@
     }
 
     // Export applications
-    function exportApplications() {
+    async function exportApplications() {
+      try {
+        if (window.applicationsBackend) {
+          const exportData = await window.applicationsBackend.exportApplicationsData();
+          downloadCSV(exportData.csvContent, exportData.filename);
+          showNotification('Applications data exported successfully!', 'success');
+          return;
+        }
+      } catch (error) {
+        console.error('Error exporting applications:', error);
+      }
+      
+      // Fallback to local export
       const csvContent = "data:text/csv;charset=utf-8," + 
         "Student Name,Email,Phone,Position,University,GPA,Status,Applied Date,Experience\n" +
         applications.map(a => 
@@ -1381,8 +1430,14 @@
     }
 
     // Initialize page
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', async function() {
       initializeTheme();
+      
+      // Initialize applications backend
+      if (typeof ApplicationsBackend !== 'undefined') {
+        window.applicationsBackend = new ApplicationsBackend();
+        console.log('Applications backend initialized');
+      }
       
       // Initialize dropdowns - ensure management dropdown is open and Applications is active
       const managementDropdown = document.getElementById('management-dropdown');
@@ -1409,10 +1464,16 @@
         if (arrow) arrow.style.transform = 'rotate(0deg)';
       });
       
-      loadApplications();
-      updateApplicationStatistics();
+      // Load initial data
+      await loadApplications();
+      await updateApplicationStatistics();
     });
   </script>
+  
+  <!-- API and Backend Modules -->
+  <script src="js/modules/api-utils.js"></script>
+  <script src="js/applications-backend.js"></script>
+  
   <!-- Security Module -->
   <script src="js/employer-auth-security.js"></script>
 </body>
