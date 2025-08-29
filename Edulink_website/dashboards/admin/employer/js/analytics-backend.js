@@ -73,18 +73,15 @@ class AnalyticsBackend {
      */
     async loadPerformanceData() {
         if (!this.isInitialized) {
-            console.warn('Analytics Backend not initialized');
-            return this.getMockPerformanceData();
+            throw new Error('Analytics Backend not initialized');
         }
 
         return await this.getCachedOrFetch('performance', async () => {
-            try {
-                const response = await this.apiUtils.get('/dashboards/analytics/employer/performance/');
-                return response || this.getMockPerformanceData();
-            } catch (error) {
-                console.warn('Failed to load performance data from API, using mock data:', error);
-                return this.getMockPerformanceData();
+            const response = await this.apiUtils.get('/dashboards/analytics/employer/performance/');
+            if (!response) {
+                throw new Error('No performance data available');
             }
+            return response;
         });
     }
 
@@ -93,18 +90,15 @@ class AnalyticsBackend {
      */
     async loadReportsData() {
         if (!this.isInitialized) {
-            console.warn('Analytics Backend not initialized');
-            return this.getMockReportsData();
+            throw new Error('Analytics Backend not initialized');
         }
 
         return await this.getCachedOrFetch('reports', async () => {
-            try {
-                const response = await this.apiUtils.get('/dashboards/analytics/employer/reports/');
-                return response || this.getMockReportsData();
-            } catch (error) {
-                console.warn('Failed to load reports data from API, using mock data:', error);
-                return this.getMockReportsData();
+            const response = await this.apiUtils.get('/dashboards/analytics/employer/reports/');
+            if (!response) {
+                throw new Error('No reports data available');
             }
+            return response;
         });
     }
 
@@ -113,18 +107,15 @@ class AnalyticsBackend {
      */
     async loadApplicationStatistics() {
         if (!this.isInitialized) {
-            console.warn('Analytics Backend not initialized');
-            return this.getMockApplicationStats();
+            throw new Error('Analytics Backend not initialized');
         }
 
         return await this.getCachedOrFetch('applicationStats', async () => {
-            try {
-                const response = await this.apiUtils.get('/application/statistics/');
-                return response || this.getMockApplicationStats();
-            } catch (error) {
-                console.warn('Failed to load application statistics from API, using mock data:', error);
-                return this.getMockApplicationStats();
+            const response = await this.apiUtils.get('/application/statistics/');
+            if (!response) {
+                throw new Error('No application statistics available');
             }
+            return response;
         });
     }
 
@@ -133,18 +124,15 @@ class AnalyticsBackend {
      */
     async loadInternshipAnalytics() {
         if (!this.isInitialized) {
-            console.warn('Analytics Backend not initialized');
-            return this.getMockInternshipData();
+            throw new Error('Analytics Backend not initialized');
         }
 
         return await this.getCachedOrFetch('internshipAnalytics', async () => {
-            try {
-                const response = await this.apiUtils.get('/employers/my-internships/analytics/');
-                return response || this.getMockInternshipData();
-            } catch (error) {
-                console.warn('Failed to load internship analytics from API, using mock data:', error);
-                return this.getMockInternshipData();
+            const response = await this.apiUtils.get('/employers/my-internships/analytics/');
+            if (!response) {
+                throw new Error('No internship analytics available');
             }
+            return response;
         });
     }
 
@@ -189,18 +177,14 @@ class AnalyticsBackend {
      */
     async exportAnalyticsData(exportConfig = {}) {
         if (!this.isInitialized) {
-            console.warn('Analytics Backend not initialized');
-            return this.exportMockData();
+            throw new Error('Analytics Backend not initialized');
         }
 
-        try {
-            const response = await this.apiUtils.post('/dashboards/analytics/employer/export/', exportConfig);
-            return response;
-        } catch (error) {
-            console.error('Error exporting analytics data:', error);
-            // Fallback to client-side export
-            return this.exportMockData();
+        const response = await this.apiUtils.post('/dashboards/analytics/employer/export/', exportConfig);
+        if (!response) {
+            throw new Error('Failed to export analytics data');
         }
+        return response;
     }
 
     /**
@@ -233,110 +217,7 @@ class AnalyticsBackend {
         }
     }
 
-    // Mock data methods for fallback
-    getMockPerformanceData() {
-        return {
-            averageScore: 87,
-            completedEvaluations: 24,
-            pendingReviews: 6,
-            completionRate: 92,
-            trends: {
-                scoreChange: 5,
-                evaluationChange: 12,
-                completionChange: 3
-            },
-            chartData: {
-                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-                datasets: [{
-                    label: 'Performance Score',
-                    data: [82, 85, 83, 87, 89, 87],
-                    borderColor: '#2563eb',
-                    backgroundColor: 'rgba(37, 99, 235, 0.1)'
-                }]
-            }
-        };
-    }
 
-    getMockReportsData() {
-        return {
-            scheduledReports: 2,
-            generatedReports: 15,
-            categories: ['Application', 'Performance', 'Compliance'],
-            recentReports: [
-                {
-                    id: 1,
-                    name: 'Monthly Application Report',
-                    type: 'Application',
-                    generatedDate: '2024-01-15',
-                    status: 'completed'
-                },
-                {
-                    id: 2,
-                    name: 'Performance Analytics',
-                    type: 'Performance',
-                    generatedDate: '2024-01-14',
-                    status: 'completed'
-                }
-            ]
-        };
-    }
-
-    getMockApplicationStats() {
-        return {
-            total: 45,
-            pending: 12,
-            approved: 28,
-            rejected: 5,
-            trends: {
-                totalChange: 8,
-                approvalRate: 62.2
-            },
-            chartData: {
-                labels: ['Applications', 'Interviews', 'Placements', 'Completions'],
-                datasets: [{
-                    label: 'Count',
-                    data: [45, 32, 28, 25],
-                    backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444']
-                }]
-            }
-        };
-    }
-
-    getMockInternshipData() {
-        return {
-            activeInternships: 18,
-            completedInternships: 42,
-            averageRating: 4.3,
-            completionRate: 89,
-            trends: {
-                activeChange: 3,
-                ratingChange: 0.2,
-                completionChange: 5
-            }
-        };
-    }
-
-    exportMockData() {
-        const data = {
-            performance: this.getMockPerformanceData(),
-            reports: this.getMockReportsData(),
-            applications: this.getMockApplicationStats(),
-            internships: this.getMockInternshipData(),
-            exportDate: new Date().toISOString()
-        };
-
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `analytics-data-${new Date().toISOString().split('T')[0]}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-
-        return { success: true, message: 'Data exported successfully' };
-    }
 }
 
 // Global instance

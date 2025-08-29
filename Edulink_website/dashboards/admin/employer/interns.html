@@ -1199,6 +1199,16 @@
 
     // Load and display interns
     async function loadInterns() {
+      const internsContainer = document.getElementById('internsContainer');
+      
+      // Show loading state
+      internsContainer.innerHTML = `
+        <div class="text-center py-12">
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p class="text-gray-600">Loading interns...</p>
+        </div>
+      `;
+      
       try {
         if (internsBackend) {
           const data = await internsBackend.loadInterns();
@@ -1217,6 +1227,13 @@
 
     // Update intern statistics
     async function updateInternStatistics() {
+      // Show loading state for statistics
+      const statsElements = ['totalInterns', 'activeInterns', 'completedInterns', 'averageProgress'];
+      statsElements.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) element.textContent = '...';
+      });
+      
       try {
         if (internsBackend) {
           const stats = await internsBackend.loadInternStatistics();

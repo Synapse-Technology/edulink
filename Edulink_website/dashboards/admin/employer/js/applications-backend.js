@@ -93,12 +93,10 @@ class ApplicationsBackend {
       }
     } catch (error) {
       console.error('Error loading applications data:', error);
+      throw new Error('Failed to load applications data. Please check your connection and try again.');
     }
 
-    // Fallback to mock data
-    const mockData = this.getMockApplicationsData(filters);
-    this.setCachedData(cacheKey, mockData);
-    return mockData;
+    throw new Error('Applications API is not available. Please ensure the backend service is running.');
   }
 
   /**
@@ -132,22 +130,10 @@ class ApplicationsBackend {
       }
     } catch (error) {
       console.error('Error loading application stats:', error);
+      throw new Error('Failed to load application statistics. Please check your connection and try again.');
     }
 
-    // Fallback to mock stats
-    const mockStats = {
-      totalApplications: 156,
-      pendingReview: 23,
-      underReview: 18,
-      approved: 89,
-      rejected: 26,
-      todayApplications: 7,
-      weeklyGrowth: 12.5,
-      averageProcessingTime: 3.2
-    };
-    
-    this.setCachedData(cacheKey, mockStats);
-    return mockStats;
+    throw new Error('Applications statistics API is not available. Please ensure the backend service is running.');
   }
 
   /**
@@ -344,93 +330,7 @@ class ApplicationsBackend {
   /**
    * Get mock applications data for fallback
    */
-  getMockApplicationsData(filters = {}) {
-    const mockApplications = [
-      {
-        id: 1,
-        studentName: 'Sarah Johnson',
-        email: 'sarah.johnson@university.edu',
-        position: 'Software Development Intern',
-        status: 'pending',
-        appliedDate: '2024-01-15',
-        university: 'Tech University',
-        gpa: 3.8,
-        skills: ['JavaScript', 'React', 'Node.js'],
-        coverLetter: 'Passionate about software development...',
-        resume: 'sarah_johnson_resume.pdf'
-      },
-      {
-        id: 2,
-        studentName: 'Michael Chen',
-        email: 'michael.chen@college.edu',
-        position: 'Data Science Intern',
-        status: 'reviewing',
-        appliedDate: '2024-01-14',
-        university: 'Data Science College',
-        gpa: 3.9,
-        skills: ['Python', 'Machine Learning', 'SQL'],
-        coverLetter: 'Experienced in data analysis...',
-        resume: 'michael_chen_resume.pdf'
-      },
-      {
-        id: 3,
-        studentName: 'Emily Rodriguez',
-        email: 'emily.rodriguez@institute.edu',
-        position: 'Marketing Intern',
-        status: 'approved',
-        appliedDate: '2024-01-13',
-        university: 'Business Institute',
-        gpa: 3.7,
-        skills: ['Digital Marketing', 'Analytics', 'Content Creation'],
-        coverLetter: 'Creative marketing professional...',
-        resume: 'emily_rodriguez_resume.pdf'
-      },
-      {
-        id: 4,
-        studentName: 'David Kim',
-        email: 'david.kim@university.edu',
-        position: 'UX Design Intern',
-        status: 'interview',
-        appliedDate: '2024-01-12',
-        university: 'Design University',
-        gpa: 3.6,
-        skills: ['Figma', 'User Research', 'Prototyping'],
-        coverLetter: 'User-centered design approach...',
-        resume: 'david_kim_resume.pdf'
-      },
-      {
-        id: 5,
-        studentName: 'Lisa Wang',
-        email: 'lisa.wang@college.edu',
-        position: 'Finance Intern',
-        status: 'rejected',
-        appliedDate: '2024-01-11',
-        university: 'Finance College',
-        gpa: 3.5,
-        skills: ['Financial Analysis', 'Excel', 'Bloomberg'],
-        coverLetter: 'Strong analytical skills...',
-        resume: 'lisa_wang_resume.pdf'
-      }
-    ];
 
-    // Apply filters if provided
-    let filteredApplications = mockApplications;
-    if (filters.status) {
-      filteredApplications = filteredApplications.filter(app => app.status === filters.status);
-    }
-    if (filters.position) {
-      filteredApplications = filteredApplications.filter(app => 
-        app.position.toLowerCase().includes(filters.position.toLowerCase())
-      );
-    }
-
-    return {
-      applications: filteredApplications,
-      total: filteredApplications.length,
-      page: parseInt(filters.page) || 1,
-      pageSize: parseInt(filters.pageSize) || 10
-    };
-  }
 }
 
 // Global instance

@@ -134,9 +134,7 @@ class SupervisorsBackend {
             return result;
         }
 
-        // Fallback to mock data if API fails
-        const mockData = this.getMockSupervisors();
-        return { success: true, data: mockData, fromCache: true };
+        throw new Error('Failed to load supervisors data');
     }
 
     /**
@@ -156,14 +154,7 @@ class SupervisorsBackend {
             return result;
         }
 
-        // Fallback to mock stats
-        const mockStats = {
-            total_supervisors: 12,
-            active_supervisors: 10,
-            pending_invitations: 3,
-            average_rating: 4.2
-        };
-        return { success: true, data: mockStats, fromCache: true };
+        throw new Error('Failed to load supervisor statistics');
     }
 
     /**
@@ -279,9 +270,7 @@ class SupervisorsBackend {
             return result;
         }
 
-        // Fallback to mock data
-        const mockSupervisor = this.getMockSupervisorDetails(supervisorId);
-        return { success: true, data: mockSupervisor, fromCache: true };
+        throw new Error(`Failed to load supervisor details for ID: ${supervisorId}`);
     }
 
     /**
@@ -294,14 +283,7 @@ class SupervisorsBackend {
             return result;
         }
 
-        // Fallback: generate export from cached/mock data
-        const supervisors = await this.loadSupervisors();
-        if (supervisors.success) {
-            const exportData = this.generateExportData(supervisors.data, format);
-            return { success: true, data: exportData, fromCache: true };
-        }
-
-        return result;
+        throw new Error('Failed to export supervisors data');
     }
 
     /**
@@ -383,51 +365,7 @@ class SupervisorsBackend {
     /**
      * Mock data for offline/fallback scenarios
      */
-    getMockSupervisors() {
-        return [
-            {
-                id: 1,
-                name: 'Dr. Sarah Johnson',
-                email: 'sarah.johnson@company.com',
-                department: 'Engineering',
-                phone: '+1 (555) 123-4567',
-                status: 'active',
-                interns_count: 3,
-                rating: 4.8,
-                joined_date: '2023-01-15'
-            },
-            {
-                id: 2,
-                name: 'Michael Chen',
-                email: 'michael.chen@company.com',
-                department: 'Marketing',
-                phone: '+1 (555) 234-5678',
-                status: 'active',
-                interns_count: 2,
-                rating: 4.5,
-                joined_date: '2023-03-20'
-            },
-            {
-                id: 3,
-                name: 'Emily Rodriguez',
-                email: 'emily.rodriguez@company.com',
-                department: 'Human Resources',
-                phone: '+1 (555) 345-6789',
-                status: 'pending',
-                interns_count: 0,
-                rating: null,
-                joined_date: null
-            }
-        ];
-    }
 
-    /**
-     * Mock supervisor details
-     */
-    getMockSupervisorDetails(supervisorId) {
-        const supervisors = this.getMockSupervisors();
-        return supervisors.find(s => s.id == supervisorId) || supervisors[0];
-    }
 }
 
 // Export for use in other modules

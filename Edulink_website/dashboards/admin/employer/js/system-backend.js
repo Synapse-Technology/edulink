@@ -80,87 +80,63 @@ class SystemBackend {
    * Load system integrations
    */
   async loadIntegrations() {
-    try {
-      const cacheKey = 'system_integrations';
-      const cached = this.getCachedData(cacheKey);
-      
-      if (cached) {
-        return { success: true, data: cached, fromCache: true };
-      }
-
-      const result = await this.makeRequest('/employer/system/integrations/');
-      
-      if (result.success) {
-        this.setCachedData(cacheKey, result.data);
-        return result;
-      }
-      
-      throw new Error(result.error);
-    } catch (error) {
-      console.error('Error loading integrations:', error);
-      
-      // Return mock data as fallback
-      const mockData = this.getMockIntegrations();
-      return { success: true, data: mockData, fromCache: true };
+    const cacheKey = 'system_integrations';
+    const cached = this.getCachedData(cacheKey);
+    
+    if (cached) {
+      return { success: true, data: cached, fromCache: true };
     }
+
+    const result = await this.makeRequest('/employer/system/integrations/');
+    
+    if (result.success) {
+      this.setCachedData(cacheKey, result.data);
+      return result;
+    }
+    
+    throw new Error(result.error || 'Failed to load integrations');
   }
 
   /**
    * Load compliance data
    */
   async loadCompliance() {
-    try {
-      const cacheKey = 'system_compliance';
-      const cached = this.getCachedData(cacheKey);
-      
-      if (cached) {
-        return { success: true, data: cached, fromCache: true };
-      }
-
-      const result = await this.makeRequest('/employer/system/compliance/');
-      
-      if (result.success) {
-        this.setCachedData(cacheKey, result.data);
-        return result;
-      }
-      
-      throw new Error(result.error);
-    } catch (error) {
-      console.error('Error loading compliance data:', error);
-      
-      // Return mock data as fallback
-      const mockData = this.getMockCompliance();
-      return { success: true, data: mockData, fromCache: true };
+    const cacheKey = 'system_compliance';
+    const cached = this.getCachedData(cacheKey);
+    
+    if (cached) {
+      return { success: true, data: cached, fromCache: true };
     }
+
+    const result = await this.makeRequest('/employer/system/compliance/');
+    
+    if (result.success) {
+      this.setCachedData(cacheKey, result.data);
+      return result;
+    }
+    
+    throw new Error(result.error || 'Failed to load compliance data');
   }
 
   /**
    * Load system statistics
    */
   async getSystemStats() {
-    try {
-      const cacheKey = 'system_stats';
-      const cached = this.getCachedData(cacheKey);
-      
-      if (cached) {
-        return { success: true, data: cached, fromCache: true };
-      }
-
-      const result = await this.makeRequest('/employer/system/stats/');
-      
-      if (result.success) {
-        this.setCachedData(cacheKey, result.data);
-        return result;
-      }
-      
-      throw new Error(result.error);
-    } catch (error) {
-      console.error('Error loading system stats:', error);
-      
-      // Return mock data as fallback
-      const mockData = this.getMockSystemStats();
-      return { success: true, data: mockData, fromCache: true };
+    const cacheKey = 'system_stats';
+    const cached = this.getCachedData(cacheKey);
+    
+    if (cached) {
+      return { success: true, data: cached, fromCache: true };
     }
+
+    const result = await this.makeRequest('/employer/system/stats/');
+    
+    if (result.success) {
+      this.setCachedData(cacheKey, result.data);
+      return result;
+    }
+    
+    throw new Error(result.error || 'Failed to load system stats');
   }
 
   /**
@@ -213,158 +189,17 @@ class SystemBackend {
    * Export system data
    */
   async exportSystemData(format = 'csv') {
-    try {
-      const result = await this.makeRequest(`/employer/system/export/?format=${format}`);
-      
-      if (result.success) {
-        return result;
-      }
-      
-      throw new Error(result.error);
-    } catch (error) {
-      console.error('Error exporting system data:', error);
-      
-      // Generate local export as fallback
-      const exportData = this.generateLocalExport(format);
-      return { success: true, data: exportData, fromCache: true };
-    }
-  }
-
-  /**
-   * Mock data generators for offline functionality
-   */
-  getMockIntegrations() {
-    return [
-      {
-        id: 1,
-        name: 'HRIS Integration',
-        type: 'hris',
-        status: 'active',
-        description: 'Human Resources Information System integration',
-        lastSync: '2024-01-15T10:30:00Z',
-        settings: {
-          apiKey: '***hidden***',
-          syncFrequency: 'daily',
-          autoSync: true
-        }
-      },
-      {
-        id: 2,
-        name: 'Learning Management System',
-        type: 'lms',
-        status: 'active',
-        description: 'LMS integration for training modules',
-        lastSync: '2024-01-15T09:15:00Z',
-        settings: {
-          endpoint: 'https://lms.company.com/api',
-          syncFrequency: 'hourly',
-          autoSync: true
-        }
-      },
-      {
-        id: 3,
-        name: 'Email Service',
-        type: 'email',
-        status: 'inactive',
-        description: 'Email notification service',
-        lastSync: null,
-        settings: {
-          provider: 'sendgrid',
-          apiKey: '***hidden***',
-          templates: ['welcome', 'reminder', 'completion']
-        }
-      }
-    ];
-  }
-
-  getMockCompliance() {
-    return {
-      gdprCompliance: {
-        status: 'compliant',
-        lastAudit: '2024-01-01T00:00:00Z',
-        score: 95,
-        requirements: [
-          { name: 'Data Processing Agreement', status: 'complete', required: true },
-          { name: 'Privacy Policy', status: 'complete', required: true },
-          { name: 'Cookie Consent', status: 'complete', required: true },
-          { name: 'Data Retention Policy', status: 'pending', required: true }
-        ]
-      },
-      securityCompliance: {
-        status: 'partial',
-        lastAudit: '2024-01-10T00:00:00Z',
-        score: 87,
-        requirements: [
-          { name: 'SSL Certificate', status: 'complete', required: true },
-          { name: 'Two-Factor Authentication', status: 'complete', required: true },
-          { name: 'Regular Security Audits', status: 'pending', required: true },
-          { name: 'Data Encryption', status: 'complete', required: true }
-        ]
-      },
-      accessibilityCompliance: {
-        status: 'needs_attention',
-        lastAudit: '2023-12-15T00:00:00Z',
-        score: 72,
-        requirements: [
-          { name: 'WCAG 2.1 AA Compliance', status: 'partial', required: true },
-          { name: 'Screen Reader Support', status: 'complete', required: true },
-          { name: 'Keyboard Navigation', status: 'pending', required: true },
-          { name: 'Color Contrast', status: 'complete', required: false }
-        ]
-      }
-    };
-  }
-
-  getMockSystemStats() {
-    return {
-      totalIntegrations: 3,
-      activeIntegrations: 2,
-      complianceScore: 85,
-      lastSystemUpdate: '2024-01-15T08:00:00Z',
-      systemUptime: 99.9,
-      apiCalls: {
-        today: 1247,
-        thisWeek: 8934,
-        thisMonth: 34567
-      },
-      storage: {
-        used: 2.4,
-        total: 10.0,
-        unit: 'GB'
-      }
-    };
-  }
-
-  /**
-   * Generate local export data
-   */
-  generateLocalExport(format) {
-    const integrations = this.getMockIntegrations();
-    const compliance = this.getMockCompliance();
-    const stats = this.getMockSystemStats();
+    const result = await this.makeRequest(`/employer/system/export/?format=${format}`);
     
-    if (format === 'csv') {
-      const csvData = [
-        'Type,Name,Status,Last Updated',
-        ...integrations.map(i => `Integration,${i.name},${i.status},${i.lastSync || 'Never'}`),
-        `Compliance,GDPR,${compliance.gdprCompliance.status},${compliance.gdprCompliance.lastAudit}`,
-        `Compliance,Security,${compliance.securityCompliance.status},${compliance.securityCompliance.lastAudit}`,
-        `Compliance,Accessibility,${compliance.accessibilityCompliance.status},${compliance.accessibilityCompliance.lastAudit}`
-      ].join('\n');
-      
-      return {
-        url: 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvData),
-        filename: 'system_export.csv'
-      };
+    if (result.success) {
+      return result;
     }
     
-    return {
-      integrations,
-      compliance,
-      stats,
-      exportDate: new Date().toISOString()
-    };
+    throw new Error(result.error || 'Failed to export system data');
   }
+
+
+
 
   /**
    * Offline synchronization

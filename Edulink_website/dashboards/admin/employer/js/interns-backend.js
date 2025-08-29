@@ -114,7 +114,7 @@ class InternsBackend {
             }
         } catch (error) {
             console.error('Error loading intern statistics:', error);
-            return this.getMockStatisticsData();
+            throw new Error('Unable to load intern statistics. Please check your connection and try again.');
         }
     }
 
@@ -282,26 +282,7 @@ class InternsBackend {
         };
     }
 
-    getMockStatisticsData() {
-        return {
-            total_interns: 15,
-            active_interns: 12,
-            completed_interns: 3,
-            on_leave: 0,
-            average_progress: 68,
-            departments: {
-                'Engineering': 8,
-                'Marketing': 4,
-                'Analytics': 3
-            },
-            monthly_progress: [
-                { month: 'Jan', progress: 45 },
-                { month: 'Feb', progress: 52 },
-                { month: 'Mar', progress: 61 },
-                { month: 'Apr', progress: 68 }
-            ]
-        };
-    }
+
 }
 
 // Initialize the backend when the script loads

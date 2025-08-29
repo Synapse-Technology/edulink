@@ -494,64 +494,45 @@
       icon.className = savedTheme === 'dark' ? 'fas fa-sun text-yellow-500' : 'fas fa-moon text-gray-600';
     }
 
-    // Sample opportunities data
-    const sampleOpportunities = [
-      {
-        id: 1,
-        title: "Software Development Internship",
-        type: "internship",
-        status: "active",
-        location: "Nairobi, Kenya",
-        applications: 24,
-        posted: "2024-01-15",
-        deadline: "2024-02-15",
-        description: "Join our development team to work on cutting-edge web applications."
-      },
-      {
-        id: 2,
-        title: "Marketing Assistant",
-        type: "job",
-        status: "active",
-        location: "Mombasa, Kenya",
-        applications: 18,
-        posted: "2024-01-10",
-        deadline: "2024-02-10",
-        description: "Support our marketing team with digital campaigns and content creation."
-      },
-      {
-        id: 3,
-        title: "Data Analysis Internship",
-        type: "internship",
-        status: "draft",
-        location: "Kisumu, Kenya",
-        applications: 0,
-        posted: "2024-01-20",
-        deadline: "2024-03-01",
-        description: "Analyze business data and create insightful reports."
-      }
-    ];
+    // Initialize opportunities backend
+    let opportunitiesBackend;
+    let currentOpportunities = [];
 
-    // Load opportunities
-    function loadOpportunities() {
+    // Load opportunities from backend API
+    async function loadOpportunities() {
       const opportunitiesList = document.getElementById('opportunitiesList');
       const emptyState = document.getElementById('emptyState');
+      const loadingState = document.getElementById('loadingState') || createLoadingState();
       
-      if (sampleOpportunities.length === 0) {
+      try {
+        // Show loading state
+        loadingState.classList.remove('hidden');
         opportunitiesList.innerHTML = '';
-        emptyState.classList.remove('hidden');
-        return;
-      }
-      
-      emptyState.classList.add('hidden');
-      
-      opportunitiesList.innerHTML = sampleOpportunities.map(opportunity => `
+        emptyState.classList.add('hidden');
+        
+        // Load opportunities from backend
+        const response = await opportunitiesBackend.loadOpportunities();
+        currentOpportunities = response.results || [];
+        
+        // Hide loading state
+        loadingState.classList.add('hidden');
+        
+        if (currentOpportunities.length === 0) {
+          opportunitiesList.innerHTML = '';
+          emptyState.classList.remove('hidden');
+          return;
+        }
+        
+        emptyState.classList.add('hidden');
+        
+        opportunitiesList.innerHTML = currentOpportunities.map(opportunity => `
         <div class="opportunity-card card p-6">
           <div class="flex items-start justify-between">
             <div class="flex-1">
               <div class="flex items-center space-x-3 mb-2">
                 <h3 class="text-lg font-semibold text-gray-900">${opportunity.title}</h3>
                 <span class="badge badge-${getStatusColor(opportunity.status)}">${opportunity.status}</span>
-                <span class="badge badge-info">${opportunity.type}</span>
+                <span class="badge badge-info">${opportunity.department || 'General'}</span>
               </div>
               
               <p class="text-gray-600 mb-3">${opportunity.description}</p>
@@ -563,11 +544,11 @@
                 </div>
                 <div class="flex items-center space-x-1">
                   <i class="fas fa-file-alt"></i>
-                  <span>${opportunity.applications} applications</span>
+                  <span>${opportunity.applications_count || 0} applications</span>
                 </div>
                 <div class="flex items-center space-x-1">
                   <i class="fas fa-calendar"></i>
-                  <span>Deadline: ${new Date(opportunity.deadline).toLocaleDateString()}</span>
+                  <span>Deadline: ${new Date(opportunity.application_deadline).toLocaleDateString()}</span>
                 </div>
               </div>
             </div>
@@ -589,7 +570,49 @@
         </div>
       `).join('');
       
-      updateStats();
+      await updateStats();
+      } catch (error) {
+        console.error('Failed to load opportunities:', error);
+        
+        // Hide loading state
+        loadingState.classList.add('hidden');
+        
+        // Show error state
+        opportunitiesList.innerHTML = `
+          <div class="text-center py-12">
+            <div class="text-red-500 mb-4">
+              <i class="fas fa-exclamation-triangle text-4xl"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Failed to Load Opportunities</h3>
+            <p class="text-gray-600 mb-4">Unable to connect to the server. Please check your connection and try again.</p>
+            <button onclick="loadOpportunities()" class="btn-primary">
+              <i class="fas fa-refresh mr-2"></i>
+              Retry
+            </button>
+          </div>
+        `;
+        
+        // Show error in stats
+        document.getElementById('totalOpportunities').textContent = '--';
+        document.getElementById('activeOpportunities').textContent = '--';
+        document.getElementById('totalApplications').textContent = '--';
+        document.getElementById('pendingReview').textContent = '--';
+      }
+    }
+
+    function createLoadingState() {
+      const loadingDiv = document.createElement('div');
+      loadingDiv.id = 'loadingState';
+      loadingDiv.className = 'text-center py-12';
+      loadingDiv.innerHTML = `
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p class="text-gray-600">Loading opportunities...</p>
+      `;
+      
+      const opportunitiesList = document.getElementById('opportunitiesList');
+      opportunitiesList.parentNode.insertBefore(loadingDiv, opportunitiesList);
+      
+      return loadingDiv;
     }
 
     function getStatusColor(status) {
@@ -602,11 +625,22 @@
       }
     }
 
-    function updateStats() {
-      document.getElementById('totalOpportunities').textContent = sampleOpportunities.length;
-      document.getElementById('activeOpportunities').textContent = sampleOpportunities.filter(o => o.status === 'active').length;
-      document.getElementById('totalApplications').textContent = sampleOpportunities.reduce((sum, o) => sum + o.applications, 0);
-      document.getElementById('pendingReview').textContent = sampleOpportunities.filter(o => o.status === 'draft').length;
+    async function updateStats() {
+      try {
+        const stats = await opportunitiesBackend.loadOpportunityStatistics();
+        
+        document.getElementById('totalOpportunities').textContent = stats.total_opportunities || 0;
+        document.getElementById('activeOpportunities').textContent = stats.active_opportunities || 0;
+        document.getElementById('totalApplications').textContent = stats.total_applications || 0;
+        document.getElementById('pendingReview').textContent = stats.draft_opportunities || 0;
+      } catch (error) {
+        console.error('Failed to load statistics:', error);
+        // Show error state instead of mock data
+        document.getElementById('totalOpportunities').textContent = '--';
+        document.getElementById('activeOpportunities').textContent = '--';
+        document.getElementById('totalApplications').textContent = '--';
+        document.getElementById('pendingReview').textContent = '--';
+      }
     }
 
     function viewApplications(id) {
@@ -624,9 +658,15 @@
     }
 
     // Event listeners
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', async function() {
       initializeTheme();
-      loadOpportunities();
+      
+      // Initialize opportunities backend
+      opportunitiesBackend = new OpportunitiesBackend();
+      await opportunitiesBackend.initialize();
+      
+      // Load opportunities
+      await loadOpportunities();
       
       // Dark mode toggle
       document.getElementById('dark-mode-toggle').addEventListener('click', toggleDarkMode);

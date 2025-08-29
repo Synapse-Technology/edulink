@@ -824,131 +824,70 @@
 
   <script>
     // Application Management Data
-    let applications = [
-      {
-        id: 1,
-        studentName: "Alice Johnson",
-        email: "alice.johnson@university.edu",
-        phone: "+1-555-0101",
-        position: "Software Developer",
-        university: "Tech University",
-        gpa: 3.8,
-        status: "pending",
-        appliedDate: "2024-01-15",
-        resumeUrl: "#",
-        coverLetter: "I am excited to apply for the Software Developer internship...",
-        skills: ["JavaScript", "React", "Node.js", "Python"],
-        experience: "2 years of web development experience"
-      },
-      {
-        id: 2,
-        studentName: "Bob Smith",
-        email: "bob.smith@university.edu",
-        phone: "+1-555-0102",
-        position: "Data Analyst",
-        university: "Data Science College",
-        gpa: 3.9,
-        status: "reviewing",
-        appliedDate: "2024-01-14",
-        resumeUrl: "#",
-        coverLetter: "With my strong background in statistics and data analysis...",
-        skills: ["Python", "SQL", "Tableau", "R"],
-        experience: "1 year of data analysis projects"
-      },
-      {
-        id: 3,
-        studentName: "Carol Davis",
-        email: "carol.davis@university.edu",
-        phone: "+1-555-0103",
-        position: "Marketing Assistant",
-        university: "Business School",
-        gpa: 3.7,
-        status: "approved",
-        appliedDate: "2024-01-13",
-        resumeUrl: "#",
-        coverLetter: "I am passionate about digital marketing and brand management...",
-        skills: ["Social Media", "Content Creation", "Analytics", "Adobe Creative Suite"],
-        experience: "Marketing club president, 3 internships"
-      },
-      {
-        id: 4,
-        studentName: "David Wilson",
-        email: "david.wilson@university.edu",
-        phone: "+1-555-0104",
-        position: "HR Assistant",
-        university: "Liberal Arts College",
-        gpa: 3.6,
-        status: "interview",
-        appliedDate: "2024-01-12",
-        resumeUrl: "#",
-        coverLetter: "My interest in human resources stems from my psychology background...",
-        skills: ["Communication", "Conflict Resolution", "MS Office", "HRIS"],
-        experience: "HR volunteer work, leadership roles"
-      },
-      {
-        id: 5,
-        studentName: "Eva Brown",
-        email: "eva.brown@university.edu",
-        phone: "+1-555-0105",
-        position: "Finance Intern",
-        university: "Finance Institute",
-        gpa: 3.9,
-        status: "rejected",
-        appliedDate: "2024-01-11",
-        resumeUrl: "#",
-        coverLetter: "I am seeking to apply my financial modeling skills...",
-        skills: ["Excel", "Financial Modeling", "Bloomberg", "Python"],
-        experience: "Finance club treasurer, investment competition winner"
-      }
-    ];
+    let applications = [];
 
     let selectedApplications = new Set();
 
     // Load and display applications
     async function loadApplications() {
+      const applicationsContainer = document.getElementById('applicationsContainer');
+      
+      // Show loading state
+      applicationsContainer.innerHTML = `
+        <div class="text-center py-12">
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p class="text-gray-600">Loading applications...</p>
+        </div>
+      `;
+      
       try {
         if (window.applicationsBackend) {
-          const data = await window.applicationsBackend.loadApplications();
-          applications = data.applications || applications;
+          const data = await window.applicationsBackend.loadApplicationsData();
+          applications = data.applications || [];
+          displayApplications(applications);
+          updateResultsCount(applications.length);
+        } else {
+          throw new Error('Applications backend not initialized');
         }
-        displayApplications(applications);
-        updateResultsCount(applications.length);
       } catch (error) {
         console.error('Error loading applications:', error);
-        // Fallback to existing data
+        showErrorState('Failed to load applications. Please check your connection and try again.');
+        applications = [];
         displayApplications(applications);
-        updateResultsCount(applications.length);
+        updateResultsCount(0);
       }
     }
 
     // Update application statistics
     async function updateApplicationStatistics() {
+      // Show loading state for statistics
+      const statsElements = ['totalApplications', 'pendingApplications', 'reviewingApplications', 'approvedApplications', 'interviewApplications'];
+      statsElements.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) element.textContent = '...';
+      });
+      
       try {
         if (window.applicationsBackend) {
-          const stats = await window.applicationsBackend.loadApplicationStatistics();
-          document.getElementById('totalApplications').textContent = stats.total;
-          document.getElementById('pendingApplications').textContent = stats.pending;
-          document.getElementById('reviewingApplications').textContent = stats.reviewing;
-          document.getElementById('approvedApplications').textContent = stats.approved;
-          document.getElementById('interviewApplications').textContent = stats.interview;
-          return;
+          const stats = await window.applicationsBackend.loadApplicationStats();
+          document.getElementById('totalApplications').textContent = stats.totalApplications || 0;
+          document.getElementById('pendingApplications').textContent = stats.pendingReview || 0;
+          document.getElementById('reviewingApplications').textContent = stats.underReview || 0;
+          document.getElementById('approvedApplications').textContent = stats.approved || 0;
+          document.getElementById('interviewApplications').textContent = stats.interview || 0;
+        } else {
+          throw new Error('Applications backend not initialized');
         }
       } catch (error) {
         console.error('Error loading application statistics:', error);
+        // Show zero values on error
+        document.getElementById('totalApplications').textContent = '0';
+        document.getElementById('pendingApplications').textContent = '0';
+        document.getElementById('reviewingApplications').textContent = '0';
+        document.getElementById('approvedApplications').textContent = '0';
+        document.getElementById('interviewApplications').textContent = '0';
+        showNotification('Failed to load application statistics', 'error');
       }
-      
-      // Fallback to local calculation
-      const total = applications.length;
-      const pending = applications.filter(a => a.status === 'pending').length;
-      const reviewing = applications.filter(a => a.status === 'reviewing').length;
-      const approved = applications.filter(a => a.status === 'approved').length;
-      const interview = applications.filter(a => a.status === 'interview').length;
-
-      document.getElementById('totalApplications').textContent = total;
-      document.getElementById('pendingApplications').textContent = pending;
-      document.getElementById('reviewingApplications').textContent = reviewing;
-      document.getElementById('approvedApplications').textContent = approved;
-      document.getElementById('interviewApplications').textContent = interview;
     }
 
     // Create application card
@@ -1347,6 +1286,25 @@
       }, 3000);
     }
 
+    // Show error state in applications list
+    function showErrorState(message) {
+      const applicationsContainer = document.getElementById('applicationsContainer');
+      if (applicationsContainer) {
+        applicationsContainer.innerHTML = `
+          <div class="text-center py-12">
+            <div class="text-red-500 text-6xl mb-4">
+              <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-2">Error Loading Applications</h3>
+            <p class="text-gray-600 mb-4">${message}</p>
+            <button onclick="loadApplications()" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors">
+              <i class="fas fa-refresh mr-2"></i>Try Again
+            </button>
+          </div>
+        `;
+      }
+    }
+
     // Sidebar functionality
     function toggleSidebar() {
       const sidebar = document.getElementById('sidebar');
@@ -1436,6 +1394,7 @@
       // Initialize applications backend
       if (typeof ApplicationsBackend !== 'undefined') {
         window.applicationsBackend = new ApplicationsBackend();
+        await window.applicationsBackend.initialize();
         console.log('Applications backend initialized');
       }
       
@@ -1465,8 +1424,13 @@
       });
       
       // Load initial data
-      await loadApplications();
-      await updateApplicationStatistics();
+      try {
+        await loadApplications();
+        await updateApplicationStatistics();
+      } catch (error) {
+        console.error('Error during initial data load:', error);
+        showNotification('Failed to load initial data. Please refresh the page.', 'error');
+      }
     });
   </script>
   

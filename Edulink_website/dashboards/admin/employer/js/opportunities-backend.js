@@ -111,7 +111,7 @@ class OpportunitiesBackend {
       return data;
     } catch (error) {
       console.error('Failed to load opportunities:', error);
-      return this.getMockOpportunities();
+      throw new Error('Unable to load opportunities. Please check your connection and try again.');
     }
   }
 
@@ -152,7 +152,7 @@ class OpportunitiesBackend {
       return data;
     } catch (error) {
       console.error('Failed to load opportunity statistics:', error);
-      return this.getMockStatistics();
+      throw new Error('Unable to load opportunity statistics. Please check your connection and try again.');
     }
   }
 
@@ -408,78 +408,7 @@ class OpportunitiesBackend {
     keysToDelete.forEach(key => this.cache.delete(key));
   }
 
-  // Mock data for fallback
-  getMockOpportunities() {
-    return {
-      results: [
-        {
-          id: 1,
-          title: 'Software Development Intern',
-          department: 'Engineering',
-          duration: 3,
-          stipend: 1500,
-          start_date: '2024-06-01',
-          application_deadline: '2024-05-15',
-          status: 'active',
-          applications_count: 25,
-          description: 'Join our engineering team to work on cutting-edge web applications.',
-          requirements: 'Computer Science student, JavaScript knowledge preferred',
-          skills_required: ['JavaScript', 'React', 'Node.js'],
-          location: 'Remote',
-          created_at: '2024-04-01T10:00:00Z'
-        },
-        {
-          id: 2,
-          title: 'Marketing Intern',
-          department: 'Marketing',
-          duration: 4,
-          stipend: 1200,
-          start_date: '2024-07-01',
-          application_deadline: '2024-06-15',
-          status: 'active',
-          applications_count: 18,
-          description: 'Support our marketing campaigns and learn digital marketing strategies.',
-          requirements: 'Marketing or Business student, creative mindset',
-          skills_required: ['Social Media', 'Content Creation', 'Analytics'],
-          location: 'Hybrid',
-          created_at: '2024-04-05T14:30:00Z'
-        },
-        {
-          id: 3,
-          title: 'Data Science Intern',
-          department: 'Analytics',
-          duration: 6,
-          stipend: 1800,
-          start_date: '2024-08-01',
-          application_deadline: '2024-07-15',
-          status: 'draft',
-          applications_count: 0,
-          description: 'Work with our data team to analyze user behavior and business metrics.',
-          requirements: 'Statistics or Computer Science background, Python experience',
-          skills_required: ['Python', 'SQL', 'Machine Learning', 'Statistics'],
-          location: 'On-site',
-          created_at: '2024-04-10T09:15:00Z'
-        }
-      ],
-      count: 3,
-      next: null,
-      previous: null
-    };
-  }
 
-  getMockStatistics() {
-    return {
-      total_opportunities: 15,
-      active_opportunities: 8,
-      draft_opportunities: 4,
-      closed_opportunities: 3,
-      total_applications: 156,
-      applications_this_month: 42,
-      average_applications_per_opportunity: 10.4,
-      most_popular_department: 'Engineering',
-      upcoming_deadlines: 3
-    };
-  }
 }
 
 // Export for use in other modules

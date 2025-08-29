@@ -83,7 +83,7 @@ class NotificationsBackend {
       return response;
     } catch (error) {
       console.error('Failed to load notification statistics:', error);
-      return this.getMockStatistics();
+      throw new Error('Unable to load notification statistics. Please check your connection and try again.');
     }
   }
 
@@ -380,47 +380,7 @@ class NotificationsBackend {
     };
   }
 
-  /**
-   * Get mock statistics for fallback
-   */
-  getMockStatistics() {
-    return {
-      total_notifications: 5,
-      unread_notifications: 3,
-      system_alerts: 1,
-      announcements: 0,
-      notifications_by_type: {
-        application: 1,
-        interview: 1,
-        system: 1,
-        evaluation: 1,
-        report: 1
-      },
-      recent_activity: {
-        today: 2,
-        this_week: 4,
-        this_month: 5
-      }
-    };
-  }
 
-  /**
-   * Get mock preferences for fallback
-   */
-  getMockPreferences() {
-    return {
-      email_notifications: true,
-      push_notifications: true,
-      notification_types: {
-        application: true,
-        interview: true,
-        system: true,
-        evaluation: true,
-        report: false
-      },
-      frequency: 'immediate'
-    };
-  }
 }
 
 // Export for use in other modules
