@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Institution Supervisor Feedback</title>
+  <title>Company Supervisor Feedback</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -16,7 +16,7 @@
     <div class="max-w-6xl mx-auto">
       <!-- Header Section -->
       <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-        <h1 class="text-2xl font-bold text-gray-800 mb-2">Institution Supervisor Logbook Review</h1>
+        <h1 class="text-2xl font-bold text-gray-800 mb-2">Company Supervisor Logbook Review</h1>
         <p class="text-gray-600">Review and provide feedback on intern logbooks</p>
       </div>
 
@@ -52,16 +52,12 @@
           'Week 1: Completed onboarding and started project research.',
           'Week 2: Developed initial project plan and met with team.'
         ],
-        institutionComments: [
-          'Institution: Keep up the good work.',
-          ''
-        ],
-        institutionCommentsVisible: [
-          true,
-          true
-        ],
         companyComments: [
           'Great work, Alice!',
+          ''
+        ],
+        institutionComments: [
+          'Institution: Keep up the good work.',
           ''
         ]
       },
@@ -75,15 +71,11 @@
           'Week 1: Assisted with data entry and learned about company systems.',
           'Week 2: Helped prepare weekly reports and attended training.'
         ],
-        institutionComments: [
+        companyComments: [
           '',
           ''
         ],
-        institutionCommentsVisible: [
-          true,
-          true
-        ],
-        companyComments: [
+        institutionComments: [
           '',
           ''
         ]
@@ -118,47 +110,37 @@
               <p class="text-gray-600">${intern.weeklyReports[wIdx]}</p>
             </div>
 
-            <!-- Institution Supervisor Feedback -->
+            <!-- Company Supervisor Feedback -->
             <div class="p-6">
               <h3 class="text-lg font-semibold text-gray-700 mb-3">Your Feedback</h3>
-              <form onsubmit="submitInstitutionComment(event, ${wIdx})">
+              <form onsubmit="submitCompanyComment(event, ${wIdx})">
                 <textarea 
-                  id="institutionCommentInput${wIdx}" 
+                  id="companyCommentInput${wIdx}" 
                   class="w-full border-2 border-gray-300 p-3 rounded-lg mb-3 min-h-[100px] focus:border-teal-500 focus:outline-none"
                   placeholder="Enter your feedback here..."
-                >${intern.institutionComments[wIdx] || ''}</textarea>
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-2 sm:space-y-0">
-                  <div class="flex items-center space-x-2">
-                    <input 
-                      type="checkbox" 
-                      id="visibleToStudent${wIdx}" 
-                      class="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
-                      ${intern.institutionCommentsVisible[wIdx] ? 'checked' : ''}
-                    >
-                    <label for="visibleToStudent${wIdx}" class="text-sm text-gray-600">
-                      Make visible to student
-                    </label>
+                >${intern.companyComments[wIdx] || ''}</textarea>
+                <div class="flex justify-between items-center">
+                  <div class="text-sm text-gray-500">
+                    This feedback will be visible to both the intern and institution supervisor
                   </div>
                   <button type="submit" class="bg-teal-500 text-white px-6 py-2 rounded-lg hover:bg-teal-600 transition-colors">
                     Save Feedback
                   </button>
                 </div>
               </form>
-              ${intern.institutionComments[wIdx] ? `
-                <div class="mt-4 p-4 ${intern.institutionCommentsVisible[wIdx] ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'} border rounded-lg">
-                  <div class="text-sm font-medium ${intern.institutionCommentsVisible[wIdx] ? 'text-green-800' : 'text-yellow-800'}">
-                    Saved Feedback (${intern.institutionCommentsVisible[wIdx] ? 'Visible to Student' : 'Hidden from Student'})
-                  </div>
-                  <div class="mt-1 text-gray-600">${intern.institutionComments[wIdx]}</div>
+              ${intern.companyComments[wIdx] ? `
+                <div class="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <div class="text-sm font-medium text-green-800">Saved Feedback:</div>
+                  <div class="mt-1 text-gray-600">${intern.companyComments[wIdx]}</div>
                 </div>
               ` : ''}
             </div>
 
-            <!-- Company Supervisor's Comments -->
+            <!-- Institution Supervisor's Comments -->
             <div class="p-6 bg-gray-50 border-t">
-              <h3 class="text-lg font-semibold text-gray-700 mb-3">Company Supervisor's Comments</h3>
+              <h3 class="text-lg font-semibold text-gray-700 mb-3">Institution Supervisor's Comments</h3>
               <div class="text-gray-600">
-                ${intern.companyComments[wIdx] || '<span class="text-gray-400">No comments yet</span>'}
+                ${intern.institutionComments[wIdx] || '<span class="text-gray-400">No comments yet</span>'}
               </div>
             </div>
           </div>
@@ -170,12 +152,10 @@
 
     let currentInternIdx = 0;
 
-    window.submitInstitutionComment = function(e, wIdx) {
+    window.submitCompanyComment = function(e, wIdx) {
       e.preventDefault();
-      const val = document.getElementById('institutionCommentInput' + wIdx).value.trim();
-      const visible = document.getElementById('visibleToStudent' + wIdx).checked;
-      interns[currentInternIdx].institutionComments[wIdx] = val;
-      interns[currentInternIdx].institutionCommentsVisible[wIdx] = visible;
+      const val = document.getElementById('companyCommentInput' + wIdx).value.trim();
+      interns[currentInternIdx].companyComments[wIdx] = val;
       renderReports();
     }
 
@@ -188,4 +168,4 @@
     renderReports();
   </script>
 </body>
-</html> 
+</html>
