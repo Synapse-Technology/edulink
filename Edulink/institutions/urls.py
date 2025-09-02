@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import (
-    InstitutionProfileDetailView,
+    CreateInstitutionView,
     InstitutionStudentListView,
     InstitutionApplicationListView,
     ApplicationStatusUpdateView,
@@ -13,6 +13,8 @@ from .views import (
     InstitutionRecentActivityView,
     GenerateRegistrationCodeView,
 )
+
+app_name = 'institutions'
 
 urlpatterns = [
     path('profile/', InstitutionProfileDetailView.as_view(), name='institution-profile'),
