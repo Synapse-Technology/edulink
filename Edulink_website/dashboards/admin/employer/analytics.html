@@ -9,6 +9,10 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- Lazy Loading Module -->
   <script src="js/modules/lazy-loader.js"></script>
+  <!-- API Utils Module -->
+  <script src="js/modules/api-utils.js"></script>
+  <!-- Analytics Backend Integration -->
+  <script src="js/analytics-backend.js"></script>
   <style>
     :root {
       --primary: #2563eb;
@@ -69,16 +73,22 @@
       transition: transform 0.3s ease;
     }
     .badge {
-      @apply px-2 py-1 text-xs font-medium rounded-full;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      border-radius: 9999px;
     }
     .badge-success {
-      @apply bg-green-100 text-green-800;
+      background-color: #dcfce7;
+      color: #166534;
     }
     .badge-warning {
-      @apply bg-yellow-100 text-yellow-800;
+      background-color: #fef3c7;
+      color: #92400e;
     }
     .badge-danger {
-      @apply bg-red-100 text-red-800;
+      background-color: #fee2e2;
+      color: #991b1b;
     }
     .progress-bar {
       transition: width 0.3s ease;
@@ -1078,8 +1088,30 @@
       }
     }
 
-    function loadPerformanceData() {
-      console.log('Loading performance evaluation data...');
+    async function loadPerformanceData() {
+      try {
+        const backend = getAnalyticsBackend();
+        const data = await backend.loadPerformanceData();
+        
+        updatePerformanceMetrics({
+          averageScore: data.averageScore,
+          completedEvaluations: data.completedEvaluations,
+          pendingReviews: data.pendingReviews,
+          completionRate: data.completionRate
+        });
+        
+        createPerformanceChart(data.chartData);
+      } catch (error) {
+        console.error('Error loading performance data:', error);
+        // Fallback to mock data
+        updatePerformanceMetrics({
+          averageScore: 87,
+          completedEvaluations: 24,
+          pendingReviews: 6,
+          completionRate: 92
+        });
+        createPerformanceChart();
+      }
     }
 
     function createEvaluation() {
@@ -1091,8 +1123,28 @@
     }
 
     // Reports Functions
-    function loadReportsData() {
-      console.log('Loading reports data...');
+    async function loadReportsData() {
+      try {
+        const backend = getAnalyticsBackend();
+        const data = await backend.loadReportsData();
+        
+        updateReportsMetrics({
+          scheduledReports: data.scheduledReports,
+          generatedReports: data.generatedReports,
+          categories: data.categories
+        });
+        
+        createReportsChart(data.chartData);
+      } catch (error) {
+        console.error('Error loading reports data:', error);
+        // Fallback to mock data
+        updateReportsMetrics({
+          scheduledReports: 2,
+          generatedReports: 15,
+          categories: ['Application', 'Performance', 'Compliance']
+        });
+        createReportsChart();
+      }
     }
 
     function initializeReportCharts() {
@@ -1121,51 +1173,104 @@
       }
     }
 
-    function generateCustomReport() {
-      alert('Custom report generation feature coming soon!');
+    async function generateCustomReport() {
+      try {
+        const backend = getAnalyticsBackend();
+        const reportConfig = {
+          type: 'custom',
+          dateRange: {
+            start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+            end: new Date().toISOString()
+          },
+          metrics: ['applications', 'performance', 'internships']
+        };
+        
+        const result = await backend.generateCustomReport(reportConfig);
+        
+        if (result.success) {
+          alert('Custom report generated successfully!');
+          // Refresh reports data
+          loadReportsData();
+        } else {
+          alert('Failed to generate custom report: ' + result.message);
+        }
+      } catch (error) {
+        console.error('Error generating custom report:', error);
+        alert('Error generating custom report. Please try again.');
+      }
     }
 
-    function scheduleReport() {
-      alert('Schedule report feature coming soon!');
+    async function scheduleReport() {
+      try {
+        const backend = getAnalyticsBackend();
+        const scheduleConfig = {
+          type: 'scheduled',
+          frequency: 'weekly',
+          dayOfWeek: 1, // Monday
+          time: '09:00',
+          recipients: ['employer@company.com']
+        };
+        
+        const result = await backend.scheduleReport(scheduleConfig);
+        
+        if (result.success) {
+          alert('Report scheduled successfully!');
+          // Refresh reports data
+          loadReportsData();
+        } else {
+          alert('Failed to schedule report: ' + result.message);
+        }
+      } catch (error) {
+        console.error('Error scheduling report:', error);
+        alert('Error scheduling report. Please try again.');
+      }
     }
 
     // Utility Functions
-    function refreshAnalytics() {
+    async function refreshAnalytics() {
       const button = event.target.closest('button');
       const icon = button.querySelector('i');
       icon.classList.add('fa-spin');
       
-      setTimeout(() => {
-        loadPerformanceData();
-        loadReportsData();
+      try {
+        const backend = getAnalyticsBackend();
+        await backend.refreshAllData();
+        
+        // Reload the UI with fresh data
+        await loadPerformanceData();
+        await loadReportsData();
+        
+        console.log('Analytics data refreshed successfully');
+      } catch (error) {
+        console.error('Error refreshing analytics:', error);
+      } finally {
         icon.classList.remove('fa-spin');
-      }, 1000);
+      }
     }
 
-    function exportAnalyticsData() {
-      const data = {
-        performance: {
-          averageScore: 87,
-          completedEvaluations: 24,
-          pendingReviews: 6,
-          completionRate: 92
-        },
-        reports: {
-          scheduled: 2,
-          generated: 15,
-          categories: ['Application', 'Performance', 'Compliance']
+    async function exportAnalyticsData() {
+      try {
+        const backend = getAnalyticsBackend();
+        const exportConfig = {
+          format: 'json',
+          includeCharts: true,
+          dateRange: {
+            start: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
+            end: new Date().toISOString()
+          }
+        };
+        
+        const result = await backend.exportAnalyticsData(exportConfig);
+        
+        if (result.success) {
+          console.log('Analytics data exported successfully');
+        } else {
+          console.warn('Export completed with fallback method');
         }
-      };
-      
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `analytics-data-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error('Error exporting analytics data:', error);
+        alert('Error exporting data. Please try again.');
+      }
     }
 
     // Toggle dropdown functionality
@@ -1211,8 +1316,15 @@
 
     // Initialize page
     document.addEventListener('DOMContentLoaded', function() {
+      // Initialize analytics backend
+      initializeAnalyticsBackend();
+      
       // Show performance section by default
       showSection('performance');
+      
+      // Load initial data
+      loadPerformanceData();
+      loadReportsData();
       
       // Expand analytics dropdown by default
       const analyticsDropdown = document.getElementById('analytics-dropdown');

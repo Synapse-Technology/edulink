@@ -671,6 +671,7 @@
       }
     }
 
+    @media (max-width: 640px) {
       .hero-icon {
         width: 48px;
         height: 48px;
@@ -1094,6 +1095,10 @@
     </div>
   </div>
 
+  <!-- Backend Integration Scripts -->
+  <script src="js/modules/api-utils.js"></script>
+  <script src="js/interns-backend.js"></script>
+  
   <script>
     // Intern Management Data
     let interns = [
@@ -1189,14 +1194,62 @@
       }
     ];
 
+    // Backend connection instance
+    let internsBackend = null;
+
     // Load and display interns
-    function loadInterns() {
+    async function loadInterns() {
+      const internsContainer = document.getElementById('internsContainer');
+      
+      // Show loading state
+      internsContainer.innerHTML = `
+        <div class="text-center py-12">
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p class="text-gray-600">Loading interns...</p>
+        </div>
+      `;
+      
+      try {
+        if (internsBackend) {
+          const data = await internsBackend.loadInterns();
+          if (data && data.interns) {
+            interns = data.interns;
+          }
+        }
+      } catch (error) {
+        console.error('Error loading interns from backend:', error);
+        // Use local data as fallback
+      }
+      
       displayInterns(interns);
       updateResultsCount(interns.length);
     }
 
     // Update intern statistics
-    function updateInternStatistics() {
+    async function updateInternStatistics() {
+      // Show loading state for statistics
+      const statsElements = ['totalInterns', 'activeInterns', 'completedInterns', 'averageProgress'];
+      statsElements.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) element.textContent = '...';
+      });
+      
+      try {
+        if (internsBackend) {
+          const stats = await internsBackend.loadInternStatistics();
+          if (stats) {
+            document.getElementById('totalInterns').textContent = stats.total_interns || 0;
+            document.getElementById('activeInterns').textContent = stats.active_interns || 0;
+            document.getElementById('completedInterns').textContent = stats.completed_interns || 0;
+            document.getElementById('averageProgress').textContent = (stats.average_progress || 0) + '%';
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('Error loading statistics from backend:', error);
+      }
+      
+      // Fallback to local calculation
       const total = interns.length;
       const active = interns.filter(i => i.status === 'active').length;
       const completed = interns.filter(i => i.status === 'completed').length;
@@ -1560,13 +1613,48 @@
       }
     }
 
-    function updateInternStatus(id) {
-      // This would open a status update modal
+    async function updateInternStatus(id) {
+      try {
+        if (internsBackend) {
+          const newStatus = prompt('Enter new status (active, completed, on-leave, terminated):');
+          if (newStatus) {
+            await internsBackend.updateInternStatus(id, newStatus);
+            await loadInterns();
+            await updateInternStatistics();
+            showNotification('Intern status updated successfully!', 'success');
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('Error updating intern status:', error);
+        showNotification('Failed to update intern status', 'error');
+      }
+      
+      // Fallback notification
       showNotification('Status update functionality would be implemented here', 'info');
     }
 
     // Export interns data
-    function exportInterns() {
+    async function exportInterns() {
+      try {
+        if (internsBackend) {
+          const exportData = await internsBackend.exportInternData('csv');
+          if (exportData && exportData.url && exportData.url !== '#') {
+            const link = document.createElement('a');
+            link.href = exportData.url;
+            link.download = exportData.filename || 'interns_export.csv';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showNotification('Interns data exported successfully!', 'success');
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('Error exporting interns data:', error);
+      }
+      
+      // Fallback to local export
       const csvContent = "data:text/csv;charset=utf-8," + 
         "Name,Email,Phone,Position,Department,Supervisor,Start Date,End Date,Status,Progress,Performance\n" +
         interns.map(i => 
@@ -1673,6 +1761,11 @@
     // Initialize page
     document.addEventListener('DOMContentLoaded', function() {
       initializeTheme();
+      
+      // Initialize backend connection
+      if (window.InternsBackend) {
+        internsBackend = new window.InternsBackend();
+      }
       
       // Ensure Management dropdown is open and others are closed
       document.getElementById('management-dropdown').classList.remove('hidden');

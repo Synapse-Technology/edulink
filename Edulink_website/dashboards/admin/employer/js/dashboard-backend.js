@@ -7,7 +7,7 @@
 let dashboardManager = null;
 let apiUtils = null;
 let domUtils = null;
-let chartUtils = null;
+// chartUtils is already available globally from chart-utils.js module
 
 /**
  * Initialize dashboard modules
@@ -16,12 +16,12 @@ function initializeModules() {
     // Initialize utility modules
     apiUtils = new APIUtils();
     domUtils = new DOMUtils();
-    chartUtils = new ChartUtils();
+    // Use the global chartUtils instance from chart-utils.js
     
     // Initialize dashboard manager
     dashboardManager = new DashboardManager();
     
-    return { dashboardManager, apiUtils, domUtils, chartUtils };
+    return { dashboardManager, apiUtils, domUtils, chartUtils: window.chartUtils };
 }
 
 /**
@@ -206,6 +206,26 @@ class EmployerDashboardAPI {
             return await this.modules.apiUtils.get('/dashboards/workflows/analytics/employer/');
         }
         return null;
+    }
+
+    async loadInternships() {
+        if (this.modules && this.modules.apiUtils) {
+            try {
+                return await this.modules.apiUtils.get('/internships/');
+            } catch (error) {
+                console.error('Error loading internships:', error);
+                return [];
+            }
+        }
+        return [];
+    }
+
+    filterApplications(searchTerm, statusFilter) {
+        if (this.modules && this.modules.dashboardManager) {
+            this.modules.dashboardManager.filterApplications(searchTerm, statusFilter);
+        } else {
+            console.warn('Dashboard manager not available for filtering');
+        }
     }
 
     cleanup() {
