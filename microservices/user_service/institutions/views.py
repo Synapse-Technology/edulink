@@ -13,7 +13,8 @@ import logging
 
 from .models import (
     Institution, InstitutionDepartment, InstitutionProgram,
-    InstitutionSettings, InstitutionInvitation, UniversityRegistrationCode
+    InstitutionSettings, InstitutionInvitation, UniversityRegistrationCode,
+    MasterInstitution
 )
 from .serializers import (
     InstitutionSerializer, InstitutionListSerializer,
@@ -21,7 +22,8 @@ from .serializers import (
     InstitutionSettingsSerializer, InstitutionInvitationSerializer,
     InstitutionStatsSerializer, InstitutionVerificationSerializer,
     InstitutionSearchSerializer, UniversityRegistrationCodeSerializer,
-    UniversityRegistrationCodeValidationSerializer, UniversityRegistrationCodeUsageSerializer
+    UniversityRegistrationCodeValidationSerializer, UniversityRegistrationCodeUsageSerializer,
+    MasterInstitutionSerializer, MasterInstitutionSearchSerializer
 )
 from utils.permissions import IsInstitutionAdmin, IsSystemAdmin
 from utils.pagination import StandardResultsSetPagination
@@ -719,3 +721,75 @@ class UniversityRegistrationCodeDetailView(generics.RetrieveUpdateDestroyAPIView
                 institution_id=user_institution_id
             ).select_related('institution')
         return UniversityRegistrationCode.objects.none()
+
+
+class MasterInstitutionSearchView(generics.ListAPIView):
+    """
+    Search master institutions for registration verification.
+    Public endpoint for institution lookup during registration.
+    """
+    serializer_class = MasterInstitutionSearchSerializer
+    permission_classes = [AllowAny]
+    pagination_class = StandardResultsSetPagination
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['name', 'short_name', 'location', 'county']
+    ordering_fields = ['name', 'created_at']
+    ordering = ['name']
+    
+    def get_queryset(self):
+        queryset = MasterInstitution.objects.filter(is_active=True)
+        
+        # Filter by query parameters
+        institution_type = self.request.query_params.get('type')
+        accreditation_body = self.request.query_params.get('accreditation_body')
+        county = self.request.query_params.get('county')
+        verified_only = self.request.query_params.get('verified_only', 'false').lower() == 'true'
+        
+        if institution_type:
+            queryset = queryset.filter(institution_type=institution_type)
+        
+        if accreditation_body:
+            queryset = queryset.filter(accreditation_body=accreditation_body)
+        
+        if county:
+            queryset = queryset.filter(county__icontains=county)
+        
+        if verified_only:
+            queryset = queryset.filter(is_verified=True)
+        
+        return queryset
+
+
+class MasterInstitutionDetailView(generics.RetrieveAPIView):
+    """
+    Retrieve detailed information about a master institution.
+    Public endpoint for institution details during registration.
+    """
+    queryset = MasterInstitution.objects.filter(is_active=True)
+    serializer_class = MasterInstitutionSerializer
+    permission_classes = [AllowAny]
+    lookup_field = 'id'
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def master_institution_verify(request, accreditation_number):
+    """
+    Verify if an institution exists in the master database by accreditation number.
+    Returns basic institution info if found.
+    """
+    try:
+        institution = MasterInstitution.objects.get(
+            accreditation_number=accreditation_number,
+            is_active=True
+        )
+        serializer = MasterInstitutionSearchSerializer(institution)
+        return Response({
+            'verified': True,
+            'institution': serializer.data
+        })
+    except MasterInstitution.DoesNotExist:
+        return Response({
+            'verified': False,
+            'message': 'Institution not found in master database'
+        }, status=status.HTTP_404_NOT_FOUND)

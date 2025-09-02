@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analytics Dashboard - EduLink Employer Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Lazy Loading Module -->
+  <script src="js/modules/lazy-loader.js"></script>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --secondary: #0ea5e9;
+      --accent: #f59e0b;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --background: #f8fafc;
+      --card-bg: #ffffff;
+      --text-primary: #1e293b;
+      --text-secondary: #64748b;
+      --border: #e2e8f0;
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+      --gradient-primary: linear-gradient(135deg, #2563eb 0%, #0ea5e9 100%);
+      --gradient-secondary: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+    }
+    
+    .sidebar {
+      background: var(--gradient-primary);
+      box-shadow: var(--shadow-lg);
+      border-right: 1px solid var(--border);
+    }
+    
+    .sidebar-brand {
+      font-family: 'Poppins', sans-serif;
+      font-weight: 700;
+      font-size: 1.75rem;
+      color: white;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      letter-spacing: 0.5px;
+    }
+    
+    .nav-item {
+      transition: all 0.3s ease;
+      border-radius: 12px;
+      margin: 4px 8px;
+    }
+    .nav-item:hover {
+      background: rgba(255,255,255,0.15);
+      transform: translateX(4px);
+    }
+    .nav-item.active {
+      background: rgba(255,255,255,0.2);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .dropdown-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+    .dropdown-content:not(.hidden) {
+      max-height: 500px;
+    }
+    .dropdown-arrow {
+      transition: transform 0.3s ease;
+    }
+    .badge {
+      @apply px-2 py-1 text-xs font-medium rounded-full;
+    }
+    .badge-success {
+      @apply bg-green-100 text-green-800;
+    }
+    .badge-warning {
+      @apply bg-yellow-100 text-yellow-800;
+    }
+    .badge-danger {
+      @apply bg-red-100 text-red-800;
+    }
+    .progress-bar {
+      transition: width 0.3s ease;
+    }
+    .sidebar-transition {
+      transition: transform 0.3s ease;
+    }
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-100%);
+      }
+      .sidebar.open {
+        transform: translateX(0);
+      }
+    }
+    .chart-container {
+      position: relative;
+      height: 300px;
+    }
+    .metric-card {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .metric-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+    
+    .dark-mode-toggle {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: var(--shadow);
+      color: var(--text-secondary);
+    }
+    
+    .dark-mode-toggle:hover {
+      transform: scale(1.05);
+      box-shadow: var(--shadow-lg);
+      color: var(--primary);
+    }
+    
+    .header {
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      box-shadow: var(--shadow);
+    }
+    
+    .header-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    
+    .header-left {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-shrink: 0;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem 1rem;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+      font-size: 0.875rem;
+    }
+
+    .user-info {
+      display: flex;
+      flex-direction: column;
+      gap: 0.125rem;
+    }
+
+    .user-name {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 0;
+    }
+
+    .user-email {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin: 0;
+    }
+
+    .notification-btn {
+      position: relative;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      color: var(--text-secondary);
+    }
+
+    .notification-btn:hover {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+    }
+
+    .notification-badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      background: #ef4444;
+      color: white;
+      border-radius: 50%;
+      width: 16px;
+      height: 16px;
+      font-size: 0.625rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+    }
+    
+    .header-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0;
+      line-height: 1.2;
+    }
+    
+    .header-subtitle {
+      color: var(--text-secondary);
+      margin: 0.25rem 0 0 0;
+      font-size: 0.875rem;
+    }
+    
+    .action-btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+    
+    .action-btn:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+    
+    .action-btn.secondary {
+      background: var(--success);
+    }
+    
+    .action-btn.secondary:hover {
+      background: #059669;
+    }
+    
+    @media (max-width: 768px) {
+      .header-content {
+        gap: 0.5rem;
+      }
+      
+      .header-title {
+        font-size: 1.25rem;
+      }
+      
+      .header-subtitle {
+        display: none;
+      }
+      
+      .action-btn span {
+        display: none;
+      }
+    }
+    
+    @media (max-width: 640px) {
+      .header-title {
+        font-size: 1.125rem;
+      }
+      
+      .dark-mode-toggle {
+        width: 36px;
+        height: 36px;
+      }
+      
+      .action-btn {
+        padding: 0.375rem;
+      }
+    }
+    
+    /* Employer Management Hero Section */
+    .employer-management-hero {
+      position: relative;
+      background: var(--card-bg);
+      border-radius: 24px;
+      margin-bottom: 3rem;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(37, 99, 235, 0.08);
+      border: 1px solid var(--border);
+    }
+    
+    .employer-management-hero .hero-background {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 1;
+    }
+    
+    .employer-management-hero .hero-pattern {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: 
+        radial-gradient(circle at 25% 25%, rgba(37, 99, 235, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 75% 75%, rgba(14, 165, 233, 0.1) 0%, transparent 50%),
+        linear-gradient(45deg, transparent 40%, rgba(37, 99, 235, 0.02) 50%, transparent 60%);
+      background-size: 200px 200px, 150px 150px, 100px 100px;
+      animation: patternMove 20s ease-in-out infinite;
+    }
+    
+    @keyframes patternMove {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      33% { transform: translate(10px, -10px) rotate(1deg); }
+      66% { transform: translate(-5px, 5px) rotate(-0.5deg); }
+    }
+    
+    .employer-management-hero .hero-gradient {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, 
+        rgba(37, 99, 235, 0.05) 0%, 
+        rgba(14, 165, 233, 0.03) 50%, 
+        rgba(37, 99, 235, 0.02) 100%);
+    }
+    
+    .employer-management-hero .hero-content {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      padding: 3rem 2.5rem 2rem;
+    }
+    
+    .employer-management-hero .hero-icon {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, #2563eb 0%, #0ea5e9 100%);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      color: white;
+      box-shadow: 0 8px 24px rgba(37, 99, 235, 0.3);
+      animation: iconFloat 3s ease-in-out infinite;
+    }
+    
+    @keyframes iconFloat {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-5px); }
+    }
+    
+    .employer-management-hero .hero-text {
+      flex: 1;
+    }
+    
+    .employer-management-hero .hero-title {
+      font-size: 2.75rem;
+      font-weight: 900;
+      color: #1e293b;
+      margin-bottom: 1rem;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      background: linear-gradient(135deg, #1e293b 0%, #2563eb 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+    
+    @supports not (-webkit-background-clip: text) {
+      .employer-management-hero .hero-title {
+        background: none;
+        -webkit-text-fill-color: initial;
+        color: #1e293b;
+      }
+    }
+    
+    .employer-management-hero .hero-subtitle {
+      font-size: 1.25rem;
+      color: #64748b;
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+      max-width: 600px;
+      font-weight: 400;
+    }
+    
+    .employer-management-hero .hero-features {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    
+    .employer-management-hero .feature-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: rgba(37, 99, 235, 0.1);
+      color: #2563eb;
+      border-radius: 20px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      border: 1px solid rgba(37, 99, 235, 0.2);
+      transition: all 0.3s ease;
+    }
+    
+    .employer-management-hero .feature-tag:hover {
+      background: rgba(37, 99, 235, 0.15);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+    }
+    
+    .employer-management-hero .hero-actions {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      gap: 1rem;
+      padding: 0 2.5rem 2.5rem;
+      justify-content: flex-end;
+    }
+    
+    .employer-management-hero .hero-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1rem 2rem;
+      border: none;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      text-decoration: none;
+      outline: none;
+    }
+    
+    .employer-management-hero .hero-btn.primary {
+      background: linear-gradient(135deg, #2563eb 0%, #0ea5e9 100%);
+      color: white;
+      box-shadow: 0 6px 20px rgba(37, 99, 235, 0.3);
+    }
+    
+    .employer-management-hero .hero-btn.primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 30px rgba(37, 99, 235, 0.4);
+    }
+    
+    .employer-management-hero .hero-btn.secondary {
+      background: #ffffff;
+      color: #1e293b;
+      border: 2px solid #e2e8f0;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+    
+    .employer-management-hero .hero-btn.secondary:hover {
+      background: #f8fafc;
+      border-color: #2563eb;
+      color: #2563eb;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(37, 99, 235, 0.15);
+    }
+    
+    /* Responsive Design for Hero Section */
+    @media (max-width: 768px) {
+      .employer-management-hero .hero-content {
+        flex-direction: column;
+        text-align: center;
+        padding: 2rem 1.5rem 1.5rem;
+      }
+      
+      .employer-management-hero .hero-title {
+        font-size: 2rem;
+      }
+      
+      .employer-management-hero .hero-subtitle {
+        font-size: 1.1rem;
+      }
+      
+      .employer-management-hero .hero-actions {
+        flex-direction: column;
+        padding: 0 1.5rem 2rem;
+      }
+      
+      .employer-management-hero .hero-btn {
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body class="bg-gray-50">
+
+
+  <!-- Mobile Menu Button -->
+  <button id="mobileMenuBtn" class="fixed top-4 left-4 z-50 md:hidden p-2 bg-gray-800 text-white rounded-lg shadow-lg">
+    <i class="fas fa-bars"></i>
+  </button>
+
+  <!-- Sidebar Overlay -->
+  <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden md:hidden"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar fixed left-0 top-0 h-full w-64 p-6 z-50 transform transition-transform duration-300 md:translate-x-0 -translate-x-full" id="sidebar">
+    <div class="sidebar-brand text-center mb-8 pb-6 border-b border-white border-opacity-20">
+      EduLink
+      <div class="text-sm font-normal text-white text-opacity-80 mt-1">Employer Portal</div>
+    </div>
+
+    
+    <nav class="space-y-1">
+      <!-- Core Navigation -->
+      <a href="dashboard.html" class="nav-item w-full text-left px-3 py-2 rounded-lg text-white flex items-center space-x-2 text-sm">
+        <i class="fas fa-chart-line w-4"></i>
+        <span>Dashboard</span>
+      </a>
+      <a href="post-opportunities.html" class="nav-item w-full text-left px-3 py-2 rounded-lg text-white flex items-center space-x-2 text-sm hover:bg-white hover:bg-opacity-10">
+        <i class="fas fa-plus-circle w-4"></i>
+        <span>Post Opportunities</span>
+      </a>
+      <a href="notifications.html" class="nav-item w-full text-left px-3 py-2 rounded-lg text-white flex items-center space-x-2 text-sm hover:bg-white hover:bg-opacity-10">
+        <i class="fas fa-bell w-4"></i>
+        <span>Notifications</span>
+      </a>
+
+      
+      <!-- Management Dropdown -->
+      <div class="nav-dropdown">
+        <button onclick="toggleDropdown('management')" class="nav-item w-full text-left px-3 py-2 rounded-lg text-white flex items-center justify-between text-sm hover:bg-white hover:bg-opacity-10">
+          <div class="flex items-center space-x-2">
+            <i class="fas fa-users w-4"></i>
+            <span>Management</span>
+          </div>
+          <i class="fas fa-chevron-down w-3 dropdown-arrow transition-transform" id="management-arrow"></i>
+        </button>
+        <div id="management-dropdown" class="dropdown-content hidden ml-4 mt-1 space-y-1">
+          <a href="applications.html" class="nav-item w-full text-left px-3 py-1.5 rounded text-white flex items-center space-x-2 text-xs hover:bg-white hover:bg-opacity-10">
+            <i class="fas fa-file-alt w-3"></i>
+            <span>Applications</span>
+          </a>
+          <a href="interns.html" class="nav-item w-full text-left px-3 py-1.5 rounded text-white flex items-center space-x-2 text-xs hover:bg-white hover:bg-opacity-10">
+            <i class="fas fa-users w-3"></i>
+            <span>Active Interns</span>
+          </a>
+          <a href="interviews.html" class="nav-item w-full text-left px-3 py-1.5 rounded text-white flex items-center space-x-2 text-xs hover:bg-white hover:bg-opacity-10">
+            <i class="fas fa-calendar-alt w-3"></i>
+            <span>Interviews</span>
+          </a>
+          <a href="#" onclick="showSection('feedback')" class="nav-item w-full text-left px-3 py-1.5 rounded text-white flex items-center space-x-2 text-xs hover:bg-white hover:bg-opacity-10">
+            <i class="fas fa-comments w-3"></i>
+            <span>Feedback</span>
+          </a>
+          <a href="supervisors.html" class="nav-item w-full text-left px-3 py-1.5 rounded text-white flex items-center space-x-2 text-xs hover:bg-white hover:bg-opacity-10">
+            <i class="fas fa-users-cog w-3"></i>
+            <span>Supervisors</span>
+          </a>
+        </div>
+      </div>
+
+      
+      <!-- Analytics Dropdown -->
+      <div class="nav-dropdown">
+        <button onclick="toggleDropdown('analytics')" class="nav-item active w-full text-left px-3 py-2 rounded-lg text-white flex items-center justify-between text-sm">
+          <div class="flex items-center space-x-2">
+            <i class="fas fa-chart-bar w-4"></i>
+            <span>Analytics</span>
+          </div>
+          <i class="fas fa-chevron-down w-3 dropdown-arrow transition-transform" id="analytics-arrow"></i>
+        </button>
+        <div id="analytics-dropdown" class="dropdown-content hidden ml-4 mt-1 space-y-1">
+          <a href="#performance" onclick="showSection('performance')" class="nav-item w-full text-left px-3 py-1.5 rounded text-white flex items-center space-x-2 text-xs hover:bg-white hover:bg-opacity-10">
+            <i class="fas fa-chart-line w-3"></i>
+            <span>Performance</span>
+          </a>
+          <a href="#reports" onclick="showSection('reports')" class="nav-item w-full text-left px-3 py-1.5 rounded text-white flex items-center space-x-2 text-xs hover:bg-white hover:bg-opacity-10">
+            <i class="fas fa-file-chart w-3"></i>
+            <span>Reports</span>
+          </a>
+        </div>
+      </div>
+      
+      <!-- System Dropdown -->
+      <div class="nav-dropdown">
+        <button onclick="toggleDropdown('system')" class="nav-item w-full text-left px-3 py-2 rounded-lg text-white flex items-center justify-between text-sm hover:bg-white hover:bg-opacity-10">
+          <div class="flex items-center space-x-2">
+            <i class="fas fa-cogs w-4"></i>
+            <span>System</span>
+          </div>
+          <i class="fas fa-chevron-down w-3 dropdown-arrow transition-transform" id="system-arrow"></i>
+        </button>
+        <div id="system-dropdown" class="dropdown-content hidden ml-4 mt-1 space-y-1">
+          <a href="system.html#integrations" onclick="showSection('integrations')" class="nav-item w-full text-left px-3 py-1.5 rounded text-white flex items-center space-x-2 text-xs hover:bg-white hover:bg-opacity-10">
+            <i class="fas fa-plug w-3"></i>
+            <span>Integrations</span>
+          </a>
+          <a href="system.html#compliance" onclick="showSection('compliance')" class="nav-item w-full text-left px-3 py-1.5 rounded text-white flex items-center space-x-2 text-xs hover:bg-white hover:bg-opacity-10">
+            <i class="fas fa-shield-alt w-3"></i>
+            <span>Compliance</span>
+          </a>
+        </div>
+      </div>
+      
+      <a href="opportunities.html" class="nav-item w-full text-left px-3 py-2 rounded-lg text-white flex items-center space-x-2 text-sm hover:bg-white hover:bg-opacity-10">
+        <i class="fas fa-briefcase w-4"></i>
+        <span>View Opportunities</span>
+      </a>
+    </nav>
+    
+    <div class="mt-auto pt-6 border-t border-white border-opacity-20">
+      <a href="#" class="nav-item w-full text-left px-4 py-3 rounded-lg text-white flex items-center space-x-3 font-medium">
+        <i class="fas fa-cog w-5"></i>
+        <span>Settings</span>
+      </a>
+      <a href="#" class="nav-item w-full text-left px-4 py-3 rounded-lg text-white flex items-center space-x-3 font-medium">
+        <i class="fas fa-question-circle w-5"></i>
+        <span>Help Center</span>
+      </a>
+      <a href="#" class="nav-item w-full text-left px-4 py-3 rounded-lg text-white flex items-center space-x-3 font-medium">
+        <i class="fas fa-sign-out-alt w-5"></i>
+        <span>Log Out</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content flex-1 md:ml-64 min-h-screen">
+    <!-- Header -->
+    <div class="header sticky top-0 z-20 px-6 py-4">
+      <div class="header-content">
+        <div class="header-left">
+          <!-- Header content moved to hero section -->
+        </div>
+        <div class="header-right">
+          <button class="notification-btn" title="Notifications">
+            <i class="fas fa-bell text-lg"></i>
+            <span class="notification-badge" id="notification-count">0</span>
+          </button>
+          <button class="dark-mode-toggle" onclick="toggleDarkMode()" title="Toggle Dark Mode">
+            <i class="fas fa-moon" id="darkModeIcon"></i>
+          </button>
+          <div class="user-profile">
+            <img src="https://via.placeholder.com/40" alt="Profile" class="user-avatar">
+            <div class="user-info">
+              <div class="user-name">Company Admin</div>
+              <div class="user-email">admin@company.com</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="p-6">
+      <!-- Enhanced Analytics Management Header -->
+      <div class="employer-management-hero">
+      <div class="hero-background">
+        <div class="hero-pattern"></div>
+        <div class="hero-gradient"></div>
+      </div>
+      
+      <div class="hero-content">
+        <div class="hero-icon">
+          <i class="fas fa-chart-bar"></i>
+        </div>
+        
+        <div class="hero-text">
+          <h1 class="hero-title">Analytics Dashboard</h1>
+          <p class="hero-subtitle">Performance insights and comprehensive reporting</p>
+          
+          <div class="hero-features">
+            <span class="feature-tag">
+              <i class="fas fa-chart-line"></i>
+              Performance Tracking
+            </span>
+            <span class="feature-tag">
+              <i class="fas fa-file-chart"></i>
+              Detailed Reports
+            </span>
+            <span class="feature-tag">
+              <i class="fas fa-sync-alt"></i>
+              Real-time Data
+            </span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="hero-actions">
+        <button onclick="refreshAnalytics()" class="hero-btn secondary">
+          <i class="fas fa-sync-alt"></i>
+          Refresh Data
+        </button>
+        <button onclick="exportAnalyticsData()" class="hero-btn primary">
+          <i class="fas fa-download"></i>
+          Export Data
+        </button>
+      </div>
+    </div>
+
+    <!-- Content Area -->
+    <main class="p-6">
+      <!-- Performance Evaluation Section -->
+      <section id="performance-section">
+        <div class="mb-6">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-gray-900">Performance Evaluation System</h2>
+            <div class="flex space-x-3">
+              <button onclick="createEvaluation()" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors flex items-center space-x-2">
+                <i class="fas fa-plus"></i>
+                <span>Create Evaluation</span>
+              </button>
+              <button onclick="exportEvaluations()" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors flex items-center space-x-2">
+                <i class="fas fa-download"></i>
+                <span>Export</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Performance Overview Cards -->
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+            <div class="metric-card bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
+              <div class="text-3xl font-bold text-blue-600 mb-2">87%</div>
+              <div class="text-gray-600">Average Performance</div>
+              <div class="text-sm text-blue-600 mt-1">↑ 5% from last month</div>
+            </div>
+            <div class="metric-card bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
+              <div class="text-3xl font-bold text-green-600 mb-2">24</div>
+              <div class="text-gray-600">Evaluations Completed</div>
+              <div class="text-sm text-green-600 mt-1">This month</div>
+            </div>
+            <div class="metric-card bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
+              <div class="text-3xl font-bold text-orange-600 mb-2">6</div>
+              <div class="text-gray-600">Pending Reviews</div>
+              <div class="text-sm text-orange-600 mt-1">Require attention</div>
+            </div>
+            <div class="metric-card bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
+              <div class="text-3xl font-bold text-purple-600 mb-2">92%</div>
+              <div class="text-gray-600">Completion Rate</div>
+              <div class="text-sm text-purple-600 mt-1">On-time submissions</div>
+            </div>
+          </div>
+
+          <!-- Performance Trend Chart -->
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+            <div class="p-6 border-b border-gray-200">
+              <h3 class="text-lg font-semibold text-gray-900">Performance Trends</h3>
+            </div>
+            <div class="p-6">
+              <div class="chart-container">
+                <canvas id="performanceTrendChart" data-lazy-chart="line"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Evaluations -->
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+            <div class="p-6 border-b border-gray-200">
+              <h3 class="text-lg font-semibold text-gray-900">Recent Evaluations</h3>
+            </div>
+            <div class="p-6">
+              <div class="overflow-x-auto">
+                <table class="min-w-full">
+                  <thead>
+                    <tr class="border-b border-gray-200">
+                      <th class="text-left py-3 px-4 font-medium text-gray-900">Intern</th>
+                      <th class="text-left py-3 px-4 font-medium text-gray-900">Supervisor</th>
+                      <th class="text-left py-3 px-4 font-medium text-gray-900">Score</th>
+                      <th class="text-left py-3 px-4 font-medium text-gray-900">Date</th>
+                      <th class="text-left py-3 px-4 font-medium text-gray-900">Status</th>
+                      <th class="text-left py-3 px-4 font-medium text-gray-900">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="evaluationsTableBody">
+                    <tr class="border-b border-gray-100">
+                      <td class="py-3 px-4">Sarah Johnson</td>
+                      <td class="py-3 px-4">Dr. Smith</td>
+                      <td class="py-3 px-4">
+                        <span class="badge badge-success">92%</span>
+                      </td>
+                      <td class="py-3 px-4">2024-01-15</td>
+                      <td class="py-3 px-4">
+                        <span class="badge badge-success">Completed</span>
+                      </td>
+                      <td class="py-3 px-4">
+                        <button class="text-blue-600 hover:text-blue-800 mr-2">View</button>
+                        <button class="text-green-600 hover:text-green-800">Download</button>
+                      </td>
+                    </tr>
+                    <tr class="border-b border-gray-100">
+                      <td class="py-3 px-4">Michael Chen</td>
+                      <td class="py-3 px-4">Prof. Davis</td>
+                      <td class="py-3 px-4">
+                        <span class="badge badge-warning">78%</span>
+                      </td>
+                      <td class="py-3 px-4">2024-01-12</td>
+                      <td class="py-3 px-4">
+                        <span class="badge badge-warning">Under Review</span>
+                      </td>
+                      <td class="py-3 px-4">
+                        <button class="text-blue-600 hover:text-blue-800 mr-2">View</button>
+                        <button class="text-orange-600 hover:text-orange-800">Follow Up</button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Reports Section -->
+      <section id="reports-section">
+        <div class="mb-6">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-gray-900">Advanced Reporting Tools</h2>
+            <div class="flex space-x-3">
+              <button onclick="generateCustomReport()" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors flex items-center space-x-2">
+                <i class="fas fa-chart-bar"></i>
+                <span>Generate Report</span>
+              </button>
+              <button onclick="scheduleReport()" class="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition-colors flex items-center space-x-2">
+                <i class="fas fa-clock"></i>
+                <span>Schedule</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Report Categories -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <!-- Application Reports -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">Application Reports</h3>
+              <div class="space-y-3">
+                <button class="w-full text-left p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                  <div class="font-medium text-gray-900">Application Summary</div>
+                  <div class="text-sm text-gray-600">Overview of all applications</div>
+                </button>
+                <button class="w-full text-left p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                  <div class="font-medium text-gray-900">Conversion Rates</div>
+                  <div class="text-sm text-gray-600">Application to placement ratios</div>
+                </button>
+                <button class="w-full text-left p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                  <div class="font-medium text-gray-900">Source Analysis</div>
+                  <div class="text-sm text-gray-600">Where applications come from</div>
+                </button>
+              </div>
+            </div>
+
+            <!-- Performance Reports -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">Performance Reports</h3>
+              <div class="space-y-3">
+                <button class="w-full text-left p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                  <div class="font-medium text-gray-900">Intern Performance</div>
+                  <div class="text-sm text-gray-600">Individual and group metrics</div>
+                </button>
+                <button class="w-full text-left p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                  <div class="font-medium text-gray-900">Supervisor Feedback</div>
+                  <div class="text-sm text-gray-600">Evaluation summaries</div>
+                </button>
+                <button class="w-full text-left p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                  <div class="font-medium text-gray-900">Progress Tracking</div>
+                  <div class="text-sm text-gray-600">Timeline and milestones</div>
+                </button>
+              </div>
+            </div>
+
+            <!-- Compliance Reports -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">Compliance Reports</h3>
+              <div class="space-y-3">
+                <button class="w-full text-left p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                  <div class="font-medium text-gray-900">Audit Trail</div>
+                  <div class="text-sm text-gray-600">System access and changes</div>
+                </button>
+                <button class="w-full text-left p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                  <div class="font-medium text-gray-900">Data Privacy</div>
+                  <div class="text-sm text-gray-600">GDPR and privacy compliance</div>
+                </button>
+                <button class="w-full text-left p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                  <div class="font-medium text-gray-900">Security Status</div>
+                  <div class="text-sm text-gray-600">Security metrics and alerts</div>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Custom Report Builder -->
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+            <div class="p-6 border-b border-gray-200">
+              <h3 class="text-lg font-semibold text-gray-900">Custom Report Builder</h3>
+            </div>
+            <div class="p-6">
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                  <h4 class="font-medium text-gray-900 mb-3">Report Configuration</h4>
+                  <div class="space-y-4">
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 mb-2">Report Type</label>
+                      <select class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                        <option>Application Analytics</option>
+                        <option>Performance Summary</option>
+                        <option>Compliance Overview</option>
+                        <option>Custom Query</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 mb-2">Date Range</label>
+                      <div class="grid grid-cols-2 gap-3">
+                        <input type="date" class="border border-gray-300 rounded-lg px-3 py-2">
+                        <input type="date" class="border border-gray-300 rounded-lg px-3 py-2">
+                      </div>
+                    </div>
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 mb-2">Format</label>
+                      <select class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                        <option>PDF</option>
+                        <option>Excel</option>
+                        <option>CSV</option>
+                        <option>JSON</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <h4 class="font-medium text-gray-900 mb-3">Data Visualization</h4>
+                  <div class="chart-container">
+                    <canvas id="reportChart" data-lazy-chart="bar"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Scheduled Reports -->
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div class="p-6 border-b border-gray-200">
+              <h3 class="text-lg font-semibold text-gray-900">Scheduled Reports</h3>
+            </div>
+            <div class="p-6">
+              <div class="overflow-x-auto">
+                <table class="min-w-full">
+                  <thead>
+                    <tr class="border-b border-gray-200">
+                      <th class="text-left py-3 px-4 font-medium text-gray-900">Report Name</th>
+                      <th class="text-left py-3 px-4 font-medium text-gray-900">Frequency</th>
+                      <th class="text-left py-3 px-4 font-medium text-gray-900">Next Run</th>
+                      <th class="text-left py-3 px-4 font-medium text-gray-900">Recipients</th>
+                      <th class="text-left py-3 px-4 font-medium text-gray-900">Status</th>
+                      <th class="text-left py-3 px-4 font-medium text-gray-900">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr class="border-b border-gray-100">
+                      <td class="py-3 px-4">Weekly Performance Summary</td>
+                      <td class="py-3 px-4">Weekly</td>
+                      <td class="py-3 px-4">2024-01-22</td>
+                      <td class="py-3 px-4">hr@company.com</td>
+                      <td class="py-3 px-4">
+                        <span class="badge badge-success">Active</span>
+                      </td>
+                      <td class="py-3 px-4">
+                        <button class="text-blue-600 hover:text-blue-800 mr-2">Edit</button>
+                        <button class="text-red-600 hover:text-red-800">Delete</button>
+                      </td>
+                    </tr>
+                    <tr class="border-b border-gray-100">
+                      <td class="py-3 px-4">Monthly Compliance Report</td>
+                      <td class="py-3 px-4">Monthly</td>
+                      <td class="py-3 px-4">2024-02-01</td>
+                      <td class="py-3 px-4">admin@company.com</td>
+                      <td class="py-3 px-4">
+                        <span class="badge badge-success">Active</span>
+                      </td>
+                      <td class="py-3 px-4">
+                        <button class="text-blue-600 hover:text-blue-800 mr-2">Edit</button>
+                        <button class="text-red-600 hover:text-red-800">Delete</button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </main>
+
+  <script>
+    // Navigation and UI Functions
+    function showSection(section) {
+      const sections = ['performance', 'reports'];
+      sections.forEach(s => {
+        const element = document.getElementById(s + '-section');
+        if (element) {
+          element.style.display = (s === section) ? 'block' : 'none';
+        }
+      });
+      
+      if (section === 'performance') {
+        initializePerformanceCharts();
+        loadPerformanceData();
+      }
+      if (section === 'reports') {
+        loadReportsData();
+        initializeReportCharts();
+      }
+    }
+
+    // Performance Evaluation Functions
+    function initializePerformanceCharts() {
+      const ctx = document.getElementById('performanceTrendChart');
+      if (ctx) {
+        new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+            datasets: [{
+              label: 'Performance Score',
+              data: [85, 87, 89, 86, 90, 92],
+              borderColor: '#3b82f6',
+              backgroundColor: 'rgba(59, 130, 246, 0.1)',
+              tension: 0.4,
+              fill: true
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: true,
+                position: 'top'
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                max: 100
+              }
+            }
+          }
+        });
+      }
+    }
+
+    function loadPerformanceData() {
+      console.log('Loading performance evaluation data...');
+    }
+
+    function createEvaluation() {
+      alert('Create new evaluation feature coming soon!');
+    }
+
+    function exportEvaluations() {
+      alert('Export evaluations feature coming soon!');
+    }
+
+    // Reports Functions
+    function loadReportsData() {
+      console.log('Loading reports data...');
+    }
+
+    function initializeReportCharts() {
+      const ctx = document.getElementById('reportChart');
+      if (ctx) {
+        new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: ['Applications', 'Interviews', 'Placements', 'Completions'],
+            datasets: [{
+              label: 'Count',
+              data: [45, 32, 28, 25],
+              backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444']
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              }
+            }
+          }
+        });
+      }
+    }
+
+    function generateCustomReport() {
+      alert('Custom report generation feature coming soon!');
+    }
+
+    function scheduleReport() {
+      alert('Schedule report feature coming soon!');
+    }
+
+    // Utility Functions
+    function refreshAnalytics() {
+      const button = event.target.closest('button');
+      const icon = button.querySelector('i');
+      icon.classList.add('fa-spin');
+      
+      setTimeout(() => {
+        loadPerformanceData();
+        loadReportsData();
+        icon.classList.remove('fa-spin');
+      }, 1000);
+    }
+
+    function exportAnalyticsData() {
+      const data = {
+        performance: {
+          averageScore: 87,
+          completedEvaluations: 24,
+          pendingReviews: 6,
+          completionRate: 92
+        },
+        reports: {
+          scheduled: 2,
+          generated: 15,
+          categories: ['Application', 'Performance', 'Compliance']
+        }
+      };
+      
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `analytics-data-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // Toggle dropdown functionality
+    function toggleDropdown(dropdownId) {
+      const dropdown = document.getElementById(dropdownId + '-dropdown');
+      const arrow = document.getElementById(dropdownId + '-arrow');
+      
+      if (dropdown && dropdown.classList.contains('hidden')) {
+        dropdown.classList.remove('hidden');
+        if (arrow) arrow.style.transform = 'rotate(180deg)';
+      } else if (dropdown) {
+        dropdown.classList.add('hidden');
+        if (arrow) arrow.style.transform = 'rotate(0deg)';
+      }
+    }
+
+    // Mobile menu functionality
+    document.getElementById('mobileMenuBtn').addEventListener('click', function() {
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('sidebarOverlay');
+      
+      sidebar.classList.toggle('-translate-x-full');
+      sidebar.classList.toggle('translate-x-0');
+      overlay.classList.toggle('hidden');
+    });
+
+    document.getElementById('sidebarOverlay').addEventListener('click', function() {
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('sidebarOverlay');
+      
+      sidebar.classList.add('-translate-x-full');
+      sidebar.classList.remove('translate-x-0');
+      overlay.classList.add('hidden');
+    });
+
+    // Dark mode toggle
+    document.getElementById('darkModeToggle').addEventListener('click', function() {
+      document.body.classList.toggle('dark');
+      const icon = this.querySelector('i');
+      icon.classList.toggle('fa-moon');
+      icon.classList.toggle('fa-sun');
+    });
+
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', function() {
+      // Show performance section by default
+      showSection('performance');
+      
+      // Expand analytics dropdown by default
+      const analyticsDropdown = document.getElementById('analytics-dropdown');
+      const analyticsArrow = document.getElementById('analytics-arrow');
+      if (analyticsDropdown) {
+        analyticsDropdown.classList.remove('hidden');
+        if (analyticsArrow) {
+          analyticsArrow.style.transform = 'rotate(180deg)';
+        }
+      }
+    });
+  </script>
+</body>
+</html>

@@ -128,8 +128,8 @@ class ServicePermissionMixin:
     def __init__(self):
         self.service_registry = ServiceRegistry()
         # Register user service for permission checks
-        from service_config import get_config
-        config = get_config()
+        # from service_config import get_config  # Commented out - using direct env vars
+        # config = get_config()  # Commented out - using direct env vars
         # Note: USER_SERVICE_URL would need to be added to config
         # self.service_registry.register_service('user', config.USER_SERVICE_URL)
     

@@ -1,4 +1,7 @@
 import os
+# Service identification
+os.environ.setdefault('SERVICE_NAME', 'application')
+
 from pathlib import Path
 import environ
 
@@ -90,20 +93,26 @@ WSGI_APPLICATION = 'application_service.wsgi.application'
 ASGI_APPLICATION = 'application_service.asgi.application'
 
 # Database configuration
-if get_databases_config:
-    # Use schema-aware database configuration
-    DATABASES = get_databases_config(SERVICE_NAME)
-else:
-    # Fallback to simple configuration
-    DATABASES = {
-        'default': env('DATABASE_URL', default='postgresql://postgres:password@localhost:5432/edulink_db')
-    }
+
+# Enhanced Schema Router
+DATABASE_ROUTERS = ['shared.database.enhanced_router.EnhancedSchemaRouter']
+
+DATABASES = get_databases_config('application')
+
+# Set search path for this service schema
+for db_config in DATABASES.values():
+    if 'OPTIONS' not in db_config:
+        db_config['OPTIONS'] = {}
+    db_config['OPTIONS']['options'] = f'-c search_path=application_schema,public'
+
+# Set search path for this service
+for db_config in DATABASES.values():
+    if 'OPTIONS' not in db_config:
+        db_config['OPTIONS'] = {}
+    db_config['OPTIONS']['options'] = f'-c search_path=application_schema,public'
 
 # Database routers for schema support
-if get_database_routers:
-    DATABASE_ROUTERS = get_database_routers()
-else:
-    DATABASE_ROUTERS = []
+DATABASE_ROUTERS = get_database_routers()
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -217,10 +226,13 @@ LOGGING = {
 CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': env('REDIS_URL', default='redis://localhost:6379/1'),
+        'LOCATION': env('REDIS_URL'),
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-        }
+            'KEY_PREFIX': 'application_service',
+        },
+        'KEY_PREFIX': 'application_service',
+        'VERSION': 1,
     }
 }
 
@@ -229,8 +241,8 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
 SESSION_CACHE_ALIAS = 'default'
 
 # Celery Configuration
-CELERY_BROKER_URL = 'amqp://guest@localhost//'
-CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_BROKER_URL = env('CELERY_BROKER_URL')
+CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND')
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'

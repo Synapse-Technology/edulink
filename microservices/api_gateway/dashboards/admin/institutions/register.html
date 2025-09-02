@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Institution Registration - EduLink KE</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            color: #2c3e50;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 100%);
+            color: white;
+            padding: 2rem 0;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>') repeat;
+            opacity: 0.3;
+        }
+        
+        .header-content {
+            position: relative;
+            z-index: 2;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .back-link {
+            position: absolute;
+            top: 2rem;
+            left: 2rem;
+            color: white;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            z-index: 3;
+        }
+        
+        .back-link:hover {
+            color: #e2e8f0;
+            transform: translateX(-5px);
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+        }
+        
+        .registration-form {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .progress-bar {
+            background: #f1f5f9;
+            padding: 2rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .progress-steps {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            flex: 1;
+            position: relative;
+        }
+        
+        .step:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            top: 1.5rem;
+            left: 60%;
+            right: -40%;
+            height: 2px;
+            background: #e2e8f0;
+            z-index: 1;
+        }
+        
+        .step.active:not(:last-child)::after,
+        .step.completed:not(:last-child)::after {
+            background: #1e3a8a;
+        }
+        
+        .step-number {
+            width: 3rem;
+            height: 3rem;
+            border-radius: 50%;
+            background: #e2e8f0;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            position: relative;
+            z-index: 2;
+            transition: all 0.3s ease;
+        }
+        
+        .step.active .step-number {
+            background: #1e3a8a;
+            color: white;
+        }
+        
+        .step.completed .step-number {
+            background: #059669;
+            color: white;
+        }
+        
+        .step-label {
+            font-size: 0.9rem;
+            color: #64748b;
+            font-weight: 500;
+            text-align: center;
+        }
+        
+        .step.active .step-label {
+            color: #1e3a8a;
+            font-weight: 600;
+        }
+        
+        .form-content {
+            padding: 3rem;
+        }
+        
+        .form-step {
+            display: none;
+        }
+        
+        .form-step.active {
+            display: block;
+        }
+        
+        .step-title {
+            font-size: 1.8rem;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+        
+        .step-description {
+            color: #64748b;
+            margin-bottom: 2rem;
+            font-size: 1.1rem;
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+        
+        label {
+            font-weight: 600;
+            color: #374151;
+            font-size: 0.95rem;
+        }
+        
+        .required {
+            color: #dc2626;
+        }
+        
+        input, select, textarea {
+            padding: 0.875rem 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: white;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #1e3a8a;
+            box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1);
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        .error {
+            color: #dc2626;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+        
+        .form-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid #e2e8f0;
+        }
+        
+        .btn {
+            padding: 0.875rem 2rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(30, 58, 138, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #f8fafc;
+            color: #64748b;
+            border: 2px solid #e2e8f0;
+        }
+        
+        .btn-secondary:hover {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        
+        .institution-type-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .type-option {
+            padding: 2rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+        }
+        
+        .type-option:hover {
+            border-color: #1e3a8a;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        .type-option.selected {
+            border-color: #1e3a8a;
+            background: #f8fafc;
+        }
+        
+        .type-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+        
+        .type-option[data-type="university"] .type-icon {
+            color: #1e3a8a;
+        }
+        
+        .type-option[data-type="tvet"] .type-icon {
+            color: #059669;
+        }
+        
+        .type-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+        }
+        
+        .type-description {
+            color: #64748b;
+            font-size: 0.95rem;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e2e8f0;
+            border-top: 4px solid #1e3a8a;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .success-message {
+            display: none;
+            text-align: center;
+            padding: 3rem;
+        }
+        
+        .success-icon {
+            font-size: 4rem;
+            color: #059669;
+            margin-bottom: 1rem;
+        }
+        
+        .success-title {
+            font-size: 1.8rem;
+            color: #1e293b;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+        
+        .success-description {
+            color: #64748b;
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 2rem 1rem;
+            }
+            
+            .form-content {
+                padding: 2rem;
+            }
+            
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .progress-steps {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .step:not(:last-child)::after {
+                display: none;
+            }
+            
+            .form-actions {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="../index.html" class="back-link">
+            <i class="fas fa-arrow-left"></i>
+            Back to Portal
+        </a>
+        <div class="header-content">
+            <h1>Institution Registration</h1>
+            <p>Join EduLink to enhance student career outcomes and connect with industry partners</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="registration-form">
+            <div class="progress-bar">
+                <div class="progress-steps">
+                    <div class="step active" data-step="1">
+                        <div class="step-number">1</div>
+                        <div class="step-label">Institution Type</div>
+                    </div>
+                    <div class="step" data-step="2">
+                        <div class="step-number">2</div>
+                        <div class="step-label">Basic Information</div>
+                    </div>
+                    <div class="step" data-step="3">
+                        <div class="step-number">3</div>
+                        <div class="step-label">Contact Details</div>
+                    </div>
+                    <div class="step" data-step="4">
+                        <div class="step-number">4</div>
+                        <div class="step-label">Verification</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-content">
+                <form id="registrationForm">
+                    <!-- Step 1: Institution Type -->
+                    <div class="form-step active" data-step="1">
+                        <h2 class="step-title">Select Institution Type</h2>
+                        <p class="step-description">Choose the category that best describes your institution</p>
+                        
+                        <div class="institution-type-selector">
+                            <div class="type-option" data-type="university">
+                                <i class="fas fa-university type-icon"></i>
+                                <div class="type-title">Higher Education Institution</div>
+                                <div class="type-description">Universities, colleges, and degree-granting institutions</div>
+                            </div>
+                            <div class="type-option" data-type="tvet">
+                                <i class="fas fa-tools type-icon"></i>
+                                <div class="type-title">TVET Institution</div>
+                                <div class="type-description">Technical and vocational training institutes</div>
+                            </div>
+                        </div>
+                        
+                        <input type="hidden" id="institutionType" name="institution_type" required>
+                    </div>
+
+                    <!-- Step 2: Basic Information -->
+                    <div class="form-step" data-step="2">
+                        <h2 class="step-title">Basic Information</h2>
+                        <p class="step-description">Provide your institution's basic details</p>
+                        
+                        <div class="form-grid">
+                            <div class="form-group full-width">
+                                <label for="institutionName">Institution Name <span class="required">*</span></label>
+                                <input type="text" id="institutionName" name="institution_name" required>
+                                <div class="error" id="institutionNameError"></div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="establishedYear">Year Established <span class="required">*</span></label>
+                                <input type="number" id="establishedYear" name="established_year" min="1800" max="2024" required>
+                                <div class="error" id="establishedYearError"></div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="registrationNumber">Registration Number</label>
+                                <input type="text" id="registrationNumber" name="registration_number">
+                                <div class="error" id="registrationNumberError"></div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="studentCount">Number of Students</label>
+                                <select id="studentCount" name="student_count">
+                            <option value="">Select student count range</option>
+                            <option value="0_100">0-100 students</option>
+                            <option value="101_500">101-500 students</option>
+                            <option value="500_1000">500-1000 students</option>
+                            <option value="1001_5000">1001-5000 students</option>
+                            <option value="5001_10000">5001-10000 students</option>
+                            <option value="10000+">10000+ students</option>
+                        </select>
+                                <div class="error" id="studentCountError"></div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="facultyCount">Number of Faculty</label>
+                                <input type="number" id="facultyCount" name="faculty_count" min="0">
+                                <div class="error" id="facultyCountError"></div>
+                            </div>
+                            
+                            <div class="form-group full-width">
+                                <label for="website">Website URL</label>
+                                <input type="url" id="website" name="website" placeholder="https://www.example.com">
+                                <div class="error" id="websiteError"></div>
+                            </div>
+                            
+                            <div class="form-group full-width">
+                                <label for="description">Institution Description</label>
+                                <textarea id="description" name="description" placeholder="Brief description of your institution, programs offered, and mission"></textarea>
+                                <div class="error" id="descriptionError"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Contact Details -->
+                    <div class="form-step" data-step="3">
+                        <h2 class="step-title">Contact Information</h2>
+                        <p class="step-description">Provide contact details and address information</p>
+                        
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="contactEmail">Primary Email <span class="required">*</span></label>
+                                <input type="email" id="contactEmail" name="contact_email" required>
+                                <div class="error" id="contactEmailError"></div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="contactPhone">Phone Number <span class="required">*</span></label>
+                                <input type="tel" id="contactPhone" name="contact_phone" required>
+                                <div class="error" id="contactPhoneError"></div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="firstName">First Name <span class="required">*</span></label>
+                                <input type="text" id="firstName" name="first_name" required>
+                                <div class="error" id="firstNameError"></div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="lastName">Last Name <span class="required">*</span></label>
+                                <input type="text" id="lastName" name="last_name" required>
+                                <div class="error" id="lastNameError"></div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="contactTitle">Contact Person Title</label>
+                                <input type="text" id="contactTitle" name="position" placeholder="e.g., Registrar, Director">
+                                <div class="error" id="contactTitleError"></div>
+                            </div>
+                            
+                            <div class="form-group full-width">
+                                <label for="address">Physical Address <span class="required">*</span></label>
+                                <textarea id="address" name="address" required placeholder="Street address, building, floor"></textarea>
+                                <div class="error" id="addressError"></div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="city">City <span class="required">*</span></label>
+                                <input type="text" id="city" name="city" required>
+                                <div class="error" id="cityError"></div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="county">County <span class="required">*</span></label>
+                                <select id="county" name="county" required>
+                                    <option value="">Select County</option>
+                                    <option value="Nairobi">Nairobi</option>
+                                    <option value="Mombasa">Mombasa</option>
+                                    <option value="Kiambu">Kiambu</option>
+                                    <option value="Nakuru">Nakuru</option>
+                                    <option value="Uasin Gishu">Uasin Gishu</option>
+                                    <option value="Machakos">Machakos</option>
+                                    <option value="Kajiado">Kajiado</option>
+                                    <option value="Kisumu">Kisumu</option>
+                                    <option value="Meru">Meru</option>
+                                    <option value="Nyeri">Nyeri</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                                <div class="error" id="countyError"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 4: Verification -->
+                    <div class="form-step" data-step="4">
+                        <h2 class="step-title">Review & Submit</h2>
+                        <p class="step-description">Review your information and submit for verification</p>
+                        
+                        <div id="reviewContent">
+                            <!-- Review content will be populated by JavaScript -->
+                        </div>
+                        
+                        <div style="background: #f8fafc; padding: 1.5rem; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 2rem;">
+                            <h4 style="color: #1e293b; margin-bottom: 1rem; font-weight: 600;">
+                                <i class="fas fa-info-circle" style="color: #3730a3; margin-right: 0.5rem;"></i>
+                                What happens next?
+                            </h4>
+                            <ul style="color: #64748b; line-height: 1.6; padding-left: 1.5rem;">
+                                <li>Your application will be automatically verified against official databases</li>
+                                <li>You'll receive an email confirmation within 24 hours</li>
+                                <li>Approval typically takes 2-3 business days</li>
+                                <li>Once approved, you'll receive login credentials and access instructions</li>
+                            </ul>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- Loading State -->
+                <div class="loading" id="loadingState">
+                    <div class="spinner"></div>
+                    <h3>Submitting your registration...</h3>
+                    <p>Please wait while we process your application</p>
+                </div>
+
+                <!-- Success State -->
+                <div class="success-message" id="successState">
+                    <i class="fas fa-check-circle success-icon"></i>
+                    <h2 class="success-title">Registration Submitted Successfully!</h2>
+                    <p class="success-description">
+                        Thank you for registering with EduLink. We've received your application and will begin the verification process immediately.
+                        You'll receive a confirmation email shortly with your application reference number.
+                    </p>
+                    <a href="../index.html" class="btn btn-primary">
+                        <i class="fas fa-home"></i>
+                        Return to Portal
+                    </a>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="prevBtn" style="display: none;">
+                        <i class="fas fa-arrow-left"></i>
+                        Previous
+                    </button>
+                    <div></div>
+                    <button type="button" class="btn btn-primary" id="nextBtn">
+                        Next
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../../../js/config.js"></script>
+    <script src="register.js"></script>
+</body>
+</html>

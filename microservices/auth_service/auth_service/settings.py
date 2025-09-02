@@ -1,4 +1,7 @@
 import os
+# Service identification
+os.environ.setdefault('SERVICE_NAME', 'auth')
+
 import sys
 import environ
 from datetime import timedelta
@@ -112,7 +115,23 @@ ASGI_APPLICATION = 'auth_service.asgi.application'
 
 # Database
 # Use schema-aware database configuration
-DATABASES = get_databases_config(SERVICE_NAME)
+
+# Enhanced Schema Router
+DATABASE_ROUTERS = ['shared.database.enhanced_router.EnhancedSchemaRouter']
+
+DATABASES = get_databases_config('auth')
+
+# Set search path for this service schema
+for db_config in DATABASES.values():
+    if 'OPTIONS' not in db_config:
+        db_config['OPTIONS'] = {}
+    db_config['OPTIONS']['options'] = f'-c search_path=auth_schema,public'
+
+# Set search path for this service
+for db_config in DATABASES.values():
+    if 'OPTIONS' not in db_config:
+        db_config['OPTIONS'] = {}
+    db_config['OPTIONS']['options'] = f'-c search_path=auth_schema,public'
 
 # Database routers for schema support
 DATABASE_ROUTERS = get_database_routers()
@@ -124,7 +143,10 @@ CACHES = {
         'LOCATION': env('REDIS_URL'),
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-        }
+            'KEY_PREFIX': 'auth_service',
+        },
+        'KEY_PREFIX': 'auth_service',
+        'VERSION': 1,
     }
 }
 
@@ -216,8 +238,8 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ALLOW_CREDENTIALS = True
 
 # Celery Configuration
-CELERY_BROKER_URL = env('REDIS_URL')
-CELERY_RESULT_BACKEND = env('REDIS_URL')
+CELERY_BROKER_URL = env('CELERY_BROKER_URL')
+CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND')
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 

@@ -80,6 +80,15 @@ class Internship(BaseModel):
         ('institution-only', 'Institution Only'),
     ]
     
+    YEAR_OF_STUDY_CHOICES = [
+        (1, 'First Year'),
+        (2, 'Second Year'),
+        (3, 'Third Year'),
+        (4, 'Fourth Year'),
+        (5, 'Fifth Year'),
+        (6, 'Graduate'),
+    ]
+    
     # Basic information
     title = models.CharField(max_length=200, db_index=True)
     description = models.TextField()

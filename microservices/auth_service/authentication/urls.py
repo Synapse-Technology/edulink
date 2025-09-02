@@ -6,6 +6,8 @@ app_name = 'authentication'
 
 # API URL patterns
 urlpatterns = [
+    # Self-service registration
+    path('self-service/', include('authentication.urls_self_service')),
     # Authentication endpoints
     path('register/', views.UserRegistrationView.as_view(), name='register'),
     path('register/student/', views.StudentRegistrationView.as_view(), name='student_register'),

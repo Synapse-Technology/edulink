@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 
 # Initialize environment
 env = environ.Env(
+    DATABASE_URL=(str, ''),
     SUPABASE_URL=(str, ''),
     SUPABASE_ANON_KEY=(str, ''),
     SUPABASE_SERVICE_ROLE_KEY=(str, ''),
@@ -21,6 +22,11 @@ env = environ.Env(
     DATABASE_POOL_RECYCLE=(int, 3600),
 )
 
+# Try to read .env file from current working directory
+env_file_path = os.path.join(os.getcwd(), '.env')
+if os.path.exists(env_file_path):
+    environ.Env.read_env(env_file_path)
+
 class DatabaseConfig:
     """Centralized database configuration for all microservices."""
     
@@ -29,12 +35,23 @@ class DatabaseConfig:
         self.supabase_anon_key = env('SUPABASE_ANON_KEY')
         self.supabase_service_role_key = env('SUPABASE_SERVICE_ROLE_KEY')
         
-        # Use explicit database connection details from environment
-        self.host = env('DATABASE_HOST')
-        self.port = env('DATABASE_PORT')
-        self.database_name = env('DATABASE_NAME')
-        self.database_user = env('DATABASE_USER')
-        self.database_password = env('DATABASE_PASSWORD')
+        # Check if DATABASE_URL is provided, parse it if available
+        database_url = env('DATABASE_URL')
+        if database_url:
+            from urllib.parse import unquote
+            parsed_url = urlparse(database_url)
+            self.host = parsed_url.hostname
+            self.port = parsed_url.port or 5432
+            self.database_name = parsed_url.path.lstrip('/')
+            self.database_user = parsed_url.username
+            self.database_password = unquote(parsed_url.password) if parsed_url.password else None
+        else:
+            # Fallback to individual environment variables
+            self.host = env('DATABASE_HOST')
+            self.port = env('DATABASE_PORT')
+            self.database_name = env('DATABASE_NAME')
+            self.database_user = env('DATABASE_USER')
+            self.database_password = env('DATABASE_PASSWORD')
         
         # Extract project ID from Supabase URL if available
         if self.supabase_url:
@@ -91,6 +108,7 @@ SERVICE_SCHEMAS = {
     'auth': 'auth_schema',
     'user': 'user_schema',
     'institution': 'institution_schema',
+    'registration': 'auth_schema',  # Registration service uses auth schema (auth tables)
     'notification': 'notification_schema',
     'application': 'application_schema',
     'internship': 'internship_schema',
@@ -145,7 +163,17 @@ class SchemaRouter:
         """Suggest the database to read from."""
         app_label = model._meta.app_label
         
-        # Map app labels to database aliases
+        # For registration service, allow Django built-in apps to use default database
+        # since auth tables exist in auth_schema
+        service_name = os.environ.get('SERVICE_NAME', '')
+        if service_name == 'registration':
+            # Registration service uses auth_schema which has auth tables
+            django_builtin_apps = ['auth', 'contenttypes', 'sessions', 'admin']
+            if app_label in django_builtin_apps:
+                return None  # Use default database
+            # For other apps, continue with normal routing
+        
+        # Map app labels to database aliases for other services
         app_to_db = {
             # Django built-in apps for auth service
             'auth': 'auth_db',
@@ -180,6 +208,11 @@ class SchemaRouter:
     
     def allow_migrate(self, db, app_label, model_name=None, **hints):
         """Ensure that certain apps' models get created on the right database."""
+        # For registration service, allow all migrations on default database
+        service_name = os.environ.get('SERVICE_NAME', '')
+        if service_name == 'registration':
+            return db == 'default'
+        
         app_to_db = {
             # Django built-in apps for auth service
             'auth': 'auth_db',

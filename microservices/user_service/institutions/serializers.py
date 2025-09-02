@@ -5,9 +5,54 @@ from datetime import timedelta
 
 from .models import (
     Institution, InstitutionDepartment, InstitutionProgram,
-    InstitutionSettings, InstitutionInvitation, UniversityRegistrationCode
+    InstitutionSettings, InstitutionInvitation, UniversityRegistrationCode,
+    MasterInstitution
 )
 from user_service.utils import ServiceClient, validate_file_size, validate_file_type
+
+
+class MasterInstitutionSerializer(serializers.ModelSerializer):
+    """Serializer for MasterInstitution model."""
+    
+    display_name = serializers.ReadOnlyField()
+    accreditation_body_display = serializers.CharField(source='get_accreditation_body_display', read_only=True)
+    data_source_display = serializers.CharField(source='get_data_source_display', read_only=True)
+    
+    class Meta:
+        model = MasterInstitution
+        fields = [
+            'id', 'name', 'short_name', 'institution_type', 'accreditation_body',
+            'accreditation_number', 'accreditation_status', 'location', 'county',
+            'region', 'website', 'email', 'phone', 'data_source', 'source_url',
+            'last_verified', 'is_active', 'is_verified', 'raw_data', 'metadata',
+            'display_name', 'accreditation_body_display', 'data_source_display',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = [
+            'id', 'created_at', 'updated_at', 'last_verified', 'display_name',
+            'accreditation_body_display', 'data_source_display'
+        ]
+    
+    def validate_name(self, value):
+        """Validate institution name."""
+        if len(value.strip()) < 3:
+            raise serializers.ValidationError("Institution name must be at least 3 characters long.")
+        return value.strip()
+
+
+class MasterInstitutionSearchSerializer(serializers.ModelSerializer):
+    """Simplified serializer for institution search results."""
+    
+    display_name = serializers.ReadOnlyField()
+    accreditation_body_display = serializers.CharField(source='get_accreditation_body_display', read_only=True)
+    
+    class Meta:
+        model = MasterInstitution
+        fields = [
+            'id', 'name', 'short_name', 'institution_type', 'accreditation_body',
+            'accreditation_status', 'location', 'county', 'display_name',
+            'accreditation_body_display', 'is_verified'
+        ]
 
 
 class InstitutionSerializer(serializers.ModelSerializer):

@@ -64,4 +64,9 @@ urlpatterns = [
     # Utility endpoints
     path('stats/', views.institution_stats, name='institution-stats'),
     path('search/', views.search_institutions, name='search-institutions'),
+    
+    # Master Institution endpoints (for registration verification)
+    path('master/', views.MasterInstitutionSearchView.as_view(), name='master-institution-search'),
+    path('master/<int:id>/', views.MasterInstitutionDetailView.as_view(), name='master-institution-detail'),
+    path('master/verify/<str:accreditation_number>/', views.master_institution_verify, name='master-institution-verify'),
 ]

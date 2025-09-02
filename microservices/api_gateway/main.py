@@ -1,29 +1,34 @@
-from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 import httpx
 import logging
 import time
-from typing import Optional
-import os
-import sys
-
-# Add shared modules to path
-sys.path.append(os.path.join(os.path.dirname(__file__), '../shared'))
-sys.path.append(os.path.join(os.path.dirname(__file__), '../../shared'))
-
-from service_config import get_config
-from base_service import ServiceRegistry, ServiceError
-from service_discovery import ServiceDiscoveryClient, LoadBalancingStrategy
-from monitoring import monitoring_router
+from typing import Optional, Dict
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Get configuration
-config = get_config()
+# Service registry
+class SimpleServiceRegistry:
+    def __init__(self):
+        self.services: Dict[str, str] = {
+            "auth": "http://127.0.0.1:8001",
+            "registration_service": "http://127.0.0.1:8002",
+            "user": "http://127.0.0.1:8003",
+            "internship": "http://127.0.0.1:8004",
+            "application": "http://127.0.0.1:8005",
+            "notification": "http://127.0.0.1:8006",
+            "institution": "http://127.0.0.1:8007"
+        }
+    
+    def get_service_url(self, service_name: str) -> str:
+        if service_name not in self.services:
+            raise HTTPException(status_code=404, detail=f"Service {service_name} not found")
+        return self.services[service_name]
+
+service_registry = SimpleServiceRegistry()
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -37,35 +42,13 @@ app = FastAPI(
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=config.CORS_ALLOWED_ORIGINS,
+    allow_origins=["*"],  # Allow all origins for testing
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Add trusted host middleware
-app.add_middleware(
-    TrustedHostMiddleware,
-    allowed_hosts=config.ALLOWED_HOSTS
-)
-
-# Initialize service discovery client
-service_discovery = ServiceDiscoveryClient(
-    backend_type='redis',
-    redis_url=config.REDIS_URL
-)
-
-# Initialize legacy service registry for fallback
-service_registry = ServiceRegistry()
-service_registry.register_service('internship', config.INTERNSHIP_SERVICE_URL)
-service_registry.register_service('application', config.APPLICATION_SERVICE_URL)
-service_registry.register_service('auth', config.AUTH_SERVICE_URL)
-service_registry.register_service('user', config.USER_SERVICE_URL)
-service_registry.register_service('institution', config.INSTITUTION_SERVICE_URL)
-service_registry.register_service('notification', config.NOTIFICATION_SERVICE_URL)
-
-# Include monitoring router
-app.include_router(monitoring_router)
+# Service registry is already initialized above
 
 # Health check endpoint
 @app.get("/health")
@@ -143,9 +126,9 @@ async def proxy_request(
                 headers=dict(response.headers)
             )
             
-    except ServiceError as e:
-        logger.error(f"Service error: {str(e)}")
-        raise HTTPException(status_code=503, detail=f"Service unavailable: {str(e)}")
+    except httpx.HTTPStatusError as e:
+        logger.error(f"HTTP error from {service_name}: {e.response.status_code}")
+        raise HTTPException(status_code=e.response.status_code, detail=f"Service error: {e.response.text}")
     except httpx.TimeoutException:
         logger.error(f"Timeout calling {service_name} service")
         raise HTTPException(status_code=504, detail="Service timeout")
@@ -154,60 +137,71 @@ async def proxy_request(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 # Internship service routes
-@app.api_route("/api/v1/internships/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
+@app.api_route("/api/v1/internships/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"], operation_id="internship_proxy")
 async def internship_proxy(request: Request, path: str):
     """Proxy requests to internship service"""
     return await proxy_request(request, "internship", f"/api/v1/internships/{path}", request.method)
 
 # Application service routes
-@app.api_route("/api/v1/applications/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
+@app.api_route("/api/v1/applications/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"], operation_id="application_proxy")
 async def application_proxy(request: Request, path: str):
     """Proxy requests to application service"""
     return await proxy_request(request, "application", f"/api/v1/applications/{path}", request.method)
 
 # Authentication service routes
-@app.api_route("/api/v1/auth/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
+@app.api_route("/api/v1/auth/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"], operation_id="auth_proxy")
 async def auth_proxy(request: Request, path: str):
     """Proxy requests to authentication service"""
     return await proxy_request(request, "auth", f"/api/v1/auth/{path}", request.method)
 
 # User service routes
-@app.api_route("/api/v1/users/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
+@app.api_route("/api/v1/users/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"], operation_id="user_proxy")
 async def user_proxy(request: Request, path: str):
     """Proxy requests to user service"""
     return await proxy_request(request, "user", f"/api/v1/users/{path}", request.method)
 
-@app.api_route("/api/v1/profiles/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
+@app.api_route("/api/v1/profiles/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"], operation_id="user_profiles_proxy")
 async def user_profiles_proxy(request: Request, path: str):
     """Proxy requests to user service for profiles"""
     return await proxy_request(request, "user", f"/api/v1/profiles/{path}", request.method)
 
 # Institution service routes
-@app.api_route("/api/v1/institutions/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
+@app.api_route("/api/v1/institutions/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"], operation_id="institution_proxy")
 async def institution_proxy(request: Request, path: str):
     """Proxy requests to institution service"""
     return await proxy_request(request, "institution", f"/api/v1/institutions/{path}", request.method)
 
 # Notification service routes
-@app.api_route("/api/v1/notifications/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
+@app.api_route("/api/v1/notifications/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"], operation_id="notification_proxy")
 async def notification_proxy(request: Request, path: str):
     """Proxy requests to notification service"""
     return await proxy_request(request, "notification", f"/api/v1/notifications/{path}", request.method)
 
+# Registration service routes
+@app.api_route("/api/registration/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"], operation_id="registration_proxy")
+async def registration_proxy(request: Request, path: str):
+    """Proxy requests to registration service"""
+    return await proxy_request(request, "registration_service", f"/api/registration/{path}", request.method)
+
+@app.api_route("/api/v1/registration/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"], operation_id="registration_v1_proxy")
+async def registration_v1_proxy(request: Request, path: str):
+    """Proxy requests to registration service (v1 API)"""
+    return await proxy_request(request, "registration_service", f"/api/v1/registration/{path}", request.method)
+
 # Legacy monolith compatibility routes for student registration
-@app.api_route("/api/auth/register/student/", methods=["POST"])
+@app.api_route("/api/auth/register/student/", methods=["POST"], operation_id="legacy_student_registration")
 async def legacy_student_registration(request: Request):
     """Legacy compatibility route for student registration - redirects to Auth Service"""
     logger.info("Legacy student registration request received, routing to Auth Service")
     return await proxy_request(request, "auth", "/api/v1/auth/register/student/", "POST")
 
-@app.api_route("/api/auth/login/", methods=["POST"])
+@app.api_route("/api/auth/login/", methods=["POST"], operation_id="legacy_login")
 async def legacy_login(request: Request):
     """Legacy compatibility route for login - redirects to Auth Service"""
     logger.info("Legacy login request received, routing to Auth Service")
     return await proxy_request(request, "auth", "/api/v1/auth/login/", "POST")
 
-@app.api_route("/api/auth/logout/", methods=["POST"])
+@app.api_route("/api/auth/logout/", methods=["POST"], operation_id="legacy_logout")
 async def legacy_logout(request: Request):
     """Legacy compatibility route for logout - redirects to Auth Service"""
     logger.info("Legacy logout request received, routing to Auth Service")
@@ -235,6 +229,6 @@ if __name__ == "__main__":
         "main:app",
         host="0.0.0.0",
         port=8000,
-        reload=config.DEBUG,
+        reload=True,
         log_level="info"
     )

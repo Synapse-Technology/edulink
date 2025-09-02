@@ -1,185 +1,5 @@
 [
   {
-    "timestamp": "2025-08-26T13:35:48.131189",
-    "message": "Service api_gateway is unhealthy",
-    "severity": "warning",
-    "source": "workflow_monitor"
-  },
-  {
-    "timestamp": "2025-08-26T13:35:48.236745",
-    "message": "High error rate for api_gateway: 100.00%",
-    "severity": "warning",
-    "source": "workflow_monitor"
-  },
-  {
-    "timestamp": "2025-08-26T13:35:48.548804",
-    "message": "Service auth_service is unhealthy",
-    "severity": "warning",
-    "source": "workflow_monitor"
-  },
-  {
-    "timestamp": "2025-08-26T13:35:48.633077",
-    "message": "High error rate for auth_service: 100.00%",
-    "severity": "warning",
-    "source": "workflow_monitor"
-  },
-  {
-    "timestamp": "2025-08-26T13:35:48.760317",
-    "message": "Service user_service is unhealthy",
-    "severity": "warning",
-    "source": "workflow_monitor"
-  },
-  {
-    "timestamp": "2025-08-26T13:35:48.906124",
-    "message": "High error rate for user_service: 100.00%",
-    "severity": "warning",
-    "source": "workflow_monitor"
-  },
-  {
-    "timestamp": "2025-08-26T13:35:49.050385",
-    "message": "Service institution_service is unhealthy",
-    "severity": "warning",
-    "source": "workflow_monitor"
-  },
-  {
-    "timestamp": "2025-08-26T13:35:49.123635",
-    "message": "High error rate for institution_service: 100.00%",
-    "severity": "warning",
-    "source": "workflow_monitor"
-  },
-  {
-    "timestamp": "2025-08-26T13:35:49.139361",
-    "message": "Service notification_service is unhealthy",
-    "severity": "warning",
-    "source": "workflow_monitor"
-  },
-  {
-    "timestamp": "2025-08-26T13:35:49.185767",
-    "message": "High error rate for notification_service: 100.00%",
-    "severity": "warning",
-    "source": "workflow_monitor"
-  },
-  {
-    "timestamp": "2025-08-26T13:36:49.446897",
-    "message": "Service api_gateway is unhealthy",
-    "severity": "warning",
-    "source": "workflow_monitor"
-  },
-  {
-    "timestamp": "2025-08-26T13:36:49.560497",
-    "message": "High error rate for api_gateway: 100.00%",
-    "severity": "warning",
-    "source": "workflow_monitor"
-  },
-  {
-    "timestamp": "2025-08-26T13:36:49.718896",
-    "message": "Service auth_service is unhealthy",
-    "severity": "warning",
-    "source": "workflow_monitor"
-  },
-  {
-    "timestamp": "2025-08-26T13:36:49.867058",
-    "message": "High error rate for auth_service: 100.00%",
-    "severity": "warning",
-    "source": "workflow_monitor"
-  },
-  {
-    "timestamp": "2025-08-26T13:36:49.985390",
-    "message": "Service user_service is unhealthy",
-    "severity": "warning",
-    "source": "workflow_monitor"
-  },
-  {
-    "timestamp": "2025-08-26T13:36:50.090919",
-    "message": "High error rate for user_service: 100.00%",
-    "severity": "warning",
-    "source": "workflow_monitor"
-  },
-  {
-    "timestamp": "2025-08-26T13:36:50.116228",
-    "message": "Service institution_service is unhealthy",
-    "severity": "warning",
-    "source": "workflow_monitor"
-  },
-  {
-    "timestamp": "2025-08-26T13:36:50.183659",
-    "message": "High error rate for institution_service: 100.00%",
-    "severity": "warning",
-    "source": "workflow_monitor"
-  },
-  {
-    "timestamp": "2025-08-26T13:36:50.260325",
-    "message": "Service notification_service is unhealthy",
-    "severity": "warning",
-    "source": "workflow_monitor"
-  },
-  {
-    "timestamp": "2025-08-26T13:36:50.298191",
-    "message": "High error rate for notification_service: 100.00%",
-    "severity": "warning",
-    "source": "workflow_monitor"
-  },
-  {
-    "timestamp": "2025-08-26T13:37:50.384341",
-    "message": "Service api_gateway is unhealthy",
-    "severity": "warning",
-    "source": "workflow_monitor"
-  },
-  {
-    "timestamp": "2025-08-26T13:37:50.403454",
-    "message": "High error rate for api_gateway: 100.00%",
-    "severity": "warning",
-    "source": "workflow_monitor"
-  },
-  {
-    "timestamp": "2025-08-26T13:37:50.432506",
-    "message": "Service auth_service is unhealthy",
-    "severity": "warning",
-    "source": "workflow_monitor"
-  },
-  {
-    "timestamp": "2025-08-26T13:37:50.571468",
-    "message": "High error rate for auth_service: 100.00%",
-    "severity": "warning",
-    "source": "workflow_monitor"
-  },
-  {
-    "timestamp": "2025-08-26T13:37:50.605461",
-    "message": "Service user_service is unhealthy",
-    "severity": "warning",
-    "source": "workflow_monitor"
-  },
-  {
-    "timestamp": "2025-08-26T13:37:50.788112",
-    "message": "High error rate for user_service: 100.00%",
-    "severity": "warning",
-    "source": "workflow_monitor"
-  },
-  {
-    "timestamp": "2025-08-26T13:37:50.812305",
-    "message": "Service institution_service is unhealthy",
-    "severity": "warning",
-    "source": "workflow_monitor"
-  },
-  {
-    "timestamp": "2025-08-26T13:37:50.828588",
-    "message": "High error rate for institution_service: 100.00%",
-    "severity": "warning",
-    "source": "workflow_monitor"
-  },
-  {
-    "timestamp": "2025-08-26T13:37:50.836706",
-    "message": "Service notification_service is unhealthy",
-    "severity": "warning",
-    "source": "workflow_monitor"
-  },
-  {
-    "timestamp": "2025-08-26T13:37:50.850527",
-    "message": "High error rate for notification_service: 100.00%",
-    "severity": "warning",
-    "source": "workflow_monitor"
-  },
-  {
     "timestamp": "2025-08-26T13:38:50.888194",
     "message": "Service api_gateway is unhealthy",
     "severity": "warning",
@@ -595,6 +415,186 @@
   },
   {
     "timestamp": "2025-08-26T13:44:51.971927",
+    "message": "High error rate for notification_service: 100.00%",
+    "severity": "warning",
+    "source": "workflow_monitor"
+  },
+  {
+    "timestamp": "2025-08-27T10:02:06.244172",
+    "message": "Service api_gateway is unhealthy",
+    "severity": "warning",
+    "source": "workflow_monitor"
+  },
+  {
+    "timestamp": "2025-08-27T10:02:06.268886",
+    "message": "High error rate for api_gateway: 100.00%",
+    "severity": "warning",
+    "source": "workflow_monitor"
+  },
+  {
+    "timestamp": "2025-08-27T10:02:06.279185",
+    "message": "Service auth_service is unhealthy",
+    "severity": "warning",
+    "source": "workflow_monitor"
+  },
+  {
+    "timestamp": "2025-08-27T10:02:06.288556",
+    "message": "High error rate for auth_service: 100.00%",
+    "severity": "warning",
+    "source": "workflow_monitor"
+  },
+  {
+    "timestamp": "2025-08-27T10:02:06.302421",
+    "message": "Service user_service is unhealthy",
+    "severity": "warning",
+    "source": "workflow_monitor"
+  },
+  {
+    "timestamp": "2025-08-27T10:02:06.318299",
+    "message": "High error rate for user_service: 100.00%",
+    "severity": "warning",
+    "source": "workflow_monitor"
+  },
+  {
+    "timestamp": "2025-08-27T10:02:06.340474",
+    "message": "Service institution_service is unhealthy",
+    "severity": "warning",
+    "source": "workflow_monitor"
+  },
+  {
+    "timestamp": "2025-08-27T10:02:06.395976",
+    "message": "High error rate for institution_service: 100.00%",
+    "severity": "warning",
+    "source": "workflow_monitor"
+  },
+  {
+    "timestamp": "2025-08-27T10:02:06.411418",
+    "message": "Service notification_service is unhealthy",
+    "severity": "warning",
+    "source": "workflow_monitor"
+  },
+  {
+    "timestamp": "2025-08-27T10:02:06.424823",
+    "message": "High error rate for notification_service: 100.00%",
+    "severity": "warning",
+    "source": "workflow_monitor"
+  },
+  {
+    "timestamp": "2025-08-27T10:03:06.441600",
+    "message": "Service api_gateway is unhealthy",
+    "severity": "warning",
+    "source": "workflow_monitor"
+  },
+  {
+    "timestamp": "2025-08-27T10:03:06.454197",
+    "message": "High error rate for api_gateway: 100.00%",
+    "severity": "warning",
+    "source": "workflow_monitor"
+  },
+  {
+    "timestamp": "2025-08-27T10:03:06.468075",
+    "message": "Service auth_service is unhealthy",
+    "severity": "warning",
+    "source": "workflow_monitor"
+  },
+  {
+    "timestamp": "2025-08-27T10:03:06.488707",
+    "message": "High error rate for auth_service: 100.00%",
+    "severity": "warning",
+    "source": "workflow_monitor"
+  },
+  {
+    "timestamp": "2025-08-27T10:03:06.501165",
+    "message": "Service user_service is unhealthy",
+    "severity": "warning",
+    "source": "workflow_monitor"
+  },
+  {
+    "timestamp": "2025-08-27T10:03:06.515698",
+    "message": "High error rate for user_service: 100.00%",
+    "severity": "warning",
+    "source": "workflow_monitor"
+  },
+  {
+    "timestamp": "2025-08-27T10:03:06.527440",
+    "message": "Service institution_service is unhealthy",
+    "severity": "warning",
+    "source": "workflow_monitor"
+  },
+  {
+    "timestamp": "2025-08-27T10:03:06.537838",
+    "message": "High error rate for institution_service: 100.00%",
+    "severity": "warning",
+    "source": "workflow_monitor"
+  },
+  {
+    "timestamp": "2025-08-27T10:03:06.552827",
+    "message": "Service notification_service is unhealthy",
+    "severity": "warning",
+    "source": "workflow_monitor"
+  },
+  {
+    "timestamp": "2025-08-27T10:03:06.573634",
+    "message": "High error rate for notification_service: 100.00%",
+    "severity": "warning",
+    "source": "workflow_monitor"
+  },
+  {
+    "timestamp": "2025-08-27T10:04:06.943107",
+    "message": "Service api_gateway is unhealthy",
+    "severity": "warning",
+    "source": "workflow_monitor"
+  },
+  {
+    "timestamp": "2025-08-27T10:04:08.262485",
+    "message": "High error rate for api_gateway: 100.00%",
+    "severity": "warning",
+    "source": "workflow_monitor"
+  },
+  {
+    "timestamp": "2025-08-27T10:04:08.300212",
+    "message": "Service auth_service is unhealthy",
+    "severity": "warning",
+    "source": "workflow_monitor"
+  },
+  {
+    "timestamp": "2025-08-27T10:04:08.671280",
+    "message": "High error rate for auth_service: 100.00%",
+    "severity": "warning",
+    "source": "workflow_monitor"
+  },
+  {
+    "timestamp": "2025-08-27T10:04:08.885035",
+    "message": "Service user_service is unhealthy",
+    "severity": "warning",
+    "source": "workflow_monitor"
+  },
+  {
+    "timestamp": "2025-08-27T10:04:08.896779",
+    "message": "High error rate for user_service: 100.00%",
+    "severity": "warning",
+    "source": "workflow_monitor"
+  },
+  {
+    "timestamp": "2025-08-27T10:04:08.904386",
+    "message": "Service institution_service is unhealthy",
+    "severity": "warning",
+    "source": "workflow_monitor"
+  },
+  {
+    "timestamp": "2025-08-27T10:04:09.671741",
+    "message": "High error rate for institution_service: 100.00%",
+    "severity": "warning",
+    "source": "workflow_monitor"
+  },
+  {
+    "timestamp": "2025-08-27T10:04:09.922212",
+    "message": "Service notification_service is unhealthy",
+    "severity": "warning",
+    "source": "workflow_monitor"
+  },
+  {
+    "timestamp": "2025-08-27T10:04:09.958731",
     "message": "High error rate for notification_service: 100.00%",
     "severity": "warning",
     "source": "workflow_monitor"

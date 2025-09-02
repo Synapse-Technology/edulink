@@ -15,5 +15,4 @@ urlpatterns = [
     path('health/', health_check, name='health-check'),
     path('health/', include('health_check.urls')),
     path('api/v1/notifications/', include('notifications.urls')),
-    path('api/v1/templates/', include('templates.urls')),
 ]

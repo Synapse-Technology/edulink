@@ -8,6 +8,11 @@ class ServiceConfig:
     # Service URLs
     INTERNSHIP_SERVICE_URL = os.getenv('INTERNSHIP_SERVICE_URL', 'http://localhost:8001')
     APPLICATION_SERVICE_URL = os.getenv('APPLICATION_SERVICE_URL', 'http://localhost:8002')
+    AUTH_SERVICE_URL = os.getenv('AUTH_SERVICE_URL', 'http://localhost:8003')
+    USER_SERVICE_URL = os.getenv('USER_SERVICE_URL', 'http://localhost:8004')
+    INSTITUTION_SERVICE_URL = os.getenv('INSTITUTION_SERVICE_URL', 'http://localhost:8005')
+    NOTIFICATION_SERVICE_URL = os.getenv('NOTIFICATION_SERVICE_URL', 'http://localhost:8006')
+    REGISTRATION_SERVICE_URL = os.getenv('REGISTRATION_SERVICE_URL', 'http://localhost:8007')
     API_GATEWAY_URL = os.getenv('API_GATEWAY_URL', 'http://localhost:8000')
     
     # Database configurations
@@ -48,6 +53,11 @@ class ServiceConfig:
         return {
             'internship': cls.INTERNSHIP_SERVICE_URL,
             'application': cls.APPLICATION_SERVICE_URL,
+            'auth': cls.AUTH_SERVICE_URL,
+            'user': cls.USER_SERVICE_URL,
+            'institution': cls.INSTITUTION_SERVICE_URL,
+            'notification': cls.NOTIFICATION_SERVICE_URL,
+            'registration': cls.REGISTRATION_SERVICE_URL,
             'api_gateway': cls.API_GATEWAY_URL,
         }
     
@@ -84,6 +94,11 @@ class DevelopmentConfig(ServiceConfig):
     DEBUG = True
     INTERNSHIP_SERVICE_URL = 'http://localhost:8001'
     APPLICATION_SERVICE_URL = 'http://localhost:8002'
+    AUTH_SERVICE_URL = 'http://localhost:8003'
+    USER_SERVICE_URL = 'http://localhost:8004'
+    INSTITUTION_SERVICE_URL = 'http://localhost:8005'
+    NOTIFICATION_SERVICE_URL = 'http://localhost:8006'
+    REGISTRATION_SERVICE_URL = 'http://localhost:8007'
     API_GATEWAY_URL = 'http://localhost:8000'
 
 class ProductionConfig(ServiceConfig):
@@ -91,6 +106,11 @@ class ProductionConfig(ServiceConfig):
     DEBUG = False
     INTERNSHIP_SERVICE_URL = os.getenv('INTERNSHIP_SERVICE_URL', 'https://internship-service.edulink.com')
     APPLICATION_SERVICE_URL = os.getenv('APPLICATION_SERVICE_URL', 'https://application-service.edulink.com')
+    AUTH_SERVICE_URL = os.getenv('AUTH_SERVICE_URL', 'https://auth-service.edulink.com')
+    USER_SERVICE_URL = os.getenv('USER_SERVICE_URL', 'https://user-service.edulink.com')
+    INSTITUTION_SERVICE_URL = os.getenv('INSTITUTION_SERVICE_URL', 'https://institution-service.edulink.com')
+    NOTIFICATION_SERVICE_URL = os.getenv('NOTIFICATION_SERVICE_URL', 'https://notification-service.edulink.com')
+    REGISTRATION_SERVICE_URL = os.getenv('REGISTRATION_SERVICE_URL', 'https://registration-service.edulink.com')
     API_GATEWAY_URL = os.getenv('API_GATEWAY_URL', 'https://api.edulink.com')
 
 class TestingConfig(ServiceConfig):
@@ -98,6 +118,11 @@ class TestingConfig(ServiceConfig):
     DEBUG = True
     INTERNSHIP_SERVICE_URL = 'http://localhost:8001'
     APPLICATION_SERVICE_URL = 'http://localhost:8002'
+    AUTH_SERVICE_URL = 'http://localhost:8003'
+    USER_SERVICE_URL = 'http://localhost:8004'
+    INSTITUTION_SERVICE_URL = 'http://localhost:8005'
+    NOTIFICATION_SERVICE_URL = 'http://localhost:8006'
+    REGISTRATION_SERVICE_URL = 'http://localhost:8007'
     API_GATEWAY_URL = 'http://localhost:8000'
     
     # Use in-memory databases for testing

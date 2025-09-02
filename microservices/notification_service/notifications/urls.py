@@ -1,42 +1,38 @@
 from django.urls import path, include
-from rest_framework.routers import DefaultRouter
 from . import views
 
-# Create router for ViewSets
-router = DefaultRouter()
-router.register(r'templates', views.NotificationTemplateViewSet, basename='notificationtemplate')
-router.register(r'logs', views.NotificationLogViewSet, basename='notificationlog')
-router.register(r'preferences', views.NotificationPreferenceViewSet, basename='notificationpreference')
-router.register(r'batches', views.NotificationBatchViewSet, basename='notificationbatch')
-
 urlpatterns = [
-    # Include router URLs
-    path('', include(router.urls)),
-    
     # Notification management
     path('notifications/', views.NotificationListCreateView.as_view(), name='notification-list-create'),
     path('notifications/<uuid:pk>/', views.NotificationDetailView.as_view(), name='notification-detail'),
     
-    # Bulk operations
-    path('notifications/bulk/', views.BulkNotificationView.as_view(), name='bulk-notification'),
-    path('notifications/bulk/status/', views.NotificationStatusUpdateView.as_view(), name='notification-status-update'),
+    # Template management
+    path('templates/', views.NotificationTemplateListCreateView.as_view(), name='template-list-create'),
+    path('templates/<uuid:pk>/', views.NotificationTemplateDetailView.as_view(), name='template-detail'),
     
-    # Retry operations
-    path('notifications/<uuid:pk>/retry/', views.retry_notification, name='retry-notification'),
-    path('notifications/retry-failed/', views.retry_failed_notifications, name='retry-failed-notifications'),
+    # Notification logs
+    path('notifications/<uuid:notification_id>/logs/', views.NotificationLogListView.as_view(), name='notification-logs'),
     
-    # Statistics
-    path('stats/', views.NotificationStatsView.as_view(), name='notification-stats'),
+    # User preferences
+    path('preferences/<str:user_id>/', views.NotificationPreferenceView.as_view(), name='notification-preferences'),
+    
+    # Batch operations
+    path('batches/', views.NotificationBatchListCreateView.as_view(), name='batch-list-create'),
+    path('batches/<uuid:pk>/', views.NotificationBatchDetailView.as_view(), name='batch-detail'),
+    path('bulk-send/', views.send_bulk_notifications_view, name='bulk-send'),
+    
+    # Status updates and retries
+    path('notifications/<uuid:notification_id>/status/', views.update_notification_status, name='update-status'),
+    path('notifications/<uuid:notification_id>/retry/', views.retry_failed_notification, name='retry-notification'),
+    
+    # Statistics and monitoring
+    path('stats/', views.notification_stats, name='notification-stats'),
     
     # Health check
     path('health/', views.health_check, name='health-check'),
     
-    # Webhooks
-    path('webhooks/sendgrid/', views.SendGridWebhookView.as_view(), name='sendgrid-webhook'),
-    path('webhooks/twilio/', views.TwilioWebhookView.as_view(), name='twilio-webhook'),
-    
-    # Template validation
-    path('templates/validate/', views.validate_template, name='validate-template'),
+    # Webhook endpoints for external providers
+    path('webhooks/status/', views.update_notification_status, name='webhook-status'),
 ]
 
 app_name = 'notifications'

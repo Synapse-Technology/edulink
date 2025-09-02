@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional, List
 import requests
 import logging
+from functools import wraps
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from rest_framework import status
@@ -146,6 +147,7 @@ class ServiceRegistry:
 
 def service_error_handler(func):
     """Decorator to handle service errors gracefully"""
+    @wraps(func)
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)

@@ -1,0 +1,2197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>Reports - Institution Dashboard - EduLink</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Reports Management Hero Section */
+        .reports-management-hero {
+            position: relative;
+            background: var(--card-bg);
+            border-radius: 24px;
+            margin-bottom: 3rem;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(51, 217, 153, 0.08);
+            border: 1px solid var(--border);
+        }
+
+        .hero-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1;
+        }
+
+        .hero-pattern {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                radial-gradient(circle at 25% 25%, rgba(51, 217, 153, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 75% 75%, rgba(26, 95, 122, 0.1) 0%, transparent 50%),
+                linear-gradient(45deg, transparent 40%, rgba(51, 217, 153, 0.02) 50%, transparent 60%);
+            background-size: 200px 200px, 150px 150px, 100px 100px;
+            animation: patternMove 20s ease-in-out infinite;
+        }
+
+        @keyframes patternMove {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            33% { transform: translate(10px, -10px) rotate(1deg); }
+            66% { transform: translate(-5px, 5px) rotate(-0.5deg); }
+        }
+
+        .hero-gradient {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, 
+                rgba(51, 217, 153, 0.05) 0%, 
+                rgba(26, 95, 122, 0.03) 50%, 
+                rgba(51, 217, 153, 0.02) 100%);
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            padding: 3rem 2.5rem 2rem;
+        }
+
+        .hero-icon {
+            width: 80px;
+            height: 80px;
+            background: var(--gradient);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            color: white;
+            box-shadow: 0 8px 24px rgba(51, 217, 153, 0.3);
+            animation: iconFloat 3s ease-in-out infinite;
+        }
+
+        @keyframes iconFloat {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .hero-text {
+            flex: 1;
+        }
+
+        .hero-title {
+            font-size: 2.75rem;
+            font-weight: 900;
+            color: var(--text-main);
+            margin-bottom: 1rem;
+            letter-spacing: -0.03em;
+            line-height: 1.1;
+            background: linear-gradient(135deg, var(--text-main) 0%, var(--primary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-subtitle {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+            max-width: 600px;
+            font-weight: 400;
+        }
+
+        .hero-features {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .feature-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(51, 217, 153, 0.1);
+            color: var(--primary);
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            border: 1px solid rgba(51, 217, 153, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .feature-tag:hover {
+            background: rgba(51, 217, 153, 0.15);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(51, 217, 153, 0.2);
+        }
+
+        .hero-actions {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            gap: 1rem;
+            padding: 0 2.5rem 2.5rem;
+            justify-content: flex-end;
+        }
+
+        .hero-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-decoration: none;
+            outline: none;
+        }
+
+        .hero-btn.primary {
+            background: var(--gradient);
+            color: white;
+            box-shadow: 0 6px 20px rgba(51, 217, 153, 0.3);
+        }
+
+        .hero-btn.primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(51, 217, 153, 0.4);
+        }
+
+        .hero-btn.secondary {
+            background: var(--card-bg);
+            color: var(--text-main);
+            border: 2px solid var(--border);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .hero-btn.secondary:hover {
+            background: var(--background);
+            border-color: var(--primary);
+            color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(51, 217, 153, 0.15);
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .filter-group label {
+            font-weight: 500;
+            color: var(--text-main);
+            font-size: 14px;
+        }
+
+        .filter-group select {
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 14px;
+            background: var(--card-bg);
+            color: var(--text-main);
+        }
+
+        .trend {
+            font-size: 12px;
+            font-weight: 500;
+            margin-top: 4px;
+            display: block;
+        }
+
+        .trend.positive {
+            color: #4CAF50;
+        }
+
+        .trend.negative {
+            color: #f44336;
+        }
+
+        .trend.neutral {
+            color: var(--text-muted);
+        }
+
+        .metric-item {
+            background: var(--background);
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+
+        .metric-item h4 {
+            margin: 0 0 8px 0;
+            color: var(--text-muted);
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .metric-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--primary);
+            margin: 0 0 4px 0;
+        }
+
+        .metric-detail {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-primary {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .badge-success {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+
+        .badge-warning {
+            background: #fff3e0;
+            color: #ef6c00;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .status-completed {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+
+        .status-processing {
+            background: #fff3e0;
+            color: #ef6c00;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: normal;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Section Headers */
+        .section-header {
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .section-header h3 {
+            color: var(--text-main);
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+        }
+
+        .section-header h3 i {
+            color: var(--primary);
+            font-size: 1.25rem;
+        }
+
+        .section-header p {
+            color: var(--text-muted);
+            font-size: 1rem;
+            margin: 0;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Report Filters */
+        .report-filters {
+            background: var(--card-bg);
+            border-radius: var(--card-radius);
+            box-shadow: var(--card-shadow);
+            margin-bottom: 2.5rem;
+            overflow: hidden;
+        }
+
+        .filters-header {
+            background: linear-gradient(135deg, var(--primary) 0%, #2dd4bf 100%);
+            color: white;
+            padding: 1.5rem 2rem;
+            text-align: center;
+        }
+
+        .filters-header h3 {
+            margin: 0 0 0.5rem 0;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .filters-header p {
+            margin: 0;
+            opacity: 0.9;
+            font-size: 0.9rem;
+        }
+
+        .filters-content {
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            align-items: end;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .filter-group label {
+            font-weight: 600;
+            color: var(--text-main);
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .filter-group label i {
+            color: var(--primary);
+            font-size: 0.875rem;
+        }
+
+        .filter-group select {
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            background: var(--background);
+            color: var(--text-main);
+            transition: all 0.3s ease;
+        }
+
+        .filter-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(51, 217, 153, 0.1);
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+        }
+
+        /* Metrics Section */
+        .metrics-section {
+            margin-bottom: 2.5rem;
+        }
+
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .summary-card {
+            background: var(--card-bg);
+            border-radius: var(--card-radius);
+            box-shadow: var(--card-shadow);
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: all 0.3s ease;
+            border: 1px solid var(--border);
+        }
+
+        .summary-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-icon {
+            width: 45px;
+            height: 45px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .card-icon.success { background: linear-gradient(135deg, #4CAF50, #45a049); }
+        .card-icon.primary { background: linear-gradient(135deg, #2196F3, #1976D2); }
+        .card-icon.warning { background: linear-gradient(135deg, #FF9800, #F57C00); }
+        .card-icon.purple { background: linear-gradient(135deg, #9C27B0, #7B1FA2); }
+
+        .card-content h3 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin: 0 0 0.25rem 0;
+        }
+
+        .card-content p {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin: 0 0 0.5rem 0;
+        }
+
+        .trend {
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .trend.positive { color: #4CAF50; }
+        .trend.negative { color: #f44336; }
+        .trend.neutral { color: var(--text-muted); }
+
+
+
+        /* Analytics Dashboard Section */
+        .analytics-dashboard-section {
+            background: linear-gradient(135deg, var(--card-bg) 0%, rgba(51, 217, 153, 0.02) 100%);
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+            margin-bottom: 3rem;
+            padding: 2.5rem;
+            border: 1px solid rgba(51, 217, 153, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .analytics-dashboard-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #33D999, #1a5f7a, #4CAF50);
+            border-radius: 20px 20px 0 0;
+        }
+
+        .analytics-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 2px solid rgba(51, 217, 153, 0.1);
+        }
+
+        .analytics-title-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .analytics-icon-container {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #33D999, #1a5f7a);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 25px rgba(51, 217, 153, 0.3);
+            animation: pulse-glow 3s ease-in-out infinite;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 8px 25px rgba(51, 217, 153, 0.3); }
+            50% { box-shadow: 0 12px 35px rgba(51, 217, 153, 0.5); }
+        }
+
+        .analytics-main-icon {
+            color: white;
+            font-size: 1.8rem;
+        }
+
+        .analytics-title-content {
+            flex: 1;
+        }
+
+        .analytics-title {
+            color: var(--text-primary);
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin: 0 0 0.5rem 0;
+            background: linear-gradient(135deg, #33D999, #1a5f7a);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .analytics-subtitle {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            margin: 0;
+            font-weight: 400;
+        }
+
+        .analytics-refresh-btn {
+            background: linear-gradient(135deg, #33D999, #1a5f7a);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(51, 217, 153, 0.3);
+        }
+
+        .analytics-refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(51, 217, 153, 0.4);
+        }
+
+        .analytics-refresh-btn:active {
+            transform: translateY(0);
+        }
+
+        .analytics-refresh-btn i {
+            transition: transform 0.3s ease;
+        }
+
+        .analytics-refresh-btn:hover i {
+            transform: rotate(180deg);
+        }
+
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .analytics-card {
+            background: var(--card-bg);
+            border-radius: 18px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+            border: 1px solid rgba(51, 217, 153, 0.08);
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .analytics-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #33D999, transparent);
+            transform: translateX(-100%);
+            transition: transform 0.6s ease;
+        }
+
+        .analytics-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.12);
+            border-color: rgba(51, 217, 153, 0.2);
+        }
+
+        .analytics-card:hover::before {
+            transform: translateX(100%);
+        }
+
+        .analytics-card-header {
+            padding: 1.8rem 1.8rem 1rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .card-icon-wrapper {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .applications-icon {
+            background: linear-gradient(135deg, #33D999, #26a69a);
+        }
+
+        .distribution-icon {
+            background: linear-gradient(135deg, #1a5f7a, #0d47a1);
+        }
+
+        .success-icon {
+            background: linear-gradient(135deg, #4CAF50, #2e7d32);
+        }
+
+        .stats-icon {
+            background: linear-gradient(135deg, #FF9800, #f57c00);
+        }
+
+        .card-title-section {
+            flex: 1;
+        }
+
+        .card-title {
+            color: var(--text-primary);
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin: 0 0 0.5rem 0;
+        }
+
+        .card-description {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin: 0;
+            line-height: 1.4;
+        }
+
+        .card-stats {
+            text-align: right;
+            flex-shrink: 0;
+        }
+
+        .stat-number {
+            display: block;
+            color: #33D999;
+            font-size: 1.4rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .stat-label {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .analytics-card-body {
+            padding: 0 1.8rem 1.8rem;
+            position: relative;
+        }
+
+        .chart-container-modern {
+            height: 280px;
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            background: linear-gradient(135deg, rgba(51, 217, 153, 0.02), rgba(26, 95, 122, 0.02));
+        }
+
+        .modern-chart {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        .chart-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .chart-loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .loading-spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid rgba(51, 217, 153, 0.2);
+            border-top: 3px solid #33D999;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .stats-body {
+            padding: 1.8rem;
+        }
+
+        .quick-stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .quick-stat-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: linear-gradient(135deg, rgba(51, 217, 153, 0.05), rgba(26, 95, 122, 0.05));
+            border-radius: 12px;
+            border: 1px solid rgba(51, 217, 153, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .quick-stat-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .quick-stat-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .active-icon {
+            background: linear-gradient(135deg, #33D999, #26a69a);
+        }
+
+        .pending-icon {
+            background: linear-gradient(135deg, #FF9800, #f57c00);
+        }
+
+        .completed-icon {
+            background: linear-gradient(135deg, #4CAF50, #2e7d32);
+        }
+
+        .rating-icon {
+            background: linear-gradient(135deg, #9C27B0, #7b1fa2);
+        }
+
+        .quick-stat-content {
+            flex: 1;
+        }
+
+        .quick-stat-number {
+            display: block;
+            color: var(--text-primary);
+            font-size: 1.4rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .quick-stat-label {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        /* Responsive Design for Analytics Dashboard */
+        @media (max-width: 1200px) {
+            .analytics-grid {
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                gap: 1.5rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .analytics-dashboard-section {
+                padding: 1.5rem;
+                margin-bottom: 2rem;
+            }
+
+            .analytics-header {
+                flex-direction: column;
+                gap: 1.5rem;
+                align-items: flex-start;
+            }
+
+            .analytics-title-wrapper {
+                gap: 1rem;
+            }
+
+            .analytics-icon-container {
+                width: 50px;
+                height: 50px;
+            }
+
+            .analytics-title {
+                font-size: 1.8rem;
+            }
+
+            .analytics-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+
+            .analytics-card-header {
+                padding: 1.5rem 1.5rem 1rem;
+                flex-direction: column;
+                gap: 1rem;
+                align-items: flex-start;
+            }
+
+            .card-stats {
+                text-align: left;
+                align-self: flex-start;
+            }
+
+            .analytics-card-body {
+                padding: 0 1.5rem 1.5rem;
+            }
+
+            .chart-container-modern {
+                height: 240px;
+            }
+
+            .quick-stats-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+        }
+
+        /* Performance Section */
+        .performance-section {
+            background: var(--card-bg);
+            border-radius: var(--card-radius);
+            box-shadow: var(--card-shadow);
+            margin-bottom: 2.5rem;
+            padding: 2rem;
+            border: 1px solid var(--border);
+        }
+
+        .performance-content {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+        }
+
+        .performance-chart {
+            background: var(--background);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+        }
+
+        .performance-metrics {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .metric-item {
+            background: var(--background);
+            border-radius: 12px;
+            padding: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            border: 1px solid var(--border);
+            transition: all 0.3s ease;
+        }
+
+        .metric-item:hover {
+            transform: translateX(4px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .metric-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .metric-info h4 {
+            color: var(--text-main);
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin: 0 0 0.25rem 0;
+        }
+
+        .metric-value {
+            color: var(--text-main);
+            font-size: 1.125rem;
+            font-weight: 700;
+            margin: 0 0 0.25rem 0;
+        }
+
+        .metric-detail {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            margin: 0;
+        }
+
+        /* Recent Reports */
+        .recent-reports {
+            background: var(--card-bg);
+            border-radius: var(--card-radius);
+            box-shadow: var(--card-shadow);
+            border: 1px solid var(--border);
+        }
+
+        .recent-reports .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 0;
+            text-align: left;
+        }
+
+        .header-content h3 {
+            justify-content: flex-start;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .table-container {
+            padding: 1.5rem 2rem 2rem;
+        }
+
+
+
+        /* Responsive Design for Reports Hero */
+        @media (max-width: 768px) {
+            .hero-content {
+                flex-direction: column;
+                text-align: center;
+                padding: 2rem 1.5rem 1rem;
+                gap: 1.5rem;
+            }
+
+            .hero-icon {
+                width: 60px;
+                height: 60px;
+                font-size: 1.8rem;
+                margin: 0 auto;
+            }
+
+            .hero-title {
+                font-size: 2rem;
+            }
+
+            .hero-subtitle {
+                font-size: 1rem;
+                max-width: 100%;
+            }
+
+            .hero-features {
+                justify-content: center;
+                gap: 0.5rem;
+            }
+
+            .feature-tag {
+                font-size: 0.75rem;
+                padding: 0.4rem 0.8rem;
+            }
+
+            .hero-actions {
+                flex-direction: column;
+                padding: 0 1.5rem 2rem;
+                gap: 0.75rem;
+            }
+
+            .hero-btn {
+                width: 100%;
+                justify-content: center;
+                padding: 0.875rem 1.5rem;
+            }
+
+            .filters-content {
+                grid-template-columns: 1fr;
+                padding: 1.5rem;
+            }
+
+            .filter-actions {
+                justify-content: stretch;
+            }
+
+            .filter-actions .btn {
+                flex: 1;
+            }
+
+            .summary-cards {
+                grid-template-columns: 1fr;
+            }
+
+
+
+            .performance-content {
+                grid-template-columns: 1fr;
+            }
+
+            .recent-reports .section-header {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+
+            .header-actions {
+                width: 100%;
+            }
+
+            .header-actions .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Header Bar -->
+    <div class="top-header">
+        <div class="header-left" style="padding-left: 30px;">
+            <button class="mobile-menu-toggle" onclick="toggleSidebar()" aria-label="Toggle navigation">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="logo">EduLink</div>
+        </div>
+        <div class="header-center">
+            <div class="welcome-text">Reports & Analytics</div>
+        </div>
+        <div class="header-right" style="padding-right: 30px;">
+            <div class="notification-icon" onclick="openNotificationsModal()">
+                <i class="fas fa-bell"></i>
+            </div>
+            <div class="profile-pic">
+                <img src="https://via.placeholder.com/40" alt="Profile">
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="dashboard.html" class="nav-link">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="departments.html" class="nav-link">
+                        <i class="fas fa-building"></i>
+                        <span>Departments</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="internships.html" class="nav-link">
+                        <i class="fas fa-briefcase"></i>
+                        <span>Internships</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="students.html" class="nav-link">
+                        <i class="fas fa-users"></i>
+                        <span>Students</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="applications.html" class="nav-link">
+                        <i class="fas fa-file-alt"></i>
+                        <span>Applications</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="supervisors.html" class="nav-link">
+                        <i class="fas fa-user-tie"></i>
+                        <span>Supervisors</span>
+                    </a>
+                </li>
+                <li class="nav-item active">
+                    <a href="reports.html" class="nav-link">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Reports</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="settings.html" class="nav-link">
+                        <i class="fas fa-cog"></i>
+                        <span>Settings</span>
+                    </a>
+                </li>
+            </ul>
+            
+            <!-- Logout Button -->
+            <div class="sidebar-logout">
+                <a href="#" class="logout-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </nav>
+
+        <!-- Mobile Overlay -->
+        <div class="mobile-overlay" onclick="closeSidebar()"></div>
+        
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Reports Section -->
+            <section id="reports" class="content-section active">
+                <!-- Enhanced Reports Management Header -->
+                <div class="reports-management-hero">
+                    <div class="hero-background">
+                        <div class="hero-pattern"></div>
+                        <div class="hero-gradient"></div>
+                    </div>
+                    <div class="hero-content">
+                        <div class="hero-icon">
+                            <i class="fas fa-chart-bar"></i>
+                        </div>
+                        <div class="hero-text">
+                            <h1 class="hero-title">Reports & Analytics</h1>
+                            <p class="hero-subtitle">Comprehensive insights into internship programs, student performance, and institutional metrics with real-time data visualization</p>
+                            <div class="hero-features">
+                                <span class="feature-tag"><i class="fas fa-chart-line"></i> Real-time Data</span>
+                                <span class="feature-tag"><i class="fas fa-file-alt"></i> Custom Reports</span>
+                                <span class="feature-tag"><i class="fas fa-download"></i> Export Options</span>
+                                <span class="feature-tag"><i class="fas fa-analytics"></i> Performance Tracking</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="hero-actions">
+                        <button class="hero-btn primary" onclick="generateNewReport()">
+                            <i class="fas fa-plus"></i>
+                            Generate Report
+                        </button>
+                        <button class="hero-btn secondary" onclick="exportReport()">
+                            <i class="fas fa-download"></i>
+                            Export Data
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Report Filters -->
+                <div class="report-filters">
+                    <div class="filters-header">
+                        <h3><i class="fas fa-filter"></i> Report Filters</h3>
+                        <p>Customize your report parameters and data range</p>
+                    </div>
+                    <div class="filters-content">
+                        <div class="filter-group">
+                            <label><i class="fas fa-calendar-alt"></i> Date Range</label>
+                            <select id="dateRange" onchange="updateReports()">
+                                <option value="7">Last 7 days</option>
+                                <option value="30" selected>Last 30 days</option>
+                                <option value="90">Last 3 months</option>
+                                <option value="365">Last year</option>
+                                <option value="custom">Custom range</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label><i class="fas fa-building"></i> Department</label>
+                            <select id="departmentFilter" onchange="updateReports()">
+                                <option value="">All Departments</option>
+                                <option value="Computer Science">Computer Science</option>
+                                <option value="Business Administration">Business Administration</option>
+                                <option value="Engineering">Engineering</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label><i class="fas fa-chart-bar"></i> Report Type</label>
+                            <select id="reportType" onchange="updateReports()">
+                                <option value="overview">Overview</option>
+                                <option value="performance">Performance</option>
+                                <option value="completion">Completion Rates</option>
+                                <option value="feedback">Feedback Analysis</option>
+                            </select>
+                        </div>
+                        <div class="filter-actions">
+                            <button class="btn btn-primary" onclick="exportReport()">
+                                <i class="fas fa-download"></i> Export Report
+                            </button>
+                            <button class="btn btn-secondary" onclick="resetFilters()">
+                                <i class="fas fa-undo"></i> Reset
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Key Metrics Section -->
+                <div class="metrics-section">
+                    <div class="section-header">
+                        <h3><i class="fas fa-chart-line"></i> Key Performance Metrics</h3>
+                        <p>Real-time insights into your internship program performance</p>
+                    </div>
+                    <div class="summary-cards">
+                        <div class="summary-card">
+                            <div class="card-icon success">
+                                <i class="fas fa-briefcase"></i>
+                            </div>
+                            <div class="card-content">
+                                <h3 id="totalInternships">45</h3>
+                                <p>Total Internships</p>
+                                <span class="trend positive"><i class="fas fa-arrow-up"></i> +12% from last month</span>
+                            </div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="card-icon primary">
+                                <i class="fas fa-graduation-cap"></i>
+                            </div>
+                            <div class="card-content">
+                                <h3 id="completionRate">87%</h3>
+                                <p>Completion Rate</p>
+                                <span class="trend positive"><i class="fas fa-arrow-up"></i> +5% from last month</span>
+                            </div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="card-icon warning">
+                                <i class="fas fa-star"></i>
+                            </div>
+                            <div class="card-content">
+                                <h3 id="avgRating">4.6</h3>
+                                <p>Average Rating</p>
+                                <span class="trend neutral"><i class="fas fa-minus"></i> No change</span>
+                            </div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="card-icon purple">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div class="card-content">
+                                <h3 id="avgDuration">10.2</h3>
+                                <p>Avg Duration (weeks)</p>
+                                <span class="trend negative"><i class="fas fa-arrow-down"></i> -0.5 weeks</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Analytics Dashboard -->
+                <div class="analytics-dashboard-section">
+                    <div class="analytics-header">
+                        <div class="analytics-title-wrapper">
+                            <div class="analytics-icon-container">
+                                <i class="fas fa-chart-line analytics-main-icon"></i>
+                            </div>
+                            <div class="analytics-title-content">
+                                <h3 class="analytics-title">Analytics Dashboard</h3>
+                                <p class="analytics-subtitle">Real-time insights and data visualization</p>
+                            </div>
+                        </div>
+                        <div class="analytics-controls">
+                            <button class="analytics-refresh-btn" id="refreshAnalytics">
+                                <i class="fas fa-sync-alt"></i>
+                                <span>Refresh</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="analytics-grid">
+                        <!-- Applications Trend Card -->
+                        <div class="analytics-card applications-card" data-chart="applications">
+                            <div class="analytics-card-header">
+                                <div class="card-icon-wrapper applications-icon">
+                                    <i class="fas fa-trending-up"></i>
+                                </div>
+                                <div class="card-title-section">
+                                    <h4 class="card-title">Applications Trend</h4>
+                                    <p class="card-description">Monthly application patterns</p>
+                                </div>
+                                <div class="card-stats">
+                                    <span class="stat-number">+23%</span>
+                                    <span class="stat-label">vs last month</span>
+                                </div>
+                            </div>
+                            <div class="analytics-card-body">
+                                <div class="chart-container-modern">
+                                    <canvas id="modernApplicationsChart" class="modern-chart"></canvas>
+                                </div>
+                                <div class="chart-overlay">
+                                    <div class="chart-loading" id="applicationsLoading">
+                                        <div class="loading-spinner"></div>
+                                        <span>Loading data...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Department Distribution Card -->
+                        <div class="analytics-card distribution-card" data-chart="distribution">
+                            <div class="analytics-card-header">
+                                <div class="card-icon-wrapper distribution-icon">
+                                    <i class="fas fa-chart-pie"></i>
+                                </div>
+                                <div class="card-title-section">
+                                    <h4 class="card-title">Department Distribution</h4>
+                                    <p class="card-description">Internship allocation by department</p>
+                                </div>
+                                <div class="card-stats">
+                                    <span class="stat-number">4</span>
+                                    <span class="stat-label">departments</span>
+                                </div>
+                            </div>
+                            <div class="analytics-card-body">
+                                <div class="chart-container-modern">
+                                    <canvas id="modernDepartmentChart" class="modern-chart"></canvas>
+                                </div>
+                                <div class="chart-overlay">
+                                    <div class="chart-loading" id="departmentLoading">
+                                        <div class="loading-spinner"></div>
+                                        <span>Loading data...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Success Rate Card -->
+                        <div class="analytics-card success-card" data-chart="success">
+                            <div class="analytics-card-header">
+                                <div class="card-icon-wrapper success-icon">
+                                    <i class="fas fa-trophy"></i>
+                                </div>
+                                <div class="card-title-section">
+                                    <h4 class="card-title">Success Rate</h4>
+                                    <p class="card-description">Completion and satisfaction metrics</p>
+                                </div>
+                                <div class="card-stats">
+                                    <span class="stat-number">89%</span>
+                                    <span class="stat-label">completion rate</span>
+                                </div>
+                            </div>
+                            <div class="analytics-card-body">
+                                <div class="chart-container-modern">
+                                    <canvas id="modernSuccessChart" class="modern-chart"></canvas>
+                                </div>
+                                <div class="chart-overlay">
+                                    <div class="chart-loading" id="successLoading">
+                                        <div class="loading-spinner"></div>
+                                        <span>Loading data...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Stats Card -->
+                        <div class="analytics-card stats-card">
+                            <div class="analytics-card-header">
+                                <div class="card-icon-wrapper stats-icon">
+                                    <i class="fas fa-chart-bar"></i>
+                                </div>
+                                <div class="card-title-section">
+                                    <h4 class="card-title">Quick Stats</h4>
+                                    <p class="card-description">Key performance indicators</p>
+                                </div>
+                            </div>
+                            <div class="analytics-card-body stats-body">
+                                <div class="quick-stats-grid">
+                                    <div class="quick-stat-item">
+                                        <div class="quick-stat-icon active-icon">
+                                            <i class="fas fa-users"></i>
+                                        </div>
+                                        <div class="quick-stat-content">
+                                            <span class="quick-stat-number">342</span>
+                                            <span class="quick-stat-label">Active Applications</span>
+                                        </div>
+                                    </div>
+                                    <div class="quick-stat-item">
+                                        <div class="quick-stat-icon pending-icon">
+                                            <i class="fas fa-clock"></i>
+                                        </div>
+                                        <div class="quick-stat-content">
+                                            <span class="quick-stat-number">67</span>
+                                            <span class="quick-stat-label">Pending Reviews</span>
+                                        </div>
+                                    </div>
+                                    <div class="quick-stat-item">
+                                        <div class="quick-stat-icon completed-icon">
+                                            <i class="fas fa-check-circle"></i>
+                                        </div>
+                                        <div class="quick-stat-content">
+                                            <span class="quick-stat-number">156</span>
+                                            <span class="quick-stat-label">Completed</span>
+                                        </div>
+                                    </div>
+                                    <div class="quick-stat-item">
+                                        <div class="quick-stat-icon rating-icon">
+                                            <i class="fas fa-star"></i>
+                                        </div>
+                                        <div class="quick-stat-content">
+                                            <span class="quick-stat-number">4.8</span>
+                                            <span class="quick-stat-label">Avg Rating</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Performance Analytics -->
+                <div class="performance-section">
+                    <div class="section-header">
+                        <h3><i class="fas fa-analytics"></i> Performance Analytics</h3>
+                        <p>Detailed performance insights and key metrics analysis</p>
+                    </div>
+                    <div class="performance-content">
+                        <div class="performance-chart">
+                            <div class="chart-header">
+                                <h4><i class="fas fa-chart-bar"></i> Performance Trends</h4>
+                                <p>Monthly performance comparison across departments</p>
+                            </div>
+                            <div class="chart-content">
+                                <canvas id="performanceChart" width="600" height="300"></canvas>
+                            </div>
+                        </div>
+                        <div class="performance-metrics">
+                            <div class="metric-item">
+                                <div class="metric-icon success">
+                                    <i class="fas fa-trophy"></i>
+                                </div>
+                                <div class="metric-info">
+                                    <h4>Top Performing Department</h4>
+                                    <p class="metric-value">Computer Science</p>
+                                    <span class="metric-detail">92% completion rate</span>
+                                </div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-icon primary">
+                                    <i class="fas fa-fire"></i>
+                                </div>
+                                <div class="metric-info">
+                                    <h4>Most Popular Internship</h4>
+                                    <p class="metric-value">Software Development</p>
+                                    <span class="metric-detail">156 applications</span>
+                                </div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-icon warning">
+                                    <i class="fas fa-star"></i>
+                                </div>
+                                <div class="metric-info">
+                                    <h4>Average Feedback Score</h4>
+                                    <p class="metric-value">4.7/5.0</p>
+                                    <span class="metric-detail">Based on 234 reviews</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Reports Table -->
+                <div class="recent-reports">
+                    <div class="section-header">
+                        <div class="header-content">
+                            <h3><i class="fas fa-file-alt"></i> Recent Reports</h3>
+                            <p>Manage and access your generated reports</p>
+                        </div>
+                        <div class="header-actions">
+                            <button class="btn btn-secondary" onclick="generateNewReport()">
+                                <i class="fas fa-plus"></i> Generate Report
+                            </button>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Report Name</th>
+                                    <th>Type</th>
+                                    <th>Generated</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reportsTableBody">
+                                <tr>
+                                    <td>Monthly Internship Summary</td>
+                                    <td><span class="badge badge-primary">Overview</span></td>
+                                    <td>2024-01-15</td>
+                                    <td><span class="status-badge status-completed">Completed</span></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary" onclick="viewReport(1)">
+                                            <i class="fas fa-eye"></i> View
+                                        </button>
+                                        <button class="btn btn-sm btn-secondary" onclick="downloadReport(1)">
+                                            <i class="fas fa-download"></i> Download
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Student Performance Analysis</td>
+                                    <td><span class="badge badge-success">Performance</span></td>
+                                    <td>2024-01-12</td>
+                                    <td><span class="status-badge status-completed">Completed</span></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary" onclick="viewReport(2)">
+                                            <i class="fas fa-eye"></i> View
+                                        </button>
+                                        <button class="btn btn-sm btn-secondary" onclick="downloadReport(2)">
+                                            <i class="fas fa-download"></i> Download
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Department Comparison Report</td>
+                                    <td><span class="badge badge-warning">Completion</span></td>
+                                    <td>2024-01-10</td>
+                                    <td><span class="status-badge status-processing">Processing</span></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-secondary" disabled>
+                                            <i class="fas fa-clock"></i> Processing
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Generate Report Modal -->
+    <div id="generateReportModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <span class="close" onclick="closeGenerateReportModal()">&times;</span>
+            <h2>Generate New Report</h2>
+            <form id="generateReportForm" onsubmit="return false;">
+                <div class="form-group">
+                    <label>Report Name</label>
+                    <input type="text" name="reportName" required placeholder="Enter report name">
+                </div>
+                <div class="form-group">
+                    <label>Report Type</label>
+                    <select name="reportType" required>
+                        <option value="">Select report type</option>
+                        <option value="overview">Overview Report</option>
+                        <option value="performance">Performance Analysis</option>
+                        <option value="completion">Completion Rates</option>
+                        <option value="feedback">Feedback Analysis</option>
+                        <option value="custom">Custom Report</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Date Range</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="date" name="startDate" required>
+                        <input type="date" name="endDate" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Include Departments</label>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" name="departments" value="Computer Science" checked> Computer Science</label>
+                        <label><input type="checkbox" name="departments" value="Business Administration" checked> Business Administration</label>
+                        <label><input type="checkbox" name="departments" value="Engineering" checked> Engineering</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Output Format</label>
+                    <select name="outputFormat" required>
+                        <option value="pdf">PDF</option>
+                        <option value="excel">Excel</option>
+                        <option value="csv">CSV</option>
+                    </select>
+                </div>
+                <div style="text-align: right; margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeGenerateReportModal()">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="generateReport()" style="margin-left: 10px;">Generate Report</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Notifications Modal -->
+    <div id="notificationsModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <span class="close" onclick="closeNotificationsModal()">&times;</span>
+            <h2><i class="fas fa-bell"></i> Notifications</h2>
+            <div id="notificationsList">
+                <!-- Notifications will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize charts when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCharts();
+            updateReports();
+        });
+
+        // Initialize all charts
+        function initializeCharts() {
+            initializeModernAnalyticsCharts();
+            initializePerformanceChart();
+        }
+
+        // Initialize Modern Analytics Dashboard Charts
+        function initializeModernAnalyticsCharts() {
+            initializeModernApplicationsChart();
+            initializeModernDepartmentChart();
+            initializeModernSuccessChart();
+            initializeRefreshButton();
+        }
+
+        // Modern Applications Trend Chart
+        function initializeModernApplicationsChart() {
+            const ctx = document.getElementById('modernApplicationsChart');
+            if (!ctx) return;
+            
+            new Chart(ctx.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+                    datasets: [{
+                        label: 'Applications',
+                        data: [65, 78, 90, 81, 95, 102, 118],
+                        borderColor: '#33D999',
+                        backgroundColor: 'rgba(51, 217, 153, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: '#33D999',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 3,
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
+                        borderWidth: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: '#ffffff',
+                            bodyColor: '#ffffff',
+                            borderColor: '#33D999',
+                            borderWidth: 1,
+                            cornerRadius: 8,
+                            displayColors: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(51, 217, 153, 0.1)',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: '#8e8e93',
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: '#8e8e93',
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    animation: {
+                        duration: 2000,
+                        easing: 'easeInOutQuart'
+                    }
+                }
+            });
+        }
+
+        // Modern Department Distribution Chart
+        function initializeModernDepartmentChart() {
+            const ctx = document.getElementById('modernDepartmentChart');
+            if (!ctx) return;
+            
+            new Chart(ctx.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Computer Science', 'Business Admin', 'Engineering', 'Others'],
+                    datasets: [{
+                        data: [45, 30, 20, 5],
+                        backgroundColor: [
+                            '#33D999',
+                            '#1a5f7a',
+                            '#4CAF50',
+                            '#FF9800'
+                        ],
+                        borderWidth: 0,
+                        hoverBorderWidth: 3,
+                        hoverBorderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true,
+                                pointStyle: 'circle',
+                                font: {
+                                    size: 12,
+                                    weight: '500'
+                                },
+                                color: '#8e8e93'
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: '#ffffff',
+                            bodyColor: '#ffffff',
+                            borderColor: '#33D999',
+                            borderWidth: 1,
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.label + ': ' + context.parsed + '%';
+                                }
+                            }
+                        }
+                    },
+                    animation: {
+                        animateRotate: true,
+                        duration: 2000,
+                        easing: 'easeInOutQuart'
+                    }
+                }
+            });
+        }
+
+        // Modern Success Rate Chart
+        function initializeModernSuccessChart() {
+            const ctx = document.getElementById('modernSuccessChart');
+            if (!ctx) return;
+            
+            new Chart(ctx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: ['Completion', 'Satisfaction', 'Retention', 'Performance'],
+                    datasets: [{
+                        label: 'Success Metrics',
+                        data: [89, 94, 87, 91],
+                        backgroundColor: [
+                            'rgba(51, 217, 153, 0.8)',
+                            'rgba(26, 95, 122, 0.8)',
+                            'rgba(76, 175, 80, 0.8)',
+                            'rgba(255, 152, 0, 0.8)'
+                        ],
+                        borderColor: [
+                            '#33D999',
+                            '#1a5f7a',
+                            '#4CAF50',
+                            '#FF9800'
+                        ],
+                        borderWidth: 2,
+                        borderRadius: 8,
+                        borderSkipped: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: '#ffffff',
+                            bodyColor: '#ffffff',
+                            borderColor: '#33D999',
+                            borderWidth: 1,
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.parsed.y + '%';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            grid: {
+                                color: 'rgba(51, 217, 153, 0.1)',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: '#8e8e93',
+                                font: {
+                                    size: 12
+                                },
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: '#8e8e93',
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 2000,
+                        easing: 'easeInOutQuart'
+                    }
+                }
+            });
+        }
+
+        // Initialize Refresh Button
+        function initializeRefreshButton() {
+            const refreshBtn = document.getElementById('refreshAnalytics');
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', function() {
+                    // Show loading state
+                    const loadingElements = document.querySelectorAll('.chart-loading');
+                    loadingElements.forEach(loading => {
+                        loading.parentElement.style.opacity = '1';
+                        loading.parentElement.style.visibility = 'visible';
+                    });
+                    
+                    // Simulate data refresh
+                    setTimeout(() => {
+                        // Hide loading state
+                        loadingElements.forEach(loading => {
+                            loading.parentElement.style.opacity = '0';
+                            loading.parentElement.style.visibility = 'hidden';
+                        });
+                        
+                        // Reinitialize charts with new data
+                        initializeModernAnalyticsCharts();
+                        
+                        // Show success message
+                        showNotification('Analytics data refreshed successfully!', 'success');
+                    }, 1500);
+                });
+            }
+        }
+
+        // Show notification function
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            notification.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'info-circle'}"></i>
+                <span>${message}</span>
+            `;
+            
+            // Add notification styles
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'success' ? '#4CAF50' : '#33D999'};
+                color: white;
+                padding: 1rem 1.5rem;
+                border-radius: 12px;
+                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+                z-index: 10000;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                font-weight: 500;
+                transform: translateX(100%);
+                transition: transform 0.3s ease;
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Animate in
+            setTimeout(() => {
+                notification.style.transform = 'translateX(0)';
+            }, 100);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
+        }
+
+        // Performance chart
+        function initializePerformanceChart() {
+            const ctx = document.getElementById('performanceChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Computer Science', 'Business Admin', 'Engineering'],
+                    datasets: [
+                        {
+                            label: 'Completion Rate (%)',
+                            data: [92, 87, 89],
+                            backgroundColor: '#33D999',
+                            borderRadius: 6
+                        },
+                        {
+                            label: 'Average Rating',
+                            data: [4.8, 4.6, 4.7],
+                            backgroundColor: '#1a5f7a',
+                            borderRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0,0,0,0.1)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update reports based on filters
+        function updateReports() {
+            const dateRange = document.getElementById('dateRange').value;
+            const department = document.getElementById('departmentFilter').value;
+            const reportType = document.getElementById('reportType').value;
+            
+            // Update metrics based on filters
+            console.log('Updating reports with filters:', { dateRange, department, reportType });
+            // In a real application, this would make API calls to fetch updated data
+        }
+
+        // Export current report
+        function exportReport() {
+            showNotification('Report export started. You will receive a download link shortly.', 'success');
+        }
+
+        // Generate new report
+        function generateNewReport() {
+            document.getElementById('generateReportModal').style.display = 'block';
+        }
+
+        function closeGenerateReportModal() {
+            document.getElementById('generateReportModal').style.display = 'none';
+            document.getElementById('generateReportForm').reset();
+        }
+
+        function generateReport() {
+            const form = document.getElementById('generateReportForm');
+            const formData = new FormData(form);
+            
+            // Simulate report generation
+            showNotification('Report generation started. It will appear in the recent reports list when completed.', 'success');
+            closeGenerateReportModal();
+        }
+
+        // View report
+        function viewReport(reportId) {
+            showNotification('Opening report viewer...', 'info');
+        }
+
+        // Download report
+        function downloadReport(reportId) {
+            showNotification('Downloading report...', 'success');
+        }
+
+        // Notification functions
+        function openNotificationsModal() {
+            document.getElementById('notificationsModal').style.display = 'block';
+        }
+
+        function closeNotificationsModal() {
+            document.getElementById('notificationsModal').style.display = 'none';
+        }
+
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 20px;
+                background: ${type === 'success' ? '#4CAF50' : type === 'info' ? '#2196F3' : '#f44336'};
+                color: white;
+                border-radius: 5px;
+                z-index: 10000;
+                animation: slideIn 0.3s ease;
+            `;
+            document.body.appendChild(notification);
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        }
+        
+        // Sidebar toggle functionality
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.querySelector('.mobile-overlay');
+            const body = document.body;
+            
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('active');
+            body.classList.toggle('sidebar-open');
+        }
+        
+        function closeSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.querySelector('.mobile-overlay');
+            const body = document.body;
+            
+            sidebar.classList.remove('open');
+            overlay.classList.remove('active');
+            body.classList.remove('sidebar-open');
+        }
+        
+        // Close sidebar when clicking on main content on mobile
+        document.querySelector('.main-content').addEventListener('click', function() {
+            if (window.innerWidth <= 768) {
+                closeSidebar();
+            }
+        });
+        
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768) {
+                closeSidebar();
+            }
+        });
+        
+        // Logout functionality
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                // Clear any stored authentication data
+                localStorage.removeItem('authToken');
+                sessionStorage.removeItem('authToken');
+                
+                // Redirect to login page
+                window.location.href = '../../../login.html';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -5,8 +5,90 @@ from django.utils import timezone
 from django.db.models import Count
 from .models import (
     Institution, InstitutionDepartment, InstitutionProgram,
-    InstitutionSettings, InstitutionInvitation
+    InstitutionSettings, InstitutionInvitation, MasterInstitution
 )
+
+
+@admin.register(MasterInstitution)
+class MasterInstitutionAdmin(admin.ModelAdmin):
+    list_display = [
+        'name', 'institution_type', 'accreditation_body', 'accreditation_status',
+        'location', 'county', 'data_source', 'is_active', 'is_verified', 'last_verified'
+    ]
+    list_filter = [
+        'institution_type', 'accreditation_body', 'data_source', 'is_active',
+        'is_verified', 'county', 'last_verified'
+    ]
+    search_fields = [
+        'name', 'short_name', 'location', 'county', 'accreditation_number'
+    ]
+    readonly_fields = [
+        'id', 'created_at', 'updated_at', 'last_verified'
+    ]
+    date_hierarchy = 'last_verified'
+    ordering = ['name']
+    
+    fieldsets = (
+        ('Basic Information', {
+            'fields': (
+                'name', 'short_name', 'institution_type'
+            )
+        }),
+        ('Accreditation', {
+            'fields': (
+                'accreditation_body', 'accreditation_number', 'accreditation_status'
+            )
+        }),
+        ('Location', {
+            'fields': (
+                'location', 'county', 'region'
+            )
+        }),
+        ('Contact Information', {
+            'fields': (
+                'website', 'email', 'phone'
+            )
+        }),
+        ('Data Management', {
+            'fields': (
+                'data_source', 'source_url', 'last_verified'
+            )
+        }),
+        ('Status', {
+            'fields': (
+                'is_active', 'is_verified'
+            )
+        }),
+        ('Metadata', {
+            'fields': (
+                'raw_data', 'metadata'
+            ),
+            'classes': ('collapse',)
+        }),
+        ('System Information', {
+            'fields': (
+                'id', 'created_at', 'updated_at'
+            ),
+            'classes': ('collapse',)
+        })
+    )
+    
+    actions = ['mark_as_verified', 'mark_as_unverified', 'update_verification_date']
+    
+    def mark_as_verified(self, request, queryset):
+        queryset.update(is_verified=True)
+        self.message_user(request, f'{queryset.count()} institutions marked as verified.')
+    mark_as_verified.short_description = 'Mark selected institutions as verified'
+    
+    def mark_as_unverified(self, request, queryset):
+        queryset.update(is_verified=False)
+        self.message_user(request, f'{queryset.count()} institutions marked as unverified.')
+    mark_as_unverified.short_description = 'Mark selected institutions as unverified'
+    
+    def update_verification_date(self, request, queryset):
+        queryset.update(last_verified=timezone.now())
+        self.message_user(request, f'{queryset.count()} institutions verification date updated.')
+    update_verification_date.short_description = 'Update verification date'
 
 
 @admin.register(Institution)

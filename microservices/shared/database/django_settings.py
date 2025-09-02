@@ -26,6 +26,7 @@ def get_databases_config(service_name: str) -> Dict[str, Any]:
         'auth_db': get_service_database_config('auth'),
         'user_db': get_service_database_config('user'),
         'institution_db': get_service_database_config('institution'),
+        'registration_db': get_service_database_config('registration'),
         'notification_db': get_service_database_config('notification'),
         'application_db': get_service_database_config('application'),
         'internship_db': get_service_database_config('internship'),

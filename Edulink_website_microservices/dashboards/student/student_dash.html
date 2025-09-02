@@ -1,0 +1,2478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>
+    // Token validation function (used later in DOMContentLoaded)
+    function isValidTokenFormat(token) {
+      if (!token || typeof token !== 'string') return false;
+      // Basic JWT format check (3 parts separated by dots)
+      const parts = token.split('.');
+      return parts.length === 3 && parts.every(part => part.length > 0);
+    }
+  </script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EduLink KE - Student Dashboard</title>
+  <script src="../../js/config.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <link href="../../assets/css/main.css" rel="stylesheet">
+  <script src="../../assets/js/main.js"></script>
+  <link href="../../assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <!-- <link href="../../assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet"> -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+  <link href="https://unpkg.com/phosphor-icons@2.0.3/src/css/phosphor.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+  <style>
+    body { font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #e0f7fa 0%, #f8fafc 100%); transition: background 0.3s, color 0.3s; }
+    .header-edulink { min-height: 54px; }
+    .edulink-title { font-family: 'Raleway', sans-serif; font-weight: 700; font-size: 2rem; color: #14b8a6; letter-spacing: 2px; margin-bottom: 0; }
+    .header-action { color: #14b8a6; background: transparent !important; border: none !important; transition: background 0.2s, color 0.2s; box-shadow: none !important; }
+    .header-action:hover, .header-action:focus { background: #e0f7fa !important; color: #0d9488 !important; box-shadow: none !important; }
+    .profile-pic { height: 38px; width: 38px; object-fit: cover; border-radius: 50%; border: 2px solid #14b8a6; box-shadow: 0 1px 4px rgba(20,184,166,0.08); }
+    .event-more-btn { cursor: pointer; }
+    .event-dropdown { min-width: 120px; }
+    .event-dropdown button { width: 100%; text-align: left; }
+    /* --- DARK MODE THEME (Inspired by Stockline UI) --- */
+    .dark-mode {
+      background: #181c24 !important;
+      color: #eaf6fb !important;
+      transition: background 0.3s, color 0.3s;
+    }
+    .dark-mode .header-edulink {
+      background: #23272f !important;
+    }
+    .dark-mode .edulink-title {
+      color: #6ee7b7 !important;
+      text-shadow: 0 2px 12px #14b8a6cc;
+    }
+    .dark-mode .header-action {
+      background: transparent !important;
+      color: #6ee7b7 !important;
+      border: 1px solid #23272f !important;
+      box-shadow: none !important;
+    }
+    .dark-mode .header-action:hover, .dark-mode .header-action:focus {
+      background: #14b8a6 !important;
+      color: #fff !important;
+      box-shadow: none !important;
+    }
+    .dark-mode aside#sidebar {
+      background: #23272f !important;
+      color: #eaf6fb !important;
+      border-right: 1.5px solid #30343c !important;
+      box-shadow: 2px 0 16px 0 #14b8a622 !important;
+    }
+    .dark-mode aside#sidebar .text-center {
+      border-bottom: 1.5px solid #30343c !important;
+    }
+    .dark-mode aside#sidebar nav a {
+      color: #6ee7b7 !important;
+      background: transparent !important;
+      transition: background 0.2s, color 0.2s;
+    }
+    .dark-mode aside#sidebar nav a.bg-teal-700,
+    .dark-mode aside#sidebar nav a:hover {
+      background: #14b8a6 !important;
+      color: #fff !important;
+    }
+    .dark-mode aside#sidebar i {
+      color: #6ee7b7 !important;
+      text-shadow: 0 1px 4px #14b8a633;
+    }
+    .dark-mode main {
+      background: linear-gradient(120deg, #181c24 0%, #23272f 100%) !important;
+    }
+    .dark-mode .bg-white, .dark-mode .bg-gray-50, .dark-mode .bg-teal-50, .dark-mode .bg-blue-50 {
+      background: #23272f !important;
+      color: #eaf6fb !important;
+      border-color: #23272f !important;
+      box-shadow: 0 2px 16px 0 #14b8a622 !important;
+    }
+    .dark-mode .rounded-xl, .dark-mode .rounded-2xl {
+      box-shadow: 0 2px 16px 0 #14b8a622 !important;
+    }
+    .dark-mode .shadow, .dark-mode .shadow-lg, .dark-mode .shadow-xl {
+      box-shadow: 0 2px 16px 0 #14b8a622 !important;
+    }
+    .dark-mode .border, .dark-mode .border-teal-100, .dark-mode .border-gray-200 {
+      border-color: #23272f !important;
+    }
+    .dark-mode .text-teal-700, .dark-mode .text-teal-800 {
+      color: #6ee7b7 !important;
+    }
+    .dark-mode .text-gray-500, .dark-mode .text-gray-600, .dark-mode .text-gray-700, .dark-mode .text-gray-800 {
+      color: #b6c2d1 !important;
+    }
+    .dark-mode .text-yellow-500 {
+      color: #fbbf24 !important;
+    }
+    .dark-mode .text-blue-500 {
+      color: #60a5fa !important;
+    }
+    .dark-mode .text-green-500 {
+      color: #6ee7b7 !important;
+    }
+    .dark-mode .text-purple-500 {
+      color: #a78bfa !important;
+    }
+    .dark-mode .profile-pic {
+      border-color: #6ee7b7 !important;
+      box-shadow: 0 1px 8px #14b8a6cc;
+    }
+    .dark-mode .rounded-full, .dark-mode .rounded-lg {
+      background: #23272f !important;
+      color: #eaf6fb !important;
+    }
+    .dark-mode .bg-teal-600 {
+      background: #14b8a6 !important;
+      color: #fff !important;
+    }
+    .dark-mode .hover\:bg-teal-700:hover {
+      background: #0d9488 !important;
+      color: #fff !important;
+    }
+    .dark-mode .border-t {
+      border-top: 1px solid #23272f !important;
+    }
+    .dark-mode .border-b {
+      border-bottom: 1px solid #23272f !important;
+    }
+    .dark-mode .shadow-sm {
+      box-shadow: 0 1px 8px 0 #14b8a622 !important;
+    }
+    .dark-mode .event-card {
+      background: #23272f !important;
+      color: #eaf6fb !important;
+      border-color: #23272f !important;
+      box-shadow: 0 2px 12px 0 #14b8a622 !important;
+    }
+    .dark-mode .event-badge, .dark-mode .badge-interview, .dark-mode .badge-today, .dark-mode .badge-overdue, .dark-mode .badge-upcoming {
+      background: #14b8a6 !important;
+      color: #fff !important;
+      box-shadow: 0 2px 8px 0 #14b8a6cc !important;
+    }
+    .dark-mode .analytics-charts-section, .dark-mode canvas {
+      background: #23272f !important;
+      color: #eaf6fb !important;
+    }
+    .dark-mode .modal, .dark-mode [id$='-modal'] {
+      background: #23272f !important;
+      color: #eaf6fb !important;
+      border: 1px solid #23272f !important;
+      box-shadow: 0 2px 16px 0 #14b8a622 !important;
+    }
+    .dark-mode input, .dark-mode textarea, .dark-mode select {
+      background: #181c24 !important;
+      color: #eaf6fb !important;
+      border: 1px solid #23272f !important;
+    }
+    .dark-mode input:focus, .dark-mode textarea:focus, .dark-mode select:focus {
+      border-color: #14b8a6 !important;
+      box-shadow: 0 0 0 2px #14b8a6cc !important;
+    }
+    .dark-mode .btn, .dark-mode button, .dark-mode .header-action {
+      background: #14b8a6 !important;
+      color: #fff !important;
+      border: none;
+      box-shadow: 0 2px 8px 0 #14b8a6cc !important;
+      transition: background 0.2s, color 0.2s;
+    }
+    .dark-mode .btn:hover, .dark-mode button:hover, .dark-mode .header-action:hover {
+      background: #0d9488 !important;
+      color: #fff !important;
+    }
+    .dark-mode .footer, .dark-mode footer {
+      background: #181c24 !important;
+      color: #b6c2d1 !important;
+      border-top: 1px solid #23272f !important;
+    }
+    /* Glowing effect for active elements */
+    .dark-mode .active, .dark-mode .bg-teal-700, .dark-mode .selected {
+      box-shadow: 0 0 16px 2px #14b8a6cc !important;
+      background: #14b8a6 !important;
+      color: #fff !important;
+    }
+    /* Smooth transitions for all */
+    .dark-mode *, .dark-mode *:before, .dark-mode *:after {
+      transition: background 0.3s, color 0.3s, box-shadow 0.3s, border-color 0.3s;
+    }
+    #notificationBtn, #darkModeToggle {
+      background: none !important;
+      border: none !important;
+      box-shadow: none !important;
+      padding: 0 !important;
+    }
+    .dark-mode #notificationBtn, .dark-mode #darkModeToggle {
+      background: none !important;
+      border: none !important;
+      box-shadow: none !important;
+      padding: 0 !important;
+    }
+    /* Ensure milestone progress bars are always visible */
+    #milestones-section .h-2 {
+      min-height: 0.5rem !important;
+      height: 0.5rem !important;
+      display: block !important;
+      opacity: 1 !important;
+      background: #14b8a6 !important;
+    }
+    #milestones-section .bg-gray-200 {
+      background: #e5e7eb !important;
+      opacity: 1 !important;
+      display: block !important;
+    }
+    /* Fix: Applications table row hover in dark mode (ID-based targeting) */
+    .dark-mode #applications-section tr:hover,
+    .dark-mode #applications-section .hover\:bg-teal-50:hover,
+    .dark-mode #applications-section .hover\:bg-white:hover,
+    .dark-mode #applications-section .hover\:bg-gray-100:hover,
+    .dark-mode #applications-section .hover\:bg-gray-50:hover {
+      background: #23272f !important;
+      color: #eaf6fb !important;
+    }
+    .dark-mode #applications-section td, .dark-mode #applications-section th {
+      background: transparent !important;
+      color: #eaf6fb !important;
+    }
+    /* Fix: Milestone card hover in dark mode */
+    .dark-mode #milestones-section > div:hover {
+      background: #23272f !important;
+      color: #eaf6fb !important;
+    }
+    .dark-mode #milestones-section h4,
+    .dark-mode #milestones-section span,
+    .dark-mode #milestones-section p {
+      color: #eaf6fb !important;
+    }
+    .dark-mode #milestones-section .bg-gray-200 {
+      background: #374151 !important;
+    }
+    .dark-mode #milestones-section .bg-teal-500 {
+      background: #14b8a6 !important;
+    }
+    /* Modal overlay and modal dark mode improvements */
+    .dark-mode [id$='-modal'],
+    .dark-mode .modal {
+      background: rgba(24,28,36,0.7) !important;
+      backdrop-filter: blur(6px) !important;
+      -webkit-backdrop-filter: blur(6px) !important;
+      color: #eaf6fb !important;
+    }
+    .dark-mode [id$='-modal'] > div,
+    .dark-mode .modal > div {
+      background: #23272f !important;
+      color: #eaf6fb !important;
+      border-radius: 1rem !important;
+      box-shadow: 0 8px 40px 0 #14b8a633 !important;
+      border: 1px solid #23272f !important;
+      padding: 2rem 2.5rem !important;
+      max-width: 90vw;
+      min-width: 320px;
+      text-align: left;
+      position: relative;
+      transition: background 0.3s, color 0.3s, box-shadow 0.3s;
+    }
+    .dark-mode [id$='-modal'] h2,
+    .dark-mode [id$='-modal'] h3,
+    .dark-mode [id$='-modal'] label,
+    .dark-mode [id$='-modal'] input,
+    .dark-mode [id$='-modal'] select,
+    .dark-mode [id$='-modal'] textarea {
+      color: #eaf6fb !important;
+    }
+    .dark-mode [id$='-modal'] input,
+    .dark-mode [id$='-modal'] select,
+    .dark-mode [id$='-modal'] textarea {
+      background: #181c24 !important;
+      border: 1px solid #23272f !important;
+    }
+    .dark-mode [id$='-modal'] input:focus,
+    .dark-mode [id$='-modal'] select:focus,
+    .dark-mode [id$='-modal'] textarea:focus {
+      border-color: #14b8a6 !important;
+      box-shadow: 0 0 0 2px #14b8a6cc !important;
+    }
+    .dark-mode [id$='-modal'] button,
+    .dark-mode [id$='-modal'] .btn {
+      background: #14b8a6 !important;
+      color: #fff !important;
+      border: none !important;
+      box-shadow: 0 2px 8px 0 #14b8a6cc !important;
+      transition: background 0.2s, color 0.2s;
+    }
+    .dark-mode [id$='-modal'] button:hover,
+    .dark-mode [id$='-modal'] .btn:hover {
+      background: #0d9488 !important;
+      color: #fff !important;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen relative">
+  <div class="flex flex-col md:flex-row m-0 p-0 h-screen">
+    <!-- Sidebar (responsive, sticky on desktop) -->
+    <aside id="sidebar" class="hidden md:flex flex-col justify-between z-30 p-0 fixed md:static top-0 left-0 h-full md:h-screen w-[230px] bg-teal-500 text-white transition-transform duration-300" style="background: #14b8a6;">
+      <div>
+        <div class="text-center py-6 mb-2 border-b border-teal-700">
+          <span style="font-family: 'Pacifico', cursive; font-size: 1.7rem; color: #fff; font-weight: 400; letter-spacing: 1px;">EduLink</span>
+        </div>
+        <nav class="flex flex-col pt-8 px-4 gap-1">
+          <a href="./student_dash.html" class="block px-3 py-2 rounded hover:bg-teal-700 bg-teal-700 flex items-center text-sm"><i class="ph ph-gauge mr-3 text-base"></i>Dashboard</a>
+          <a href="./Browse.html" class="block px-3 py-2 rounded hover:bg-teal-700 flex items-center text-sm"><i class="ph ph-magnifying-glass mr-3 text-base"></i>Browse Internships</a>
+          <a href="./application_tracker.html" class="block px-3 py-2 rounded hover:bg-teal-700 flex items-center text-sm"><i class="ph ph-list-checks mr-3 text-base"></i>Application Tracker</a>
+          <a href="./my_internships.html" class="block px-3 py-2 rounded hover:bg-teal-700 flex items-center text-sm"><i class="ph ph-briefcase mr-3 text-base"></i>My Internship</a>
+          <a href="./progress.html" class="block px-3 py-2 rounded hover:bg-teal-700 flex items-center text-sm"><i class="ph ph-book-open mr-3 text-base"></i>Reports & Logbooks</a>
+          <a href="#" class="block px-3 py-2 rounded hover:bg-teal-700 flex items-center text-sm"><i class="ph ph-file-text mr-3 text-base"></i>CV & Toolkit</a>
+          <a href="#" class="block px-3 py-2 rounded hover:bg-teal-700 flex items-center text-sm"><i class="ph ph-lifebuoy mr-3 text-base"></i>Support</a>
+        </nav>
+      </div>
+      <div class="mt-auto px-4 pb-6 pt-4">
+        <a href="#" id="logoutBtn" class="block px-3 py-2 rounded hover:bg-teal-700 flex items-center text-sm"><i class="ph ph-sign-out mr-3 text-base"></i>Log Out</a>
+      </div>
+    </aside>
+    <!-- Main Content (responsive, scrollable) -->
+    <main class="flex-1 p-2 sm:p-4 md:p-6 min-h-0 h-screen md:ml-0 ml-0 overflow-y-auto" style="background: linear-gradient(120deg, #f0fdfa 0%, #e0f2fe 100%);">
+      <!-- Rounded Pill Header (responsive, with hamburger menu) -->
+      <div class="flex items-center justify-between h-14 bg-white rounded-full shadow mb-6 px-4 w-full max-w-full mt-6 relative">
+        <!-- Hamburger menu in header (mobile only) -->
+        <button id="mobileMenuBtn" class="md:hidden flex items-center justify-center mr-2 bg-teal-600 text-white p-2 rounded-full shadow-lg focus:outline-none" aria-label="Open menu">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+        </button>
+        <div class="flex-1 flex items-center justify-end">
+          <a href="./messages.html" class="flex items-center justify-center mr-4" title="Messages" style="background: none; border: none; padding: 0;"><i class="bi bi-chat-dots" style="font-size: 1.5rem; color: #14b8a6; text-shadow: 0 1px 2px rgba(20,184,166,0.15);"></i></a>
+          <button id="notificationBtn" title="Notifications" style="background: none; border: none; padding: 0; margin-right: 1rem;"><i class="bi bi-bell" style="font-size: 1.5rem; color: #14b8a6; text-shadow: 0 1px 2px rgba(20,184,166,0.15);"></i></button>
+          <a href="./profile.html" class="flex items-center justify-center ml-1" title="Profile">
+            <img id="profilePic" src="../../assets/img/default.jpg" class="profile-pic" alt="Profile" />
+          </a>
+          <button id="darkModeToggle" title="Toggle dark mode" style="background: none; border: none; padding: 0; margin-left: 1rem;"><i id="darkModeIcon" class="bi bi-moon" style="font-size: 1.5rem; color: #14b8a6; text-shadow: 0 1px 2px rgba(20,184,166,0.15);"></i></button>
+        </div>
+      </div>
+      <!-- Dashboard Loading Spinner -->
+      <div id="dashboard-loading" class="flex flex-col justify-center items-center py-16">
+        <div class="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-teal-600 mb-4"></div>
+        <div id="dashboard-loading-text" class="text-teal-700 text-lg font-semibold mt-2"></div>
+      </div>
+      <!-- Welcome Message -->
+      <div class="mb-8 text-center" id="welcome-section"></div>
+      <!-- Quick Stats (restore original position) -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10" id="stats-section"></div>
+      <!-- Enhanced Analytics Dashboard (restore original) -->
+      <section class="mb-12" style="background: none; box-shadow: none;">
+        <div class="flex items-center gap-2 mb-4">
+          <div class="flex items-center w-full">
+            <div class="flex-1 border-t border-gray-200"></div>
+            <span class="mx-4 flex items-center gap-2 text-xl font-bold text-teal-700 tracking-tight"><i class="bi bi-bar-chart text-teal-600 text-xl"></i> Analytics & Insights</span>
+            <div class="flex-1 border-t border-gray-200"></div>
+          </div>
+        </div>
+        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+          <!-- Success Rate -->
+          <div class="bg-white rounded-xl p-4 shadow-lg border border-teal-100">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs text-gray-500">Success Rate</p>
+                <h3 id="success-rate" class="text-lg font-bold text-teal-600">0%</h3>
+              </div>
+              <i class="bi bi-trophy text-2xl text-yellow-500"></i>
+            </div>
+          </div>
+          <!-- Average Response Time -->
+          <div class="bg-white rounded-xl p-4 shadow-lg border border-teal-100">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs text-gray-500">Avg Response</p>
+                <h3 id="avg-response-time" class="text-lg font-bold text-teal-600">-</h3>
+              </div>
+              <i class="bi bi-clock text-2xl text-blue-500"></i>
+            </div>
+          </div>
+          <!-- This Month Applications -->
+          <div class="bg-white rounded-xl p-4 shadow-lg border border-teal-100">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs text-gray-500">This Month</p>
+                <h3 id="this-month-apps" class="text-lg font-bold text-teal-600">0</h3>
+              </div>
+              <i class="bi bi-calendar-check text-2xl text-green-500"></i>
+            </div>
+          </div>
+          <!-- Total Applications -->
+          <div class="bg-white rounded-xl p-4 shadow-lg border border-teal-100">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs text-gray-500">Total Apps</p>
+                <h3 id="total-applications" class="text-lg font-bold text-teal-600">0</h3>
+              </div>
+              <i class="bi bi-file-earmark-text text-2xl text-purple-500"></i>
+            </div>
+          </div>
+        </div>
+        <!-- Analytics Charts -->
+        <div class="analytics-charts-section grid md:grid-cols-2 gap-6">
+          <!-- Application Status Chart -->
+          <div class="bg-white rounded-xl p-4 shadow-lg border border-teal-100 flex flex-col items-center justify-center w-full max-w-md mx-auto">
+            <h3 class="text-base font-semibold text-teal-800 mb-2">Application Status</h3>
+            <div class="w-full">
+              <canvas id="statusChart" style="width:100%;max-width:340px;height:140px;"></canvas>
+            </div>
+          </div>
+          <!-- Monthly Trends -->
+          <div class="bg-white rounded-xl p-4 shadow-lg border border-teal-100 flex flex-col items-center justify-center w-full max-w-md mx-auto">
+            <h3 class="text-base font-semibold text-teal-800 mb-2">Monthly Trends</h3>
+            <div class="w-full">
+              <canvas id="trendsChart" style="width:100%;max-width:340px;height:140px;"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+      <!-- Recent Activities (hidden while loading) -->
+      <section id="activities-section-wrapper" class="mb-10 hidden bg-transparent" style="background: none !important;">
+        <div class="flex items-center w-full mb-4">
+          <div class="flex-1 border-t border-gray-200"></div>
+          <span class="mx-4 flex items-center gap-2 text-xl font-bold text-teal-700 tracking-tight"><i class="bi bi-clock-history text-teal-600 text-xl"></i> Recent Activities</span>
+          <div class="flex-1 border-t border-gray-200"></div>
+        </div>
+        <div id="activities-section" class="rounded-lg p-4 border border-teal-100 text-gray-700 text-sm shadow-sm" style="background: linear-gradient(120deg, #f0fdfa 0%, #e0f2fe 100%);">
+          <div class="flex flex-col items-center justify-center py-6">
+            <i class="bi bi-emoji-neutral text-3xl text-teal-300 mb-2"></i>
+            <div class="text-gray-400 italic">No recent activities yet.</div>
+          </div>
+        </div>
+      </section>
+      <!-- Profile Completeness Banner -->
+      <div id="profile-banner" class="mb-6"></div>
+      <!-- Internship applications -->
+      <section class="mb-12" style="background: none; box-shadow: none;">
+        <div class="flex items-center w-full mb-4">
+          <div class="flex-1 border-t border-gray-200"></div>
+          <span class="mx-4 flex items-center gap-2 text-xl font-bold text-teal-700 tracking-tight"><i class="bi bi-briefcase text-teal-600 text-xl"></i> My Applications</span>
+          <div class="flex-1 border-t border-gray-200"></div>
+        </div>
+        <div id="applications-section"></div>
+      </section>
+      <!-- Internship Recommendations -->
+      <section class="mb-12" style="background: none; box-shadow: none;">
+        <div class="flex items-center w-full mb-4">
+          <div class="flex-1 border-t border-gray-200"></div>
+          <span class="mx-4 flex items-center gap-2 text-xl font-bold text-teal-700 tracking-tight"><i class="bi bi-stars text-teal-600 text-xl"></i> Recommended for You</span>
+          <div class="flex-1 border-t border-gray-200"></div>
+        </div>
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6" id="recommendations-section"></div>
+      </section>
+
+      <!-- Internship Progress Tracker -->
+      <section class="mb-12" style="background: none; box-shadow: none;">
+        <div class="flex items-center w-full mb-4">
+          <div class="flex-1 border-t border-gray-200"></div>
+          <span class="mx-4 flex items-center gap-2 text-xl font-bold text-teal-700 tracking-tight"><i class="bi bi-graph-up-arrow text-teal-600 text-xl"></i> Your Internship Progress</span>
+          <div class="flex-1 border-t border-gray-200"></div>
+        </div>
+        <div class="grid md:grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- Profile Completion Progress (now Internship Progress Ring) -->
+          <div class="bg-white rounded-xl p-6 shadow-lg border border-teal-100 flex flex-col items-center justify-center">
+            <h3 class="text-lg font-semibold text-teal-800 mb-4">Internship Progress</h3>
+            <div class="relative flex flex-col items-center justify-center mb-4" style="width: 120px; height: 120px;">
+              <svg width="120" height="120" viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="52" fill="none" stroke="#e0f2fe" stroke-width="12" />
+                <circle id="internship-progress-ring" cx="60" cy="60" r="52" fill="none" stroke="#14b8a6" stroke-width="12" stroke-linecap="round" stroke-dasharray="326.7256" stroke-dashoffset="326.7256" style="transition: stroke-dashoffset 0.7s cubic-bezier(.4,2,.6,1);" />
+              </svg>
+              <div class="absolute inset-0 flex flex-col items-center justify-center">
+                <span id="internship-progress-percentage" class="text-2xl font-bold text-teal-600">0%</span>
+                <span id="internship-progress-status" class="text-xs text-gray-500 mt-1"></span>
+            </div>
+                </div>
+            <div id="internship-progress-message" class="text-sm text-gray-600 text-center"></div>
+          </div>
+
+          <!-- Application Goals -->
+          <div class="bg-white rounded-xl p-6 shadow-lg border border-teal-100">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-semibold text-teal-800">Monthly Goal</h3>
+              <span id="monthly-goal-progress" class="text-2xl font-bold text-teal-600">0/10</span>
+            </div>
+            <div class="relative pt-1">
+              <div class="flex mb-2 items-center justify-between">
+                <div>
+                  <span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-teal-600 bg-teal-200">
+                    Applications
+                  </span>
+                </div>
+              </div>
+              <div class="overflow-hidden h-2 mb-4 text-xs flex rounded bg-teal-200">
+                <div id="goal-progress-bar" style="width:0%" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-teal-500 transition-all duration-500"></div>
+              </div>
+            </div>
+            <div class="text-sm text-gray-600">
+              <p>Keep up the momentum! You're doing great.</p>
+            </div>
+          </div>
+
+          <!-- Activity Streak -->
+          <div class="bg-white rounded-xl p-6 shadow-lg border border-teal-100">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-semibold text-teal-800">Activity Streak</h3>
+              <span id="current-streak" class="text-2xl font-bold text-teal-600">0</span>
+            </div>
+            <div class="text-center mb-4">
+              <i class="bi bi-fire text-4xl text-orange-500 mb-2"></i>
+              <p class="text-sm text-gray-600">days active</p>
+            </div>
+            <div class="text-sm text-gray-600">
+              <p>Longest streak: <span id="longest-streak" class="font-semibold text-teal-600">0</span> days</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Next Milestones -->
+        <div class="mt-6 bg-white rounded-xl p-6 shadow-lg border border-teal-100">
+          <h3 class="text-lg font-semibold text-teal-800 mb-4">Next Milestones</h3>
+          <div id="milestones-section" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Milestones will be populated here -->
+          </div>
+        </div>
+      </section>
+
+      <!-- Achievement System -->
+      <section class="mb-12" style="background: none; box-shadow: none;">
+        <div class="flex items-center w-full mb-4">
+          <div class="flex-1 border-t border-gray-200"></div>
+          <span class="mx-4 flex items-center gap-2 text-xl font-bold text-teal-700 tracking-tight"><i class="bi bi-award text-teal-600 text-xl"></i> Achievements & Badges</span>
+          <div class="flex-1 border-t border-gray-200"></div>
+        </div>
+        
+        <!-- Achievement Summary -->
+        <div class="bg-white rounded-xl p-6 shadow-lg border border-teal-100 mb-6">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-teal-800">Your Achievements</h3>
+            <div class="flex items-center gap-2">
+              <i class="bi bi-star-fill text-yellow-500"></i>
+              <span id="total-points" class="text-lg font-bold text-teal-600">0</span>
+              <span class="text-sm text-gray-500">points</span>
+            </div>
+          </div>
+          <div class="grid md:grid-cols-3 gap-4">
+            <div class="text-center">
+              <div id="earned-badges" class="text-2xl font-bold text-teal-600">0</div>
+              <div class="text-sm text-gray-500">Badges Earned</div>
+            </div>
+            <div class="text-center">
+              <div id="total-badges" class="text-2xl font-bold text-gray-400">12</div>
+              <div class="text-sm text-gray-500">Total Available</div>
+            </div>
+            <div class="text-center">
+              <div id="completion-rate" class="text-2xl font-bold text-teal-600">0%</div>
+              <div class="text-sm text-gray-500">Completion</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Achievement Grid -->
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" id="achievements-grid">
+          <!-- Achievements will be populated here -->
+        </div>
+      </section>
+
+      <!-- Smart Calendar -->
+      <section class="mb-12" style="background: none; box-shadow: none;">
+        <div class="flex items-center w-full mb-4">
+          <div class="flex-1 border-t border-gray-200"></div>
+          <span class="mx-4 flex items-center gap-2 text-xl font-bold text-teal-700 tracking-tight"><i class="bi bi-calendar-event text-teal-600 text-xl"></i> Smart Calendar</span>
+          <div class="flex-1 border-t border-gray-200"></div>
+        </div>
+        <div class="grid md:grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+          <!-- Calendar Widget (2/3 width on desktop) -->
+          <div id="calendar-card" class="mb-6 bg-white rounded-2xl shadow-xl border border-teal-100 p-4 flex flex-col items-center justify-center transition-all duration-300 hover:shadow-2xl dark-mode:bg-[#23272f] dark-mode:border-gray-700 lg:col-span-2">
+            <div class="w-full flex items-center justify-between mb-2">
+              <h3 class="text-lg font-semibold text-teal-800 dark-mode:text-teal-200 flex items-center gap-2"><i class="bi bi-calendar3"></i> Calendar</h3>
+              <span class="text-xs text-gray-400 dark-mode:text-gray-300">Plan your journey</span>
+            </div>
+            <div class="w-full rounded-xl overflow-hidden border border-teal-50 dark-mode:border-gray-700 bg-gradient-to-br from-teal-50 to-blue-50 dark-mode:from-[#23272f] dark-mode:to-[#1a1a1a] p-2">
+              <div id="fullcalendar" class="rounded-xl min-h-[400px]" style="background: none;"></div>
+            </div>
+          </div>
+          <!-- Right column: Upcoming Events + Quick Actions stacked -->
+          <div class="flex flex-col gap-6 w-full max-w-xl mx-auto lg:col-span-1">
+            <div class="bg-white rounded-2xl p-6 shadow-xl border border-teal-100 transition-all duration-300 hover:shadow-2xl dark-mode:bg-[#23272f] dark-mode:border-gray-700">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-teal-800 dark-mode:text-teal-200 flex items-center gap-2"><i class="bi bi-calendar2-week"></i> Upcoming Events</h3>
+                <button id="add-event-btn" class="bg-teal-600 text-white px-3 py-1 rounded text-sm hover:bg-teal-700 transition-colors flex items-center gap-1"><i class="bi bi-plus"></i> Add Event</button>
+              </div>
+              <div id="upcoming-events" class="space-y-3"></div>
+            </div>
+            <div class="bg-white rounded-2xl p-6 shadow-xl border border-teal-100 transition-all duration-300 hover:shadow-2xl dark-mode:bg-[#23272f] dark-mode:border-gray-700">
+              <h3 class="text-lg font-semibold text-teal-800 dark-mode:text-teal-200 mb-4 flex items-center gap-2"><i class="bi bi-lightning-charge"></i> Quick Actions</h3>
+            <div class="space-y-3">
+                <button id="set-reminder-btn" class="w-full bg-teal-50 text-teal-700 p-3 rounded-lg hover:bg-teal-100 transition-colors text-left flex items-center gap-2 dark-mode:bg-[#23272f] dark-mode:text-teal-200 dark-mode:hover:bg-[#1a1a1a]">
+                <i class="bi bi-clock text-teal-600 mr-2"></i>
+                Set Reminder
+              </button>
+                <button id="follow-up-btn" class="w-full bg-teal-50 text-teal-700 p-3 rounded-lg hover:bg-teal-100 transition-colors text-left flex items-center gap-2 dark-mode:bg-[#23272f] dark-mode:text-teal-200 dark-mode:hover:bg-[#1a1a1a]">
+                <i class="bi bi-bell text-teal-600 mr-2"></i>
+                Follow Up
+              </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <style>
+        /* Enhanced Calendar Styles */
+        #calendar-card .fc {
+          font-family: 'Poppins', sans-serif;
+          background: transparent;
+        }
+        #calendar-card .fc-toolbar-title {
+          color: #14b8a6;
+          font-weight: 700;
+          font-size: 1.2rem;
+        }
+        #calendar-card .fc-button {
+          background: #14b8a6;
+          border: none;
+          color: #fff;
+          border-radius: 0.5rem;
+          transition: background 0.2s;
+        }
+        #calendar-card .fc-button:hover, #calendar-card .fc-button:focus {
+          background: #0d9488;
+        }
+        /* CIRCULAR DATE CELLS */
+        #calendar-card .fc-daygrid-day {
+          padding: 0 !important;
+          background: none !important;
+        }
+        #calendar-card .fc-daygrid-day-frame {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 48px;
+          height: 48px;
+        }
+        #calendar-card .fc-daygrid-day-number {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 38px;
+          height: 38px;
+          border-radius: 50%;
+          background: transparent;
+          color: #0d9488;
+          font-weight: 600;
+          font-size: 1rem;
+          margin: 0 auto;
+          transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+          box-shadow: none;
+        }
+        #calendar-card .fc-daygrid-day:hover .fc-daygrid-day-number {
+          background: linear-gradient(135deg, #e0f7fa 0%, #14b8a6 100%);
+          color: #fff;
+          box-shadow: 0 2px 8px 0 rgba(20,184,166,0.10);
+        }
+        #calendar-card .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
+          background: linear-gradient(135deg, #fbbf24 0%, #fde68a 100%);
+          color: #fff;
+          box-shadow: 0 2px 12px 0 rgba(251,191,36,0.15);
+        }
+        /* Remove default today background */
+        #calendar-card .fc-daygrid-day.fc-day-today {
+          background: none !important;
+        }
+        /* Responsive: shrink circle on small screens */
+        @media (max-width: 600px) {
+          #calendar-card .fc-daygrid-day-frame {
+            min-height: 32px;
+            height: 32px;
+          }
+          #calendar-card .fc-daygrid-day-number {
+            width: 26px;
+            height: 26px;
+            font-size: 0.95rem;
+          }
+        }
+        /* Upcoming Events Enhanced */
+        #upcoming-events .event-card {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 1rem 1.2rem;
+          border-radius: 1rem;
+          background: linear-gradient(90deg, #f0fdfa 0%, #e0f2fe 100%);
+          border: 1px solid #e0f2fe;
+          box-shadow: 0 2px 8px 0 rgba(20,184,166,0.08);
+          transition: box-shadow 0.2s, background 0.2s;
+        }
+        #upcoming-events .event-card:hover {
+          background: linear-gradient(90deg, #e0f7fa 0%, #f8fafc 100%);
+          box-shadow: 0 4px 16px 0 rgba(20,184,166,0.15);
+        }
+        #upcoming-events .event-badge {
+          display: inline-block;
+          padding: 0.2rem 0.7rem;
+          border-radius: 1rem;
+          font-size: 0.85rem;
+          font-weight: 600;
+          margin-right: 0.7rem;
+        }
+        #upcoming-events .badge-interview { background: #a21caf; color: #fff; }
+        #upcoming-events .badge-today { background: #fbbf24; color: #fff; }
+        #upcoming-events .badge-overdue { background: #f87171; color: #fff; }
+        #upcoming-events .badge-upcoming { background: #14b8a6; color: #fff; }
+        /* Dark mode overrides */
+        .dark-mode #calendar-card, .dark-mode #calendar-card .fc, .dark-mode #calendar-card .fc-toolbar-title, .dark-mode #calendar-card .fc-button, .dark-mode #calendar-card .fc-daygrid-day.fc-day-today, .dark-mode #calendar-card .fc-event, .dark-mode #calendar-card .fc-daygrid-event-dot {
+          background: #23272f !important;
+          color: #e0f7fa !important;
+          border-color: #23272f !important;
+        }
+        .dark-mode #calendar-card .fc-toolbar-title { color: #14b8a6 !important; }
+        .dark-mode #calendar-card .fc-button { background: #14b8a6 !important; color: #fff !important; }
+        .dark-mode #calendar-card .fc-button:hover, .dark-mode #calendar-card .fc-button:focus { background: #0d9488 !important; }
+        .dark-mode #calendar-card .fc-daygrid-day.fc-day-today { background: none !important; }
+        .dark-mode #calendar-card .fc-daygrid-day-number { color: #2dd4bf !important; background: #23272f !important; }
+        .dark-mode #calendar-card .fc-daygrid-day.fc-day-today .fc-daygrid-day-number { background: linear-gradient(135deg, #fbbf24 0%, #fde68a 100%) !important; color: #23272f !important; }
+        .dark-mode #calendar-card .fc-event { background: #14b8a6 !important; color: #fff !important; }
+        .dark-mode #calendar-card .fc-daygrid-event-dot { border-color: #14b8a6 !important; }
+        .dark-mode #upcoming-events .event-card { background: #23272f !important; color: #e0f7fa !important; border-color: #23272f !important; }
+      </style>
+      <!-- Footer -->
+      <footer class="text-center text-sm text-gray-400 mt-16">
+        &copy; 2025 EduLink KE. Empowering Students with Verified Internships.
+      </footer>
+    </main>
+  </div>
+
+  <!-- Notification Dropdown (hidden by default) -->
+  <div id="notification-dropdown" style="display:none; position:absolute; top:80px; right:40px; background:#fff; border-radius:1rem; box-shadow:0 2px 12px 0 rgba(20,184,166,0.10); padding:1rem; min-width:220px; z-index:100;">
+    <div id="notification-content">You're all caught up!</div>
+  </div>
+
+  <!-- Error Modal -->
+  <div id="error-modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.35); z-index:9999; align-items:center; justify-content:center;">
+    <div style="background:#fff; color:#b91c1c; padding:2rem 2.5rem; border-radius:1rem; box-shadow:0 4px 32px rgba(0,0,0,0.18); max-width:90vw; min-width:300px; text-align:center; position:relative;">
+      <div id="error-modal-message" style="font-size:1.1rem; margin-bottom:1.5rem;">Sorry, something went wrong. Please try again later or contact support.</div>
+      <button id="close-error-modal" style="background:#b91c1c; color:#fff; border:none; border-radius:0.5rem; padding:0.5rem 1.5rem; font-size:1rem; cursor:pointer;">Close</button>
+    </div>
+  </div>
+
+  <!-- Move scripts to end of body for DOM readiness -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    // --- Chart rendering functions (define these first!) ---
+    function renderStatusChart(data) {
+      const canvas = document.getElementById('statusChart');
+      if (!canvas) { console.error('statusChart canvas not found'); return; }
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { console.error('statusChart context not found'); return; }
+      if (window.statusChartInstance) window.statusChartInstance.destroy();
+      const labels = ['Pending', 'Accepted', 'Rejected'];
+      let values;
+      if (data.analytics_summary) {
+        const statusCounts = data.analytics_summary;
+        values = [
+          statusCounts.pending_applications || 0,
+          statusCounts.accepted_applications || 0,
+          statusCounts.rejected_applications || 0
+        ];
+      } else if (data.status_distribution) {
+        // status_distribution is an array of {status, count}
+        const statusMap = {pending: 0, accepted: 0, rejected: 0};
+        data.status_distribution.forEach(s => { statusMap[s.status] = s.count; });
+        values = [statusMap.pending, statusMap.accepted, statusMap.rejected];
+      } else {
+        values = [0, 0, 0];
+      }
+      console.log('Rendering status chart', values, canvas);
+      // If all values are zero, show fallback message (only once)
+      if (values.every(v => v === 0)) {
+        canvas.style.display = 'none';
+        const statusChartContainer = canvas.parentElement;
+        if (statusChartContainer && !statusChartContainer.querySelector('.status-fallback-message')) {
+          statusChartContainer.innerHTML += '<div class="status-fallback-message text-gray-400 text-center py-8">No application status data to display.</div>';
+        }
+        return;
+      } else {
+        canvas.style.display = '';
+        // Remove any previous fallback message
+        const prevMsg = canvas.parentElement.querySelector('.status-fallback-message');
+        if (prevMsg) prevMsg.remove();
+      }
+      window.statusChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: values,
+            backgroundColor: ['#fbbf24', '#14b8a6', '#f87171'],
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: true, position: 'bottom' } }
+        }
+      });
+    }
+
+    function renderTrendsChart(data) {
+      const canvas = document.getElementById('trendsChart');
+      if (!canvas) {
+        console.error('trendsChart canvas not found');
+        // Fallback message for trendsChart
+        const trendsChartContainer = document.querySelector('canvas#trendsChart')?.parentElement || document.querySelector('.bg-white.rounded-xl.p-6.shadow-lg.border-teal-100');
+        if (trendsChartContainer) {
+          trendsChartContainer.innerHTML += '<div class="text-gray-400 text-center py-8">Unable to render trends chart.</div>';
+        }
+        return;
+      }
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        console.error('trendsChart context not found');
+        return;
+      }
+      if (window.trendsChartInstance) window.trendsChartInstance.destroy();
+      const trends = data.application_trends || data.monthly_applications || [];
+      // Format x-axis labels as 'Jul 2025'
+      const labels = trends.map(t => {
+        if (t.month && typeof t.month === 'string') {
+          const d = new Date(t.month);
+          return d.toLocaleString('default', { month: 'short', year: 'numeric' });
+        }
+        return t.month || '';
+      });
+      const counts = trends.map(t => t.count);
+      console.log('Rendering trends chart', labels, counts);
+      if (!labels.length || !counts.length) {
+        // No data to display
+        canvas.style.display = 'none';
+        const trendsChartContainer = canvas.parentElement;
+        if (trendsChartContainer) {
+          trendsChartContainer.innerHTML += '<div class="text-gray-400 text-center py-8">No data to display for monthly trends.</div>';
+        }
+        return;
+      }
+      window.trendsChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Applications',
+            data: counts,
+            backgroundColor: '#14b8a6',
+            borderColor: '#0d9488',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+            title: {
+              display: false
+            },
+            tooltip: {
+              callbacks: {
+                title: function(context) { return context[0].label; },
+                label: function(context) { return `Applications: ${context.parsed.y}`; }
+              }
+            }
+          },
+          scales: {
+            x: {
+              title: {
+                display: true,
+                text: 'Month',
+                font: { weight: 'bold' }
+              }
+            },
+            y: {
+              beginAtZero: true,
+              precision: 0,
+              title: {
+                display: true,
+                text: 'Number of Applications',
+                font: { weight: 'bold' }
+              }
+            }
+          }
+        }
+      });
+    }
+    // Helper to wait for canvas and render chart
+    function waitForCanvasAndRender(canvasId, renderFn, data, maxTries = 10) {
+      let tries = 0;
+      function tryRender() {
+        const canvas = document.getElementById(canvasId);
+        if (canvas) {
+          renderFn(data);
+        } else if (tries < maxTries) {
+          tries++;
+          setTimeout(tryRender, 100);
+        } else {
+          console.error(canvasId + ' canvas not found after waiting.');
+          // Fallback message for trendsChart
+          if (canvasId === 'trendsChart') {
+            const trendsChartContainer = document.querySelector('canvas#trendsChart')?.parentElement || document.querySelector('.bg-white.rounded-xl.p-6.shadow-lg.border-teal-100');
+            if (trendsChartContainer) {
+              trendsChartContainer.innerHTML += '<div class="text-gray-400 text-center py-8">Unable to render trends chart.</div>';
+            }
+          }
+        }
+      }
+      tryRender();
+    }
+    // Universal safe render for trends chart
+    function safeRenderTrendsChart(data) {
+      let canvas = document.getElementById('trendsChart');
+      if (!canvas) {
+        // Dynamically create and insert the canvas if missing
+        const analyticsSection = document.querySelector('.analytics-charts-section') || document.body;
+        canvas = document.createElement('canvas');
+        canvas.id = 'trendsChart';
+        canvas.height = 180;
+        analyticsSection.appendChild(canvas);
+        console.warn('trendsChart canvas was missing, dynamically inserted.');
+      }
+      renderTrendsChart(data);
+    }
+    // Helper function to validate JWT token format
+    function isValidTokenFormat(token) {
+      if (!token || typeof token !== 'string') return false;
+      // Basic JWT format check (3 parts separated by dots)
+      const parts = token.split('.');
+      return parts.length === 3 && parts.every(part => part.length > 0);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      // --- Robust Access Token Check ---
+      const accessToken = localStorage.getItem('access_token');
+      
+      // Helper: Redirect to login and clear token
+      function forceLogout() {
+        localStorage.removeItem('access_token');
+        window.location.href = '../../login.html';
+      }
+      
+      // Validate token format and existence
+      if (!accessToken || !isValidTokenFormat(accessToken)) {
+        console.warn('Invalid or missing access token, redirecting to login');
+        forceLogout();
+        return;
+      }
+
+      // Spinner and loading messages
+      const dashboardLoading = document.getElementById('dashboard-loading');
+      const dashboardLoadingText = document.getElementById('dashboard-loading-text');
+      const dashboardLoadingMessages = [
+        "Loading your dashboard magic...",
+        "Crunching your internship stats...",
+        "Fetching your opportunities...",
+        "Warming up your career journey...",
+        "Almost there, hang tight!",
+        "Making things awesome for you..."
+      ];
+      let dashboardLoadingIndex = 0;
+      let dashboardLoadingInterval = null;
+      function startDashboardLoadingMessages() {
+        if (!dashboardLoadingText) return;
+        dashboardLoadingText.textContent = dashboardLoadingMessages[0];
+        dashboardLoadingIndex = 1;
+        dashboardLoadingInterval = setInterval(() => {
+          dashboardLoadingText.textContent = dashboardLoadingMessages[dashboardLoadingIndex % dashboardLoadingMessages.length];
+          dashboardLoadingIndex++;
+        }, 1500);
+      }
+      function stopDashboardLoadingMessages() {
+        clearInterval(dashboardLoadingInterval);
+        if (dashboardLoading) dashboardLoading.style.display = 'none';
+      }
+      startDashboardLoadingMessages();
+
+      // --- Fetch dashboard data and update UI ---
+      ApiHelper.request(API_CONFIG.ENDPOINTS.DASHBOARDS.STUDENT)
+        .then(res => {
+          if (!res.ok) {
+            if (res.status === 401 || res.status === 403) {
+              // Token expired or invalid: redirect to login
+              console.warn('Token expired or invalid, redirecting to login');
+              forceLogout();
+              return;
+            }
+            return res.json().then(err => { throw new Error(err.detail || 'An error occurred.'); });
+          }
+          return res.json();
+        })
+        .then(data => {
+          stopDashboardLoadingMessages();
+          // Welcome & Quick Stats
+          const welcomeSection = document.getElementById('welcome-section');
+          let firstName = (data.first_name && data.first_name.trim())
+            || (data.progress && data.progress.student && data.progress.student.first_name && data.progress.student.first_name.trim())
+            || '';
+          let lastName = (data.last_name && data.last_name.trim())
+            || (data.progress && data.progress.student && data.progress.student.last_name && data.progress.student.last_name.trim())
+            || '';
+          let displayName = firstName || lastName;
+          let welcomeMsg = displayName
+            ? `<h1 class="text-2xl font-semibold text-teal-800">Welcome back, <span class='text-teal-600'>${displayName}</span>! 👋</h1><p class="text-sm text-gray-600">Ready to take the next step in your career journey?</p>`
+            : `<h1 class="text-2xl font-semibold text-teal-800">Welcome to your EduLink dashboard!</h1><p class="text-sm text-gray-600">Your journey to career success starts here.</p>`;
+          if (welcomeSection) welcomeSection.innerHTML = welcomeMsg;
+          // Stats (use analytics_summary)
+          const statsSection = document.getElementById('stats-section');
+          const summary = data.analytics_summary || {};
+          if (statsSection) {
+            if (summary.total_applications === 0) {
+              statsSection.innerHTML = `<div class='col-span-4 text-center text-gray-400 py-8'>No application stats yet. Start applying to internships!</div>`;
+            } else {
+              statsSection.innerHTML = `
+                <div class="bg-white p-4 rounded shadow"><p class="text-sm text-gray-500">Applications</p><h2 class="text-xl font-bold">${summary.total_applications || 0}</h2></div>
+                <div class="bg-white p-4 rounded shadow"><p class="text-sm text-gray-500">Pending</p><h2 class="text-xl font-bold">${summary.pending_applications || 0}</h2></div>
+                <div class="bg-white p-4 rounded shadow"><p class="text-sm text-gray-500">Accepted</p><h2 class="text-xl font-bold">${summary.accepted_applications || 0}</h2></div>
+                <div class="bg-white p-4 rounded shadow"><p class="text-sm text-gray-500">Declined</p><h2 class="text-xl font-bold">${summary.rejected_applications || 0}</h2></div>
+              `;
+            }
+          }
+          // Applications Table (use recent_applications)
+          const applicationsSection = document.getElementById('applications-section');
+          console.log('recent_applications:', data.recent_applications);
+          if (applicationsSection) {
+            if (!data.recent_applications || data.recent_applications.length === 0) {
+              applicationsSection.innerHTML = `<div class='text-gray-500 text-center py-8'>You have not applied to any internships yet.</div>`;
+            } else {
+              let rows = data.recent_applications.map(app => `
+                <tr class='border-b border-teal-100 hover:bg-teal-50 transition'>
+                  <td class='px-5 py-3 border-r border-teal-50 text-sm'>${app.internship_title || ''}</td>
+                  <td class='px-5 py-3 border-r border-teal-50 text-sm'>${app.company || ''}</td>
+                  <td class='px-5 py-3 border-r border-teal-50 text-sm'>${app.location || ''}</td>
+                  <td class='px-5 py-3 border-r border-teal-50 text-sm'>${app.status || ''}</td>
+                  <td class='px-5 py-3 text-sm'>${app.applied_on ? new Date(app.applied_on).toLocaleDateString() : ''}</td>
+                </tr>
+              `).join('');
+              applicationsSection.innerHTML = `
+                <div class='w-full overflow-x-auto'>
+                  <table class='w-full bg-white rounded-xl overflow-hidden border border-teal-100 shadow text-sm'>
+                    <thead><tr class='bg-teal-50 text-left font-semibold text-teal-800 border-b border-teal-200 text-base'>
+                      <th class='px-5 py-3 border-r border-teal-100'>Opportunity</th>
+                      <th class='px-5 py-3 border-r border-teal-100'>Company</th>
+                      <th class='px-5 py-3 border-r border-teal-100'>Location</th>
+                      <th class='px-5 py-3 border-r border-teal-100'>Status</th>
+                      <th class='px-5 py-3'>Applied On</th>
+                    </tr></thead>
+                    <tbody class='text-gray-700'>${rows}</tbody>
+                  </table>
+                </div>
+              `;
+            }
+          }
+          // Recommendations
+          const recommendationsSection = document.getElementById('recommendations-section');
+          if (recommendationsSection) {
+            if (!data.recommended_internships || data.recommended_internships.length === 0) {
+              recommendationsSection.innerHTML = `<div class='text-gray-500 text-center py-8'>No recommended internships yet. Keep exploring!</div>`;
+            } else {
+              let rows = data.recommended_internships.map(internship => `
+                <div class="bg-white p-4 rounded-lg shadow-md flex items-center justify-between">
+                  <div>
+                    <h3 class="text-lg font-bold text-teal-800">${internship.title}</h3>
+                    <p class="text-sm text-gray-600">${internship.company_name}</p>
+                    <p class="text-sm text-gray-500">${internship.location}</p>
+                  </div>
+                  <button class="bg-teal-600 text-white px-3 py-1 rounded hover:bg-teal-700 text-sm">Apply</button>
+                </div>
+              `).join('');
+              recommendationsSection.innerHTML = `
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">${rows}</div>
+              `;
+            }
+          }
+          // Notifications
+          const notifIcon = document.querySelector('.header-action[title="Notifications"] i.bi-bell');
+          if (notifIcon) {
+            if (data.unread_notifications > 0) {
+              notifIcon.insertAdjacentHTML('afterend', `<span id='notif-badge' style='position:relative;top:-10px;left:-10px;background:#f87171;color:#fff;border-radius:50%;padding:2px 6px;font-size:0.75rem;'>${data.unread_notifications}</span>`);
+            } else {
+              const notifContent = document.getElementById('notification-content');
+              if (notifContent) notifContent.textContent = "You're all caught up! No new notifications.";
+            }
+          }
+          // After data loads, show Recent Activities section
+          const activitiesSectionWrapper = document.getElementById('activities-section-wrapper');
+          if (activitiesSectionWrapper) activitiesSectionWrapper.classList.remove('hidden');
+          
+          // Load additional dashboard data
+          loadProgressData();
+          loadInternshipProgressData();
+          loadAnalyticsData();
+          loadAchievementsData();
+          loadCalendarData();
+        })
+        .catch(err => {
+          stopDashboardLoadingMessages();
+          console.error('Dashboard data fetch error:', err);
+          // If there's a network error or other issues, redirect to login for security
+          if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+            console.warn('Network error detected, redirecting to login for security');
+            forceLogout();
+          }
+        });
+
+      // Load Progress Data
+      function loadProgressData() {
+        ApiHelper.request(API_CONFIG.ENDPOINTS.DASHBOARDS.PROGRESS)
+        .then(res => {
+          if (res.status === 401 || res.status === 403) {
+            console.warn('Authentication failed for progress data');
+            localStorage.removeItem('access_token');
+            window.location.href = '../../login.html';
+            return;
+          }
+          if (!res.ok) {
+            throw new Error('Progress data not available');
+          }
+          return res.json();
+        })
+        .then(data => {
+          // Update profile completion
+          const profileCompletion = document.getElementById('profile-completion-percentage');
+          const profileProgressBar = document.getElementById('profile-progress-bar');
+          if (profileCompletion && profileProgressBar) {
+            profileCompletion.textContent = data.profile_completion_percentage || '0%';
+            profileProgressBar.style.width = (data.profile_completion || 0) + '%';
+          }
+
+          // Update monthly goal progress
+          const monthlyGoalProgress = document.getElementById('monthly-goal-progress');
+          const goalProgressBar = document.getElementById('goal-progress-bar');
+          if (monthlyGoalProgress && goalProgressBar) {
+            const progress = data.progress_summary?.monthly_goal_progress || 0;
+            monthlyGoalProgress.textContent = `${data.applications_this_month || 0}/${data.monthly_application_goal || 10}`;
+            goalProgressBar.style.width = progress + '%';
+          }
+
+          // Update activity streak
+          const currentStreak = document.getElementById('current-streak');
+          const longestStreak = document.getElementById('longest-streak');
+          if (currentStreak) currentStreak.textContent = data.current_streak || 0;
+          if (longestStreak) longestStreak.textContent = data.longest_streak || 0;
+
+          // Update milestones
+          updateMilestones(data.next_milestones || []);
+
+          // Internship progress is now loaded separately
+        })
+        .catch(err => {
+          console.error('Error loading progress data:', err);
+          // Redirect to login for security
+          localStorage.removeItem('access_token');
+          window.location.href = '../../login.html';
+        });
+      }
+
+      // Load Internship Progress Data
+      function loadInternshipProgressData() {
+        ApiHelper.request(API_CONFIG.ENDPOINTS.INTERNSHIP_PROGRESS.PROGRESS)
+        .then(res => {
+          if (res.status === 401 || res.status === 403) {
+            console.warn('Authentication failed for internship progress data');
+            localStorage.removeItem('access_token');
+            window.location.href = '../../login.html';
+            return;
+          }
+          if (!res.ok) {
+            throw new Error('Internship progress data not available');
+          }
+          return res.json();
+        })
+        .then(data => {
+          // Update the internship progress ring with comprehensive data
+          updateInternshipProgressRing(data);
+        })
+        .catch(err => {
+          console.error('Error loading internship progress data:', err);
+          // Show default state for progress ring
+          updateInternshipProgressRing(null);
+        });
+      }
+
+      // Load Analytics Data
+      function loadAnalyticsData() {
+        ApiHelper.request(API_CONFIG.ENDPOINTS.DASHBOARDS.ANALYTICS)
+        .then(res => {
+          if (res.status === 401 || res.status === 403) {
+            console.warn('Authentication failed for analytics data');
+            localStorage.removeItem('access_token');
+            window.location.href = '../../login.html';
+            return;
+          }
+          if (!res.ok) {
+            throw new Error('Analytics data not available');
+          }
+          return res.json();
+        })
+        .then(data => {
+          // Update analytics summary
+          const successRate = document.getElementById('success-rate');
+          const avgResponseTime = document.getElementById('avg-response-time');
+          const thisMonthApps = document.getElementById('this-month-apps');
+          const totalApplications = document.getElementById('total-applications');
+
+          if (successRate) successRate.textContent = (data.summary?.success_rate || 0) + '%';
+          if (avgResponseTime) avgResponseTime.textContent = data.summary?.average_response_time ? data.summary.average_response_time + ' days' : '-';
+          if (thisMonthApps) thisMonthApps.textContent = data.summary?.this_month_applications || 0;
+          if (totalApplications) totalApplications.textContent = data.summary?.total_applications || 0;
+
+          // After data loads and DOM is ready, render charts
+          console.log('DASHBOARD DATA FOR CHARTS:', data);
+          if (document.getElementById('statusChart')) {
+            renderStatusChart(data); // Only use main dashboard data
+          } else {
+            console.warn('statusChart not found, skipping renderStatusChart');
+          }
+          safeRenderTrendsChart(data);
+        })
+        .catch(err => {
+          console.error('Error loading analytics data:', err);
+          // Redirect to login for security
+          localStorage.removeItem('access_token');
+          window.location.href = '../../login.html';
+        });
+      }
+
+      // Load Achievements Data
+      function loadAchievementsData() {
+        ApiHelper.request(API_CONFIG.ENDPOINTS.DASHBOARDS.ACHIEVEMENTS)
+        .then(res => {
+          if (res.status === 401 || res.status === 403) {
+            console.warn('Authentication failed for achievements data');
+            localStorage.removeItem('access_token');
+            window.location.href = '../../login.html';
+            return;
+          }
+          if (!res.ok) {
+            throw new Error('Achievements data not available');
+          }
+          return res.json();
+        })
+        .then(data => {
+          updateAchievementsGrid(data.results || data || []);
+        })
+        .catch(err => {
+          console.error('Error loading achievements data:', err);
+          // Redirect to login for security
+          localStorage.removeItem('access_token');
+          window.location.href = '../../login.html';
+        });
+      }
+
+      // Load Calendar Data
+      function loadCalendarData() {
+        ApiHelper.request(API_CONFIG.ENDPOINTS.DASHBOARDS.CALENDAR_EVENTS_UPCOMING)
+        .then(res => {
+          if (res.status === 401 || res.status === 403) {
+            console.warn('Authentication failed for calendar data');
+            localStorage.removeItem('access_token');
+            window.location.href = '../../login.html';
+            return;
+          }
+          if (!res.ok) {
+            throw new Error('Calendar data not available');
+          }
+          return res.json();
+        })
+        .then(data => {
+          renderFullCalendar(data.results || data || []);
+          updateUpcomingEvents(data.results || data || []);
+        })
+        .catch(err => {
+          console.error('Error loading calendar data:', err);
+          // Redirect to login for security
+          localStorage.removeItem('access_token');
+          window.location.href = '../../login.html';
+        });
+      }
+
+      // Update Milestones
+      function updateMilestones(milestones) {
+        const milestonesSection = document.getElementById('milestones-section');
+        if (!milestonesSection || !milestones) return;
+
+        const milestonesHTML = milestones.map(milestone => `
+          <div class="bg-gradient-to-r from-teal-50 to-blue-50 p-4 rounded-lg border border-teal-200">
+            <div class="flex items-center justify-between mb-2">
+              <h4 class="font-semibold text-teal-800">${milestone.title}</h4>
+              <span class="text-sm text-teal-600">${milestone.progress}/${milestone.target}</span>
+            </div>
+            <p class="text-sm text-gray-600 mb-3">${milestone.description}</p>
+            <div class="w-full bg-gray-200 rounded-full h-2">
+              <div class="bg-teal-500 h-2 rounded-full transition-all duration-500" style="width: ${(milestone.progress / milestone.target) * 100}%"></div>
+            </div>
+          </div>
+        `).join('');
+
+        milestonesSection.innerHTML = milestonesHTML;
+      }
+
+      // Update Status Chart
+      function updateStatusChart(statusData) {
+        const statusChart = document.getElementById('status-chart');
+        if (!statusChart || !statusData) return;
+
+        const chartHTML = `
+          <div class="w-full h-full flex items-center justify-center">
+            <div class="grid grid-cols-2 gap-4 w-full">
+              ${statusData.map(status => `
+                <div class="text-center">
+                  <div class="text-2xl font-bold text-teal-600">${status.count}</div>
+                  <div class="text-sm text-gray-500 capitalize">${status.status}</div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+
+        statusChart.innerHTML = chartHTML;
+      }
+
+      // Update Trends Chart
+      function updateTrendsChart(trendsData) {
+        const trendsChart = document.getElementById('trends-chart');
+        if (!trendsChart || !trendsData) return;
+
+        const chartHTML = `
+          <div class="w-full h-full flex items-center justify-center">
+            <div class="text-center">
+              <div class="text-2xl font-bold text-teal-600">${trendsData.length}</div>
+              <div class="text-sm text-gray-500">Months of Activity</div>
+            </div>
+          </div>
+        `;
+
+        trendsChart.innerHTML = chartHTML;
+      }
+
+      // Update Achievements Grid
+      function updateAchievementsGrid(achievements) {
+        const achievementsGrid = document.getElementById('achievements-grid');
+        const earnedBadges = document.getElementById('earned-badges');
+        const totalPoints = document.getElementById('total-points');
+        const completionRate = document.getElementById('completion-rate');
+
+        if (!achievementsGrid) return;
+
+        let earnedCount = 0;
+        let totalPointsValue = 0;
+
+        const achievementsHTML = achievements
+          .filter(achievement => achievement && achievement.achievement && achievement.achievement.icon)
+          .map(achievement => {
+            const isEarned = achievement.progress_percentage >= 100;
+            if (isEarned) {
+              earnedCount++;
+              totalPointsValue += achievement.achievement.points;
+            }
+
+            return `
+              <div class="bg-white rounded-lg p-4 border-2 ${isEarned ? 'border-yellow-400 bg-yellow-50' : 'border-gray-200'} transition-all duration-300 hover:shadow-md">
+                <div class="text-center">
+                  <div class="text-3xl mb-2 ${isEarned ? 'text-yellow-500' : 'text-gray-400'}">
+                    ${achievement.achievement.icon}
+                  </div>
+                  <h4 class="font-semibold text-teal-800 mb-1">${achievement.achievement.name}</h4>
+                  <p class="text-xs text-gray-600 mb-2">${achievement.achievement.description}</p>
+                  <div class="flex items-center justify-between text-xs">
+                    <span class="text-teal-600">${achievement.achievement.points} pts</span>
+                    ${isEarned ? 
+                      '<span class="text-yellow-600"><i class="bi bi-check-circle"></i> Earned</span>' : 
+                      '<span class="text-gray-500">' + Math.round(achievement.progress_percentage) + '%</span>'
+                    }
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('');
+
+        achievementsGrid.innerHTML = achievementsHTML;
+
+        // Update summary stats
+        if (earnedBadges) earnedBadges.textContent = earnedCount;
+        if (totalPoints) totalPoints.textContent = totalPointsValue;
+        if (completionRate) completionRate.textContent = Math.round((earnedCount / achievements.length) * 100) + '%';
+      }
+
+      // Update Upcoming Events
+      function updateUpcomingEvents(events) {
+        const upcomingEvents = document.getElementById('upcoming-events');
+        if (!upcomingEvents) return;
+        if (!events || events.length === 0) {
+          upcomingEvents.innerHTML = `
+            <div class="text-center text-gray-500 py-8">
+              <i class="bi bi-calendar-x text-3xl mb-2"></i>
+              <p>No upcoming events</p>
+            </div>
+          `;
+          return;
+        }
+        const eventsHTML = events.map(event => {
+          const eventDate = new Date(event.start_date);
+          const isToday = eventDate.toDateString() === new Date().toDateString();
+          const isOverdue = event.is_overdue;
+          let badgeClass = 'badge-upcoming', badgeText = 'Upcoming', badgeIcon = '<i class="bi bi-calendar-event"></i>';
+          if (event.event_type === 'interview') {
+            badgeClass = 'badge-interview'; badgeText = 'Interview'; badgeIcon = '<i class="bi bi-person-video3"></i>';
+          } else if (isToday) {
+            badgeClass = 'badge-today'; badgeText = 'Today'; badgeIcon = '<i class="bi bi-star-fill"></i>';
+          } else if (isOverdue) {
+            badgeClass = 'badge-overdue'; badgeText = 'Overdue'; badgeIcon = '<i class="bi bi-exclamation-triangle"></i>';
+          }
+          return `
+            <div class="event-card relative group">
+              <div class="flex items-center gap-3">
+                <span class="event-badge ${badgeClass}">${badgeIcon} ${badgeText}</span>
+                <div>
+                  <h4 class="font-semibold text-gray-800 dark-mode:text-teal-200">${event.title}</h4>
+                  <p class="text-xs text-gray-600 dark-mode:text-gray-300">${event.event_type_display || ''}</p>
+                </div>
+              </div>
+              <div class="text-right flex items-center gap-2">
+                <div>
+                  <div class="text-sm font-semibold text-gray-800 dark-mode:text-teal-200">${eventDate.toLocaleDateString()}</div>
+                  <div class="text-xs text-gray-500 dark-mode:text-gray-300">${eventDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                </div>
+                <button class="event-more-btn ml-2 p-1 rounded-full hover:bg-gray-100 dark-mode:hover:bg-gray-700 transition" data-event-id="${event.id}" title="More actions" style="font-size:1.2rem;">
+                  <i class="bi bi-three-dots-vertical"></i>
+                </button>
+                <div class="event-dropdown absolute right-4 top-10 z-50 hidden bg-white dark-mode:bg-[#23272f] border border-gray-200 dark-mode:border-gray-700 rounded-lg shadow-lg py-1 min-w-[120px]">
+                  <button class="event-edit-btn w-full text-left px-4 py-2 text-teal-700 hover:bg-teal-50 dark-mode:hover:bg-teal-900" data-event-id="${event.id}"><i class="bi bi-pencil"></i> Edit</button>
+                  <button class="event-delete-btn w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 dark-mode:hover:bg-red-900" data-event-id="${event.id}"><i class="bi bi-trash"></i> Delete</button>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+        upcomingEvents.innerHTML = eventsHTML;
+        // Add dropdown logic
+        document.querySelectorAll('.event-more-btn').forEach(btn => {
+          btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            document.querySelectorAll('.event-dropdown').forEach(dd => dd.classList.add('hidden'));
+            const dropdown = btn.parentElement.querySelector('.event-dropdown');
+            if (dropdown) dropdown.classList.toggle('hidden');
+          });
+        });
+        document.addEventListener('click', function() {
+          document.querySelectorAll('.event-dropdown').forEach(dd => dd.classList.add('hidden'));
+        });
+        // Delete event logic
+        document.querySelectorAll('.event-delete-btn').forEach(btn => {
+          btn.addEventListener('click', async function(e) {
+            e.stopPropagation();
+            const eventId = btn.getAttribute('data-event-id');
+            if (!eventId) return;
+            if (!confirm('Are you sure you want to delete this event?')) return;
+            try {
+              const res = await ApiHelper.request(`${API_CONFIG.ENDPOINTS.DASHBOARDS.CALENDAR_EVENTS}${eventId}/`, {
+                method: 'DELETE'
+              });
+              if (res.status === 401 || res.status === 403) {
+                console.warn('Authentication failed for delete event');
+                localStorage.removeItem('access_token');
+                window.location.href = '../../login.html';
+                return;
+              }
+              if (!res.ok && res.status !== 204) throw new Error('Failed to delete event');
+              await loadCalendarData();
+            } catch (err) {
+              console.error('Error deleting event:', err);
+              localStorage.removeItem('access_token');
+              window.location.href = '../../login.html';
+            }
+          });
+        });
+        // Edit event logic
+        document.querySelectorAll('.event-edit-btn').forEach(btn => {
+          btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const eventId = btn.getAttribute('data-event-id');
+            const event = events.find(ev => String(ev.id) === String(eventId));
+            if (event) openEditEventModal(event);
+          });
+        });
+      }
+
+      // FullCalendar integration
+      function renderFullCalendar(events) {
+        const calendarEl = document.getElementById('fullcalendar');
+        if (!calendarEl) return;
+        // Filter out past and completed events
+        const now = new Date();
+        const filteredEvents = (events || []).filter(ev => {
+          // Parse as UTC if ISO string, else fallback to local
+          let end = ev.end_date ? new Date(ev.end_date) : new Date(ev.start_date);
+          if (typeof ev.end_date === 'string' && ev.end_date.endsWith('Z')) {
+            end = new Date(ev.end_date);
+          } else if (typeof ev.start_date === 'string' && ev.start_date.endsWith('Z')) {
+            end = new Date(ev.start_date);
+          }
+          // Only include events that are not completed and end after the current time
+          return !ev.is_completed && end.getTime() >= now.getTime();
+        });
+        // Map your events to FullCalendar's format
+        const fcEvents = (filteredEvents || []).map(ev => {
+          // Determine event color by type
+          let bg = '#14b8a6'; // default upcoming
+          if (ev.is_interview || ev.event_type === 'interview' || ev.title?.toLowerCase().includes('interview')) {
+            bg = '#a21caf'; // purple for scheduled interview
+          } else if (ev.is_today) {
+            bg = '#fbbf24'; // yellow for today
+          } else if (ev.is_past) {
+            bg = '#d1d5db'; // gray for past
+          }
+          return {
+            title: ev.title,
+            start: ev.start_date,
+            end: ev.end_date,
+            allDay: ev.is_all_day,
+            backgroundColor: bg,
+            borderColor: bg,
+            extendedProps: ev
+          };
+        });
+        // Destroy previous instance if exists
+        if (window.fullCalendarInstance) window.fullCalendarInstance.destroy();
+        window.fullCalendarInstance = new FullCalendar.Calendar(calendarEl, {
+          initialView: 'dayGridMonth',
+          height: 420,
+          themeSystem: 'bootstrap5',
+          headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+          },
+          events: fcEvents,
+          eventClassNames: function(arg) {
+            if (arg.event.extendedProps.is_interview || arg.event.title?.toLowerCase().includes('interview')) return ['bg-purple-600', 'text-white', 'border-0'];
+            if (arg.event.extendedProps.is_today) return ['bg-yellow-400', 'text-white', 'border-0'];
+            if (arg.event.extendedProps.is_past) return ['bg-gray-300', 'text-gray-700', 'border-0'];
+            return ['bg-teal-500', 'text-white', 'border-0'];
+          },
+          dayCellClassNames: function(arg) {
+            const today = new Date();
+            if (arg.date.toDateString() === today.toDateString()) {
+              return ['bg-yellow-100'];
+            }
+            return [];
+          },
+          dateClick: function(info) {
+            // Open scheduling modal (placeholder)
+            alert('Schedule a new event for ' + info.dateStr);
+          },
+          eventClick: function(info) {
+            // Show event details in a styled modal or popover (placeholder)
+            alert(`Event: ${info.event.title}\n${info.event.start.toLocaleString()}`);
+          },
+          eventContent: function(arg) {
+            // Custom event rendering: badge, icon, etc.
+            let badge = '';
+            if (arg.event.extendedProps.is_interview || arg.event.title?.toLowerCase().includes('interview')) {
+              badge = '<span class="inline-block rounded px-2 py-1 text-xs font-semibold bg-purple-600 text-white mr-1"><i class="bi bi-person-video3"></i> Interview</span>';
+            } else if (arg.event.extendedProps.is_today) {
+              badge = '<span class="inline-block rounded px-2 py-1 text-xs font-semibold bg-yellow-400 text-white mr-1"><i class="bi bi-star-fill"></i> Today</span>';
+            } else if (arg.event.extendedProps.is_past) {
+              badge = '<span class="inline-block rounded px-2 py-1 text-xs font-semibold bg-gray-300 text-gray-700 mr-1"><i class="bi bi-clock-history"></i> Past</span>';
+            } else {
+              badge = '<span class="inline-block rounded px-2 py-1 text-xs font-semibold bg-teal-500 text-white mr-1"><i class="bi bi-calendar-event"></i> Upcoming</span>';
+            }
+            return { html: badge + ' ' + arg.event.title };
+          }
+        });
+        window.fullCalendarInstance.render();
+      }
+
+      // Unified profile picture loading function
+      function loadProfilePicture() {
+        const profilePic = document.getElementById('profilePic');
+        if (!profilePic) return;
+
+        // Priority 1: Check localStorage first (fastest, most recent)
+        const savedPhoto = localStorage.getItem('profilePhoto');
+        if (savedPhoto) {
+          profilePic.src = savedPhoto;
+          return;
+        }
+
+        // Priority 2: Fetch from API
+        ApiHelper.request(API_CONFIG.ENDPOINTS.USERS.STUDENT_PROFILE)
+          .then(res => {
+            if (res.status === 401 || res.status === 403) {
+              console.warn('Authentication failed for profile picture');
+              localStorage.removeItem('access_token');
+              window.location.href = '../../login.html';
+              return;
+            }
+            if (!res.ok) {
+              throw new Error('Failed to load profile');
+            }
+            return res.json();
+          })
+          .then(data => {
+            if (data.profile_picture) {
+              profilePic.src = data.profile_picture;
+              localStorage.setItem('profilePhoto', data.profile_picture);
+            } else {
+              profilePic.src = '../../assets/img/default.jpg';
+            }
+          })
+          .catch(err => { 
+            console.error('Error loading profile picture:', err);
+            localStorage.removeItem('access_token');
+            window.location.href = '../../login.html';
+          });
+      }
+
+      // Shared function to update header profile picture
+      function updateHeaderProfilePicture(imageSrc) {
+        const profilePic = document.getElementById('profilePic');
+        if (profilePic) {
+          profilePic.src = imageSrc;
+        }
+      }
+
+      // Global function for other pages to use
+      window.updateHeaderProfilePicture = updateHeaderProfilePicture;
+
+      // Load profile picture
+      loadProfilePicture();
+
+      // Load additional dashboard data
+      loadProgressData();
+      loadInternshipProgressData();
+      loadAnalyticsData();
+      loadAchievementsData();
+      loadCalendarData();
+
+      // 1. Application Status Cards
+      // Use analytics_summary from backend
+      function updateStatusCards(data) {
+        const totalApps = document.getElementById('total-applications');
+        const pendingApps = document.getElementById('pending-applications');
+        const acceptedApps = document.getElementById('accepted-applications');
+        const rejectedApps = document.getElementById('rejected-applications');
+
+        if (totalApps) totalApps.textContent = data.total_applications || 0;
+        if (pendingApps) pendingApps.textContent = data.pending_applications || 0;
+        if (acceptedApps) acceptedApps.textContent = data.accepted_applications || 0;
+        if (rejectedApps) rejectedApps.textContent = data.rejected_applications || 0;
+      }
+
+      // 2. Applications Table
+      function updateApplicationsTable(data) {
+        const tableBody = document.getElementById('applications-table-body');
+        if (!tableBody) return;
+
+        if (!data.recent_applications || data.recent_applications.length === 0) {
+          tableBody.innerHTML = `<tr><td colspan="5" class="text-center py-8">You have not applied to any internships yet.</td></tr>`;
+          return;
+        }
+
+        const rows = data.recent_applications.map(app => `
+          <tr class='border-b border-teal-100 hover:bg-teal-50 transition'>
+            <td class='px-5 py-3 border-r border-teal-50 text-sm'>${app.internship_title || ''}</td>
+            <td class='px-5 py-3 border-r border-teal-50 text-sm'>${app.company || ''}</td>
+            <td class='px-5 py-3 border-r border-teal-50 text-sm'>${app.location || ''}</td>
+            <td class='px-5 py-3 border-r border-teal-50 text-sm'>${app.status || ''}</td>
+            <td class='px-5 py-3 text-sm'>${app.applied_on ? new Date(app.applied_on).toLocaleDateString() : ''}</td>
+          </tr>
+        `).join('');
+        tableBody.innerHTML = rows;
+      }
+
+      // 3. Profile Completion & Milestones
+      function updateProfileCompletion(data) {
+        const profileCompletion = document.getElementById('profile-completion-percentage');
+        const profileProgressBar = document.getElementById('profile-progress-bar');
+        const milestonesSection = document.getElementById('milestones-section');
+
+        if (profileCompletion && profileProgressBar) {
+          profileCompletion.textContent = data.profile_completion_percentage || '0%';
+          profileProgressBar.style.width = (data.profile_completion || 0) + '%';
+        }
+        if (milestonesSection) {
+          updateMilestones(data.next_milestones || []);
+        }
+      }
+
+      // 4. Activity Streak
+      function updateStreaks(data) {
+        const currentStreak = document.getElementById('current-streak');
+        const longestStreak = document.getElementById('longest-streak');
+        if (currentStreak) currentStreak.textContent = data.current_streak || 0;
+        if (longestStreak) longestStreak.textContent = data.longest_streak || 0;
+      }
+
+      // 5. Application Trends Graph
+      function renderTrendsChart(data) {
+        const ctx = document.getElementById('trends-chart').getContext('2d');
+        const trends = data.application_trends || [];
+        const labels = trends.map(t => t.month);
+        const counts = trends.map(t => t.count);
+        if (window.trendsChartInstance) window.trendsChartInstance.destroy();
+        window.trendsChartInstance = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Applications',
+              data: counts,
+              borderColor: '#007bff',
+              backgroundColor: 'rgba(0,123,255,0.1)',
+              fill: true
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: { legend: { display: false } }
+          }
+        });
+      }
+
+      // 6. Smart Calendar (placeholder for real calendar integration)
+      function renderCalendar(events) {
+        // If using a real calendar library, integrate here
+        // For now, just list events
+        const cal = document.getElementById('upcoming-events');
+        if (!cal) return;
+
+        if (!events || events.length === 0) {
+          cal.innerHTML = `
+            <div class="text-center text-gray-500 py-8">
+              <i class="bi bi-calendar-x text-3xl mb-2"></i>
+              <p>No upcoming events</p>
+            </div>
+          `;
+          return;
+        }
+
+        const eventsHTML = events.map(event => {
+          const eventDate = new Date(event.start_date);
+          const isToday = eventDate.toDateString() === new Date().toDateString();
+          const isOverdue = event.is_overdue;
+          
+          return `
+            <div class="flex items-center justify-between p-3 rounded-lg ${isOverdue ? 'bg-red-50 border border-red-200' : isToday ? 'bg-teal-50 border border-teal-200' : 'bg-gray-50 border border-gray-200'}">
+              <div class="flex items-center">
+                <div class="w-3 h-3 rounded-full ${isOverdue ? 'bg-red-500' : isToday ? 'bg-teal-500' : 'bg-gray-400'} mr-3"></div>
+                <div>
+                  <h4 class="font-semibold text-gray-800">${event.title}</h4>
+                  <p class="text-sm text-gray-600">${event.event_type_display}</p>
+                </div>
+              </div>
+              <div class="text-right">
+                <div class="text-sm font-semibold text-gray-800">${eventDate.toLocaleDateString()}</div>
+                <div class="text-xs text-gray-500">${eventDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        cal.innerHTML = eventsHTML;
+      }
+
+      // 7. Remove Schedule Interview Button
+      const scheduleBtn = document.getElementById('schedule-interview-btn');
+      if (scheduleBtn) scheduleBtn.remove();
+
+      // 8. Main Dashboard Loader
+      function loadDashboard() {
+        ApiHelper.request(API_CONFIG.ENDPOINTS.DASHBOARDS.STUDENT)
+          .then(res => {
+            if (res.status === 401 || res.status === 403) {
+              console.warn('Authentication failed for dashboard loader');
+              localStorage.removeItem('access_token');
+              window.location.href = '../../login.html';
+              return;
+            }
+            if (!res.ok) {
+              throw new Error('Failed to load dashboard');
+            }
+            return res.json();
+          })
+          .then(data => {
+            updateStatusCards(data);
+            updateApplicationsTable(data);
+            updateProfileCompletion(data);
+            updateStreaks(data);
+            renderTrendsChart(data);
+            renderCalendar(data.upcoming_events);
+            // ...other updates
+          })
+          .catch(err => {
+            console.error('Error loading dashboard:', err);
+            localStorage.removeItem('access_token');
+            window.location.href = '../../login.html';
+          });
+      }
+
+      // Error modal logic
+      function showErrorModal(message) {
+        const modal = document.getElementById('error-modal');
+        const msg = document.getElementById('error-modal-message');
+        if (modal && msg) {
+          msg.textContent = message;
+          modal.style.display = 'flex';
+        }
+      }
+      const closeModalBtn = document.getElementById('close-error-modal');
+      if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', function() {
+          const modal = document.getElementById('error-modal');
+          if (modal) modal.style.display = 'none';
+        });
+      }
+      // Notification dropdown toggle
+      const notifBtn = document.querySelector('.header-action[title="Notifications"]');
+      if (notifBtn) {
+        notifBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          const dropdown = document.getElementById('notification-dropdown');
+          if (dropdown) dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+        });
+      }
+      document.addEventListener('click', function(e) {
+        const dropdown = document.getElementById('notification-dropdown');
+        const notifBtn = document.querySelector('.header-action[title="Notifications"]');
+        if (dropdown && notifBtn && !dropdown.contains(e.target) && e.target !== notifBtn && !notifBtn.contains(e.target)) {
+          dropdown.style.display = 'none';
+        }
+      });
+
+      // Mobile sidebar toggle
+      const sidebar = document.getElementById('sidebar');
+      const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+      let sidebarOpen = false;
+      mobileMenuBtn.addEventListener('click', function() {
+        sidebarOpen = !sidebarOpen;
+        if (sidebarOpen) {
+          sidebar.classList.remove('hidden');
+          sidebar.classList.add('flex', 'fixed', 'top-0', 'left-0', 'h-full', 'w-[230px]', 'z-50');
+          document.body.classList.add('overflow-hidden');
+        } else {
+          sidebar.classList.add('hidden');
+          sidebar.classList.remove('flex', 'fixed', 'top-0', 'left-0', 'h-full', 'w-[230px]', 'z-50');
+          document.body.classList.remove('overflow-hidden');
+        }
+      });
+      // Close sidebar on outside click (mobile)
+      document.addEventListener('click', function(e) {
+        if (sidebarOpen && !sidebar.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
+          sidebar.classList.add('hidden');
+          sidebar.classList.remove('flex', 'fixed', 'top-0', 'left-0', 'h-full', 'w-[230px]', 'z-50');
+          document.body.classList.remove('overflow-hidden');
+          sidebarOpen = false;
+        }
+      });
+
+      // --- Logout Button Functionality ---
+      const logoutBtn = document.getElementById('logoutBtn');
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          localStorage.removeItem('access_token');
+          window.location.href = '../../login.html';
+        });
+      }
+
+      // --- Backend-integrated Add Event Modal Logic ---
+      const addEventBtn = document.getElementById('add-event-btn');
+      const addEventModal = document.getElementById('add-event-modal');
+      const cancelAddEvent = document.getElementById('cancel-add-event');
+      const addEventForm = document.getElementById('add-event-form');
+      let allCalendarEvents = [];
+      // Open modal
+      if (addEventBtn && addEventModal) {
+        addEventBtn.addEventListener('click', function() {
+          addEventModal.style.display = 'flex';
+        });
+      }
+      // Close modal
+      if (cancelAddEvent && addEventModal) {
+        cancelAddEvent.addEventListener('click', function() {
+          addEventModal.style.display = 'none';
+        });
+      }
+      if (addEventModal) {
+        addEventModal.addEventListener('click', function(e) {
+          if (e.target === addEventModal) addEventModal.style.display = 'none';
+        });
+      }
+      // Add event (POST or PATCH to backend)
+      if (addEventForm) {
+        addEventForm.addEventListener('submit', async function(e) {
+          e.preventDefault();
+          const title = document.getElementById('event-title').value.trim();
+          const type = document.getElementById('event-type').value;
+          const date = document.getElementById('event-date').value;
+          const time = document.getElementById('event-time').value;
+          if (!title || !date || !time) return;
+          const startDate = new Date(date + 'T' + time);
+          const payload = {
+            title: title,
+            event_type: type === 'general' ? 'custom' : type,
+            start_date: startDate.toISOString(),
+            is_all_day: false
+          };
+          try {
+            let res;
+            if (editingEventId) {
+              res = await ApiHelper.request(`${API_CONFIG.ENDPOINTS.DASHBOARDS.CALENDAR_EVENTS}${editingEventId}/`, {
+                method: 'PATCH',
+                body: JSON.stringify(payload)
+              });
+            } else {
+              res = await ApiHelper.request(API_CONFIG.ENDPOINTS.DASHBOARDS.CALENDAR_EVENTS, {
+                method: 'POST',
+                body: JSON.stringify(payload)
+              });
+            }
+            if (res.status === 401 || res.status === 403) {
+              console.warn('Authentication failed for save event');
+              localStorage.removeItem('access_token');
+              window.location.href = '../../login.html';
+              return;
+            }
+            if (!res.ok) throw new Error('Failed to save event');
+            await loadCalendarData();
+            addEventModal.style.display = 'none';
+            addEventForm.reset();
+            editingEventId = null;
+          } catch (err) {
+            console.error('Error saving event:', err);
+            localStorage.removeItem('access_token');
+            window.location.href = '../../login.html';
+          }
+        });
+      }
+      // Edit event logic
+      function openEditEventModal(event) {
+        editingEventId = event.id;
+        addEventModal.style.display = 'flex';
+        document.getElementById('event-title').value = event.title || '';
+        document.getElementById('event-type').value = event.event_type === 'custom' ? 'general' : event.event_type;
+        const dt = new Date(event.start_date);
+        document.getElementById('event-date').value = dt.toISOString().slice(0,10);
+        document.getElementById('event-time').value = dt.toTimeString().slice(0,5);
+      }
+      // Patch updateUpcomingEvents to add Edit option
+      function updateUpcomingEvents(events) {
+        const upcomingEvents = document.getElementById('upcoming-events');
+        if (!upcomingEvents) return;
+        if (!events || events.length === 0) {
+          upcomingEvents.innerHTML = `
+            <div class="text-center text-gray-500 py-8">
+              <i class="bi bi-calendar-x text-3xl mb-2"></i>
+              <p>No upcoming events</p>
+            </div>
+          `;
+          return;
+        }
+        const eventsHTML = events.map(event => {
+          const eventDate = new Date(event.start_date);
+          const isToday = eventDate.toDateString() === new Date().toDateString();
+          const isOverdue = event.is_overdue;
+          let badgeClass = 'badge-upcoming', badgeText = 'Upcoming', badgeIcon = '<i class="bi bi-calendar-event"></i>';
+          if (event.event_type === 'interview') {
+            badgeClass = 'badge-interview'; badgeText = 'Interview'; badgeIcon = '<i class="bi bi-person-video3"></i>';
+          } else if (isToday) {
+            badgeClass = 'badge-today'; badgeText = 'Today'; badgeIcon = '<i class="bi bi-star-fill"></i>';
+          } else if (isOverdue) {
+            badgeClass = 'badge-overdue'; badgeText = 'Overdue'; badgeIcon = '<i class="bi bi-exclamation-triangle"></i>';
+          }
+          return `
+            <div class="event-card relative group">
+              <div class="flex items-center gap-3">
+                <span class="event-badge ${badgeClass}">${badgeIcon} ${badgeText}</span>
+                <div>
+                  <h4 class="font-semibold text-gray-800 dark-mode:text-teal-200">${event.title}</h4>
+                  <p class="text-xs text-gray-600 dark-mode:text-gray-300">${event.event_type_display || ''}</p>
+                </div>
+              </div>
+              <div class="text-right flex items-center gap-2">
+                <div>
+                  <div class="text-sm font-semibold text-gray-800 dark-mode:text-teal-200">${eventDate.toLocaleDateString()}</div>
+                  <div class="text-xs text-gray-500 dark-mode:text-gray-300">${eventDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                </div>
+                <button class="event-more-btn ml-2 p-1 rounded-full hover:bg-gray-100 dark-mode:hover:bg-gray-700 transition" data-event-id="${event.id}" title="More actions" style="font-size:1.2rem;">
+                  <i class="bi bi-three-dots-vertical"></i>
+                </button>
+                <div class="event-dropdown absolute right-4 top-10 z-50 hidden bg-white dark-mode:bg-[#23272f] border border-gray-200 dark-mode:border-gray-700 rounded-lg shadow-lg py-1 min-w-[120px]">
+                  <button class="event-edit-btn w-full text-left px-4 py-2 text-teal-700 hover:bg-teal-50 dark-mode:hover:bg-teal-900" data-event-id="${event.id}"><i class="bi bi-pencil"></i> Edit</button>
+                  <button class="event-delete-btn w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 dark-mode:hover:bg-red-900" data-event-id="${event.id}"><i class="bi bi-trash"></i> Delete</button>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+        upcomingEvents.innerHTML = eventsHTML;
+        // Add dropdown logic
+        document.querySelectorAll('.event-more-btn').forEach(btn => {
+          btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            document.querySelectorAll('.event-dropdown').forEach(dd => dd.classList.add('hidden'));
+            const dropdown = btn.parentElement.querySelector('.event-dropdown');
+            if (dropdown) dropdown.classList.toggle('hidden');
+          });
+        });
+        document.addEventListener('click', function() {
+          document.querySelectorAll('.event-dropdown').forEach(dd => dd.classList.add('hidden'));
+        });
+        // Delete event logic
+        document.querySelectorAll('.event-delete-btn').forEach(btn => {
+          btn.addEventListener('click', async function(e) {
+            e.stopPropagation();
+            const eventId = btn.getAttribute('data-event-id');
+            if (!eventId) return;
+            if (!confirm('Are you sure you want to delete this event?')) return;
+            try {
+              const res = await ApiHelper.request(`${API_CONFIG.ENDPOINTS.DASHBOARDS.CALENDAR_EVENTS}${eventId}/`, {
+                method: 'DELETE'
+              });
+              if (res.status === 401 || res.status === 403) {
+                console.warn('Authentication failed for delete event');
+                localStorage.removeItem('access_token');
+                window.location.href = '../../login.html';
+                return;
+              }
+              if (!res.ok && res.status !== 204) throw new Error('Failed to delete event');
+              await loadCalendarData();
+            } catch (err) {
+              console.error('Error deleting event:', err);
+              localStorage.removeItem('access_token');
+              window.location.href = '../../login.html';
+            }
+          });
+        });
+        // Edit event logic
+        document.querySelectorAll('.event-edit-btn').forEach(btn => {
+          btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const eventId = btn.getAttribute('data-event-id');
+            const event = events.find(ev => String(ev.id) === String(eventId));
+            if (event) openEditEventModal(event);
+          });
+        });
+      }
+      // When opening modal for new event, clear editingEventId
+      if (addEventBtn && addEventModal) {
+        addEventBtn.addEventListener('click', function() {
+          editingEventId = null;
+          addEventForm.reset();
+          addEventModal.style.display = 'flex';
+        });
+      }
+      // Load Calendar Data (fetch all events from backend)
+      async function loadCalendarData() {
+        try {
+          const res = await ApiHelper.request(API_CONFIG.ENDPOINTS.DASHBOARDS.CALENDAR_EVENTS);
+          if (res.status === 401 || res.status === 403) {
+            console.warn('Authentication failed for calendar events');
+            localStorage.removeItem('access_token');
+            window.location.href = '../../login.html';
+            return;
+          }
+          if (!res.ok) throw new Error('Failed to fetch events');
+          const data = await res.json();
+          allCalendarEvents = data;
+          renderFullCalendar(allCalendarEvents);
+          updateUpcomingEvents(allCalendarEvents.filter(ev => !ev.is_completed && new Date(ev.start_date) >= new Date()).sort((a, b) => new Date(a.start_date) - new Date(b.start_date)).slice(0, 10));
+        } catch (err) {
+          console.error('Error loading calendar events:', err);
+          localStorage.removeItem('access_token');
+          window.location.href = '../../login.html';
+        }
+      }
+      // Patch renderFullCalendar to use backend event format
+      function renderFullCalendar(events) {
+        const calendarEl = document.getElementById('fullcalendar');
+        if (!calendarEl) return;
+        const fcEvents = (events || []).map(ev => {
+          let bg = ev.color || '#14b8a6';
+          if (ev.event_type === 'interview') bg = '#a21caf';
+          else if (ev.is_today) bg = '#fbbf24';
+          else if (ev.is_past) bg = '#d1d5db';
+          return {
+            title: ev.title,
+            start: ev.start_date,
+            end: ev.end_date,
+            allDay: ev.is_all_day,
+            backgroundColor: bg,
+            borderColor: bg,
+            extendedProps: ev
+          };
+        });
+        if (window.fullCalendarInstance) window.fullCalendarInstance.destroy();
+        window.fullCalendarInstance = new FullCalendar.Calendar(calendarEl, {
+          initialView: 'dayGridMonth',
+          height: 420,
+          themeSystem: 'bootstrap5',
+          headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+          },
+          events: fcEvents,
+          eventClassNames: function(arg) {
+            if (arg.event.extendedProps.event_type === 'interview') return ['bg-purple-600', 'text-white', 'border-0'];
+            if (arg.event.extendedProps.is_today) return ['bg-yellow-400', 'text-white', 'border-0'];
+            if (arg.event.extendedProps.is_past) return ['bg-gray-300', 'text-gray-700', 'border-0'];
+            return ['bg-teal-500', 'text-white', 'border-0'];
+          },
+          dayCellClassNames: function(arg) {
+            const today = new Date();
+            if (arg.date.toDateString() === today.toDateString()) {
+              return ['bg-yellow-100'];
+            }
+            return [];
+          },
+          dateClick: function(info) {
+            // Open scheduling modal (placeholder)
+            alert('Schedule a new event for ' + info.dateStr);
+          },
+          eventClick: function(info) {
+            // Show event details in a styled modal or popover (placeholder)
+            alert(`Event: ${info.event.title}\n${info.event.start.toLocaleString()}`);
+          },
+          eventContent: function(arg) {
+            let badge = '';
+            if (arg.event.extendedProps.event_type === 'interview') {
+              badge = '<span class="inline-block rounded px-2 py-1 text-xs font-semibold bg-purple-600 text-white mr-1"><i class="bi bi-person-video3"></i> Interview</span>';
+            } else if (arg.event.extendedProps.is_today) {
+              badge = '<span class="inline-block rounded px-2 py-1 text-xs font-semibold bg-yellow-400 text-white mr-1"><i class="bi bi-star-fill"></i> Today</span>';
+            } else if (arg.event.extendedProps.is_past) {
+              badge = '<span class="inline-block rounded px-2 py-1 text-xs font-semibold bg-gray-300 text-gray-700 mr-1"><i class="bi bi-clock-history"></i> Past</span>';
+            } else {
+              badge = '<span class="inline-block rounded px-2 py-1 text-xs font-semibold bg-teal-500 text-white mr-1"><i class="bi bi-calendar-event"></i> Upcoming</span>';
+            }
+            return { html: badge + ' ' + arg.event.title };
+          }
+        });
+        window.fullCalendarInstance.render();
+      }
+      // Patch updateUpcomingEvents to use backend event format
+      function updateUpcomingEvents(events) {
+        const upcomingEvents = document.getElementById('upcoming-events');
+        if (!upcomingEvents) return;
+        if (!events || events.length === 0) {
+          upcomingEvents.innerHTML = `
+            <div class="text-center text-gray-500 py-8">
+              <i class="bi bi-calendar-x text-3xl mb-2"></i>
+              <p>No upcoming events</p>
+            </div>
+          `;
+          return;
+        }
+        const eventsHTML = events.map(event => {
+          const eventDate = new Date(event.start_date);
+          const isToday = eventDate.toDateString() === new Date().toDateString();
+          const isOverdue = event.is_overdue;
+          let badgeClass = 'badge-upcoming', badgeText = 'Upcoming', badgeIcon = '<i class="bi bi-calendar-event"></i>';
+          if (event.event_type === 'interview') {
+            badgeClass = 'badge-interview'; badgeText = 'Interview'; badgeIcon = '<i class="bi bi-person-video3"></i>';
+          } else if (isToday) {
+            badgeClass = 'badge-today'; badgeText = 'Today'; badgeIcon = '<i class="bi bi-star-fill"></i>';
+          } else if (isOverdue) {
+            badgeClass = 'badge-overdue'; badgeText = 'Overdue'; badgeIcon = '<i class="bi bi-exclamation-triangle"></i>';
+          }
+          return `
+            <div class="event-card relative group">
+              <div class="flex items-center gap-3">
+                <span class="event-badge ${badgeClass}">${badgeIcon} ${badgeText}</span>
+                <div>
+                  <h4 class="font-semibold text-gray-800 dark-mode:text-teal-200">${event.title}</h4>
+                  <p class="text-xs text-gray-600 dark-mode:text-gray-300">${event.event_type_display || ''}</p>
+                </div>
+              </div>
+              <div class="text-right flex items-center gap-2">
+                <div>
+                  <div class="text-sm font-semibold text-gray-800 dark-mode:text-teal-200">${eventDate.toLocaleDateString()}</div>
+                  <div class="text-xs text-gray-500 dark-mode:text-gray-300">${eventDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                </div>
+                <button class="event-more-btn ml-2 p-1 rounded-full hover:bg-gray-100 dark-mode:hover:bg-gray-700 transition" data-event-id="${event.id}" title="More actions" style="font-size:1.2rem;">
+                  <i class="bi bi-three-dots-vertical"></i>
+                </button>
+                <div class="event-dropdown absolute right-4 top-10 z-50 hidden bg-white dark-mode:bg-[#23272f] border border-gray-200 dark-mode:border-gray-700 rounded-lg shadow-lg py-1 min-w-[120px]">
+                  <button class="event-edit-btn w-full text-left px-4 py-2 text-teal-700 hover:bg-teal-50 dark-mode:hover:bg-teal-900" data-event-id="${event.id}"><i class="bi bi-pencil"></i> Edit</button>
+                  <button class="event-delete-btn w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 dark-mode:hover:bg-red-900" data-event-id="${event.id}"><i class="bi bi-trash"></i> Delete</button>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+        upcomingEvents.innerHTML = eventsHTML;
+        // Add dropdown logic
+        document.querySelectorAll('.event-more-btn').forEach(btn => {
+          btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            document.querySelectorAll('.event-dropdown').forEach(dd => dd.classList.add('hidden'));
+            const dropdown = btn.parentElement.querySelector('.event-dropdown');
+            if (dropdown) dropdown.classList.toggle('hidden');
+          });
+        });
+        document.addEventListener('click', function() {
+          document.querySelectorAll('.event-dropdown').forEach(dd => dd.classList.add('hidden'));
+        });
+        // Delete event logic
+        document.querySelectorAll('.event-delete-btn').forEach(btn => {
+          btn.addEventListener('click', async function(e) {
+            e.stopPropagation();
+            const eventId = btn.getAttribute('data-event-id');
+            if (!eventId) return;
+            if (!confirm('Are you sure you want to delete this event?')) return;
+            try {
+              const res = await ApiHelper.request(`${API_CONFIG.ENDPOINTS.DASHBOARDS.CALENDAR_EVENTS}${eventId}/`, {
+                method: 'DELETE'
+              });
+              if (res.status === 401 || res.status === 403) {
+                console.warn('Authentication failed for delete event');
+                localStorage.removeItem('access_token');
+                window.location.href = '../../login.html';
+                return;
+              }
+              if (!res.ok && res.status !== 204) throw new Error('Failed to delete event');
+              await loadCalendarData();
+            } catch (err) {
+              console.error('Error deleting event:', err);
+              localStorage.removeItem('access_token');
+              window.location.href = '../../login.html';
+            }
+          });
+        });
+        // Edit event logic
+        document.querySelectorAll('.event-edit-btn').forEach(btn => {
+          btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const eventId = btn.getAttribute('data-event-id');
+            const event = events.find(ev => String(ev.id) === String(eventId));
+            if (event) openEditEventModal(event);
+          });
+        });
+      }
+      // On page load, fetch all events
+      loadCalendarData();
+
+      // Update internship progress ring with comprehensive data
+      function updateInternshipProgressRing(data) {
+        const ring = document.getElementById('internship-progress-ring');
+        const percentText = document.getElementById('internship-progress-percentage');
+        const statusText = document.getElementById('internship-progress-status');
+        const message = document.getElementById('internship-progress-message');
+        const CIRCUM = 2 * Math.PI * 52;
+        
+        if (!ring || !percentText || !statusText || !message) return;
+        
+        if (!data) {
+          // No data available - show default state
+          percentText.textContent = '0%';
+          statusText.textContent = 'No Data';
+          ring.setAttribute('stroke-dashoffset', CIRCUM);
+          message.textContent = "Unable to load internship progress data.";
+          return;
+        }
+        
+        if (data.status === 'pre_internship') {
+          // Pre-internship phase - show application progress
+          const percent = Math.round(data.progress_percentage || 0);
+          percentText.textContent = percent + '%';
+          statusText.textContent = data.phase || 'Pre-Internship';
+          ring.setAttribute('stroke-dashoffset', CIRCUM - (CIRCUM * percent / 100));
+          
+          if (data.next_milestone) {
+            message.textContent = `Next: ${data.next_milestone.description}`;
+          } else {
+            message.textContent = data.message || 'Keep applying to internships!';
+          }
+        } else if (data.status === 'active_internship') {
+          // Active internship phase - show time and logbook progress
+          const percent = Math.round(data.progress_percentage || 0);
+          percentText.textContent = percent + '%';
+          statusText.textContent = data.phase || 'Active Internship';
+          ring.setAttribute('stroke-dashoffset', CIRCUM - (CIRCUM * percent / 100));
+          
+          if (data.internship) {
+            const completedEntries = data.logbook_progress?.completed_entries || 0;
+            const totalEntries = data.logbook_progress?.total_expected_entries || 0;
+            message.textContent = `Week ${data.current_week || 1} • ${completedEntries}/${totalEntries} logbook entries completed`;
+          } else {
+            message.textContent = data.message || 'Internship in progress';
+          }
+        } else {
+          // No internship or unknown status
+          percentText.textContent = '0%';
+          statusText.textContent = 'Not Started';
+          ring.setAttribute('stroke-dashoffset', CIRCUM);
+          message.textContent = data.message || "You're not enrolled in an internship yet. Progress will appear here when you start.";
+        }
+      }
+      // Example usage: updateInternshipProgressRing({ onboarded: true, start_date: '2024-06-01', end_date: '2024-09-01' });
+      // TODO: Call updateInternshipProgressRing with real data after fetching progress/internship info from backend.
+    });
+  </script>
+  <!-- Tailwind CDN warning: For production, use Tailwind via PostCSS or CLI build. See https://tailwindcss.com/docs/installation -->
+
+  <!-- Add Event Modal -->
+  <div id="add-event-modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.35); z-index:9999; align-items:center; justify-content:center;">
+    <div style="background:#fff; color:#222; padding:2rem 2.5rem; border-radius:1rem; box-shadow:0 4px 32px rgba(0,0,0,0.18); max-width:90vw; min-width:320px; text-align:left; position:relative;">
+      <h2 class="text-xl font-bold text-teal-700 mb-4 flex items-center gap-2"><i class="bi bi-calendar-plus"></i> Add New Event</h2>
+      <form id="add-event-form" class="space-y-3">
+        <div>
+          <label class="block text-sm font-semibold mb-1">Title</label>
+          <input type="text" id="event-title" class="w-full border border-teal-200 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400" required />
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Type</label>
+          <select id="event-type" class="w-full border border-teal-200 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400">
+            <option value="general">General</option>
+            <option value="interview">Interview</option>
+            <option value="deadline">Deadline</option>
+            <option value="reminder">Reminder</option>
+          </select>
+        </div>
+        <div class="flex gap-2">
+          <div class="flex-1">
+            <label class="block text-sm font-semibold mb-1">Date</label>
+            <input type="date" id="event-date" class="w-full border border-teal-200 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400" required />
+          </div>
+          <div class="flex-1">
+            <label class="block text-sm font-semibold mb-1">Time</label>
+            <input type="time" id="event-time" class="w-full border border-teal-200 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400" required />
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 mt-4">
+          <button type="button" id="cancel-add-event" class="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300">Cancel</button>
+          <button type="submit" class="px-4 py-2 rounded bg-teal-600 text-white hover:bg-teal-700">Add Event</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <!-- Set Reminder Modal -->
+  <div id="set-reminder-modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.35); z-index:9999; align-items:center; justify-content:center;">
+    <div style="background:#fff; color:#222; padding:2rem 2.5rem; border-radius:1rem; box-shadow:0 4px 32px rgba(0,0,0,0.18); max-width:90vw; min-width:320px; text-align:center; position:relative;">
+      <h3 class="text-lg font-bold mb-4 text-teal-700">Set Reminder</h3>
+      <form id="reminder-form">
+        <div class="mb-3 text-left">
+          <label for="reminder-title" class="block text-sm font-semibold mb-1">Title</label>
+          <input type="text" id="reminder-title" class="w-full border rounded px-3 py-2" required />
+        </div>
+        <div class="mb-3 text-left">
+          <label for="reminder-date" class="block text-sm font-semibold mb-1">Date & Time</label>
+          <input type="datetime-local" id="reminder-date" class="w-full border rounded px-3 py-2" required />
+        </div>
+        <div class="flex justify-end gap-2 mt-4">
+          <button type="button" id="close-reminder-modal" class="px-4 py-2 rounded bg-gray-200 text-gray-700">Cancel</button>
+          <button type="submit" class="px-4 py-2 rounded bg-teal-600 text-white hover:bg-teal-700">Save Reminder</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <!-- Follow Up Modal -->
+  <div id="follow-up-modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.35); z-index:9999; align-items:center; justify-content:center;">
+    <div style="background:#fff; color:#222; padding:2rem 2.5rem; border-radius:1rem; box-shadow:0 4px 32px rgba(0,0,0,0.18); max-width:90vw; min-width:320px; text-align:center; position:relative;">
+      <h3 class="text-lg font-bold mb-4 text-teal-700">Send Follow Up</h3>
+      <form id="follow-up-form">
+        <div class="mb-3 text-left">
+          <label for="follow-up-message" class="block text-sm font-semibold mb-1">Message</label>
+          <textarea id="follow-up-message" class="w-full border rounded px-3 py-2" rows="4" required></textarea>
+        </div>
+        <div class="flex justify-end gap-2 mt-4">
+          <button type="button" id="close-follow-up-modal" class="px-4 py-2 rounded bg-gray-200 text-gray-700">Cancel</button>
+          <button type="submit" class="px-4 py-2 rounded bg-teal-600 text-white hover:bg-teal-700">Send</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Set Reminder
+      const setReminderBtn = document.getElementById('set-reminder-btn');
+      const setReminderModal = document.getElementById('set-reminder-modal');
+      const closeReminderModal = document.getElementById('close-reminder-modal');
+      const reminderForm = document.getElementById('reminder-form');
+      setReminderBtn.addEventListener('click', function() {
+        setReminderModal.style.display = 'flex';
+        setReminderModal.style.alignItems = 'center';
+        setReminderModal.style.justifyContent = 'center';
+      });
+      closeReminderModal.addEventListener('click', function() {
+        setReminderModal.style.display = 'none';
+      });
+      reminderForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        // Here you would send the reminder to the backend or add to calendar
+        alert('Reminder set: ' + document.getElementById('reminder-title').value + ' at ' + document.getElementById('reminder-date').value);
+        setReminderModal.style.display = 'none';
+        reminderForm.reset();
+      });
+      // Follow Up
+      const followUpBtn = document.getElementById('follow-up-btn');
+      const followUpModal = document.getElementById('follow-up-modal');
+      const closeFollowUpModal = document.getElementById('close-follow-up-modal');
+      const followUpForm = document.getElementById('follow-up-form');
+      followUpBtn.addEventListener('click', function() {
+        followUpModal.style.display = 'flex';
+        followUpModal.style.alignItems = 'center';
+        followUpModal.style.justifyContent = 'center';
+      });
+      closeFollowUpModal.addEventListener('click', function() {
+        followUpModal.style.display = 'none';
+      });
+      followUpForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        // Here you would send the follow-up message to the backend
+        alert('Follow up sent: ' + document.getElementById('follow-up-message').value);
+        followUpModal.style.display = 'none';
+        followUpForm.reset();
+      });
+    });
+  </script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // --- DARK MODE TOGGLE LOGIC ---
+      const darkModeToggle = document.getElementById('darkModeToggle');
+      const darkModeIcon = document.getElementById('darkModeIcon');
+      function setDarkMode(enabled) {
+        if (enabled) {
+          document.body.classList.add('dark-mode');
+          if (darkModeIcon) {
+            darkModeIcon.classList.remove('bi-moon');
+            darkModeIcon.classList.add('bi-sun');
+          }
+        } else {
+          document.body.classList.remove('dark-mode');
+          if (darkModeIcon) {
+            darkModeIcon.classList.remove('bi-sun');
+            darkModeIcon.classList.add('bi-moon');
+          }
+        }
+      }
+      // Load preference on page load
+      const darkPref = localStorage.getItem('darkMode');
+      setDarkMode(darkPref === 'true');
+      if (darkModeToggle) {
+        darkModeToggle.addEventListener('click', function() {
+          const isDark = document.body.classList.toggle('dark-mode');
+          if (darkModeIcon) {
+            if (isDark) {
+              darkModeIcon.classList.remove('bi-moon');
+              darkModeIcon.classList.add('bi-sun');
+            } else {
+              darkModeIcon.classList.remove('bi-sun');
+              darkModeIcon.classList.add('bi-moon');
+            }
+          }
+          localStorage.setItem('darkMode', isDark);
+        });
+      }
+    });
+  </script>
+</body>
+</html>
+

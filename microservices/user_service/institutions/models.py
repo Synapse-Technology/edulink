@@ -31,8 +31,117 @@ class InstitutionStatus(models.TextChoices):
     ARCHIVED = 'archived', 'Archived'
 
 
+class AccreditationBody(models.TextChoices):
+    """Accreditation body choices for Kenyan institutions."""
+    CUE = 'cue', 'Commission for University Education'
+    TVETA = 'tveta', 'Technical and Vocational Education and Training Authority'
+    KUCCPS = 'kuccps', 'Kenya Universities and Colleges Central Placement Service'
+    OTHER = 'other', 'Other'
+
+
+class DataSource(models.TextChoices):
+    """Data source choices for master institution records."""
+    WEBSCRAPE = 'webscrape', 'Web Scraping'
+    MANUAL = 'manual', 'Manual Entry'
+    API = 'api', 'API Import'
+    BULK_UPLOAD = 'bulk_upload', 'Bulk Upload'
+
+
+class MasterInstitution(BaseModel):
+    """Master database of Kenyan higher learning institutions."""
+    
+    # Basic Information
+    name = models.CharField(max_length=500, unique=True)
+    short_name = models.CharField(max_length=100, blank=True)
+    institution_type = models.CharField(
+        max_length=50,
+        choices=InstitutionType.choices,
+        default=InstitutionType.UNIVERSITY
+    )
+    
+    # Accreditation Information
+    accreditation_body = models.CharField(
+        max_length=20,
+        choices=AccreditationBody.choices,
+        default=AccreditationBody.CUE
+    )
+    accreditation_number = models.CharField(max_length=200, blank=True)
+    accreditation_status = models.CharField(max_length=100, blank=True)
+    
+    # Location Information
+    location = models.CharField(max_length=300, blank=True)
+    county = models.CharField(max_length=100, blank=True)
+    region = models.CharField(max_length=100, blank=True)
+    
+    # Contact Information
+    website = models.URLField(blank=True)
+    email = models.EmailField(blank=True)
+    phone = models.CharField(max_length=50, blank=True)
+    
+    # Data Management
+    data_source = models.CharField(
+        max_length=20,
+        choices=DataSource.choices,
+        default=DataSource.WEBSCRAPE
+    )
+    source_url = models.URLField(blank=True, help_text="URL where this data was scraped from")
+    last_verified = models.DateTimeField(auto_now=True)
+    
+    # Status
+    is_active = models.BooleanField(default=True)
+    is_verified = models.BooleanField(default=False)
+    
+    # Additional metadata from scraping
+    raw_data = models.JSONField(default=dict, blank=True, help_text="Raw scraped data")
+    metadata = models.JSONField(default=dict, blank=True)
+    
+    class Meta:
+        db_table = 'master_institutions'
+        indexes = [
+            models.Index(fields=['name']),
+            models.Index(fields=['institution_type']),
+            models.Index(fields=['accreditation_body']),
+            models.Index(fields=['data_source']),
+            models.Index(fields=['is_active']),
+            models.Index(fields=['last_verified']),
+        ]
+        ordering = ['name']
+    
+    def __str__(self):
+        return f"{self.name} ({self.get_accreditation_body_display()})"
+    
+    def clean(self):
+        """Validate master institution data."""
+        super().clean()
+        
+        # Clean and normalize name
+        if self.name:
+            self.name = self.name.strip()
+    
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+    
+    @property
+    def display_name(self):
+        """Get display name with short name if available."""
+        if self.short_name:
+            return f"{self.name} ({self.short_name})"
+        return self.name
+
+
 class Institution(BaseModel):
     """Institution model for managing educational institutions."""
+    
+    # Master Institution Reference
+    master_institution = models.ForeignKey(
+        MasterInstitution,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='registered_institutions',
+        help_text="Reference to master institution database"
+    )
     
     # Basic Information
     name = models.CharField(max_length=255, unique=True)

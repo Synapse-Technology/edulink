@@ -1,11 +1,19 @@
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+# Service identification
+os.environ.setdefault('SERVICE_NAME', 'internship')
+
 import sys
 from pathlib import Path
 
 # Add shared modules to path
 sys.path.append(str(Path(__file__).parent.parent.parent / 'shared'))
 
-from service_config import get_config
+# from service_config import get_config  # Commented out - using direct env vars
 
 # Add shared modules to path
 import sys
@@ -22,14 +30,14 @@ from shared.database.django_settings import (
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Service configuration
-config = get_config()
+# config = get_config()  # Commented out - using direct env vars
 SERVICE_NAME = 'internship'
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-internship-service-key-change-in-production')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config.DEBUG
+DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
@@ -82,21 +90,27 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'internship_service.wsgi.application'
 
-# Database configuration
-if get_databases_config:
-    # Use schema-aware database configuration
-    DATABASES = get_databases_config(SERVICE_NAME)
-else:
-    # Fallback to simple configuration
-    DATABASES = {
-        'default': config.DATABASE_URL
-    }
+# Database configuration - Use schema-aware database configuration
+
+# Enhanced Schema Router
+DATABASE_ROUTERS = ['shared.database.enhanced_router.EnhancedSchemaRouter']
+
+DATABASES = get_databases_config('internship')
+
+# Set search path for this service schema
+for db_config in DATABASES.values():
+    if 'OPTIONS' not in db_config:
+        db_config['OPTIONS'] = {}
+    db_config['OPTIONS']['options'] = f'-c search_path=internship_schema,public'
+
+# Set search path for this service
+for db_config in DATABASES.values():
+    if 'OPTIONS' not in db_config:
+        db_config['OPTIONS'] = {}
+    db_config['OPTIONS']['options'] = f'-c search_path=internship_schema,public'
 
 # Database routers for schema support
-if get_database_routers:
-    DATABASE_ROUTERS = get_database_routers()
-else:
-    DATABASE_ROUTERS = []
+DATABASE_ROUTERS = get_database_routers()
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -167,7 +181,7 @@ SERVICE_NAME = 'internship'
 SERVICE_PORT = int(os.getenv('SERVICE_PORT', '8001'))
 
 # Update configuration
-config.update_django_settings()
+# config.update_django_settings()  # Commented out - using direct env vars
 
 # Logging configuration
 LOGGING = {
@@ -218,10 +232,13 @@ LOGGING = {
 CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': config.REDIS_URL,
+        'LOCATION': os.getenv('REDIS_URL', 'redis://localhost:6379/0'),
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-        }
+            'KEY_PREFIX': 'internship_service',
+        },
+        'KEY_PREFIX': 'internship_service',
+        'VERSION': 1,
     }
 }
 
@@ -230,8 +247,8 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
 SESSION_CACHE_ALIAS = 'default'
 
 # Celery Configuration
-CELERY_BROKER_URL = 'amqp://guest@localhost//'
-CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'amqp://guest@localhost//')
+CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'

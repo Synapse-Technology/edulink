@@ -1,4 +1,7 @@
 import os
+# Service identification
+os.environ.setdefault('SERVICE_NAME', 'user')
+
 from pathlib import Path
 import environ
 
@@ -29,7 +32,7 @@ env = environ.Env(
 environ.Env.read_env(BASE_DIR / '.env')
 
 # Service configuration
-SERVICE_NAME = 'user'
+SERVICE_NAME = env('SERVICE_NAME')
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env('SECRET_KEY')
@@ -110,7 +113,23 @@ ASGI_APPLICATION = 'user_service.asgi.application'
 
 # Database configuration
 # Use schema-aware database configuration
-DATABASES = get_databases_config(SERVICE_NAME)
+
+# Enhanced Schema Router
+DATABASE_ROUTERS = ['shared.database.enhanced_router.EnhancedSchemaRouter']
+
+DATABASES = get_databases_config('user')
+
+# Set search path for this service schema
+for db_config in DATABASES.values():
+    if 'OPTIONS' not in db_config:
+        db_config['OPTIONS'] = {}
+    db_config['OPTIONS']['options'] = f'-c search_path=user_schema,public'
+
+# Set search path for this service
+for db_config in DATABASES.values():
+    if 'OPTIONS' not in db_config:
+        db_config['OPTIONS'] = {}
+    db_config['OPTIONS']['options'] = f'-c search_path=user_schema,public'
 
 # Database routers for schema support
 DATABASE_ROUTERS = get_database_routers()
@@ -122,7 +141,10 @@ CACHES = {
         'LOCATION': env('REDIS_URL'),
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-        }
+            'KEY_PREFIX': 'user_service',
+        },
+        'KEY_PREFIX': 'user_service',
+        'VERSION': 1,
     }
 }
 
@@ -194,8 +216,8 @@ CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[
 CORS_ALLOW_CREDENTIALS = True
 
 # Celery Configuration
-CELERY_BROKER_URL = env('REDIS_URL')
-CELERY_RESULT_BACKEND = env('REDIS_URL')
+CELERY_BROKER_URL = env('CELERY_BROKER_URL')
+CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND')
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'

@@ -1,4 +1,7 @@
 import os
+# Service identification
+os.environ.setdefault('SERVICE_NAME', 'notification')
+
 from pathlib import Path
 import environ
 
@@ -62,7 +65,6 @@ THIRD_PARTY_APPS = [
 
 LOCAL_APPS = [
     'notifications',
-    'templates',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -99,21 +101,27 @@ TEMPLATES = [
 WSGI_APPLICATION = 'notification_service.wsgi.application'
 
 # Database
-# Database configuration
-if get_databases_config:
-    # Use schema-aware database configuration
-    DATABASES = get_databases_config(SERVICE_NAME)
-else:
-    # Fallback to simple configuration
-    DATABASES = {
-        'default': env.db()
-    }
+# Database configuration - use schema-aware database configuration
+
+# Enhanced Schema Router
+DATABASE_ROUTERS = ['shared.database.enhanced_router.EnhancedSchemaRouter']
+
+DATABASES = get_databases_config('notification')
+
+# Set search path for this service schema
+for db_config in DATABASES.values():
+    if 'OPTIONS' not in db_config:
+        db_config['OPTIONS'] = {}
+    db_config['OPTIONS']['options'] = f'-c search_path=notification_schema,public'
+
+# Set search path for this service
+for db_config in DATABASES.values():
+    if 'OPTIONS' not in db_config:
+        db_config['OPTIONS'] = {}
+    db_config['OPTIONS']['options'] = f'-c search_path=notification_schema,public'
 
 # Database routers for schema support
-if get_database_routers:
-    DATABASE_ROUTERS = get_database_routers()
-else:
-    DATABASE_ROUTERS = []
+DATABASE_ROUTERS = get_database_routers()
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -177,7 +185,10 @@ CACHES = {
         'LOCATION': REDIS_URL,
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-        }
+            'KEY_PREFIX': 'notification_service',
+        },
+        'KEY_PREFIX': 'notification_service',
+        'VERSION': 1,
     }
 }
 
