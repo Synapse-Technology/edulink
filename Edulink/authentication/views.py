@@ -3,6 +3,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.views import TokenObtainPairView
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
@@ -12,14 +14,15 @@ from django.conf import settings
 from django.shortcuts import render, redirect
 from django.views import View
 from django.views.generic import TemplateView
-from django.db import transaction
+from django.db import transaction, models
+from django.core.exceptions import ValidationError
 from security.utils import ThreatDetector
 from security.models import SecurityEvent, FailedLoginAttempt, AuditLog
 from users.roles import RoleChoices
+from application.validators import RegistrationValidator
 from .serializers import (
     EmployerRegistrationSerializer,
     InstitutionRegistrationSerializer,
-    StudentRegistrationSerializer,
     CustomTokenObtainPairSerializer,
     PasswordResetRequestSerializer,
     PasswordResetConfirmSerializer,
@@ -28,10 +31,28 @@ from .serializers import (
     TwoFALoginSerializer,
     VerifyOTPSerializer,
 )
+
+from rest_framework.decorators import api_view, permission_classes
+from django.utils import timezone
+from django.middleware.csrf import get_token
 from authentication.models import Invite
+from users.models import StudentProfile
+from institutions.models import Institution, UniversityRegistrationCode, CodeUsageLog
 from .permissions import IsStudent, IsEmployer, IsInstitution, IsAdmin
+import logging
+import json
 
 User = get_user_model()
+
+
+class CSRFTokenView(APIView):
+    """View to get CSRF token for frontend authentication."""
+    permission_classes = [AllowAny]
+    
+    def get(self, request):
+        """Return CSRF token."""
+        csrf_token = get_token(request)
+        return Response({'csrfToken': csrf_token})
 
 
 class PasswordResetConfirmTemplateView(View):
@@ -178,9 +199,17 @@ class InviteRegisterTemplateView(View):
                 },
             )
 
+        # Debug: Log received data
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Registration attempt for role {role}:")
+        logger.info(f"Received data: {data}")
+        logger.info(f"Required fields: {required_fields}")
+        
         # Pre-validate required fields
         missing = [field for field in required_fields if not data.get(field)]
         if missing:
+            logger.warning(f"Missing required fields: {missing}")
             return render(
                 request,
                 "invite_register.html",
@@ -188,6 +217,35 @@ class InviteRegisterTemplateView(View):
                     "error": {
                         "missing_fields": f"Please fill in all required fields: {', '.join(missing)}."
                     },
+                    **data,
+                    "role": role,
+                },
+            )
+
+        # Validate registration data based on role
+        try:
+            if role == "institution_admin":
+                institution_data = {
+                    'name': data.get('institution_name'),
+                    'institution_type': data.get('institution_type'),
+                    'registration_number': data.get('registration_number'),
+                    'website': data.get('website')
+                }
+                RegistrationValidator.validate_institution_registration(institution_data)
+            elif role == "employer":
+                company_data = {
+                    'company_name': data.get('company_name'),
+                    'industry': data.get('industry'),
+                    'company_size': data.get('company_size'),
+                    'website': data.get('website')
+                }
+                RegistrationValidator.validate_employer_registration(company_data)
+        except ValidationError as e:
+            return render(
+                request,
+                "invite_register.html",
+                {
+                    "error": {"validation": e.messages if hasattr(e, 'messages') else [str(e)]},
                     **data,
                     "role": role,
                 },
@@ -208,27 +266,135 @@ class InviteRegisterTemplateView(View):
 
 
 class StudentRegistrationView(APIView):
+    """
+    Unified student registration endpoint that handles all registration methods.
+    Supports university code and university search registration with automatic method detection.
+    """
     permission_classes = [AllowAny]
-
+    
+    def get_client_ip(self, request):
+        """Extract client IP address from request."""
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
+    
     def post(self, request):
-        serializer = StudentRegistrationSerializer(data=request.data)
-        if serializer.is_valid():
-            try:
-                with transaction.atomic():  # type: ignore[attr-defined]
-                    user = serializer.save()
-                    return Response(
-                        {
-                            "message": "Registration successful. Please check your email to verify your account.",
-                            "user": {
-                                "email": user.email,  # type: ignore[attr-defined]
-                                "role": "student",
-                            },
-                        },
-                        status=status.HTTP_201_CREATED,
+        """
+        Handle student registration with automatic method detection or explicit method specification.
+        """
+        try:
+            # Auto-detect registration method if not explicitly provided
+            if 'registration_method' not in request.data:
+                request.data['registration_method'] = self._detect_registration_method(request.data)
+            
+            from .serializers import UnifiedStudentRegistrationSerializer
+            serializer = UnifiedStudentRegistrationSerializer(
+                data=request.data, 
+                context={'request': request}
+            )
+            
+            if serializer.is_valid():
+                with transaction.atomic():
+                    student_profile = serializer.save()
+                    
+                    # Log successful registration
+                    logging.getLogger(__name__).info(
+                        f"Student registration successful: {student_profile.user.email} "
+                        f"using method {request.data.get('registration_method')}"
                     )
-            except Exception as e:
-                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                    
+                    # Determine response data based on registration method
+                    response_data = self._build_response_data(student_profile, request.data.get('registration_method'))
+                    
+                    return Response({
+                        'success': True,
+                        'message': 'Registration completed successfully! Please check your email for verification.',
+                        'data': response_data
+                    }, status=status.HTTP_201_CREATED)
+            
+            else:
+                # Log validation errors
+                logging.getLogger(__name__).warning(
+                    f"Student registration validation failed: {serializer.errors} "
+                    f"for email {request.data.get('email')}"
+                )
+                
+                return Response({
+                    'success': False,
+                    'message': 'Registration failed due to validation errors',
+                    'errors': serializer.errors
+                }, status=status.HTTP_400_BAD_REQUEST)
+        
+        except Exception as e:
+            # Log unexpected errors
+            logging.getLogger(__name__).error(
+                f"Unexpected error during student registration: {str(e)} "
+                f"for email {request.data.get('email')}"
+            )
+            
+            # Log security event for unexpected errors
+            SecurityEvent.objects.create(
+                event_type='registration_system_error',
+                severity='high',
+                description=f'Unexpected error during unified registration: {str(e)}',
+                user=None,
+                ip_address=self.get_client_ip(request),
+                user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                metadata={
+                    'error': str(e),
+                    'registration_method': request.data.get('registration_method'),
+                    'university_code': request.data.get('university_code'),
+                    'institution_name': request.data.get('institution_name'),
+                    'email': request.data.get('email')
+                }
+            )
+            
+            return Response({
+                'success': False,
+                'message': 'An unexpected error occurred during registration',
+                'error': 'Please try again later or contact support'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def _detect_registration_method(self, data):
+        """
+        Auto-detect registration method based on provided data.
+        """
+        if data.get('university_code'):
+            return 'university_code'
+        elif data.get('institution_name'):
+            return 'university_search'
+        else:
+            # Default to university_code if neither is clearly specified
+            return 'university_code'
+    
+    def _build_response_data(self, student_profile, registration_method):
+        """
+        Build response data based on registration method.
+        """
+        base_data = {
+            'user_id': student_profile.user.id,
+            'email': student_profile.user.email,
+            'student_id': student_profile.id,
+            'institution': student_profile.institution.name,
+            'registration_method': registration_method
+        }
+        
+        if registration_method == 'university_code':
+            base_data.update({
+                'university_verified': student_profile.university_verified,
+                'verification_required': not student_profile.university_verified,
+                'university_code_used': student_profile.university_code_used
+            })
+        elif registration_method == 'university_search':
+            base_data.update({
+                'university_verified': student_profile.university_verified,
+                'registration_number': student_profile.registration_number
+            })
+        
+        return base_data
 
 
 class LoginView(TokenObtainPairView):
@@ -370,6 +536,30 @@ class InviteRegisterView(APIView):
                 {"detail": "Invalid role for invited registration."}, status=400
             )
 
+        # Validate registration data based on role
+        try:
+            if role == RoleChoices.INSTITUTION_ADMIN:
+                institution_data = {
+                    'name': request.data.get('institution_name'),  # Map institution_name to name for validation
+                    'institution_type': request.data.get('institution_type'),
+                    'registration_number': request.data.get('registration_number'),
+                    'website': request.data.get('website')
+                }
+                RegistrationValidator.validate_institution_registration(institution_data)
+            elif role == RoleChoices.EMPLOYER:
+                company_data = {
+                    'company_name': request.data.get('company_name'),
+                    'industry': request.data.get('industry'),
+                    'company_size': request.data.get('company_size'),
+                    'website': request.data.get('website')
+                }
+                RegistrationValidator.validate_employer_registration(company_data)
+        except ValidationError as e:
+            return Response(
+                {"validation_errors": e.messages if hasattr(e, 'messages') else [str(e)]},
+                status=400
+            )
+
         serializer = serializer_class(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
@@ -485,6 +675,7 @@ class VerifyOTPView(generics.GenericAPIView):
 # Login endpoint
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
@@ -695,3 +886,150 @@ class VerifyEmailView(View):
         else:
             ip = request.META.get('REMOTE_ADDR')
         return ip
+
+
+# Code-based registration views
+logger = logging.getLogger(__name__)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def validate_university_code(request):
+    """
+    Validate a university registration code without creating an account
+    
+    This endpoint allows users to check if their university code is valid
+    before proceeding with full registration.
+    """
+    university_code = request.data.get('university_code', '').upper()
+    
+    if not university_code:
+        return Response({
+            'success': False,
+            'message': 'University code is required'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        code = UniversityRegistrationCode.objects.get(code=university_code)
+        is_valid, error_message = code.is_valid()
+        
+        if is_valid:
+            return Response({
+                'success': True,
+                'message': 'University code is valid',
+                'data': {
+                    'institution_name': code.institution.name,
+                    'institution_type': code.institution.institution_type,
+                    'code_year': code.year,
+                    'remaining_uses': code.max_uses - code.current_uses if code.max_uses else None,
+                    'expires_at': code.expires_at.isoformat() if code.expires_at else None
+                }
+            }, status=status.HTTP_200_OK)
+        else:
+            # Log invalid code attempt
+            CodeUsageLog.objects.create(
+                registration_code=code,
+                email=request.data.get('email', ''),
+                usage_status='validation_failed',
+                ip_address=request.META.get('REMOTE_ADDR', '127.0.0.1'),
+                user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                error_message=error_message
+            )
+            
+            return Response({
+                'success': False,
+                'message': error_message
+            }, status=status.HTTP_400_BAD_REQUEST)
+    
+    except UniversityRegistrationCode.DoesNotExist:
+        # Log invalid code attempt
+        CodeUsageLog.objects.create(
+            registration_code=None,
+            email=request.data.get('email', ''),
+            usage_status='invalid_code',
+            ip_address=request.META.get('REMOTE_ADDR', '127.0.0.1'),
+            user_agent=request.META.get('HTTP_USER_AGENT', ''),
+            error_message='University code does not exist'
+        )
+        
+        return Response({
+            'success': False,
+            'message': 'Invalid university code'
+        }, status=status.HTTP_404_NOT_FOUND)
+    
+    except Exception as e:
+        logger.error(f"Error validating university code {university_code}: {str(e)}")
+        
+        return Response({
+            'success': False,
+            'message': 'An error occurred while validating the code'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_code_usage_stats(request, code):
+    """
+    Get usage statistics for a university registration code
+    
+    This endpoint provides analytics for institution administrators
+    to track how their codes are being used.
+    """
+    try:
+        registration_code = UniversityRegistrationCode.objects.get(code=code.upper())
+        
+        # Get usage logs
+        usage_logs = CodeUsageLog.objects.filter(registration_code=registration_code)
+        
+        # Calculate statistics
+        total_attempts = usage_logs.count()
+        successful_registrations = usage_logs.filter(usage_status='success').count()
+        failed_attempts = usage_logs.exclude(usage_status='success').count()
+        
+        # Get recent activity (last 7 days)
+        recent_activity = usage_logs.filter(
+            created_at__gte=timezone.now() - timezone.timedelta(days=7)
+        ).count()
+        
+        # Get failure reasons
+        failure_reasons = usage_logs.exclude(usage_status='success').values(
+            'usage_status'
+        ).annotate(
+            count=models.Count('usage_status')
+        ).order_by('-count')
+        
+        return Response({
+            'success': True,
+            'data': {
+                'code': registration_code.code,
+                'institution': registration_code.institution.name,
+                'is_active': registration_code.is_active,
+                'created_at': registration_code.created_at.isoformat(),
+                'expires_at': registration_code.expires_at.isoformat() if registration_code.expires_at else None,
+                'max_uses': registration_code.max_uses,
+                'current_uses': registration_code.current_uses,
+                'remaining_uses': registration_code.max_uses - registration_code.current_uses if registration_code.max_uses else None,
+                'statistics': {
+                    'total_attempts': total_attempts,
+                    'successful_registrations': successful_registrations,
+                    'failed_attempts': failed_attempts,
+                    'success_rate': round((successful_registrations / total_attempts * 100), 2) if total_attempts > 0 else 0,
+                    'recent_activity_7_days': recent_activity,
+                    'failure_reasons': list(failure_reasons)
+                }
+            }
+        }, status=status.HTTP_200_OK)
+    
+    except UniversityRegistrationCode.DoesNotExist:
+        return Response({
+            'success': False,
+            'message': 'University code not found'
+        }, status=status.HTTP_404_NOT_FOUND)
+    
+    except Exception as e:
+        logger.error(f"Error getting code usage stats for {code}: {str(e)}")
+        
+        return Response({
+            'success': False,
+            'message': 'An error occurred while retrieving statistics'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

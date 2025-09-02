@@ -1,22 +1,27 @@
-from django.urls import path
+from django.urls import path, include
 from rest_framework_simplejwt.views import (
     TokenRefreshView,
     TokenBlacklistView,
 )
 from .views import (
-    InviteRegisterTemplateView,
-    CustomTokenObtainPairView,
+    LoginView,
     PasswordResetRequestView,
     PasswordResetConfirmView,
-    ChangePasswordView,
     InviteCreateView,
+    InviteRegisterView,
+    PasswordChangeView,
     TwoFALoginView,
     VerifyOTPView,
-    StudentRegistrationView,
+    ChangePasswordView,
     PasswordResetConfirmTemplateView,
+    InviteRegisterTemplateView,
     RegistrationSuccessView,
     PasswordResetSuccessView,
     VerifyEmailView,
+    StudentRegistrationView,
+    validate_university_code,
+    get_code_usage_stats,
+    CSRFTokenView,
 )
 from django.contrib.auth import authenticate, login, logout
 from django.shortcuts import render, redirect
@@ -25,9 +30,9 @@ from django.views.generic import TemplateView
 from django.views.generic import View
 
 urlpatterns = [
-    path("register/", StudentRegistrationView.as_view(), name="student-register"),
+    path("register/student/", StudentRegistrationView.as_view(), name="student-register"),
     path("invite/", InviteCreateView.as_view(), name="send-invite"),
-    path("login/", CustomTokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path("login/", LoginView.as_view(), name="login"),
     path("token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("logout/", TokenBlacklistView.as_view(), name="token_blacklist"),
     # 2FA: Step 1 - Login to receive OTP
@@ -68,25 +73,21 @@ urlpatterns = [
     path(
         "verify-email/<uidb64>/<token>/", VerifyEmailView.as_view(), name="verify_email"
     ),
-]
-
-def web_login_view(request):
-    if request.method == 'POST':
-        email = request.POST['email']
-        password = request.POST['password']
-        user = authenticate(request, email=email, password=password)
-        if user is not None:
-            login(request, user)
-            return redirect('dashboard')  # or your protected page
-        else:
-            return render(request, 'authentication/web_login.html', {'error': 'Invalid credentials'})
-    return render(request, 'authentication/web_login.html')
-
-def web_logout_view(request):
-    logout(request)
-    return redirect('web_login')
-
-urlpatterns += [
-    path('web-login/', web_login_view, name='web_login'),
-    path('web-logout/', web_logout_view, name='web_logout'),
+    # University code validation and statistics endpoints
+    path(
+        "validate/university-code/",
+        validate_university_code,
+        name="validate_university_code"
+    ),
+    path(
+        "stats/code/<str:code>/",
+        get_code_usage_stats,
+        name="get_code_usage_stats"
+    ),
+    # CSRF token endpoint
+    path(
+        "csrf/",
+        CSRFTokenView.as_view(),
+        name="csrf_token"
+    ),
 ]

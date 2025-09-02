@@ -29,10 +29,16 @@ urlpatterns = [
     path("api/employers/", include("employers.urls")),
     path("api/users/", include("users.urls")),
     path("api/institutions/", include("institutions.urls")),
+    path("institutions/", include("institutions.urls", namespace='institutions_web')),
     path("api/security/", include("security.urls")),
     path("", include("chatbot.urls")),
     path("api/internships/", include("internship.urls")),
+    path("api/internship-progress/", include('internship_progress.urls')),
     path("notifications/", include("notifications.urls")),
     path("api/dashboards/", include("dashboards.urls")),
     path("api/application/", include("application.urls")),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATICFILES_DIRS[0])

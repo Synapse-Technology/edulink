@@ -1872,3 +1872,13 @@ section,
 --------------------------------------------------------------*/
 
 /* For production: Move chatbot styles from edulink-chatbot.js here for better performance and maintainability. */
+
+.profile-pic {
+  height: 38px;
+  width: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #14b8a6;
+  box-shadow: 0 1px 4px rgba(20,184,166,0.08);
+  transition: border 0.2s;
+}

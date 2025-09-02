@@ -47,7 +47,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_email_verified = models.BooleanField(default=False)  # type: ignore[attr-defined]
 
     # Extended fields
-    institution = models.CharField(max_length=255, blank=True, null=True)  # <-- still a CharField!
+    # Institution will be handled through profile relationships
+    # Removed CharField to prevent data inconsistency with StudentProfile.institution ForeignKey
     phone_number = models.CharField(max_length=20, blank=True, null=True)
     national_id = models.CharField(max_length=20, blank=True, null=True)
     email_verified = models.BooleanField(default=False)
@@ -89,11 +90,11 @@ class User(AbstractBaseUser, PermissionsMixin):
     def profile(self):
         """Get the user's profile based on their role"""
         if self.role == RoleChoices.STUDENT:
-            return getattr(self, "studentprofile", None)
+            return getattr(self, "student_profile", None)
         elif self.role == RoleChoices.INSTITUTION_ADMIN:
-            return getattr(self, "institutionprofile", None)
+            return getattr(self, "institution_profile", None)
         elif self.role == RoleChoices.EMPLOYER:
-            return getattr(self, "employerprofile", None)
+            return getattr(self, "employer_profile", None)
         return None
 
 

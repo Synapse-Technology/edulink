@@ -2,8 +2,8 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from django.utils import timezone
-from .models import Employer
-from .serializers import EmployerSerializer
+from users.models.employer_profile import EmployerProfile
+from users.serializers.employer_serializers import EmployerProfileSerializer
 from security.models import SecurityEvent, AuditLog
 from users.serializers.employer_serializers import EmployerProfileSerializer
 from internship.models.internship import Internship
@@ -12,8 +12,8 @@ from application.serializers import ApplicationSerializer
 from .permissions import IsEmployerOwner
 
 class CreateEmployerView(generics.CreateAPIView):
-    queryset = Employer.objects.all()
-    serializer_class = EmployerSerializer
+    queryset = EmployerProfile.objects.all()
+    serializer_class = EmployerProfileSerializer
     permission_classes = [IsAuthenticated]
     
     def get_client_ip(self, request):
@@ -47,8 +47,8 @@ class CreateEmployerView(generics.CreateAPIView):
         AuditLog.objects.create(
             action='create',
             user=self.request.user,
-            model_name='Employer',
-            object_id=str(employer.id),
+            resource_type='Employer',
+            resource_id=str(employer.id),
             description=f'Created employer profile for {employer.company_name}',
             ip_address=self.get_client_ip(self.request),
             metadata={
@@ -104,8 +104,8 @@ class EmployerProfileDetailView(generics.RetrieveUpdateAPIView):
         AuditLog.objects.create(
             action='update',
             user=self.request.user,
-            model_name='Employer',
-            object_id=str(employer.id),
+            resource_type='Employer',
+            resource_id=str(employer.id),
             description=f'Updated employer profile for {employer.company_name}',
             ip_address=self.get_client_ip(self.request),
             metadata={
@@ -115,8 +115,8 @@ class EmployerProfileDetailView(generics.RetrieveUpdateAPIView):
         )
 
 class VerifyEmployerView(generics.UpdateAPIView):
-    queryset = Employer.objects.all()
-    serializer_class = EmployerSerializer
+    queryset = EmployerProfile.objects.all()
+    serializer_class = EmployerProfileSerializer
     permission_classes = [IsAdminUser]
     
     def get_client_ip(self, request):
@@ -153,8 +153,8 @@ class VerifyEmployerView(generics.UpdateAPIView):
         AuditLog.objects.create(
             action='update',
             user=request.user,
-            model_name='Employer',
-            object_id=str(employer.id),
+            resource_type='Employer',
+            resource_id=str(employer.id),
             description=f'Verified employer: {employer.company_name}',
             ip_address=self.get_client_ip(request),
             metadata={
