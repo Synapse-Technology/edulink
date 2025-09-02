@@ -119,7 +119,7 @@ class CanApplyToInternship(BasePermission):
 
             # Check if student has already applied
             existing_application = Application.objects.filter(  # type: ignore[attr-defined]
-                student=request.user.student_profile,
+                student=request.user,
                 internship=internship
             ).exists()
 

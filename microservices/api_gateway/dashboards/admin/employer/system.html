@@ -1,0 +1,1435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>System Management - EduLink Employer Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --secondary: #0ea5e9;
+      --accent: #f59e0b;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --background: #f8fafc;
+      --card-bg: #ffffff;
+      --text-primary: #1e293b;
+      --text-secondary: #64748b;
+      --border: #e2e8f0;
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+      --gradient-primary: linear-gradient(135deg, #2563eb 0%, #0ea5e9 100%);
+      --gradient-secondary: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+    }
+    
+    .sidebar {
+      background: var(--gradient-primary);
+      box-shadow: var(--shadow-lg);
+      border-right: 1px solid var(--border);
+    }
+    
+    .sidebar-brand {
+      font-family: 'Poppins', sans-serif;
+      font-weight: 700;
+      font-size: 1.75rem;
+      color: white;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      letter-spacing: 0.5px;
+    }
+    
+    .nav-item {
+      transition: all 0.3s ease;
+      border-radius: 12px;
+      margin: 4px 8px;
+    }
+    .nav-item:hover {
+      background: rgba(255,255,255,0.15);
+      transform: translateX(4px);
+    }
+    .nav-item.active {
+      background: rgba(255,255,255,0.2);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .dropdown-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+    .dropdown-content:not(.hidden) {
+      max-height: 500px;
+    }
+    .dropdown-arrow {
+      transition: transform 0.3s ease;
+    }
+    .badge {
+      @apply px-2 py-1 text-xs font-medium rounded-full;
+    }
+    .badge-success {
+      @apply bg-green-100 text-green-800;
+    }
+    .badge-warning {
+      @apply bg-yellow-100 text-yellow-800;
+    }
+    .badge-danger {
+      @apply bg-red-100 text-red-800;
+    }
+    .progress-bar {
+      transition: width 0.3s ease;
+    }
+    .sidebar-transition {
+      transition: transform 0.3s ease;
+    }
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-100%);
+      }
+      .sidebar.open {
+        transform: translateX(0);
+      }
+    }
+    .metric-card {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .metric-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+    .integration-card {
+      transition: all 0.2s ease;
+    }
+    .integration-card:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    .compliance-progress {
+      transition: width 0.3s ease;
+    }
+    
+    .dark-mode-toggle {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: var(--shadow);
+      color: var(--text-secondary);
+    }
+    
+    .dark-mode-toggle:hover {
+      transform: scale(1.05);
+      box-shadow: var(--shadow-lg);
+      color: var(--primary);
+    }
+    
+    .header {
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      box-shadow: var(--shadow);
+    }
+    
+    .header-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    
+    .header-left {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-shrink: 0;
+    }
+    
+    .header-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0;
+      line-height: 1.2;
+    }
+    
+    .header-subtitle {
+      color: var(--text-secondary);
+      margin: 0.25rem 0 0 0;
+      font-size: 0.875rem;
+    }
+    
+    .action-btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+    
+    .action-btn:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+    
+    .action-btn.secondary {
+      background: var(--success);
+    }
+    
+    .action-btn.secondary:hover {
+      background: #059669;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem 1rem;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+      font-size: 0.875rem;
+    }
+
+    .user-info {
+      display: flex;
+      flex-direction: column;
+      gap: 0.125rem;
+    }
+
+    .user-name {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 0;
+    }
+
+    .user-email {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin: 0;
+    }
+
+    .notification-btn {
+      position: relative;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      color: var(--text-secondary);
+    }
+
+    .notification-btn:hover {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+    }
+
+    .notification-badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      background: #ef4444;
+      color: white;
+      border-radius: 50%;
+      width: 16px;
+      height: 16px;
+      font-size: 0.625rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+    }
+    
+    @media (max-width: 768px) {
+      .header-content {
+        gap: 0.5rem;
+      }
+      
+      .header-title {
+        font-size: 1.25rem;
+      }
+      
+      .header-subtitle {
+        display: none;
+      }
+      
+      .action-btn span {
+        display: none;
+      }
+    }
+    
+    @media (max-width: 640px) {
+      .header-title {
+        font-size: 1.125rem;
+      }
+      
+      .dark-mode-toggle {
+        width: 36px;
+        height: 36px;
+      }
+      
+      .action-btn {
+        padding: 0.375rem;
+      }
+    }
+    
+    /* Employer Management Hero Section */
+    .employer-management-hero {
+      position: relative;
+      background: var(--card-bg);
+      border-radius: 24px;
+      margin-bottom: 3rem;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(37, 99, 235, 0.08);
+      border: 1px solid var(--border);
+    }
+    
+    .employer-management-hero .hero-background {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 1;
+    }
+    
+    .employer-management-hero .hero-pattern {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: 
+        radial-gradient(circle at 25% 25%, rgba(37, 99, 235, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 75% 75%, rgba(14, 165, 233, 0.1) 0%, transparent 50%),
+        linear-gradient(45deg, transparent 40%, rgba(37, 99, 235, 0.02) 50%, transparent 60%);
+      background-size: 200px 200px, 150px 150px, 100px 100px;
+      animation: patternMove 20s ease-in-out infinite;
+    }
+    
+    @keyframes patternMove {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      33% { transform: translate(10px, -10px) rotate(1deg); }
+      66% { transform: translate(-5px, 5px) rotate(-0.5deg); }
+    }
+    
+    .employer-management-hero .hero-gradient {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, 
+        rgba(37, 99, 235, 0.05) 0%, 
+        rgba(14, 165, 233, 0.03) 50%, 
+        rgba(37, 99, 235, 0.02) 100%);
+    }
+    
+    .employer-management-hero .hero-content {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      padding: 3rem 2.5rem 2rem;
+    }
+    
+    .employer-management-hero .hero-icon {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, #2563eb 0%, #0ea5e9 100%);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      color: white;
+      box-shadow: 0 8px 24px rgba(37, 99, 235, 0.3);
+      animation: iconFloat 3s ease-in-out infinite;
+    }
+    
+    @keyframes iconFloat {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-5px); }
+    }
+    
+    .employer-management-hero .hero-text {
+      flex: 1;
+    }
+    
+    .employer-management-hero .hero-title {
+      font-size: 2.75rem;
+      font-weight: 900;
+      color: #1e293b;
+      margin-bottom: 1rem;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      background: linear-gradient(135deg, #1e293b 0%, #2563eb 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+    
+    @supports not (-webkit-background-clip: text) {
+      .employer-management-hero .hero-title {
+        background: none;
+        -webkit-text-fill-color: initial;
+        color: #1e293b;
+      }
+    }
+    
+    .employer-management-hero .hero-subtitle {
+      font-size: 1.25rem;
+      color: #64748b;
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+      max-width: 600px;
+      font-weight: 400;
+    }
+    
+    .employer-management-hero .hero-features {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    
+    .employer-management-hero .feature-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: rgba(37, 99, 235, 0.1);
+      color: #2563eb;
+      border-radius: 20px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      border: 1px solid rgba(37, 99, 235, 0.2);
+      transition: all 0.3s ease;
+    }
+    
+    .employer-management-hero .feature-tag:hover {
+      background: rgba(37, 99, 235, 0.15);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+    }
+    
+    .employer-management-hero .hero-actions {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      gap: 1rem;
+      padding: 0 2.5rem 2.5rem;
+      justify-content: flex-end;
+    }
+    
+    .employer-management-hero .hero-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1rem 2rem;
+      border: none;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      text-decoration: none;
+      outline: none;
+    }
+    
+    .employer-management-hero .hero-btn.primary {
+      background: linear-gradient(135deg, #2563eb 0%, #0ea5e9 100%);
+      color: white;
+      box-shadow: 0 6px 20px rgba(37, 99, 235, 0.3);
+    }
+    
+    .employer-management-hero .hero-btn.primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 30px rgba(37, 99, 235, 0.4);
+    }
+    
+    .employer-management-hero .hero-btn.secondary {
+      background: #ffffff;
+      color: #1e293b;
+      border: 2px solid #e2e8f0;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+    
+    .employer-management-hero .hero-btn.secondary:hover {
+      background: #f8fafc;
+      border-color: #2563eb;
+      color: #2563eb;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(37, 99, 235, 0.15);
+    }
+    
+    /* Responsive Design for Hero Section */
+    @media (max-width: 768px) {
+      .employer-management-hero .hero-content {
+        flex-direction: column;
+        text-align: center;
+        padding: 2rem 1.5rem 1.5rem;
+      }
+      
+      .employer-management-hero .hero-title {
+        font-size: 2rem;
+      }
+      
+      .employer-management-hero .hero-subtitle {
+        font-size: 1.1rem;
+      }
+      
+      .employer-management-hero .hero-actions {
+        flex-direction: column;
+        padding: 0 1.5rem 2rem;
+      }
+      
+      .employer-management-hero .hero-btn {
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body class="bg-gray-50">
+
+
+  <!-- Mobile Menu Button -->
+  <button id="mobileMenuBtn" class="fixed top-4 left-4 z-50 md:hidden p-2 bg-gray-800 text-white rounded-lg shadow-lg">
+    <i class="fas fa-bars"></i>
+  </button>
+
+  <!-- Sidebar Overlay -->
+  <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden md:hidden"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar fixed left-0 top-0 h-full w-64 p-6 z-50 transform transition-transform duration-300 md:translate-x-0 -translate-x-full" id="sidebar">
+    <div class="sidebar-brand text-center mb-8 pb-6 border-b border-white border-opacity-20">
+      EduLink
+      <div class="text-sm font-normal text-white text-opacity-80 mt-1">Employer Portal</div>
+    </div>
+
+    
+    <nav class="space-y-1">
+      <!-- Core Navigation -->
+      <a href="dashboard.html" class="nav-item w-full text-left px-3 py-2 rounded-lg text-white flex items-center space-x-2 text-sm">
+        <i class="fas fa-chart-line w-4"></i>
+        <span>Dashboard</span>
+      </a>
+      <a href="post-opportunities.html" class="nav-item w-full text-left px-3 py-2 rounded-lg text-white flex items-center space-x-2 text-sm hover:bg-white hover:bg-opacity-10">
+        <i class="fas fa-plus-circle w-4"></i>
+        <span>Post Opportunities</span>
+      </a>
+      <a href="notifications.html" class="nav-item w-full text-left px-3 py-2 rounded-lg text-white flex items-center space-x-2 text-sm hover:bg-white hover:bg-opacity-10">
+        <i class="fas fa-bell w-4"></i>
+        <span>Notifications</span>
+      </a>
+
+      
+      <!-- Management Dropdown -->
+      <div class="nav-dropdown">
+        <button onclick="toggleDropdown('management')" class="nav-item w-full text-left px-3 py-2 rounded-lg text-white flex items-center justify-between text-sm hover:bg-white hover:bg-opacity-10">
+          <div class="flex items-center space-x-2">
+            <i class="fas fa-users w-4"></i>
+            <span>Management</span>
+          </div>
+          <i class="fas fa-chevron-down w-3 dropdown-arrow transition-transform" id="management-arrow"></i>
+        </button>
+        <div id="management-dropdown" class="dropdown-content hidden ml-4 mt-1 space-y-1">
+          <a href="applications.html" class="nav-item w-full text-left px-3 py-1.5 rounded text-white flex items-center space-x-2 text-xs hover:bg-white hover:bg-opacity-10">
+            <i class="fas fa-file-alt w-3"></i>
+            <span>Applications</span>
+          </a>
+          <a href="interns.html" class="nav-item w-full text-left px-3 py-1.5 rounded text-white flex items-center space-x-2 text-xs hover:bg-white hover:bg-opacity-10">
+            <i class="fas fa-users w-3"></i>
+            <span>Active Interns</span>
+          </a>
+          <a href="interviews.html" class="nav-item w-full text-left px-3 py-1.5 rounded text-white flex items-center space-x-2 text-xs hover:bg-white hover:bg-opacity-10">
+            <i class="fas fa-calendar-alt w-3"></i>
+            <span>Interviews</span>
+          </a>
+          <a href="#" onclick="showSection('feedback')" class="nav-item w-full text-left px-3 py-1.5 rounded text-white flex items-center space-x-2 text-xs hover:bg-white hover:bg-opacity-10">
+            <i class="fas fa-comments w-3"></i>
+            <span>Feedback</span>
+          </a>
+          <a href="supervisors.html" class="nav-item w-full text-left px-3 py-1.5 rounded text-white flex items-center space-x-2 text-xs hover:bg-white hover:bg-opacity-10">
+            <i class="fas fa-users-cog w-3"></i>
+            <span>Supervisors</span>
+          </a>
+        </div>
+      </div>
+
+      
+      <!-- Analytics Dropdown -->
+      <div class="nav-dropdown">
+        <button onclick="toggleDropdown('analytics')" class="nav-item w-full text-left px-3 py-2 rounded-lg text-white flex items-center justify-between text-sm hover:bg-white hover:bg-opacity-10">
+          <div class="flex items-center space-x-2">
+            <i class="fas fa-chart-bar w-4"></i>
+            <span>Analytics</span>
+          </div>
+          <i class="fas fa-chevron-down w-3 dropdown-arrow transition-transform" id="analytics-arrow"></i>
+        </button>
+        <div id="analytics-dropdown" class="dropdown-content hidden ml-4 mt-1 space-y-1">
+          <a href="analytics.html#performance" onclick="showSection('performance')" class="nav-item w-full text-left px-3 py-1.5 rounded text-white flex items-center space-x-2 text-xs hover:bg-white hover:bg-opacity-10">
+            <i class="fas fa-chart-line w-3"></i>
+            <span>Performance</span>
+          </a>
+          <a href="analytics.html#reports" onclick="showSection('reports')" class="nav-item w-full text-left px-3 py-1.5 rounded text-white flex items-center space-x-2 text-xs hover:bg-white hover:bg-opacity-10">
+            <i class="fas fa-file-chart w-3"></i>
+            <span>Reports</span>
+          </a>
+        </div>
+      </div>
+      
+      <!-- System Dropdown -->
+      <div class="nav-dropdown">
+        <button onclick="toggleDropdown('system')" class="nav-item active w-full text-left px-3 py-2 rounded-lg text-white flex items-center justify-between text-sm">
+          <div class="flex items-center space-x-2">
+            <i class="fas fa-cogs w-4"></i>
+            <span>System</span>
+          </div>
+          <i class="fas fa-chevron-down w-3 dropdown-arrow transition-transform" id="system-arrow"></i>
+        </button>
+        <div id="system-dropdown" class="dropdown-content hidden ml-4 mt-1 space-y-1">
+          <a href="#integrations" onclick="showSection('integrations')" class="nav-item w-full text-left px-3 py-1.5 rounded text-white flex items-center space-x-2 text-xs hover:bg-white hover:bg-opacity-10">
+            <i class="fas fa-plug w-3"></i>
+            <span>Integrations</span>
+          </a>
+          <a href="#compliance" onclick="showSection('compliance')" class="nav-item w-full text-left px-3 py-1.5 rounded text-white flex items-center space-x-2 text-xs hover:bg-white hover:bg-opacity-10">
+            <i class="fas fa-shield-alt w-3"></i>
+            <span>Compliance</span>
+          </a>
+        </div>
+      </div>
+      
+      <a href="opportunities.html" class="nav-item w-full text-left px-3 py-2 rounded-lg text-white flex items-center space-x-2 text-sm hover:bg-white hover:bg-opacity-10">
+        <i class="fas fa-briefcase w-4"></i>
+        <span>View Opportunities</span>
+      </a>
+    </nav>
+    
+    <div class="mt-auto pt-6 border-t border-white border-opacity-20">
+      <a href="#" class="nav-item w-full text-left px-4 py-3 rounded-lg text-white flex items-center space-x-3 font-medium">
+        <i class="fas fa-cog w-5"></i>
+        <span>Settings</span>
+      </a>
+      <a href="#" class="nav-item w-full text-left px-4 py-3 rounded-lg text-white flex items-center space-x-3 font-medium">
+        <i class="fas fa-question-circle w-5"></i>
+        <span>Help Center</span>
+      </a>
+      <a href="#" class="nav-item w-full text-left px-4 py-3 rounded-lg text-white flex items-center space-x-3 font-medium">
+        <i class="fas fa-sign-out-alt w-5"></i>
+        <span>Log Out</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content flex-1 md:ml-64 min-h-screen">
+    <!-- Header -->
+    <div class="header sticky top-0 z-20 px-6 py-4">
+      <div class="header-content">
+        <div class="header-left">
+          <!-- Header content moved to hero section -->
+        </div>
+        <div class="header-right">
+          <button class="notification-btn" title="Notifications">
+            <i class="fas fa-bell text-lg"></i>
+            <span class="notification-badge" id="notification-count">0</span>
+          </button>
+          <button class="dark-mode-toggle" onclick="toggleDarkMode()" title="Toggle Dark Mode">
+            <i class="fas fa-moon" id="darkModeIcon"></i>
+          </button>
+          <div class="user-profile">
+            <img src="https://via.placeholder.com/40" alt="Profile" class="user-avatar">
+            <div class="user-info">
+              <div class="user-name">Company Admin</div>
+              <div class="user-email">admin@company.com</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="p-6">
+      <!-- Enhanced System Management Header -->
+      <div class="employer-management-hero">
+      <div class="hero-background">
+        <div class="hero-pattern"></div>
+        <div class="hero-gradient"></div>
+      </div>
+      
+      <div class="hero-content">
+        <div class="hero-icon">
+          <i class="fas fa-cogs"></i>
+        </div>
+        
+        <div class="hero-text">
+          <h1 class="hero-title">System Management</h1>
+          <p class="hero-subtitle">Integration capabilities and compliance oversight</p>
+          
+          <div class="hero-features">
+            <span class="feature-tag">
+              <i class="fas fa-plug"></i>
+              Integrations
+            </span>
+            <span class="feature-tag">
+              <i class="fas fa-shield-alt"></i>
+              Compliance
+            </span>
+            <span class="feature-tag">
+              <i class="fas fa-sync-alt"></i>
+              System Sync
+            </span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="hero-actions">
+        <button onclick="refreshSystem()" class="hero-btn secondary">
+          <i class="fas fa-sync-alt"></i>
+          Refresh Data
+        </button>
+        <button onclick="exportSystemData()" class="hero-btn primary">
+          <i class="fas fa-download"></i>
+          Export Data
+        </button>
+      </div>
+    </div>
+
+    <!-- Content Area -->
+    <main class="p-6">
+      <!-- Integrations Section -->
+      <section id="integrations-section">
+        <div class="mb-6">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-gray-900">Integration Capabilities</h2>
+            <div class="flex space-x-3">
+              <button onclick="addIntegration()" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors flex items-center space-x-2">
+                <i class="fas fa-plus"></i>
+                <span>Add Integration</span>
+              </button>
+              <button onclick="syncAllIntegrations()" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors flex items-center space-x-2">
+                <i class="fas fa-sync"></i>
+                <span>Sync All</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Integration Status Overview -->
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+            <div class="metric-card bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
+              <div class="text-3xl font-bold text-green-600 mb-2">8</div>
+              <div class="text-gray-600">Active Integrations</div>
+              <div class="text-sm text-green-600 mt-1">All systems operational</div>
+            </div>
+            <div class="metric-card bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
+              <div class="text-3xl font-bold text-blue-600 mb-2">2.3k</div>
+              <div class="text-gray-600">Data Synced Today</div>
+              <div class="text-sm text-blue-600 mt-1">Records processed</div>
+            </div>
+            <div class="metric-card bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
+              <div class="text-3xl font-bold text-purple-600 mb-2">99.9%</div>
+              <div class="text-gray-600">Uptime</div>
+              <div class="text-sm text-purple-600 mt-1">Last 30 days</div>
+            </div>
+            <div class="metric-card bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
+              <div class="text-3xl font-bold text-orange-600 mb-2">1</div>
+              <div class="text-gray-600">Pending Setup</div>
+              <div class="text-sm text-orange-600 mt-1">Requires attention</div>
+            </div>
+          </div>
+
+          <!-- Available Integrations -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <!-- HR Systems -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">HR & Recruitment Systems</h3>
+              <div class="space-y-4">
+                <div class="integration-card flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                  <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <i class="fab fa-microsoft text-blue-600"></i>
+                    </div>
+                    <div>
+                      <div class="font-medium text-gray-900">Microsoft Teams</div>
+                      <div class="text-sm text-gray-600">Interview scheduling & communication</div>
+                    </div>
+                  </div>
+                  <div class="flex items-center space-x-2">
+                    <span class="badge badge-success">Connected</span>
+                    <button onclick="configureIntegration('teams')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-cog"></i></button>
+                  </div>
+                </div>
+                <div class="integration-card flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                  <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                      <i class="fab fa-slack text-green-600"></i>
+                    </div>
+                    <div>
+                      <div class="font-medium text-gray-900">Slack</div>
+                      <div class="text-sm text-gray-600">Team communication & notifications</div>
+                    </div>
+                  </div>
+                  <div class="flex items-center space-x-2">
+                    <span class="badge badge-success">Connected</span>
+                    <button onclick="configureIntegration('slack')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-cog"></i></button>
+                  </div>
+                </div>
+                <div class="integration-card flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                  <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                      <i class="fas fa-users text-purple-600"></i>
+                    </div>
+                    <div>
+                      <div class="font-medium text-gray-900">Workday</div>
+                      <div class="text-sm text-gray-600">HR management system</div>
+                    </div>
+                  </div>
+                  <div class="flex items-center space-x-2">
+                    <span class="badge badge-warning">Setup Required</span>
+                    <button onclick="setupIntegration('workday')" class="text-blue-600 hover:text-blue-800 text-sm">Setup</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Academic Systems -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">Academic & Learning Systems</h3>
+              <div class="space-y-4">
+                <div class="integration-card flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                  <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                      <i class="fas fa-graduation-cap text-red-600"></i>
+                    </div>
+                    <div>
+                      <div class="font-medium text-gray-900">Canvas LMS</div>
+                      <div class="text-sm text-gray-600">Learning management system</div>
+                    </div>
+                  </div>
+                  <div class="flex items-center space-x-2">
+                    <span class="badge badge-success">Connected</span>
+                    <button onclick="configureIntegration('canvas')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-cog"></i></button>
+                  </div>
+                </div>
+                <div class="integration-card flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                  <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <i class="fas fa-book text-blue-600"></i>
+                    </div>
+                    <div>
+                      <div class="font-medium text-gray-900">Blackboard</div>
+                      <div class="text-sm text-gray-600">Student information system</div>
+                    </div>
+                  </div>
+                  <div class="flex items-center space-x-2">
+                    <span class="badge badge-success">Connected</span>
+                    <button onclick="configureIntegration('blackboard')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-cog"></i></button>
+                  </div>
+                </div>
+                <div class="integration-card flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                  <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                      <i class="fas fa-calendar text-orange-600"></i>
+                    </div>
+                    <div>
+                      <div class="font-medium text-gray-900">Google Calendar</div>
+                      <div class="text-sm text-gray-600">Schedule synchronization</div>
+                    </div>
+                  </div>
+                  <div class="flex items-center space-x-2">
+                    <span class="badge badge-success">Connected</span>
+                    <button onclick="configureIntegration('calendar')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-cog"></i></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- API Management -->
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+            <div class="p-6 border-b border-gray-200">
+              <h3 class="text-lg font-semibold text-gray-900">API Management</h3>
+            </div>
+            <div class="p-6">
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                  <h4 class="font-medium text-gray-900 mb-3">API Keys</h4>
+                  <div class="space-y-3">
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <div class="font-medium text-gray-900">Production API Key</div>
+                        <div class="text-sm text-gray-600">Last used: 2 hours ago</div>
+                      </div>
+                      <div class="flex space-x-2">
+                        <button onclick="regenerateAPIKey('production')" class="text-blue-600 hover:text-blue-800 text-sm">Regenerate</button>
+                        <button onclick="copyAPIKey('production')" class="text-gray-600 hover:text-gray-800 text-sm">Copy</button>
+                      </div>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <div class="font-medium text-gray-900">Development API Key</div>
+                        <div class="text-sm text-gray-600">Last used: 1 day ago</div>
+                      </div>
+                      <div class="flex space-x-2">
+                        <button onclick="regenerateAPIKey('development')" class="text-blue-600 hover:text-blue-800 text-sm">Regenerate</button>
+                        <button onclick="copyAPIKey('development')" class="text-gray-600 hover:text-gray-800 text-sm">Copy</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <h4 class="font-medium text-gray-900 mb-3">Webhooks</h4>
+                  <div class="space-y-3">
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <div class="font-medium text-gray-900">Application Updates</div>
+                        <div class="text-sm text-gray-600">https://api.company.com/webhooks/apps</div>
+                      </div>
+                      <span class="badge badge-success">Active</span>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <div class="font-medium text-gray-900">Interview Notifications</div>
+                        <div class="text-sm text-gray-600">https://api.company.com/webhooks/interviews</div>
+                      </div>
+                      <span class="badge badge-success">Active</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Integration Logs -->
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div class="p-6 border-b border-gray-200">
+              <h3 class="text-lg font-semibold text-gray-900">Recent Integration Activity</h3>
+            </div>
+            <div class="p-6">
+              <div class="space-y-4">
+                <div class="flex items-center space-x-4 p-4 bg-green-50 rounded-lg">
+                  <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                    <i class="fas fa-check text-white text-sm"></i>
+                  </div>
+                  <div class="flex-1">
+                    <div class="font-medium text-gray-900">Canvas LMS sync completed</div>
+                    <div class="text-sm text-gray-600">Synchronized 45 student records • 2 minutes ago</div>
+                  </div>
+                </div>
+                <div class="flex items-center space-x-4 p-4 bg-blue-50 rounded-lg">
+                  <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                    <i class="fas fa-sync text-white text-sm"></i>
+                  </div>
+                  <div class="flex-1">
+                    <div class="font-medium text-gray-900">Microsoft Teams integration updated</div>
+                    <div class="text-sm text-gray-600">New meeting rooms configured • 1 hour ago</div>
+                  </div>
+                </div>
+                <div class="flex items-center space-x-4 p-4 bg-yellow-50 rounded-lg">
+                  <div class="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center">
+                    <i class="fas fa-exclamation text-white text-sm"></i>
+                  </div>
+                  <div class="flex-1">
+                    <div class="font-medium text-gray-900">Workday setup required</div>
+                    <div class="text-sm text-gray-600">API credentials need to be configured • 3 hours ago</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Compliance Section -->
+      <section id="compliance-section" style="display:none">
+        <div class="mb-6">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-gray-900">Compliance Management</h2>
+            <div class="flex space-x-3">
+              <button onclick="runComplianceCheck()" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors flex items-center space-x-2">
+                <i class="fas fa-shield-alt"></i>
+                <span>Run Check</span>
+              </button>
+              <button onclick="exportComplianceReport()" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors flex items-center space-x-2">
+                <i class="fas fa-download"></i>
+                <span>Export Report</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Compliance Overview -->
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+            <div class="metric-card bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
+              <div id="complianceScore" class="text-3xl font-bold text-green-600 mb-2">98%</div>
+              <div class="text-gray-600">Compliance Score</div>
+              <div class="text-sm text-green-600 mt-1">Excellent standing</div>
+              <div class="w-full bg-gray-200 rounded-full h-2 mt-3">
+                <div class="compliance-progress bg-green-500 h-2 rounded-full" style="width: 98%"></div>
+              </div>
+            </div>
+            <div class="metric-card bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
+              <div class="text-3xl font-bold text-blue-600 mb-2">12</div>
+              <div class="text-gray-600">Active Policies</div>
+              <div class="text-sm text-blue-600 mt-1">All up to date</div>
+            </div>
+            <div class="metric-card bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
+              <div class="text-3xl font-bold text-orange-600 mb-2">3</div>
+              <div class="text-gray-600">Pending Reviews</div>
+              <div class="text-sm text-orange-600 mt-1">Require attention</div>
+            </div>
+            <div class="metric-card bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
+              <div class="text-3xl font-bold text-purple-600 mb-2">45</div>
+              <div class="text-gray-600">Days to Audit</div>
+              <div class="text-sm text-purple-600 mt-1">Next scheduled</div>
+            </div>
+          </div>
+
+          <!-- Compliance Categories -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <!-- Data Privacy -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">Data Privacy</h3>
+                <span class="badge badge-success">Compliant</span>
+              </div>
+              <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <span class="text-sm text-gray-600">GDPR Compliance</span>
+                  <i class="fas fa-check-circle text-green-500"></i>
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-sm text-gray-600">Data Encryption</span>
+                  <i class="fas fa-check-circle text-green-500"></i>
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-sm text-gray-600">Access Controls</span>
+                  <i class="fas fa-check-circle text-green-500"></i>
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-sm text-gray-600">Data Retention</span>
+                  <i class="fas fa-exclamation-triangle text-yellow-500"></i>
+                </div>
+              </div>
+              <button onclick="viewDataPrivacyDetails()" class="mt-4 w-full text-center text-sm text-blue-600 hover:text-blue-800">View Details</button>
+            </div>
+
+            <!-- Security Standards -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">Security Standards</h3>
+                <span class="badge badge-success">Compliant</span>
+              </div>
+              <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <span class="text-sm text-gray-600">ISO 27001</span>
+                  <i class="fas fa-check-circle text-green-500"></i>
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-sm text-gray-600">SOC 2 Type II</span>
+                  <i class="fas fa-check-circle text-green-500"></i>
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-sm text-gray-600">Multi-Factor Auth</span>
+                  <i class="fas fa-check-circle text-green-500"></i>
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-sm text-gray-600">Vulnerability Scans</span>
+                  <i class="fas fa-check-circle text-green-500"></i>
+                </div>
+              </div>
+              <button onclick="viewSecurityDetails()" class="mt-4 w-full text-center text-sm text-blue-600 hover:text-blue-800">View Details</button>
+            </div>
+
+            <!-- Academic Standards -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">Academic Standards</h3>
+                <span class="badge badge-warning">Review Needed</span>
+              </div>
+              <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <span class="text-sm text-gray-600">FERPA Compliance</span>
+                  <i class="fas fa-check-circle text-green-500"></i>
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-sm text-gray-600">Academic Records</span>
+                  <i class="fas fa-check-circle text-green-500"></i>
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-sm text-gray-600">Student Privacy</span>
+                  <i class="fas fa-exclamation-triangle text-yellow-500"></i>
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-sm text-gray-600">Grade Reporting</span>
+                  <i class="fas fa-exclamation-triangle text-yellow-500"></i>
+                </div>
+              </div>
+              <button onclick="viewAcademicDetails()" class="mt-4 w-full text-center text-sm text-blue-600 hover:text-blue-800">View Details</button>
+            </div>
+          </div>
+
+          <!-- Audit Trail -->
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+            <div class="p-6 border-b border-gray-200">
+              <div class="flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-gray-900">Audit Trail</h3>
+                <div class="flex space-x-3">
+                  <select class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                    <option>All Activities</option>
+                    <option>Data Access</option>
+                    <option>System Changes</option>
+                    <option>User Actions</option>
+                  </select>
+                  <select class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                    <option>Last 7 days</option>
+                    <option>Last 30 days</option>
+                    <option>Last 3 months</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="p-6">
+              <div class="space-y-4">
+                <div class="flex items-center space-x-4 p-4 border border-gray-200 rounded-lg">
+                  <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-user text-blue-600 text-sm"></i>
+                  </div>
+                  <div class="flex-1">
+                    <div class="font-medium text-gray-900">User login: admin@company.com</div>
+                    <div class="text-sm text-gray-600">IP: 192.168.1.100 • 2 hours ago</div>
+                  </div>
+                  <span class="badge badge-success">Success</span>
+                </div>
+                <div class="flex items-center space-x-4 p-4 border border-gray-200 rounded-lg">
+                  <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-download text-green-600 text-sm"></i>
+                  </div>
+                  <div class="flex-1">
+                    <div class="font-medium text-gray-900">Data export: Student applications</div>
+                    <div class="text-sm text-gray-600">User: hr@company.com • 4 hours ago</div>
+                  </div>
+                  <span class="badge badge-success">Approved</span>
+                </div>
+                <div class="flex items-center space-x-4 p-4 border border-gray-200 rounded-lg">
+                  <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-cog text-purple-600 text-sm"></i>
+                  </div>
+                  <div class="flex-1">
+                    <div class="font-medium text-gray-900">System configuration updated</div>
+                    <div class="text-sm text-gray-600">User: admin@company.com • 1 day ago</div>
+                  </div>
+                  <span class="badge badge-success">Completed</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Policy Management -->
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div class="p-6 border-b border-gray-200">
+              <h3 class="text-lg font-semibold text-gray-900">Policy Management</h3>
+            </div>
+            <div class="p-6">
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                  <h4 class="font-medium text-gray-900 mb-3">Active Policies</h4>
+                  <div class="space-y-3">
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <div class="font-medium text-gray-900">Data Privacy Policy</div>
+                        <div class="text-sm text-gray-600">Last updated: Jan 15, 2024</div>
+                      </div>
+                      <button onclick="reviewPolicy('privacy')" class="text-blue-600 hover:text-blue-800 text-sm">Review</button>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <div class="font-medium text-gray-900">Security Guidelines</div>
+                        <div class="text-sm text-gray-600">Last updated: Dec 20, 2023</div>
+                      </div>
+                      <button onclick="reviewPolicy('security')" class="text-blue-600 hover:text-blue-800 text-sm">Review</button>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <div class="font-medium text-gray-900">Internship Standards</div>
+                        <div class="text-sm text-gray-600">Last updated: Nov 10, 2023</div>
+                      </div>
+                      <button onclick="updatePolicy('internship')" class="text-orange-600 hover:text-orange-800 text-sm">Update Required</button>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <h4 class="font-medium text-gray-900 mb-3">Compliance Checklist</h4>
+                  <div class="space-y-3">
+                    <div class="flex items-center space-x-3">
+                      <input type="checkbox" checked class="rounded border-gray-300 text-blue-600">
+                      <span class="text-sm text-gray-700">Annual security training completed</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                      <input type="checkbox" checked class="rounded border-gray-300 text-blue-600">
+                      <span class="text-sm text-gray-700">Data backup procedures verified</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                      <input type="checkbox" class="rounded border-gray-300 text-blue-600">
+                      <span class="text-sm text-gray-700">Quarterly compliance review</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                      <input type="checkbox" class="rounded border-gray-300 text-blue-600">
+                      <span class="text-sm text-gray-700">External audit preparation</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    // Navigation and UI Functions
+    function showSection(section) {
+      const sections = ['integrations', 'compliance'];
+      sections.forEach(s => {
+        const element = document.getElementById(s + '-section');
+        if (element) {
+          element.style.display = (s === section) ? 'block' : 'none';
+        }
+      });
+      
+      if (section === 'integrations') {
+        loadIntegrationsData();
+        checkIntegrationStatus();
+      }
+      if (section === 'compliance') {
+        loadComplianceData();
+        updateComplianceScore();
+      }
+    }
+
+    // Integration Functions
+    function loadIntegrationsData() {
+      console.log('Loading integrations data...');
+    }
+
+    function checkIntegrationStatus() {
+      console.log('Checking integration status...');
+    }
+
+    function addIntegration() {
+      alert('Add integration feature coming soon!');
+    }
+
+    function syncAllIntegrations() {
+      alert('Sync all integrations feature coming soon!');
+    }
+
+    function setupIntegration(type) {
+      alert(`Setup ${type} integration feature coming soon!`);
+    }
+
+    function configureIntegration(type) {
+      alert(`Configure ${type} integration feature coming soon!`);
+    }
+
+    function regenerateAPIKey(type) {
+      if (confirm(`Are you sure you want to regenerate the ${type} API key?`)) {
+        alert(`${type} API key regenerated successfully!`);
+      }
+    }
+
+    function copyAPIKey(type) {
+      alert(`${type} API key copied to clipboard!`);
+    }
+
+    // Compliance Functions
+    function loadComplianceData() {
+      console.log('Loading compliance data...');
+    }
+
+    function updateComplianceScore() {
+      const scoreElement = document.getElementById('complianceScore');
+      if (scoreElement) {
+        const score = Math.floor(Math.random() * 20) + 80; // 80-100
+        scoreElement.textContent = `${score}%`;
+        
+        const progressBar = document.querySelector('.compliance-progress');
+        if (progressBar) {
+          progressBar.style.width = `${score}%`;
+          progressBar.className = `compliance-progress h-2 rounded transition-all duration-300 ${
+            score >= 90 ? 'bg-green-500' : score >= 70 ? 'bg-yellow-500' : 'bg-red-500'
+          }`;
+        }
+      }
+    }
+
+    function runComplianceCheck() {
+      alert('Running compliance check...');
+      setTimeout(() => {
+        updateComplianceScore();
+        alert('Compliance check completed!');
+      }, 2000);
+    }
+
+    function exportComplianceReport() {
+      alert('Exporting compliance report...');
+    }
+
+    function viewDataPrivacyDetails() {
+      alert('Data privacy details feature coming soon!');
+    }
+
+    function viewSecurityDetails() {
+      alert('Security details feature coming soon!');
+    }
+
+    function viewAcademicDetails() {
+      alert('Academic standards details feature coming soon!');
+    }
+
+    function reviewPolicy(type) {
+      alert(`Review ${type} policy feature coming soon!`);
+    }
+
+    function updatePolicy(type) {
+      alert(`Update ${type} policy feature coming soon!`);
+    }
+
+    // Utility Functions
+    function refreshSystem() {
+      const button = event.target.closest('button');
+      const icon = button.querySelector('i');
+      icon.classList.add('fa-spin');
+      
+      setTimeout(() => {
+        loadIntegrationsData();
+        loadComplianceData();
+        checkIntegrationStatus();
+        updateComplianceScore();
+        icon.classList.remove('fa-spin');
+      }, 1000);
+    }
+
+    function exportSystemData() {
+      const data = {
+        integrations: {
+          active: 8,
+          dataSynced: 2300,
+          uptime: 99.9,
+          pending: 1
+        },
+        compliance: {
+          score: 98,
+          activePolicies: 12,
+          pendingReviews: 3,
+          daysToAudit: 45
+        }
+      };
+      
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `system-data-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // Toggle dropdown functionality
+    function toggleDropdown(dropdownId) {
+      const dropdown = document.getElementById(dropdownId + '-dropdown');
+      const arrow = document.getElementById(dropdownId + '-arrow');
+      
+      if (dropdown && dropdown.classList.contains('hidden')) {
+        dropdown.classList.remove('hidden');
+        if (arrow) arrow.style.transform = 'rotate(180deg)';
+      } else if (dropdown) {
+        dropdown.classList.add('hidden');
+        if (arrow) arrow.style.transform = 'rotate(0deg)';
+      }
+    }
+
+    // Mobile menu functionality
+    document.getElementById('mobileMenuBtn').addEventListener('click', function() {
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('sidebarOverlay');
+      
+      sidebar.classList.toggle('-translate-x-full');
+      sidebar.classList.toggle('translate-x-0');
+      overlay.classList.toggle('hidden');
+    });
+
+    document.getElementById('sidebarOverlay').addEventListener('click', function() {
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('sidebarOverlay');
+      
+      sidebar.classList.add('-translate-x-full');
+      sidebar.classList.remove('translate-x-0');
+      overlay.classList.add('hidden');
+    });
+
+    // Dark mode toggle
+    document.getElementById('darkModeToggle').addEventListener('click', function() {
+      document.body.classList.toggle('dark');
+      const icon = this.querySelector('i');
+      icon.classList.toggle('fa-moon');
+      icon.classList.toggle('fa-sun');
+    });
+
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', function() {
+      // Show integrations section by default
+      showSection('integrations');
+      
+      // Expand system dropdown by default
+      const systemDropdown = document.getElementById('system-dropdown');
+      const systemArrow = document.getElementById('system-arrow');
+      if (systemDropdown) {
+        systemDropdown.classList.remove('hidden');
+        if (systemArrow) {
+          systemArrow.style.transform = 'rotate(180deg)';
+        }
+      }
+    });
+  </script>
+</body>
+</html>

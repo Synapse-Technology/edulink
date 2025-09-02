@@ -1,0 +1,43 @@
+# Student Registration Workflow Monitoring Dependencies
+
+# Web Framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+
+# Templates and Static Files
+jinja2==3.1.2
+aiofiles==23.2.1
+
+# HTTP Client for Service Communication
+httpx==0.25.2
+
+# WebSocket Support
+websockets==12.0
+
+# Data Processing (Optional - remove if installation issues)
+# pandas==2.1.3
+# numpy==1.25.2
+
+# Async Support
+aioredis==2.0.1
+
+# Logging and Monitoring
+structlog==23.2.0
+# Monitoring and Metrics (Optional)
+# prometheus-client==0.19.0
+
+# Configuration Management
+python-dotenv==1.0.0
+
+# Date/Time Utilities
+python-dateutil==2.8.2
+
+# JSON processing (commented out due to Rust compilation issues on Windows)
+# orjson==3.9.10
+
+# Development Dependencies
+pytest==7.4.3
+pytest-asyncio==0.21.1
+black==23.11.0
+flake8==6.1.0
+mypy==1.7.1

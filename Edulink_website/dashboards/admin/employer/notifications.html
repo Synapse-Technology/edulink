@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EduLink - Notification Management</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Backend Integration Scripts -->
+  <script src="js/api-utils.js"></script>
+  <script src="js/notifications-backend.js"></script>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --secondary: #0ea5e9;
+      --accent: #f59e0b;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --background: #f8fafc;
+      --card-bg: #ffffff;
+      --text-primary: #1e293b;
+      --text-secondary: #64748b;
+      --border: #e2e8f0;
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+      --gradient-primary: linear-gradient(135deg, #2563eb 0%, #0ea5e9 100%);
+    }
+    
+    [data-theme="dark"] {
+      --primary: #3b82f6;
+      --primary-dark: #2563eb;
+      --secondary: #06b6d4;
+      --accent: #fbbf24;
+      --success: #34d399;
+      --warning: #fbbf24;
+      --danger: #f87171;
+      --background: #0f172a;
+      --card-bg: #1e293b;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --border: #334155;
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+      --gradient-primary: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Inter', 'Poppins', sans-serif;
+      background: var(--background);
+      color: var(--text-primary);
+      transition: all 0.3s ease;
+    }
+    
+    .notification-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      transition: all 0.3s ease;
+    }
+    
+    .notification-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+    }
+    
+    .notification-card.unread {
+      border-left: 4px solid var(--primary);
+      background: linear-gradient(90deg, rgba(37, 99, 235, 0.02) 0%, var(--card-bg) 100%);
+    }
+    
+    .btn-primary {
+      background: var(--gradient-primary);
+      border: none;
+      color: white;
+      font-weight: 600;
+      border-radius: 8px;
+      padding: 8px 16px;
+      transition: all 0.3s ease;
+      box-shadow: var(--shadow);
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-lg);
+    }
+    
+    .btn-secondary {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      font-weight: 500;
+      border-radius: 8px;
+      padding: 8px 16px;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-secondary:hover {
+      background: var(--background);
+      border-color: var(--primary);
+    }
+    
+    .filter-tab {
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    
+    .filter-tab.active {
+      background: var(--primary);
+      color: white;
+    }
+    
+    .filter-tab:not(.active) {
+      color: var(--text-secondary);
+    }
+    
+    .filter-tab:not(.active):hover {
+      background: var(--background);
+      color: var(--text-primary);
+    }
+    
+    .search-input {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 16px;
+      color: var(--text-primary);
+      transition: all 0.3s ease;
+    }
+    
+    .search-input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+    
+    .message-hub-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 16px;
+      padding: 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .message-hub-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 100px;
+      height: 100px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      transform: translate(30px, -30px);
+    }
+    
+    .pagination-btn {
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      color: var(--text-primary);
+      border-radius: 6px;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    
+    .pagination-btn:hover:not(:disabled) {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+    
+    .pagination-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .pagination-btn.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="bg-white border-b border-gray-200 px-6 py-4">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center space-x-4">
+        <button onclick="window.history.back()" class="text-gray-600 hover:text-gray-800 transition-colors">
+          <i class="fas fa-arrow-left text-lg"></i>
+        </button>
+        <div>
+          <h1 class="text-2xl font-bold text-gray-900">Notification Management</h1>
+          <p class="text-sm text-gray-600">Manage all your notifications and messages</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-4">
+        <button onclick="showNotificationSettings()" class="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors" title="Notification Settings">
+          <i class="fas fa-cog text-gray-600"></i>
+        </button>
+        <button onclick="toggleTheme()" class="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors">
+          <i class="fas fa-moon text-gray-600"></i>
+        </button>
+        <a href="dashboard.html" class="btn-secondary">
+          <i class="fas fa-home mr-2"></i>Dashboard
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-6 py-8">
+    <!-- Message Hub Section -->
+    <section class="mb-8">
+      <div class="message-hub-card">
+        <div class="relative z-10">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h2 class="text-2xl font-bold mb-2">Message Hub</h2>
+              <p class="text-blue-100">Centralized communication center for mass notifications and announcements</p>
+            </div>
+            <div class="text-right">
+              <div class="text-3xl font-bold" id="total-messages">0</div>
+              <div class="text-sm text-blue-100">Total Messages</div>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+            <div class="bg-white bg-opacity-20 rounded-lg p-4">
+              <div class="flex items-center justify-between">
+                <div>
+                  <div class="text-2xl font-bold" id="unread-messages">0</div>
+                  <div class="text-sm text-blue-100">Unread</div>
+                </div>
+                <i class="fas fa-envelope-open text-2xl text-blue-200"></i>
+              </div>
+            </div>
+            <div class="bg-white bg-opacity-20 rounded-lg p-4">
+              <div class="flex items-center justify-between">
+                <div>
+                  <div class="text-2xl font-bold" id="system-alerts">0</div>
+                  <div class="text-sm text-blue-100">System Alerts</div>
+                </div>
+                <i class="fas fa-exclamation-triangle text-2xl text-yellow-200"></i>
+              </div>
+            </div>
+            <div class="bg-white bg-opacity-20 rounded-lg p-4">
+              <div class="flex items-center justify-between">
+                <div>
+                  <div class="text-2xl font-bold" id="announcements">0</div>
+                  <div class="text-sm text-blue-100">Announcements</div>
+                </div>
+                <i class="fas fa-bullhorn text-2xl text-green-200"></i>
+              </div>
+            </div>
+          </div>
+          <div class="mt-6">
+            <p class="text-sm text-blue-100 mb-2">Note: Full messaging functionality will be available in the next update</p>
+            <button class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg transition-all duration-300" disabled>
+              <i class="fas fa-plus mr-2"></i>Create Message (Coming Soon)
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Filters and Search -->
+    <section class="mb-6">
+      <div class="bg-white rounded-lg border border-gray-200 p-6">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <!-- Filter Tabs -->
+          <div class="flex flex-wrap gap-2">
+            <button class="filter-tab active" data-filter="all" onclick="filterNotifications('all')">
+              <i class="fas fa-list mr-2"></i>All
+            </button>
+            <button class="filter-tab" data-filter="unread" onclick="filterNotifications('unread')">
+              <i class="fas fa-envelope mr-2"></i>Unread
+            </button>
+            <button class="filter-tab" data-filter="application" onclick="filterNotifications('application')">
+              <i class="fas fa-file-alt mr-2"></i>Applications
+            </button>
+            <button class="filter-tab" data-filter="interview" onclick="filterNotifications('interview')">
+              <i class="fas fa-calendar mr-2"></i>Interviews
+            </button>
+            <button class="filter-tab" data-filter="system" onclick="filterNotifications('system')">
+              <i class="fas fa-cog mr-2"></i>System
+            </button>
+          </div>
+          
+          <!-- Search and Actions -->
+          <div class="flex flex-col sm:flex-row gap-3">
+            <div class="relative">
+              <input type="text" id="search-input" class="search-input pl-10 pr-4 w-full sm:w-64" placeholder="Search notifications..." oninput="searchNotifications()">
+              <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+            </div>
+            <div class="flex gap-2">
+              <button onclick="markAllAsRead()" class="btn-secondary">
+                <i class="fas fa-check-double mr-2"></i>Mark All Read
+              </button>
+              <button onclick="clearAllNotifications()" class="btn-secondary text-red-600 hover:text-red-700">
+                <i class="fas fa-trash mr-2"></i>Clear All
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bulk Actions -->
+    <section id="bulk-actions" class="mb-6 hidden">
+      <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-3">
+            <span class="text-sm font-medium text-blue-800" id="selected-count">0 selected</span>
+            <button onclick="selectAllVisible()" class="text-sm text-blue-600 hover:text-blue-800">Select all visible</button>
+            <button onclick="clearSelection()" class="text-sm text-blue-600 hover:text-blue-800">Clear selection</button>
+          </div>
+          <div class="flex space-x-2">
+            <button onclick="bulkMarkAsRead()" class="btn-primary text-sm">
+              <i class="fas fa-check mr-1"></i>Mark as Read
+            </button>
+            <button onclick="bulkDelete()" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm">
+              <i class="fas fa-trash mr-1"></i>Delete
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Notifications List -->
+    <section>
+      <div id="notifications-container">
+        <!-- Notifications will be populated by JavaScript -->
+      </div>
+      
+      <!-- Pagination -->
+      <div id="pagination" class="mt-8 flex justify-center items-center space-x-2">
+        <!-- Pagination will be populated by JavaScript -->
+      </div>
+      
+      <!-- Empty State -->
+      <div id="empty-state" class="text-center py-12 hidden">
+        <i class="fas fa-bell-slash text-6xl text-gray-300 mb-4"></i>
+        <h3 class="text-xl font-semibold text-gray-600 mb-2">No notifications found</h3>
+        <p class="text-gray-500">You're all caught up! New notifications will appear here.</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- Notification Settings Modal -->
+  <div id="notification-settings-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+      <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div class="flex items-center justify-between p-6 border-b border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-900">Notification Settings</h3>
+          <button onclick="closeNotificationSettings()" class="text-gray-400 hover:text-gray-600">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="p-6">
+          <div class="space-y-4">
+            <div class="flex items-center justify-between">
+              <label for="email-notifications" class="text-sm font-medium text-gray-700">Email Notifications</label>
+              <input type="checkbox" id="email-notifications" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+            </div>
+            <div class="flex items-center justify-between">
+              <label for="push-notifications" class="text-sm font-medium text-gray-700">Push Notifications</label>
+              <input type="checkbox" id="push-notifications" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+            </div>
+            <div class="flex items-center justify-between">
+              <label for="sms-notifications" class="text-sm font-medium text-gray-700">SMS Notifications</label>
+              <input type="checkbox" id="sms-notifications" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center justify-end space-x-3 p-6 border-t border-gray-200">
+          <button onclick="closeNotificationSettings()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
+            Cancel
+          </button>
+          <button onclick="saveNotificationSettings()" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+            Save Settings
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Backend instance
+    let notificationsBackend = null;
+    
+    // Notification Management System
+    class NotificationManager {
+      constructor() {
+        this.notifications = [];
+        this.filteredNotifications = [];
+        this.selectedNotifications = new Set();
+        this.currentFilter = 'all';
+        this.currentPage = 1;
+        this.itemsPerPage = 10;
+        this.searchQuery = '';
+        this.init();
+      }
+
+      async init() {
+        try {
+          // Initialize notifications backend
+          if (typeof NotificationsBackend !== 'undefined') {
+            notificationsBackend = new NotificationsBackend();
+            await notificationsBackend.initialize();
+          }
+          
+          await this.loadNotifications();
+          await this.loadNotificationStatistics();
+          this.renderNotifications();
+        } catch (error) {
+          console.error('Failed to initialize notification manager:', error);
+          this.loadMockNotifications();
+          this.renderNotifications();
+        }
+      }
+
+      async loadNotifications() {
+        try {
+          if (notificationsBackend) {
+            const response = await notificationsBackend.loadNotifications(this.currentPage, this.itemsPerPage);
+            this.notifications = response.results || response;
+          } else {
+            this.loadMockNotifications();
+          }
+          this.applyFilters();
+        } catch (error) {
+          console.error('Failed to load notifications:', error);
+          this.loadMockNotifications();
+        }
+      }
+
+      async loadNotificationStatistics() {
+        try {
+          if (notificationsBackend) {
+            const stats = await notificationsBackend.loadNotificationStatistics();
+            this.updateMessageHubStats(stats);
+          } else {
+            this.updateMessageHubStats();
+          }
+        } catch (error) {
+          console.error('Failed to load notification statistics:', error);
+          this.updateMessageHubStats();
+        }
+      }
+
+      async loadNotificationPreferences() {
+        try {
+          if (notificationsBackend) {
+            const preferences = await notificationsBackend.getNotificationPreferences();
+            this.updatePreferencesUI(preferences);
+          }
+        } catch (error) {
+          console.error('Failed to load notification preferences:', error);
+        }
+      }
+
+      updatePreferencesUI(preferences) {
+        if (preferences) {
+          // Update preference checkboxes based on backend data
+          const emailCheckbox = document.getElementById('email-notifications');
+          const pushCheckbox = document.getElementById('push-notifications');
+          const smsCheckbox = document.getElementById('sms-notifications');
+          
+          if (emailCheckbox) emailCheckbox.checked = preferences.email_notifications || false;
+          if (pushCheckbox) pushCheckbox.checked = preferences.push_notifications || false;
+          if (smsCheckbox) smsCheckbox.checked = preferences.sms_notifications || false;
+        }
+      }
+
+      async saveNotificationPreferences() {
+        try {
+          const emailCheckbox = document.getElementById('email-notifications');
+          const pushCheckbox = document.getElementById('push-notifications');
+          const smsCheckbox = document.getElementById('sms-notifications');
+          
+          const preferences = {
+            email_notifications: emailCheckbox ? emailCheckbox.checked : false,
+            push_notifications: pushCheckbox ? pushCheckbox.checked : false,
+            sms_notifications: smsCheckbox ? smsCheckbox.checked : false
+          };
+          
+          if (notificationsBackend) {
+            await notificationsBackend.updateNotificationPreferences(preferences);
+            alert('Notification preferences saved successfully!');
+          } else {
+            // Store locally as fallback
+            localStorage.setItem('notificationPreferences', JSON.stringify(preferences));
+            alert('Notification preferences saved locally!');
+          }
+        } catch (error) {
+          console.error('Failed to save notification preferences:', error);
+          alert('Failed to save notification preferences. Please try again.');
+        }
+      }
+
+      loadMockNotifications() {
+        this.notifications = [
+          {
+            id: 1,
+            message: "New application received for Software Engineering Internship",
+            notification_type: "application",
+            timestamp: new Date(Date.now() - 3600000),
+            is_read: false
+          },
+          {
+            id: 2,
+            message: "Interview scheduled for tomorrow at 2:00 PM",
+            notification_type: "interview",
+            timestamp: new Date(Date.now() - 7200000),
+            is_read: false
+          },
+          {
+            id: 3,
+            message: "System maintenance scheduled for this weekend",
+            notification_type: "system",
+            timestamp: new Date(Date.now() - 86400000),
+            is_read: true
+          }
+        ];
+        this.applyFilters();
+      }
+
+      applyFilters() {
+        let filtered = [...this.notifications];
+
+        // Apply type filter
+        if (this.currentFilter !== 'all') {
+          if (this.currentFilter === 'unread') {
+            filtered = filtered.filter(n => !n.is_read);
+          } else {
+            filtered = filtered.filter(n => n.notification_type === this.currentFilter);
+          }
+        }
+
+        // Apply search filter
+        if (this.searchQuery) {
+          filtered = filtered.filter(n => 
+            n.message.toLowerCase().includes(this.searchQuery.toLowerCase())
+          );
+        }
+
+        this.filteredNotifications = filtered;
+        this.currentPage = 1; // Reset to first page
+      }
+
+      renderNotifications() {
+        const container = document.getElementById('notifications-container');
+        const emptyState = document.getElementById('empty-state');
+        
+        if (this.filteredNotifications.length === 0) {
+          container.innerHTML = '';
+          emptyState.classList.remove('hidden');
+          this.renderPagination();
+          return;
+        }
+
+        emptyState.classList.add('hidden');
+        
+        // Calculate pagination
+        const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+        const endIndex = startIndex + this.itemsPerPage;
+        const pageNotifications = this.filteredNotifications.slice(startIndex, endIndex);
+
+        container.innerHTML = pageNotifications.map(notification => this.renderNotificationCard(notification)).join('');
+        this.renderPagination();
+        this.updateBulkActions();
+      }
+
+      renderNotificationCard(notification) {
+        const isSelected = this.selectedNotifications.has(notification.id);
+        const isUnread = !notification.is_read;
+        const icon = this.getNotificationIcon(notification.notification_type);
+        const color = this.getNotificationColor(notification.notification_type);
+        const title = this.getNotificationTitle(notification.notification_type);
+        const timeAgo = this.formatTimeAgo(notification.timestamp);
+
+        return `
+          <div class="notification-card p-6 mb-4 ${isUnread ? 'unread' : ''}">
+            <div class="flex items-start space-x-4">
+              <input type="checkbox" class="mt-1 rounded border-gray-300 text-blue-600 focus:ring-blue-500" 
+                     ${isSelected ? 'checked' : ''} 
+                     onchange="notificationManager.toggleSelection(${notification.id})">
+              <div class="flex-shrink-0">
+                <div class="w-10 h-10 rounded-lg bg-${color}-100 flex items-center justify-center">
+                  <i class="fas ${icon} text-${color}-600"></i>
+                </div>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between mb-2">
+                  <h3 class="text-sm font-semibold text-gray-900">${title}</h3>
+                  <div class="flex items-center space-x-2">
+                    ${isUnread ? '<div class="w-2 h-2 bg-blue-500 rounded-full"></div>' : ''}
+                    <span class="text-xs text-gray-500">${timeAgo}</span>
+                  </div>
+                </div>
+                <p class="text-sm text-gray-700 mb-3">${notification.message}</p>
+                <div class="flex items-center space-x-3">
+                  ${isUnread ? `<button onclick="notificationManager.markAsRead(${notification.id})" class="text-xs text-blue-600 hover:text-blue-800 font-medium">Mark as read</button>` : ''}
+                  <button onclick="notificationManager.deleteNotification(${notification.id})" class="text-xs text-red-600 hover:text-red-800 font-medium">
+                    <i class="fas fa-trash mr-1"></i>Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      renderPagination() {
+        const totalPages = Math.ceil(this.filteredNotifications.length / this.itemsPerPage);
+        const pagination = document.getElementById('pagination');
+        
+        if (totalPages <= 1) {
+          pagination.innerHTML = '';
+          return;
+        }
+
+        let paginationHTML = '';
+        
+        // Previous button
+        paginationHTML += `
+          <button class="pagination-btn" ${this.currentPage === 1 ? 'disabled' : ''} 
+                  onclick="notificationManager.goToPage(${this.currentPage - 1})">
+            <i class="fas fa-chevron-left"></i>
+          </button>
+        `;
+        
+        // Page numbers
+        for (let i = 1; i <= totalPages; i++) {
+          if (i === 1 || i === totalPages || (i >= this.currentPage - 2 && i <= this.currentPage + 2)) {
+            paginationHTML += `
+              <button class="pagination-btn ${i === this.currentPage ? 'active' : ''}" 
+                      onclick="notificationManager.goToPage(${i})">
+                ${i}
+              </button>
+            `;
+          } else if (i === this.currentPage - 3 || i === this.currentPage + 3) {
+            paginationHTML += '<span class="px-2 text-gray-500">...</span>';
+          }
+        }
+        
+        // Next button
+        paginationHTML += `
+          <button class="pagination-btn" ${this.currentPage === totalPages ? 'disabled' : ''} 
+                  onclick="notificationManager.goToPage(${this.currentPage + 1})">
+            <i class="fas fa-chevron-right"></i>
+          </button>
+        `;
+        
+        pagination.innerHTML = paginationHTML;
+      }
+
+      updateMessageHubStats(stats = null) {
+        if (stats) {
+          // Use backend statistics
+          document.getElementById('total-messages').textContent = stats.total_notifications || 0;
+          document.getElementById('unread-messages').textContent = stats.unread_notifications || 0;
+          document.getElementById('system-alerts').textContent = stats.system_alerts || 0;
+          document.getElementById('announcements').textContent = stats.announcements || 0;
+        } else {
+          // Fallback to local calculation
+          const totalMessages = this.notifications.length;
+          const unreadMessages = this.notifications.filter(n => !n.is_read).length;
+          const systemAlerts = this.notifications.filter(n => n.notification_type === 'system').length;
+          const announcements = this.notifications.filter(n => n.notification_type === 'message').length;
+
+          document.getElementById('total-messages').textContent = totalMessages;
+          document.getElementById('unread-messages').textContent = unreadMessages;
+          document.getElementById('system-alerts').textContent = systemAlerts;
+          document.getElementById('announcements').textContent = announcements;
+        }
+      }
+
+      updateBulkActions() {
+        const bulkActions = document.getElementById('bulk-actions');
+        const selectedCount = document.getElementById('selected-count');
+        
+        if (this.selectedNotifications.size > 0) {
+          bulkActions.classList.remove('hidden');
+          selectedCount.textContent = `${this.selectedNotifications.size} selected`;
+        } else {
+          bulkActions.classList.add('hidden');
+        }
+      }
+
+      // Event Handlers
+      toggleSelection(notificationId) {
+        if (this.selectedNotifications.has(notificationId)) {
+          this.selectedNotifications.delete(notificationId);
+        } else {
+          this.selectedNotifications.add(notificationId);
+        }
+        this.updateBulkActions();
+      }
+
+      async markAsRead(notificationId) {
+        try {
+          if (notificationsBackend) {
+            await notificationsBackend.markAsRead(notificationId);
+          }
+          
+          // Update local state
+          const notification = this.notifications.find(n => n.id === notificationId);
+          if (notification) {
+            notification.is_read = true;
+          }
+          
+          await this.loadNotificationStatistics();
+          this.renderNotifications();
+        } catch (error) {
+          console.error('Failed to mark notification as read:', error);
+          alert('Failed to mark notification as read. Please try again.');
+        }
+      }
+
+      async deleteNotification(notificationId) {
+        try {
+          if (notificationsBackend) {
+            await notificationsBackend.deleteNotification(notificationId);
+          }
+          
+          // Update local state
+          this.notifications = this.notifications.filter(n => n.id !== notificationId);
+          this.selectedNotifications.delete(notificationId);
+          this.applyFilters();
+          
+          await this.loadNotificationStatistics();
+          this.renderNotifications();
+        } catch (error) {
+          console.error('Failed to delete notification:', error);
+          alert('Failed to delete notification. Please try again.');
+        }
+      }
+
+      goToPage(page) {
+        const totalPages = Math.ceil(this.filteredNotifications.length / this.itemsPerPage);
+        if (page >= 1 && page <= totalPages) {
+          this.currentPage = page;
+          this.renderNotifications();
+        }
+      }
+
+      // Utility Methods
+      getNotificationIcon(type) {
+        const icons = {
+          'application': 'fa-file-alt',
+          'interview': 'fa-calendar',
+          'system': 'fa-cog',
+          'message': 'fa-envelope'
+        };
+        return icons[type] || 'fa-bell';
+      }
+
+      getNotificationColor(type) {
+        const colors = {
+          'application': 'blue',
+          'interview': 'green',
+          'system': 'yellow',
+          'message': 'purple'
+        };
+        return colors[type] || 'gray';
+      }
+
+      getNotificationTitle(type) {
+        const titles = {
+          'application': 'New Application',
+          'interview': 'Interview Update',
+          'system': 'System Notification',
+          'message': 'Message'
+        };
+        return titles[type] || 'Notification';
+      }
+
+      formatTimeAgo(timestamp) {
+        const date = new Date(timestamp);
+        const now = new Date();
+        const diff = now - date;
+        
+        if (diff < 60000) return 'Just now';
+        if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+        if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+        if (diff < 604800000) return `${Math.floor(diff / 86400000)}d ago`;
+        return date.toLocaleDateString();
+      }
+    }
+
+    // Global Functions
+    function filterNotifications(filter) {
+      // Update active tab
+      document.querySelectorAll('.filter-tab').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      document.querySelector(`[data-filter="${filter}"]`).classList.add('active');
+      
+      notificationManager.currentFilter = filter;
+      notificationManager.applyFilters();
+      notificationManager.renderNotifications();
+    }
+
+    async function searchNotifications() {
+      const searchInput = document.getElementById('search-input');
+      const query = searchInput.value;
+      
+      try {
+        if (!query.trim()) {
+          notificationManager.searchQuery = '';
+          notificationManager.applyFilters();
+        } else {
+          if (notificationsBackend) {
+            // Use backend search
+            const searchResults = await notificationsBackend.searchNotifications(query);
+            notificationManager.filteredNotifications = searchResults;
+            notificationManager.currentPage = 1;
+          } else {
+            // Fallback to local search
+            notificationManager.searchQuery = query;
+            notificationManager.applyFilters();
+          }
+        }
+        notificationManager.renderNotifications();
+      } catch (error) {
+        console.error('Search failed:', error);
+        // Fallback to local search on error
+        notificationManager.searchQuery = query;
+        notificationManager.applyFilters();
+        notificationManager.renderNotifications();
+      }
+    }
+
+    async function markAllAsRead() {
+      try {
+        if (notificationsBackend) {
+          await notificationsBackend.markAllAsRead();
+        }
+        
+        // Update local state
+        notificationManager.notifications.forEach(notification => {
+          notification.is_read = true;
+        });
+        
+        await notificationManager.loadNotificationStatistics();
+        notificationManager.renderNotifications();
+      } catch (error) {
+        console.error('Failed to mark all notifications as read:', error);
+        alert('Failed to mark all notifications as read. Please try again.');
+      }
+    }
+
+    async function clearAllNotifications() {
+      if (confirm('Are you sure you want to delete all notifications? This action cannot be undone.')) {
+        try {
+          if (notificationsBackend) {
+            await notificationsBackend.clearAllNotifications();
+          }
+          
+          // Update local state
+          notificationManager.notifications = [];
+          notificationManager.selectedNotifications.clear();
+          notificationManager.applyFilters();
+          
+          await notificationManager.loadNotificationStatistics();
+          notificationManager.renderNotifications();
+        } catch (error) {
+          console.error('Failed to clear all notifications:', error);
+          alert('Failed to clear all notifications. Please try again.');
+        }
+      }
+    }
+
+    function selectAllVisible() {
+      const startIndex = (notificationManager.currentPage - 1) * notificationManager.itemsPerPage;
+      const endIndex = startIndex + notificationManager.itemsPerPage;
+      const pageNotifications = notificationManager.filteredNotifications.slice(startIndex, endIndex);
+      
+      pageNotifications.forEach(notification => {
+        notificationManager.selectedNotifications.add(notification.id);
+      });
+      
+      notificationManager.renderNotifications();
+    }
+
+    function clearSelection() {
+      notificationManager.selectedNotifications.clear();
+      notificationManager.updateBulkActions();
+      notificationManager.renderNotifications();
+    }
+
+    async function bulkMarkAsRead() {
+      try {
+        if (notificationsBackend) {
+          const notificationIds = Array.from(notificationManager.selectedNotifications);
+          await notificationsBackend.bulkMarkAsRead(notificationIds);
+        }
+        
+        // Update local state
+        notificationManager.selectedNotifications.forEach(id => {
+          const notification = notificationManager.notifications.find(n => n.id === id);
+          if (notification) {
+            notification.is_read = true;
+          }
+        });
+        
+        notificationManager.selectedNotifications.clear();
+        await notificationManager.loadNotificationStatistics();
+        notificationManager.renderNotifications();
+      } catch (error) {
+        console.error('Failed to mark selected notifications as read:', error);
+        alert('Failed to mark selected notifications as read. Please try again.');
+      }
+    }
+
+    async function bulkDelete() {
+      if (confirm(`Are you sure you want to delete ${notificationManager.selectedNotifications.size} notifications? This action cannot be undone.`)) {
+        try {
+          if (notificationsBackend) {
+            const notificationIds = Array.from(notificationManager.selectedNotifications);
+            await notificationsBackend.bulkDeleteNotifications(notificationIds);
+          }
+          
+          // Update local state
+          notificationManager.notifications = notificationManager.notifications.filter(n => 
+            !notificationManager.selectedNotifications.has(n.id)
+          );
+          
+          notificationManager.selectedNotifications.clear();
+          notificationManager.applyFilters();
+          await notificationManager.loadNotificationStatistics();
+          notificationManager.renderNotifications();
+        } catch (error) {
+          console.error('Failed to delete selected notifications:', error);
+          alert('Failed to delete selected notifications. Please try again.');
+        }
+      }
+    }
+
+    function toggleTheme() {
+      const body = document.body;
+      const currentTheme = body.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      
+      body.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      
+      // Update icon
+      const themeIcon = document.querySelector('.fa-moon');
+      if (newTheme === 'dark') {
+        themeIcon.classList.remove('fa-moon');
+        themeIcon.classList.add('fa-sun');
+      } else {
+        themeIcon.classList.remove('fa-sun');
+        themeIcon.classList.add('fa-moon');
+      }
+    }
+
+    function showNotificationSettings() {
+      document.getElementById('notification-settings-modal').style.display = 'block';
+      // Load current preferences when opening settings
+      if (notificationManager) {
+        notificationManager.loadNotificationPreferences();
+      }
+    }
+
+    function closeNotificationSettings() {
+      document.getElementById('notification-settings-modal').style.display = 'none';
+    }
+
+    async function saveNotificationSettings() {
+      if (notificationManager) {
+        await notificationManager.saveNotificationPreferences();
+        closeNotificationSettings();
+      }
+    }
+
+    // Initialize on page load
+    let notificationManager;
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Load saved theme
+      const savedTheme = localStorage.getItem('theme') || 'light';
+      document.body.setAttribute('data-theme', savedTheme);
+      
+      if (savedTheme === 'dark') {
+        const themeIcon = document.querySelector('.fa-moon');
+        themeIcon.classList.remove('fa-moon');
+        themeIcon.classList.add('fa-sun');
+      }
+      
+      notificationManager = new NotificationManager();
+      await notificationManager.loadNotificationPreferences();
+    });
+  </script>
+</body>
+</html>

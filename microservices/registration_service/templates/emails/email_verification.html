@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Your Email - Edulink Registration</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: #2c5aa0;
+            margin-bottom: 10px;
+        }
+        .title {
+            color: #2c5aa0;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        .content {
+            margin-bottom: 30px;
+        }
+        .verification-button {
+            display: inline-block;
+            background-color: #2c5aa0;
+            color: white;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .verification-button:hover {
+            background-color: #1e3d6f;
+        }
+        .info-box {
+            background-color: #e8f4f8;
+            border-left: 4px solid #2c5aa0;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .footer {
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">Edulink</div>
+            <h1 class="title">Verify Your Email Address</h1>
+        </div>
+        
+        <div class="content">
+            <p>Hello {{ first_name }},</p>
+            
+            <p>Thank you for registering with Edulink! To complete your registration, please verify your email address by clicking the button below:</p>
+            
+            <div style="text-align: center;">
+                <a href="{{ verification_url }}" class="verification-button">Verify Email Address</a>
+            </div>
+            
+            <div class="info-box">
+                <strong>Registration Details:</strong><br>
+                Request Number: {{ request_number }}<br>
+                Email: {{ email }}<br>
+                Verification expires in: {{ expires_in_hours }} hours
+            </div>
+            
+            <p>If the button above doesn't work, you can copy and paste the following link into your browser:</p>
+            <p style="word-break: break-all; background-color: #f8f9fa; padding: 10px; border-radius: 5px;">{{ verification_url }}</p>
+            
+            <div class="warning">
+                <strong>Important:</strong> This verification link will expire in {{ expires_in_hours }} hours. If you don't verify your email within this time, you'll need to start the registration process again.
+            </div>
+            
+            <p>If you didn't create an account with Edulink, please ignore this email or contact our support team.</p>
+        </div>
+        
+        <div class="footer">
+            <p>This email was sent by Edulink Registration System</p>
+            <p>If you have any questions, please contact our support team.</p>
+            <p>&copy; {{ current_year }} Edulink. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

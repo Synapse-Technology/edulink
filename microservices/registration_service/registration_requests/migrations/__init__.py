@@ -1,0 +1,1 @@
+# Django migrations for registration_requests app

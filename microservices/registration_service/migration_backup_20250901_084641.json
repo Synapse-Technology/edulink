@@ -1,0 +1,1077 @@
+{
+  "timestamp": "2025-09-01T08:46:38.349986",
+  "schemas": {
+    "auth_schema": [
+      {
+        "id": 1,
+        "app": "authentication",
+        "name": "0001_initial",
+        "applied": "2025-08-26T18:01:03.376780+00:00"
+      },
+      {
+        "id": 2,
+        "app": "contenttypes",
+        "name": "0001_initial",
+        "applied": "2025-08-29T09:46:31.608042+00:00"
+      },
+      {
+        "id": 3,
+        "app": "auth",
+        "name": "0001_initial",
+        "applied": "2025-08-29T09:46:40.765828+00:00"
+      },
+      {
+        "id": 4,
+        "app": "admin",
+        "name": "0001_initial",
+        "applied": "2025-08-29T09:46:43.131331+00:00"
+      },
+      {
+        "id": 5,
+        "app": "admin",
+        "name": "0002_logentry_remove_auto_add",
+        "applied": "2025-08-29T09:46:44.016315+00:00"
+      },
+      {
+        "id": 6,
+        "app": "admin",
+        "name": "0003_logentry_add_action_flag_choices",
+        "applied": "2025-08-29T09:46:44.890829+00:00"
+      },
+      {
+        "id": 7,
+        "app": "admin_interface",
+        "name": "0001_initial",
+        "applied": "2025-08-29T09:46:45.983454+00:00"
+      },
+      {
+        "id": 8,
+        "app": "admin_interface",
+        "name": "0002_add_related_modal",
+        "applied": "2025-08-29T09:46:49.034613+00:00"
+      },
+      {
+        "id": 9,
+        "app": "admin_interface",
+        "name": "0003_add_logo_color",
+        "applied": "2025-08-29T09:46:50.787534+00:00"
+      },
+      {
+        "id": 10,
+        "app": "admin_interface",
+        "name": "0004_rename_title_color",
+        "applied": "2025-08-29T09:46:52.481191+00:00"
+      },
+      {
+        "id": 11,
+        "app": "admin_interface",
+        "name": "0005_add_recent_actions_visible",
+        "applied": "2025-08-29T09:46:54.144668+00:00"
+      },
+      {
+        "id": 12,
+        "app": "admin_interface",
+        "name": "0006_bytes_to_str",
+        "applied": "2025-08-29T09:46:55.502375+00:00"
+      },
+      {
+        "id": 13,
+        "app": "admin_interface",
+        "name": "0007_add_favicon",
+        "applied": "2025-08-29T09:46:57.335451+00:00"
+      },
+      {
+        "id": 14,
+        "app": "admin_interface",
+        "name": "0008_change_related_modal_background_opacity_type",
+        "applied": "2025-08-29T09:46:59.374857+00:00"
+      },
+      {
+        "id": 15,
+        "app": "admin_interface",
+        "name": "0009_add_enviroment",
+        "applied": "2025-08-29T09:47:04.165305+00:00"
+      },
+      {
+        "id": 16,
+        "app": "admin_interface",
+        "name": "0010_add_localization",
+        "applied": "2025-08-29T09:47:05.489916+00:00"
+      },
+      {
+        "id": 17,
+        "app": "admin_interface",
+        "name": "0011_add_environment_options",
+        "applied": "2025-08-29T09:47:07.891242+00:00"
+      },
+      {
+        "id": 18,
+        "app": "admin_interface",
+        "name": "0012_update_verbose_names",
+        "applied": "2025-08-29T09:47:09.120358+00:00"
+      },
+      {
+        "id": 19,
+        "app": "admin_interface",
+        "name": "0013_add_related_modal_close_button",
+        "applied": "2025-08-29T09:47:10.431411+00:00"
+      },
+      {
+        "id": 20,
+        "app": "admin_interface",
+        "name": "0014_name_unique",
+        "applied": "2025-08-29T09:47:12.095204+00:00"
+      },
+      {
+        "id": 21,
+        "app": "admin_interface",
+        "name": "0015_add_language_chooser_active",
+        "applied": "2025-08-29T09:47:13.809730+00:00"
+      },
+      {
+        "id": 22,
+        "app": "admin_interface",
+        "name": "0016_add_language_chooser_display",
+        "applied": "2025-08-29T09:47:16.213548+00:00"
+      },
+      {
+        "id": 23,
+        "app": "admin_interface",
+        "name": "0017_change_list_filter_dropdown",
+        "applied": "2025-08-29T09:47:17.792835+00:00"
+      },
+      {
+        "id": 24,
+        "app": "admin_interface",
+        "name": "0018_theme_list_filter_sticky",
+        "applied": "2025-08-29T09:47:19.255100+00:00"
+      },
+      {
+        "id": 25,
+        "app": "admin_interface",
+        "name": "0019_add_form_sticky",
+        "applied": "2025-08-29T09:47:23.247418+00:00"
+      },
+      {
+        "id": 26,
+        "app": "admin_interface",
+        "name": "0020_module_selected_colors",
+        "applied": "2025-08-29T09:47:28.422591+00:00"
+      },
+      {
+        "id": 27,
+        "app": "admin_interface",
+        "name": "0021_file_extension_validator",
+        "applied": "2025-08-29T09:47:31.301678+00:00"
+      },
+      {
+        "id": 28,
+        "app": "admin_interface",
+        "name": "0022_add_logo_max_width_and_height",
+        "applied": "2025-08-29T09:47:33.049741+00:00"
+      },
+      {
+        "id": 29,
+        "app": "admin_interface",
+        "name": "0023_theme_foldable_apps",
+        "applied": "2025-08-29T09:47:35.715134+00:00"
+      },
+      {
+        "id": 30,
+        "app": "admin_interface",
+        "name": "0024_remove_theme_css",
+        "applied": "2025-08-29T09:47:37.989102+00:00"
+      },
+      {
+        "id": 31,
+        "app": "admin_interface",
+        "name": "0025_theme_language_chooser_control",
+        "applied": "2025-08-29T09:47:40.415018+00:00"
+      },
+      {
+        "id": 32,
+        "app": "admin_interface",
+        "name": "0026_theme_list_filter_highlight",
+        "applied": "2025-08-29T09:47:42.473694+00:00"
+      },
+      {
+        "id": 33,
+        "app": "admin_interface",
+        "name": "0027_theme_list_filter_removal_links",
+        "applied": "2025-08-29T09:47:44.358819+00:00"
+      },
+      {
+        "id": 34,
+        "app": "admin_interface",
+        "name": "0028_theme_show_fieldsets_as_tabs_and_more",
+        "applied": "2025-08-29T09:47:46.470142+00:00"
+      },
+      {
+        "id": 35,
+        "app": "admin_interface",
+        "name": "0029_theme_css_generic_link_active_color",
+        "applied": "2025-08-29T09:47:48.215716+00:00"
+      },
+      {
+        "id": 36,
+        "app": "admin_interface",
+        "name": "0030_theme_collapsible_stacked_inlines_and_more",
+        "applied": "2025-08-29T09:47:51.312503+00:00"
+      },
+      {
+        "id": 37,
+        "app": "auditlog",
+        "name": "0001_initial",
+        "applied": "2025-08-29T09:47:55.113711+00:00"
+      },
+      {
+        "id": 38,
+        "app": "auditlog",
+        "name": "0002_auto_support_long_primary_keys",
+        "applied": "2025-08-29T09:47:57.179608+00:00"
+      },
+      {
+        "id": 39,
+        "app": "auditlog",
+        "name": "0003_logentry_remote_addr",
+        "applied": "2025-08-29T09:47:58.877676+00:00"
+      },
+      {
+        "id": 40,
+        "app": "auditlog",
+        "name": "0004_logentry_detailed_object_repr",
+        "applied": "2025-08-29T09:48:00.320139+00:00"
+      },
+      {
+        "id": 41,
+        "app": "auditlog",
+        "name": "0005_logentry_additional_data_verbose_name",
+        "applied": "2025-08-29T09:48:01.620606+00:00"
+      },
+      {
+        "id": 42,
+        "app": "auditlog",
+        "name": "0006_object_pk_index",
+        "applied": "2025-08-29T09:48:03.105919+00:00"
+      },
+      {
+        "id": 43,
+        "app": "auditlog",
+        "name": "0007_object_pk_type",
+        "applied": "2025-08-29T09:48:04.404529+00:00"
+      },
+      {
+        "id": 44,
+        "app": "auditlog",
+        "name": "0008_action_index",
+        "applied": "2025-08-29T09:48:05.465443+00:00"
+      },
+      {
+        "id": 45,
+        "app": "auditlog",
+        "name": "0009_alter_logentry_additional_data",
+        "applied": "2025-08-29T09:48:06.770432+00:00"
+      },
+      {
+        "id": 46,
+        "app": "auditlog",
+        "name": "0010_alter_logentry_timestamp",
+        "applied": "2025-08-29T09:48:07.843284+00:00"
+      },
+      {
+        "id": 47,
+        "app": "auditlog",
+        "name": "0011_logentry_serialized_data",
+        "applied": "2025-08-29T09:48:09.328964+00:00"
+      },
+      {
+        "id": 48,
+        "app": "auditlog",
+        "name": "0012_add_logentry_action_access",
+        "applied": "2025-08-29T09:48:10.570981+00:00"
+      },
+      {
+        "id": 49,
+        "app": "auditlog",
+        "name": "0013_alter_logentry_timestamp",
+        "applied": "2025-08-29T09:48:14.300023+00:00"
+      },
+      {
+        "id": 50,
+        "app": "auditlog",
+        "name": "0014_logentry_cid",
+        "applied": "2025-08-29T09:48:17.856955+00:00"
+      },
+      {
+        "id": 51,
+        "app": "auditlog",
+        "name": "0015_alter_logentry_changes",
+        "applied": "2025-08-29T09:48:19.467607+00:00"
+      },
+      {
+        "id": 52,
+        "app": "auditlog",
+        "name": "0016_logentry_remote_port",
+        "applied": "2025-08-29T09:48:21.007477+00:00"
+      },
+      {
+        "id": 53,
+        "app": "auditlog",
+        "name": "0017_add_actor_email",
+        "applied": "2025-08-29T09:48:22.494228+00:00"
+      },
+      {
+        "id": 54,
+        "app": "contenttypes",
+        "name": "0002_remove_content_type_name",
+        "applied": "2025-08-29T09:48:24.555928+00:00"
+      },
+      {
+        "id": 55,
+        "app": "auth",
+        "name": "0002_alter_permission_name_max_length",
+        "applied": "2025-08-29T09:48:26.220880+00:00"
+      },
+      {
+        "id": 56,
+        "app": "auth",
+        "name": "0003_alter_user_email_max_length",
+        "applied": "2025-08-29T09:48:28.241863+00:00"
+      },
+      {
+        "id": 57,
+        "app": "auth",
+        "name": "0004_alter_user_username_opts",
+        "applied": "2025-08-29T09:48:30.377465+00:00"
+      },
+      {
+        "id": 58,
+        "app": "auth",
+        "name": "0005_alter_user_last_login_null",
+        "applied": "2025-08-29T09:48:31.637865+00:00"
+      },
+      {
+        "id": 59,
+        "app": "auth",
+        "name": "0006_require_contenttypes_0002",
+        "applied": "2025-08-29T09:48:33.084274+00:00"
+      },
+      {
+        "id": 60,
+        "app": "auth",
+        "name": "0007_alter_validators_add_error_messages",
+        "applied": "2025-08-29T09:48:33.936007+00:00"
+      },
+      {
+        "id": 61,
+        "app": "auth",
+        "name": "0008_alter_user_username_max_length",
+        "applied": "2025-08-29T09:48:35.019198+00:00"
+      },
+      {
+        "id": 62,
+        "app": "auth",
+        "name": "0009_alter_user_last_name_max_length",
+        "applied": "2025-08-29T09:48:37.411667+00:00"
+      },
+      {
+        "id": 63,
+        "app": "auth",
+        "name": "0010_alter_group_name_max_length",
+        "applied": "2025-08-29T09:48:39.621689+00:00"
+      },
+      {
+        "id": 64,
+        "app": "auth",
+        "name": "0011_update_proxy_permissions",
+        "applied": "2025-08-29T09:48:41.711287+00:00"
+      },
+      {
+        "id": 65,
+        "app": "auth",
+        "name": "0012_alter_user_first_name_max_length",
+        "applied": "2025-08-29T09:48:42.989608+00:00"
+      },
+      {
+        "id": 66,
+        "app": "axes",
+        "name": "0001_initial",
+        "applied": "2025-08-29T09:48:45.769248+00:00"
+      },
+      {
+        "id": 67,
+        "app": "axes",
+        "name": "0002_auto_20151217_2044",
+        "applied": "2025-08-29T09:48:51.180101+00:00"
+      },
+      {
+        "id": 68,
+        "app": "axes",
+        "name": "0003_auto_20160322_0929",
+        "applied": "2025-08-29T09:48:53.524436+00:00"
+      },
+      {
+        "id": 69,
+        "app": "axes",
+        "name": "0004_auto_20181024_1538",
+        "applied": "2025-08-29T09:48:54.587711+00:00"
+      },
+      {
+        "id": 70,
+        "app": "axes",
+        "name": "0005_remove_accessattempt_trusted",
+        "applied": "2025-08-29T09:48:55.842365+00:00"
+      },
+      {
+        "id": 71,
+        "app": "axes",
+        "name": "0006_remove_accesslog_trusted",
+        "applied": "2025-08-29T09:48:57.941404+00:00"
+      },
+      {
+        "id": 72,
+        "app": "axes",
+        "name": "0007_alter_accessattempt_unique_together",
+        "applied": "2025-08-29T09:48:59.831878+00:00"
+      },
+      {
+        "id": 73,
+        "app": "axes",
+        "name": "0008_accessfailurelog",
+        "applied": "2025-08-29T09:49:03.290059+00:00"
+      },
+      {
+        "id": 74,
+        "app": "axes",
+        "name": "0009_add_session_hash",
+        "applied": "2025-08-29T09:49:04.390568+00:00"
+      },
+      {
+        "id": 75,
+        "app": "health_check_db",
+        "name": "0001_initial",
+        "applied": "2025-08-29T09:49:05.850099+00:00"
+      },
+      {
+        "id": 76,
+        "app": "guardian",
+        "name": "0001_initial",
+        "applied": "2025-08-29T09:49:11.273511+00:00"
+      },
+      {
+        "id": 77,
+        "app": "guardian",
+        "name": "0002_generic_permissions_index",
+        "applied": "2025-08-29T09:49:12.397174+00:00"
+      },
+      {
+        "id": 78,
+        "app": "reversion",
+        "name": "0001_squashed_0004_auto_20160611_1202",
+        "applied": "2025-08-29T09:49:16.706199+00:00"
+      },
+      {
+        "id": 79,
+        "app": "reversion",
+        "name": "0002_add_index_on_version_for_content_type_and_db",
+        "applied": "2025-08-29T09:49:17.602671+00:00"
+      },
+      {
+        "id": 80,
+        "app": "sessions",
+        "name": "0001_initial",
+        "applied": "2025-08-29T09:49:24.313255+00:00"
+      },
+      {
+        "id": 81,
+        "app": "sites",
+        "name": "0001_initial",
+        "applied": "2025-08-29T09:49:25.397187+00:00"
+      },
+      {
+        "id": 82,
+        "app": "sites",
+        "name": "0002_alter_domain_unique",
+        "applied": "2025-08-29T09:49:27.065014+00:00"
+      },
+      {
+        "id": 83,
+        "app": "db",
+        "name": "0001_initial",
+        "applied": "2025-08-29T09:49:28.698576+00:00"
+      },
+      {
+        "id": 84,
+        "app": "registration_requests",
+        "name": "0001_initial",
+        "applied": "2025-08-29T09:59:39.822073+00:00"
+      }
+    ],
+    "public": [
+      {
+        "id": 1,
+        "app": "contenttypes",
+        "name": "0001_initial",
+        "applied": "2025-08-26T17:59:59.336302+00:00"
+      },
+      {
+        "id": 2,
+        "app": "contenttypes",
+        "name": "0002_remove_content_type_name",
+        "applied": "2025-08-26T18:00:01.641689+00:00"
+      },
+      {
+        "id": 3,
+        "app": "auth",
+        "name": "0001_initial",
+        "applied": "2025-08-26T18:00:07.570830+00:00"
+      },
+      {
+        "id": 4,
+        "app": "auth",
+        "name": "0002_alter_permission_name_max_length",
+        "applied": "2025-08-26T18:00:09.635574+00:00"
+      },
+      {
+        "id": 5,
+        "app": "auth",
+        "name": "0003_alter_user_email_max_length",
+        "applied": "2025-08-26T18:00:11.448811+00:00"
+      },
+      {
+        "id": 6,
+        "app": "auth",
+        "name": "0004_alter_user_username_opts",
+        "applied": "2025-08-26T18:00:13.247685+00:00"
+      },
+      {
+        "id": 7,
+        "app": "auth",
+        "name": "0005_alter_user_last_login_null",
+        "applied": "2025-08-26T18:00:14.333415+00:00"
+      },
+      {
+        "id": 8,
+        "app": "auth",
+        "name": "0006_require_contenttypes_0002",
+        "applied": "2025-08-26T18:00:17.996088+00:00"
+      },
+      {
+        "id": 9,
+        "app": "auth",
+        "name": "0007_alter_validators_add_error_messages",
+        "applied": "2025-08-26T18:00:22.062090+00:00"
+      },
+      {
+        "id": 10,
+        "app": "auth",
+        "name": "0008_alter_user_username_max_length",
+        "applied": "2025-08-26T18:00:23.862454+00:00"
+      },
+      {
+        "id": 11,
+        "app": "auth",
+        "name": "0009_alter_user_last_name_max_length",
+        "applied": "2025-08-26T18:00:25.164225+00:00"
+      },
+      {
+        "id": 12,
+        "app": "auth",
+        "name": "0010_alter_group_name_max_length",
+        "applied": "2025-08-26T18:00:26.423905+00:00"
+      },
+      {
+        "id": 13,
+        "app": "auth",
+        "name": "0011_update_proxy_permissions",
+        "applied": "2025-08-26T18:00:27.704316+00:00"
+      },
+      {
+        "id": 14,
+        "app": "auth",
+        "name": "0012_alter_user_first_name_max_length",
+        "applied": "2025-08-26T18:00:28.857556+00:00"
+      },
+      {
+        "id": 16,
+        "app": "admin",
+        "name": "0001_initial",
+        "applied": "2025-08-26T18:01:07.688620+00:00"
+      },
+      {
+        "id": 17,
+        "app": "admin",
+        "name": "0002_logentry_remove_auto_add",
+        "applied": "2025-08-26T18:01:11.046595+00:00"
+      },
+      {
+        "id": 18,
+        "app": "admin",
+        "name": "0003_logentry_add_action_flag_choices",
+        "applied": "2025-08-26T18:01:14.563993+00:00"
+      },
+      {
+        "id": 19,
+        "app": "health_check_db",
+        "name": "0001_initial",
+        "applied": "2025-08-26T18:01:15.972481+00:00"
+      },
+      {
+        "id": 20,
+        "app": "django_celery_beat",
+        "name": "0001_initial",
+        "applied": "2025-08-26T18:01:28.129750+00:00"
+      },
+      {
+        "id": 21,
+        "app": "django_celery_beat",
+        "name": "0002_auto_20161118_0346",
+        "applied": "2025-08-26T18:01:31.880919+00:00"
+      },
+      {
+        "id": 22,
+        "app": "django_celery_beat",
+        "name": "0003_auto_20161209_0049",
+        "applied": "2025-08-26T18:01:34.166392+00:00"
+      },
+      {
+        "id": 23,
+        "app": "django_celery_beat",
+        "name": "0004_auto_20170221_0000",
+        "applied": "2025-08-26T18:01:36.036891+00:00"
+      },
+      {
+        "id": 24,
+        "app": "django_celery_beat",
+        "name": "0005_add_solarschedule_events_choices",
+        "applied": "2025-08-26T18:01:36.883203+00:00"
+      },
+      {
+        "id": 25,
+        "app": "django_celery_beat",
+        "name": "0006_auto_20180322_0932",
+        "applied": "2025-08-26T18:01:42.389513+00:00"
+      },
+      {
+        "id": 26,
+        "app": "django_celery_beat",
+        "name": "0007_auto_20180521_0826",
+        "applied": "2025-08-26T18:01:44.110533+00:00"
+      },
+      {
+        "id": 27,
+        "app": "django_celery_beat",
+        "name": "0008_auto_20180914_1922",
+        "applied": "2025-08-26T18:01:54.026815+00:00"
+      },
+      {
+        "id": 28,
+        "app": "django_celery_beat",
+        "name": "0006_auto_20180210_1226",
+        "applied": "2025-08-26T18:01:55.366052+00:00"
+      },
+      {
+        "id": 29,
+        "app": "django_celery_beat",
+        "name": "0006_periodictask_priority",
+        "applied": "2025-08-26T18:01:58.038876+00:00"
+      },
+      {
+        "id": 30,
+        "app": "django_celery_beat",
+        "name": "0009_periodictask_headers",
+        "applied": "2025-08-26T18:02:00.528576+00:00"
+      },
+      {
+        "id": 31,
+        "app": "django_celery_beat",
+        "name": "0010_auto_20190429_0326",
+        "applied": "2025-08-26T18:02:02.940161+00:00"
+      },
+      {
+        "id": 32,
+        "app": "django_celery_beat",
+        "name": "0011_auto_20190508_0153",
+        "applied": "2025-08-26T18:02:06.153024+00:00"
+      },
+      {
+        "id": 33,
+        "app": "django_celery_beat",
+        "name": "0012_periodictask_expire_seconds",
+        "applied": "2025-08-26T18:02:07.908628+00:00"
+      },
+      {
+        "id": 34,
+        "app": "django_celery_beat",
+        "name": "0013_auto_20200609_0727",
+        "applied": "2025-08-26T18:02:08.796963+00:00"
+      },
+      {
+        "id": 35,
+        "app": "django_celery_beat",
+        "name": "0014_remove_clockedschedule_enabled",
+        "applied": "2025-08-26T18:02:17.075527+00:00"
+      },
+      {
+        "id": 36,
+        "app": "django_celery_beat",
+        "name": "0015_edit_solarschedule_events_choices",
+        "applied": "2025-08-26T18:02:17.925383+00:00"
+      },
+      {
+        "id": 37,
+        "app": "django_celery_beat",
+        "name": "0016_alter_crontabschedule_timezone",
+        "applied": "2025-08-26T18:02:19.862373+00:00"
+      },
+      {
+        "id": 38,
+        "app": "django_celery_beat",
+        "name": "0017_alter_crontabschedule_month_of_year",
+        "applied": "2025-08-26T18:03:22.708042+00:00"
+      },
+      {
+        "id": 39,
+        "app": "django_celery_beat",
+        "name": "0018_improve_crontab_helptext",
+        "applied": "2025-08-26T18:03:23.551115+00:00"
+      },
+      {
+        "id": 40,
+        "app": "django_celery_beat",
+        "name": "0019_alter_periodictasks_options",
+        "applied": "2025-08-26T18:03:25.268833+00:00"
+      },
+      {
+        "id": 41,
+        "app": "django_celery_results",
+        "name": "0001_initial",
+        "applied": "2025-08-26T18:03:27.767550+00:00"
+      },
+      {
+        "id": 42,
+        "app": "django_celery_results",
+        "name": "0002_add_task_name_args_kwargs",
+        "applied": "2025-08-26T18:03:30.528013+00:00"
+      },
+      {
+        "id": 43,
+        "app": "django_celery_results",
+        "name": "0003_auto_20181106_1101",
+        "applied": "2025-08-26T18:03:31.409086+00:00"
+      },
+      {
+        "id": 44,
+        "app": "django_celery_results",
+        "name": "0004_auto_20190516_0412",
+        "applied": "2025-08-26T18:03:34.259823+00:00"
+      },
+      {
+        "id": 45,
+        "app": "django_celery_results",
+        "name": "0005_taskresult_worker",
+        "applied": "2025-08-26T18:03:36.344833+00:00"
+      },
+      {
+        "id": 46,
+        "app": "django_celery_results",
+        "name": "0006_taskresult_date_created",
+        "applied": "2025-08-26T18:03:38.582750+00:00"
+      },
+      {
+        "id": 47,
+        "app": "django_celery_results",
+        "name": "0007_remove_taskresult_hidden",
+        "applied": "2025-08-26T18:03:39.527291+00:00"
+      },
+      {
+        "id": 48,
+        "app": "django_celery_results",
+        "name": "0008_chordcounter",
+        "applied": "2025-08-26T18:03:41.066767+00:00"
+      },
+      {
+        "id": 49,
+        "app": "django_celery_results",
+        "name": "0009_groupresult",
+        "applied": "2025-08-26T18:03:52.917616+00:00"
+      },
+      {
+        "id": 50,
+        "app": "django_celery_results",
+        "name": "0010_remove_duplicate_indices",
+        "applied": "2025-08-26T18:03:54.713109+00:00"
+      },
+      {
+        "id": 51,
+        "app": "django_celery_results",
+        "name": "0011_taskresult_periodic_task_name",
+        "applied": "2025-08-26T18:03:56.932986+00:00"
+      },
+      {
+        "id": 52,
+        "app": "django_celery_results",
+        "name": "0012_taskresult_date_started",
+        "applied": "2025-08-26T18:03:58.288823+00:00"
+      },
+      {
+        "id": 53,
+        "app": "django_celery_results",
+        "name": "0013_taskresult_django_cele_periodi_1993cf_idx",
+        "applied": "2025-08-26T18:04:00.335845+00:00"
+      },
+      {
+        "id": 54,
+        "app": "django_celery_results",
+        "name": "0014_alter_taskresult_status",
+        "applied": "2025-08-26T18:04:01.474612+00:00"
+      },
+      {
+        "id": 55,
+        "app": "security",
+        "name": "0001_initial",
+        "applied": "2025-08-26T18:04:18.437511+00:00"
+      },
+      {
+        "id": 56,
+        "app": "sessions",
+        "name": "0001_initial",
+        "applied": "2025-08-26T18:04:20.328293+00:00"
+      },
+      {
+        "id": 57,
+        "app": "db",
+        "name": "0001_initial",
+        "applied": "2025-08-26T18:04:22.408945+00:00"
+      },
+      {
+        "id": 58,
+        "app": "companies",
+        "name": "0001_initial",
+        "applied": "2025-08-26T18:41:33.586329+00:00"
+      },
+      {
+        "id": 61,
+        "app": "roles",
+        "name": "0001_initial",
+        "applied": "2025-08-26T18:41:39.348980+00:00"
+      },
+      {
+        "id": 63,
+        "app": "authtoken",
+        "name": "0001_initial",
+        "applied": "2025-08-27T09:14:45.733751+00:00"
+      },
+      {
+        "id": 64,
+        "app": "authtoken",
+        "name": "0002_auto_20160226_1747",
+        "applied": "2025-08-27T09:14:46.736128+00:00"
+      },
+      {
+        "id": 65,
+        "app": "authtoken",
+        "name": "0003_tokenproxy",
+        "applied": "2025-08-27T09:14:47.616998+00:00"
+      },
+      {
+        "id": 66,
+        "app": "authtoken",
+        "name": "0004_alter_tokenproxy_options",
+        "applied": "2025-08-27T09:14:48.500138+00:00"
+      },
+      {
+        "id": 70,
+        "app": "institutions",
+        "name": "0001_initial",
+        "applied": "2025-08-28T07:30:16.601897+00:00"
+      },
+      {
+        "id": 71,
+        "app": "profiles",
+        "name": "0001_initial",
+        "applied": "2025-08-28T07:30:17.720059+00:00"
+      },
+      {
+        "id": 72,
+        "app": "admin_interface",
+        "name": "0001_initial",
+        "applied": "2025-08-29T09:19:47.816397+00:00"
+      },
+      {
+        "id": 73,
+        "app": "admin_interface",
+        "name": "0002_add_related_modal",
+        "applied": "2025-08-29T09:19:52.648958+00:00"
+      },
+      {
+        "id": 74,
+        "app": "admin_interface",
+        "name": "0003_add_logo_color",
+        "applied": "2025-08-29T09:19:54.882434+00:00"
+      },
+      {
+        "id": 75,
+        "app": "admin_interface",
+        "name": "0004_rename_title_color",
+        "applied": "2025-08-29T09:19:56.829924+00:00"
+      },
+      {
+        "id": 76,
+        "app": "admin_interface",
+        "name": "0005_add_recent_actions_visible",
+        "applied": "2025-08-29T09:19:59.325242+00:00"
+      },
+      {
+        "id": 77,
+        "app": "admin_interface",
+        "name": "0006_bytes_to_str",
+        "applied": "2025-08-29T09:20:01.106607+00:00"
+      },
+      {
+        "id": 78,
+        "app": "admin_interface",
+        "name": "0007_add_favicon",
+        "applied": "2025-08-29T09:20:02.396495+00:00"
+      },
+      {
+        "id": 79,
+        "app": "admin_interface",
+        "name": "0008_change_related_modal_background_opacity_type",
+        "applied": "2025-08-29T09:20:04.414680+00:00"
+      },
+      {
+        "id": 80,
+        "app": "admin_interface",
+        "name": "0009_add_enviroment",
+        "applied": "2025-08-29T09:20:06.570819+00:00"
+      },
+      {
+        "id": 81,
+        "app": "admin_interface",
+        "name": "0010_add_localization",
+        "applied": "2025-08-29T09:20:08.014445+00:00"
+      },
+      {
+        "id": 82,
+        "app": "admin_interface",
+        "name": "0011_add_environment_options",
+        "applied": "2025-08-29T09:20:10.183113+00:00"
+      },
+      {
+        "id": 83,
+        "app": "admin_interface",
+        "name": "0012_update_verbose_names",
+        "applied": "2025-08-29T09:20:11.484721+00:00"
+      },
+      {
+        "id": 84,
+        "app": "admin_interface",
+        "name": "0013_add_related_modal_close_button",
+        "applied": "2025-08-29T09:20:12.815138+00:00"
+      },
+      {
+        "id": 85,
+        "app": "admin_interface",
+        "name": "0014_name_unique",
+        "applied": "2025-08-29T09:20:16.839703+00:00"
+      },
+      {
+        "id": 86,
+        "app": "admin_interface",
+        "name": "0015_add_language_chooser_active",
+        "applied": "2025-08-29T09:20:18.514704+00:00"
+      },
+      {
+        "id": 87,
+        "app": "admin_interface",
+        "name": "0016_add_language_chooser_display",
+        "applied": "2025-08-29T09:20:20.249583+00:00"
+      },
+      {
+        "id": 88,
+        "app": "admin_interface",
+        "name": "0017_change_list_filter_dropdown",
+        "applied": "2025-08-29T09:20:22.273280+00:00"
+      },
+      {
+        "id": 89,
+        "app": "admin_interface",
+        "name": "0018_theme_list_filter_sticky",
+        "applied": "2025-08-29T09:20:23.617152+00:00"
+      },
+      {
+        "id": 90,
+        "app": "admin_interface",
+        "name": "0019_add_form_sticky",
+        "applied": "2025-08-29T09:20:26.449840+00:00"
+      },
+      {
+        "id": 91,
+        "app": "admin_interface",
+        "name": "0020_module_selected_colors",
+        "applied": "2025-08-29T09:20:29.619332+00:00"
+      },
+      {
+        "id": 92,
+        "app": "admin_interface",
+        "name": "0021_file_extension_validator",
+        "applied": "2025-08-29T09:20:30.920327+00:00"
+      },
+      {
+        "id": 93,
+        "app": "admin_interface",
+        "name": "0022_add_logo_max_width_and_height",
+        "applied": "2025-08-29T09:20:32.677800+00:00"
+      },
+      {
+        "id": 94,
+        "app": "admin_interface",
+        "name": "0023_theme_foldable_apps",
+        "applied": "2025-08-29T09:20:34.435795+00:00"
+      },
+      {
+        "id": 95,
+        "app": "admin_interface",
+        "name": "0024_remove_theme_css",
+        "applied": "2025-08-29T09:20:36.432311+00:00"
+      },
+      {
+        "id": 96,
+        "app": "admin_interface",
+        "name": "0025_theme_language_chooser_control",
+        "applied": "2025-08-29T09:20:38.636987+00:00"
+      },
+      {
+        "id": 97,
+        "app": "admin_interface",
+        "name": "0026_theme_list_filter_highlight",
+        "applied": "2025-08-29T09:20:42.105167+00:00"
+      },
+      {
+        "id": 98,
+        "app": "admin_interface",
+        "name": "0027_theme_list_filter_removal_links",
+        "applied": "2025-08-29T09:20:44.777286+00:00"
+      },
+      {
+        "id": 99,
+        "app": "admin_interface",
+        "name": "0028_theme_show_fieldsets_as_tabs_and_more",
+        "applied": "2025-08-29T09:20:46.938472+00:00"
+      },
+      {
+        "id": 100,
+        "app": "admin_interface",
+        "name": "0029_theme_css_generic_link_active_color",
+        "applied": "2025-08-29T09:20:48.644730+00:00"
+      },
+      {
+        "id": 101,
+        "app": "admin_interface",
+        "name": "0030_theme_collapsible_stacked_inlines_and_more",
+        "applied": "2025-08-29T09:20:53.601379+00:00"
+      }
+    ]
+  }
+}

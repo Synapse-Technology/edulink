@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Your Email - Edulink Employer</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: #059669;
+            margin-bottom: 10px;
+        }
+        .title {
+            font-size: 24px;
+            color: #1f2937;
+            margin-bottom: 20px;
+        }
+        .content {
+            margin-bottom: 30px;
+        }
+        .verification-code {
+            background-color: #f3f4f6;
+            border: 2px dashed #d1d5db;
+            padding: 20px;
+            text-align: center;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .code {
+            font-size: 32px;
+            font-weight: bold;
+            color: #059669;
+            letter-spacing: 4px;
+            font-family: 'Courier New', monospace;
+        }
+        .button {
+            display: inline-block;
+            background-color: #059669;
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        .button:hover {
+            background-color: #047857;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 14px;
+            color: #6b7280;
+            text-align: center;
+        }
+        .warning {
+            background-color: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .info-box {
+            background-color: #ecfdf5;
+            border-left: 4px solid #10b981;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .process-steps {
+            background-color: #f9fafb;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .step {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+        }
+        .step-number {
+            background-color: #059669;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        .benefits {
+            background-color: #f0fdf4;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 1px solid #bbf7d0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">Edulink</div>
+            <h1 class="title">Employer Registration</h1>
+        </div>
+        
+        <div class="content">
+            <p>Hello {{ user.first_name }},</p>
+            
+            <p>Thank you for choosing Edulink to connect with talented students and interns. To proceed with your employer registration, please verify your email address using the verification code below:</p>
+            
+            <div class="verification-code">
+                <div class="code">{{ otp_code }}</div>
+                <p style="margin: 10px 0 0 0; color: #6b7280;">Enter this code to verify your email</p>
+            </div>
+            
+            <p>Alternatively, you can click the button below to verify your email automatically:</p>
+            
+            <div style="text-align: center;">
+                <a href="{{ verification_url }}" class="button">Verify Email Address</a>
+            </div>
+            
+            <div class="info-box">
+                <strong>What happens next?</strong><br>
+                After email verification, your employer application will be reviewed by our administrators. This process typically takes 2-3 business days to ensure the quality and authenticity of our employer network.
+            </div>
+            
+            <div class="process-steps">
+                <h3 style="margin-top: 0; color: #374151;">Registration Process:</h3>
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div>Email verification (current step)</div>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div>Administrative review of your company details</div>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div>Account activation and welcome package</div>
+                </div>
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <div>Access to employer dashboard and talent pool</div>
+                </div>
+            </div>
+            
+            <div class="benefits">
+                <h3 style="margin-top: 0; color: #065f46;">🚀 What you'll get as an Edulink Employer:</h3>
+                <ul style="margin: 10px 0;">
+                    <li><strong>Access to Top Talent:</strong> Connect with pre-screened students from leading institutions</li>
+                    <li><strong>Internship Management:</strong> Post opportunities and manage applications seamlessly</li>
+                    <li><strong>Talent Pipeline:</strong> Build relationships with future employees early</li>
+                    <li><strong>Analytics & Insights:</strong> Track your recruitment performance and ROI</li>
+                    <li><strong>Institutional Partnerships:</strong> Collaborate directly with universities and colleges</li>
+                    <li><strong>Dedicated Support:</strong> Get assistance from our employer success team</li>
+                </ul>
+            </div>
+            
+            <div class="warning">
+                <strong>Important:</strong> This verification code will expire in 15 minutes. If you didn't request this registration, please ignore this email.
+            </div>
+            
+            <p>We're excited to have you join our growing network of employers who are shaping the future workforce. If you have any questions about the registration process or our platform, please don't hesitate to contact our employer support team.</p>
+        </div>
+        
+        <div class="footer">
+            <p>This email was sent to {{ user.email }}. If you didn't apply for an Employer account with Edulink, please ignore this email.</p>
+            <p>&copy; 2024 Edulink. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

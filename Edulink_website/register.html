@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Edulink KE - Sign Up</title>
+  <script src="js/config.js"></script>
   <!-- Vendor CSS Files -->
   <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
   <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
@@ -117,9 +118,24 @@
       display: none;
       flex-direction: column;
       gap: 16px;
+      border: none;
+      padding: 0;
+      margin: 0;
     }
     .form-step.active {
       display: flex;
+    }
+    
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
     }
 
     .form-navigation {
@@ -212,6 +228,15 @@
     .form-box input::placeholder {
       color: #555;
       opacity: 0.8;
+    }
+
+    .field-help {
+      font-size: 12px;
+      color: #c8e6c9;
+      margin-bottom: 13px;
+      margin-top: -8px;
+      line-height: 1.4;
+      opacity: 0.9;
     }
 
     .form-box select:invalid {
@@ -313,38 +338,286 @@
       }
     }
 
+    /* Enhanced Error Toast Styles - Brand Theme */
     .error-toast {
       position: relative;
-      background: #fff0f0;
-      color: #b71c1c;
-      border: 1.5px solid #ffb3b3;
-      border-radius: 12px;
-      padding: 16px 40px 16px 18px;
-      margin-bottom: 18px;
-      box-shadow: 0 4px 18px rgba(183,28,28,0.08);
-      font-size: 15px;
-      animation: fadeInDown 0.5s;
+      background: linear-gradient(135deg, rgba(255, 245, 245, 0.95) 0%, rgba(254, 242, 242, 0.95) 100%);
+      color: #dc2626;
+      border: 1px solid rgba(252, 165, 165, 0.6);
+      border-left: 4px solid #dc2626;
+      border-radius: 16px;
+      padding: 20px 55px 20px 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 12px 40px rgba(220, 38, 38, 0.12), 0 4px 16px rgba(220, 38, 38, 0.08);
+      font-size: 14px;
+      line-height: 1.6;
+      animation: slideInFromTop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
       display: flex;
-      align-items: center;
-      min-height: 40px;
-      z-index: 10;
+      align-items: flex-start;
+      min-height: 60px;
+      z-index: 1000;
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
     }
-    @keyframes fadeInDown {
-      from { opacity: 0; transform: translateY(-20px);}
-      to { opacity: 1; transform: translateY(0);}
+
+    .error-toast::before {
+      content: "⚠";
+      font-size: 20px;
+      margin-right: 14px;
+      margin-top: 3px;
+      color: #dc2626;
+      flex-shrink: 0;
+      filter: drop-shadow(0 2px 4px rgba(220, 38, 38, 0.2));
     }
+
+    .success-toast {
+      position: relative;
+      background: linear-gradient(135deg, rgba(17, 204, 173, 0.15) 0%, rgba(6, 165, 165, 0.15) 100%);
+      color: #0d9488;
+      border: 1px solid rgba(17, 204, 173, 0.3);
+      border-left: 4px solid rgb(17, 204, 173);
+      border-radius: 16px;
+      padding: 20px 55px 20px 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 12px 40px rgba(17, 204, 173, 0.15), 0 4px 16px rgba(17, 204, 173, 0.1);
+      font-size: 14px;
+      line-height: 1.6;
+      animation: slideInFromTop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+      display: flex;
+      align-items: flex-start;
+      min-height: 60px;
+      z-index: 1000;
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .success-toast::before {
+      content: "✓";
+      font-size: 20px;
+      margin-right: 14px;
+      margin-top: 3px;
+      color: rgb(17, 204, 173);
+      flex-shrink: 0;
+      filter: drop-shadow(0 2px 4px rgba(17, 204, 173, 0.2));
+    }
+
+    @keyframes slideInFromTop {
+      from { 
+        opacity: 0; 
+        transform: translateY(-40px) scale(0.9) rotateX(10deg);
+        filter: blur(4px);
+      }
+      to { 
+        opacity: 1; 
+        transform: translateY(0) scale(1) rotateX(0deg);
+        filter: blur(0px);
+      }
+    }
+
+    @keyframes slideOutToTop {
+      from { 
+        opacity: 1; 
+        transform: translateY(0) scale(1) rotateX(0deg);
+        filter: blur(0px);
+      }
+      to { 
+        opacity: 0; 
+        transform: translateY(-40px) scale(0.9) rotateX(-10deg);
+        filter: blur(4px);
+      }
+    }
+
+    .toast-closing {
+      animation: slideOutToTop 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+
     .close-btn {
       position: absolute;
-      right: 12px;
-      top: 10px;
-      font-size: 22px;
-      color: #b71c1c;
+      right: 18px;
+      top: 18px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(220, 38, 38, 0.1);
+      color: #dc2626;
+      border: none;
       cursor: pointer;
-      transition: transform 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: bold;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      flex-shrink: 0;
+      backdrop-filter: blur(10px);
     }
+
     .close-btn:hover {
-      transform: scale(1.2) rotate(90deg);
-      color: #d32f2f;
+      background: rgba(220, 38, 38, 0.2);
+      transform: scale(1.15) rotate(90deg);
+      color: #b91c1c;
+      box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
+    }
+
+    .success-toast .close-btn {
+      background: rgba(17, 204, 173, 0.1);
+      color: rgb(17, 204, 173);
+    }
+
+    .success-toast .close-btn:hover {
+      background: rgba(17, 204, 173, 0.2);
+      color: rgb(6, 165, 165);
+      box-shadow: 0 4px 12px rgba(17, 204, 173, 0.2);
+    }
+
+    /* Field Error Highlighting */
+    .field-error {
+      border-color: #fca5a5 !important;
+      background-color: #fef2f2 !important;
+      box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1) !important;
+    }
+
+    .field-error:focus {
+      border-color: #dc2626 !important;
+      box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2) !important;
+    }
+
+    /* Enhanced Loading State - Brand Theme */
+    .loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, rgba(17, 204, 173, 0.1) 0%, rgba(6, 165, 165, 0.1) 100%);
+      backdrop-filter: blur(20px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-radius: 20px;
+      z-index: 1001;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .loading-spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid rgba(17, 204, 173, 0.2);
+      border-top: 3px solid rgb(17, 204, 173);
+      border-radius: 50%;
+      animation: spin 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+      margin-bottom: 12px;
+      filter: drop-shadow(0 4px 8px rgba(17, 204, 173, 0.2));
+    }
+
+    .loading-text {
+      color: rgb(17, 204, 173);
+      font-size: 14px;
+      font-weight: 600;
+      text-align: center;
+      opacity: 0.9;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg) scale(1); }
+      50% { transform: rotate(180deg) scale(1.1); }
+      100% { transform: rotate(360deg) scale(1); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.7; }
+      50% { opacity: 1; }
+    }
+
+    /* Enhanced Error message item styling - Brand Theme */
+    .error-item {
+      margin-bottom: 12px;
+      padding: 12px 16px;
+      background: linear-gradient(135deg, rgba(220, 38, 38, 0.08) 0%, rgba(220, 38, 38, 0.04) 100%);
+      border-radius: 10px;
+      border-left: 4px solid #dc2626;
+      border: 1px solid rgba(220, 38, 38, 0.15);
+      backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+    }
+
+    .error-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .error-item:hover {
+      background: linear-gradient(135deg, rgba(220, 38, 38, 0.12) 0%, rgba(220, 38, 38, 0.06) 100%);
+      transform: translateX(4px);
+      box-shadow: 0 4px 12px rgba(220, 38, 38, 0.1);
+    }
+
+    .error-item strong {
+      color: #b91c1c;
+      font-weight: 600;
+      text-shadow: 0 1px 2px rgba(185, 28, 28, 0.1);
+    }
+
+    /* Enhanced form message styling */
+    #formMessage {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      margin-bottom: 18px;
+      min-height: 24px;
+      padding: 8px 0;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+    }
+    
+    #formMessage .loading-spinner {
+      width: 20px;
+      height: 20px;
+      border-width: 2px;
+    }
+    
+    #formMessage .loading-text {
+      font-size: 14px;
+      margin-bottom: 0;
+    }
+
+    /* Enhanced responsive improvements for mobile */
+    @media (max-width: 768px) {
+      .error-toast, .success-toast {
+        margin: 15px 10px;
+        padding: 18px 50px 18px 20px;
+        font-size: 13px;
+        border-radius: 12px;
+      }
+      
+      .close-btn {
+        right: 15px;
+        top: 15px;
+        width: 26px;
+        height: 26px;
+        font-size: 16px;
+      }
+      
+      .error-item {
+        padding: 10px 14px;
+        font-size: 13px;
+        margin-bottom: 10px;
+      }
+      
+      .loading-overlay {
+        border-radius: 15px;
+      }
+      
+      .loading-spinner {
+        width: 28px;
+        height: 28px;
+      }
+      
+      .loading-text {
+        font-size: 13px;
+      }
     }
   </style>
 </head>
@@ -360,62 +633,109 @@
       <p class="branding-subtitle">The bridge to your professional future. Sign up to unlock exclusive internship and job opportunities.</p>
     </div>
     <div class="form-side">
-      <div class="form-box">
+      <div class="form-box" role="main">
         <h2>Account Registration</h2>
         <p>To sign up, please complete all steps</p>
         
-        <!-- Error Toast/Card -->
-        <div id="errorToast" class="error-toast" style="display:none;">
-          <span class="close-btn" onclick="hideErrorToast()">&times;</span>
-          <span id="errorToastMsg"></span>
+        <!-- Enhanced Error/Success Toast -->
+        <div id="errorToast" class="error-toast" style="display:none;" role="alert" aria-live="polite">
+          <div id="errorToastMsg"></div>
+          <button class="close-btn" onclick="hideErrorToast()" aria-label="Close notification" type="button">&times;</button>
         </div>
         
-        <div class="step-indicator">
-          <span class="step-dot"></span>
+        <div class="step-indicator" role="progressbar" aria-valuenow="1" aria-valuemin="1" aria-valuemax="3" aria-label="Registration progress: step 1 of 3">
+          <span class="step-dot" aria-current="step"></span>
           <span class="step-dot"></span>
           <span class="step-dot"></span>
         </div>
     
-        <form id="registerForm">
+        <form id="registerForm" role="form" aria-label="Student registration form">
           <!-- Step 1: Account Credentials -->
-          <div class="form-step active" id="step1">
-            <input type="email" name="email" placeholder="Email" required />
+          <fieldset class="form-step active" id="step1">
+            <legend class="sr-only">Account Credentials</legend>
+            <label for="email" class="sr-only">Email Address</label>
+            <input type="email" id="email" name="email" placeholder="Email" required aria-describedby="email-help" autocomplete="email" aria-invalid="false" />
+            <div id="email-help" class="field-help">We'll use this email for account verification and important updates.</div>
 
             <div class="password-wrapper">
-              <input type="password" name="password" placeholder="Password" required />
+              <label for="password" class="sr-only">Password</label>
+              <input type="password" id="password" name="password" placeholder="Password" required aria-describedby="password-help" autocomplete="new-password" minlength="8" aria-invalid="false" />
               <span class="toggle-password" onclick="togglePassword(this)"><i class="bi bi-eye-fill"></i></span>
             </div>
+            <div id="password-help" class="field-help">Password must be at least 8 characters long.</div>
 
             <div class="password-wrapper">
-              <input type="password" name="confirm_password" placeholder="Confirm Password" required />
+              <label for="confirm_password" class="sr-only">Confirm Password</label>
+              <input type="password" id="confirm_password" name="confirm_password" placeholder="Confirm Password" required aria-describedby="confirm-password-help" autocomplete="new-password" aria-invalid="false" />
               <span class="toggle-password" onclick="togglePassword(this)"><i class="bi bi-eye-fill"></i></span>
             </div>
-          </div>
+            <div id="confirm-password-help" class="field-help">Re-enter your password to confirm.</div>
+          </fieldset>
     
           <!-- Step 2: Personal Details -->
-          <div class="form-step" id="step2">
-            <input type="text" name="first_name" placeholder="First Name" required />
-            <input type="text" name="last_name" placeholder="Last Name" required />
-            <input type="tel" name="phone_number" placeholder="Phone Number" required />
-            <input type="text" name="national_id" placeholder="National ID Number" required />
-          </div>
+          <fieldset class="form-step" id="step2">
+            <legend class="sr-only">Personal Details</legend>
+            <label for="first_name" class="sr-only">First Name</label>
+            <input type="text" id="first_name" name="first_name" placeholder="First Name" required aria-describedby="first-name-help" autocomplete="given-name" aria-invalid="false" />
+            <div id="first-name-help" class="field-help">Enter your legal first name as it appears on official documents.</div>
+            <label for="last_name" class="sr-only">Last Name</label>
+            <input type="text" id="last_name" name="last_name" placeholder="Last Name" required aria-describedby="last-name-help" autocomplete="family-name" aria-invalid="false" />
+            <div id="last-name-help" class="field-help">Enter your legal last name as it appears on official documents.</div>
+            <label for="phone_number" class="sr-only">Phone Number</label>
+            <input type="tel" id="phone_number" name="phone_number" placeholder="Phone Number" required aria-describedby="phone-help" autocomplete="tel" aria-invalid="false" />
+            <div id="phone-help" class="field-help">Format: +254XXXXXXXXX or 07XXXXXXXX (Kenyan numbers only).</div>
+            <label for="national_id" class="sr-only">National ID Number</label>
+            <input type="text" id="national_id" name="national_id" placeholder="National ID Number" required aria-describedby="national-id-help" autocomplete="off" aria-invalid="false" />
+            <div id="national-id-help" class="field-help">Enter your Kenyan National ID number (7-8 digits).</div>
+            <label for="gender" class="sr-only">Gender</label>
+            <select id="gender" name="gender" required style="margin-bottom: 13px;" aria-describedby="gender-help" aria-invalid="false">
+              <option value="" disabled selected>Select Gender</option>
+              <option value="M">Male</option>
+              <option value="F">Female</option>
+              <option value="O">Other</option>
+            </select>
+            <div id="gender-help" class="field-help">Select your gender identity.</div>
+          </fieldset>
     
           <!-- Step 3: Academic Information -->
-          <div class="form-step" id="step3">
-            <select name="institution_name" required>
-              <option value="">-- Select Institution --</option>
-              <option value="JKUAT">JKUAT</option>
-              <option value="Kenyatta University">Kenyatta University</option>
-              <option value="UoN">University of Nairobi</option> 
-              <option value="Moi">Moi University</option>
-              <option value="Egerton">Egerton University</option>
-              <option value="Mku">Mount Kenya University</option>
-            </select>
-            <input type="text" name="registration_number" placeholder="University Registration Number" required />
-            <input type="number" name="academic_year" placeholder="Current Year of Study" required min="1" max="8" />
-            <input type="text" name="course_code" placeholder="Course Code (leave blank if unsure)" />
+          <fieldset class="form-step" id="step3">
+            <legend class="sr-only">Academic Information</legend>
+            <!-- Registration Method Selection -->
+            <div class="registration-method-selector">
+              <label style="color: #c8e6c9; margin-bottom: 10px; display: block; font-weight: 600;">Choose Registration Method:</label>
+              <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <button type="button" class="method-btn active" data-method="search" style="flex: 1; padding: 10px; border: 2px solid #c8e6c9; background: rgba(200, 230, 201, 0.1); color: #c8e6c9; border-radius: 8px; cursor: pointer; font-weight: 600;">Search Institution</button>
+                <button type="button" class="method-btn" data-method="code" style="flex: 1; padding: 10px; border: 2px solid rgba(200, 230, 201, 0.3); background: transparent; color: rgba(200, 230, 201, 0.7); border-radius: 8px; cursor: pointer; font-weight: 600;">University Code</button>
+              </div>
+            </div>
+
+            <!-- Search Method -->
+            <div id="searchMethod" class="registration-method">
+              <div class="institution-search-container" style="position: relative; margin-bottom: 15px;">
+                <input type="text" id="institutionSearch" name="institution_name" placeholder="Search for your institution..." style="width: 100%; padding: 12px 14px; border: none; border-radius: 10px; background-color: rgba(255, 255, 255, 0.82); color: #222; font-size: 15px;" />
+                <div id="searchResults" class="search-results" style="position: absolute; top: 100%; left: 0; right: 0; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-height: 200px; overflow-y: auto; z-index: 1000; display: none;"></div>
+              </div>
+              <input type="hidden" name="institution_id" id="selectedInstitutionId" />
+              <div id="selectedInstitution" class="selected-institution" style="display: none; padding: 12px; background: rgba(200, 230, 201, 0.1); border: 1px solid #c8e6c9; border-radius: 8px; margin-bottom: 15px; color: #c8e6c9;"></div>
+            </div>
+
+            <!-- University Code Method -->
+            <div id="codeMethod" class="registration-method" style="display: none;">
+              <input type="text" id="universityCode" name="university_code" placeholder="Enter University Code (e.g., UON2024, JKUAT2024)" style="width: 100%; padding: 12px 14px; border: none; border-radius: 10px; background-color: rgba(255, 255, 255, 0.82); color: #222; font-size: 15px; margin-bottom: 15px;" />
+              <button type="button" id="validateCodeBtn" style="width: 100%; padding: 10px; background: linear-gradient(90deg,rgb(56, 142, 135) 0%,rgb(69, 197, 159) 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; margin-bottom: 15px;">Validate Code</button>
+              <div id="codeValidationResult" style="display: none;" data-validated="false"></div>
+            </div>
+
+            <label for="registrationNumber" class="sr-only">University Registration Number</label>
+            <input type="text" name="registration_number" placeholder="University Registration Number" id="registrationNumber" required aria-describedby="reg-number-help" autocomplete="off" aria-invalid="false" />
+            <div id="reg-number-help" class="field-help">Enter your student registration number as provided by your institution.</div>
+            <label for="yearOfStudy" class="sr-only">Current Year of Study</label>
+            <input type="number" name="year_of_study" placeholder="Current Year of Study" id="yearOfStudy" min="1" max="8" required aria-describedby="year-help" aria-invalid="false" />
+            <div id="year-help" class="field-help">Select your current year of study.</div>
+            <label for="course_code" class="sr-only">Course Code</label>
+            <input type="text" name="course_code" placeholder="Course Code (leave blank if unsure)" id="course_code" aria-invalid="false" />
             <small style="color: #c8e6c9; margin-top: -10px; display: block;">Enter your institution's official course code or leave blank if unsure. Example: BSC-CS, BIT-01</small>
-          </div>
+          </fieldset>
     
           <div class="form-navigation">
             <button type="button" id="prevBtn" style="display: none;">Previous</button>
@@ -435,7 +755,175 @@
   </main>
 
   <script src="assets/js/edulink-chatbot.js"></script>
+  <script src="assets/js/institution-search.js"></script>
   <script>
+    // Define global functions before DOM loads
+    function togglePassword(element) {
+      const passwordInput = element.previousElementSibling;
+      const icon = element.querySelector('i');
+      
+      if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        icon.classList.remove('bi-eye-fill');
+        icon.classList.add('bi-eye-slash-fill');
+      } else {
+        passwordInput.type = 'password';
+        icon.classList.remove('bi-eye-slash-fill');
+        icon.classList.add('bi-eye-fill');
+      }
+    }
+
+    // Enhanced toast functions with better UX
+    function showErrorToast(message, isHtml = false) {
+      const errorToast = document.getElementById('errorToast');
+      const errorToastMsg = document.getElementById('errorToastMsg');
+      
+      // Clear any existing closing animation
+      errorToast.classList.remove('toast-closing');
+      
+      if (isHtml) {
+        errorToastMsg.innerHTML = message;
+      } else {
+        errorToastMsg.textContent = message;
+      }
+      
+      errorToast.className = 'error-toast';
+      errorToast.style.display = 'flex';
+      
+      // Add subtle entrance animation
+      errorToast.style.transform = 'translateY(-20px) scale(0.95)';
+      errorToast.style.opacity = '0';
+      
+      requestAnimationFrame(() => {
+        errorToast.style.transform = 'translateY(0) scale(1)';
+        errorToast.style.opacity = '1';
+        errorToast.style.transition = 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)';
+      });
+      
+      // Auto-hide after 10 seconds for better UX
+      setTimeout(() => {
+        if (errorToast.style.display !== 'none') {
+          hideErrorToast();
+        }
+      }, 10000);
+    }
+
+    function showSuccessToast(message, isHtml = false) {
+      const errorToast = document.getElementById('errorToast');
+      const errorToastMsg = document.getElementById('errorToastMsg');
+      
+      // Clear any existing closing animation
+      errorToast.classList.remove('toast-closing');
+      
+      if (isHtml) {
+        errorToastMsg.innerHTML = message;
+      } else {
+        errorToastMsg.textContent = message;
+      }
+      
+      errorToast.className = 'success-toast';
+      errorToast.style.display = 'flex';
+      
+      // Add subtle entrance animation
+      errorToast.style.transform = 'translateY(-20px) scale(0.95)';
+      errorToast.style.opacity = '0';
+      
+      requestAnimationFrame(() => {
+        errorToast.style.transform = 'translateY(0) scale(1)';
+        errorToast.style.opacity = '1';
+        errorToast.style.transition = 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)';
+      });
+      
+      // Auto-hide after 6 seconds for success messages
+      setTimeout(() => {
+        if (errorToast.style.display !== 'none') {
+          hideErrorToast();
+        }
+      }, 6000);
+    }
+
+    function hideErrorToast() {
+      const errorToast = document.getElementById('errorToast');
+      
+      // Add closing animation
+      errorToast.classList.add('toast-closing');
+      
+      // Hide after animation completes
+      setTimeout(() => {
+        errorToast.style.display = 'none';
+        errorToast.classList.remove('toast-closing');
+        errorToast.style.transition = '';
+      }, 400);
+    }
+
+    // Field error highlighting functions
+    function highlightFieldError(fieldName) {
+      const field = document.getElementById(fieldName) || document.querySelector(`[name="${fieldName}"]`);
+      if (field) {
+        field.classList.add('field-error');
+        
+        // Remove error highlighting when user starts typing
+        const removeError = () => {
+          field.classList.remove('field-error');
+          field.removeEventListener('input', removeError);
+          field.removeEventListener('focus', removeError);
+        };
+        
+        field.addEventListener('input', removeError);
+        field.addEventListener('focus', removeError);
+      }
+    }
+
+    function clearAllFieldErrors() {
+      const errorFields = document.querySelectorAll('.field-error');
+      errorFields.forEach(field => {
+        field.classList.remove('field-error');
+      });
+    }
+
+    // Enhanced error message formatting with better UX
+    function formatErrorMessage(result) {
+      if (!result || typeof result !== 'object') {
+        return "<div class='error-item'>Registration failed. Please check your details and try again.</div>";
+      }
+
+      const errorMessages = [];
+      
+      // Handle different error response formats
+      if (result.errors) {
+        result = result.errors;
+      }
+      
+      Object.entries(result).forEach(([field, errors]) => {
+        // Skip non-error fields
+        if (['success', 'message', 'data'].includes(field)) {
+          return;
+        }
+        
+        // Highlight the field with error
+        highlightFieldError(field);
+        
+        const formattedField = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        const errorArray = Array.isArray(errors) ? errors : [errors];
+        
+        errorArray.forEach(error => {
+          if (field === 'non_field_errors') {
+            if (error.includes('Invalid course code')) {
+              errorMessages.push(`<div class="error-item"><strong>Course Code Error:</strong> The course code you entered is not registered for this institution. Please verify the code or leave it blank.</div>`);
+            } else {
+              errorMessages.push(`<div class="error-item">${sanitizeInput(error)}</div>`);
+            }
+          } else {
+            errorMessages.push(`<div class="error-item"><strong>${sanitizeInput(formattedField)}:</strong> ${sanitizeInput(error)}</div>`);
+          }
+        });
+      });
+      
+      return errorMessages.length > 0 ? errorMessages.join('') : "<div class='error-item'>An unexpected error occurred. Please try again.</div>";
+    }
+
+    // API configuration is now handled by config.js
+    
     document.addEventListener('DOMContentLoaded', function() {
       let currentStep = 0;
       const steps = document.querySelectorAll('.form-step');
@@ -445,26 +933,71 @@
       const form = document.getElementById('registerForm');
       const formMessage = document.getElementById('formMessage');
       const stepDots = document.querySelectorAll('.step-dot');
+      
+      // Institution search variables
+      let selectedInstitution = null;
+      let currentRegistrationMethod = 'search';
+      // Make currentRegistrationMethod globally accessible for debugging
+      window.currentRegistrationMethod = currentRegistrationMethod;
+
+
 
       function showStep(stepIndex) {
         steps.forEach((step, index) => {
           step.classList.toggle('active', index === stepIndex);
+          // Update ARIA attributes for accessibility
+          if (index === stepIndex) {
+            step.setAttribute('aria-hidden', 'false');
+            step.removeAttribute('inert');
+          } else {
+            step.setAttribute('aria-hidden', 'true');
+            step.setAttribute('inert', '');
+          }
         });
 
         stepDots.forEach((dot, index) => {
           dot.classList.toggle('active', index === stepIndex);
+          if (index === stepIndex) {
+            dot.setAttribute('aria-current', 'step');
+          } else {
+            dot.removeAttribute('aria-current');
+          }
         });
+
+        // Update progress indicator
+        const progressIndicator = document.querySelector('[role="progressbar"]');
+        if (progressIndicator) {
+          progressIndicator.setAttribute('aria-valuenow', stepIndex + 1);
+          progressIndicator.setAttribute('aria-label', `Registration progress: step ${stepIndex + 1} of ${steps.length}`);
+        }
 
         prevBtn.style.display = stepIndex > 0 ? 'inline-block' : 'none';
         nextBtn.style.display = stepIndex < steps.length - 1 ? 'inline-block' : 'none';
         submitBtn.style.display = stepIndex === steps.length - 1 ? 'inline-block' : 'none';
+
+        // Focus management for accessibility
+        const activeStep = steps[stepIndex];
+        const firstInput = activeStep.querySelector('input:not([type="hidden"]), select');
+        if (firstInput) {
+          setTimeout(() => firstInput.focus(), 100);
+        }
       }
 
       function validateStep(stepIndex) {
+        console.log('DEBUG: validateStep called with:', {
+          stepIndex,
+          currentRegistrationMethod,
+          windowCurrentRegistrationMethod: window.currentRegistrationMethod
+        });
         let valid = true;
-        const inputs = steps[stepIndex].querySelectorAll('input, select');
+        const inputs = steps[stepIndex].querySelectorAll('input:not([type="hidden"]), select');
         
         inputs.forEach(input => {
+          // Skip validation for search inputs and hidden fields
+          if (input.id === 'institutionSearch' || input.id === 'universityCode') {
+            return;
+          }
+          
           if (!input.checkValidity()) {
             input.reportValidity(); // Shows the browser's default bubble message
             valid = false;
@@ -474,16 +1007,126 @@
         if (stepIndex === 0) {
           const password = form.password.value;
           const confirm_password = form.confirm_password.value;
-          if (password !== confirm_password) {
+          
+          // Password strength validation
+          if (password.length < 8) {
+            formMessage.textContent = "Password must be at least 8 characters long.";
+            formMessage.style.color = "#ffb3b3";
+            valid = false;
+          } else if (password !== confirm_password) {
             formMessage.textContent = "Passwords do not match.";
             formMessage.style.color = "#ffb3b3";
             valid = false;
           } else if (valid) {
-             if (formMessage.textContent === "Passwords do not match.") {
+             if (formMessage.textContent.includes("Password") || formMessage.textContent.includes("match")) {
                 formMessage.textContent = "";
              }
           }
         }
+        
+        // Validate personal details
+        if (stepIndex === 1) {
+          const nationalId = form.national_id.value.trim();
+          const phoneNumber = form.phone_number.value.trim();
+          
+          // Basic national ID validation (Kenya format)
+          if (nationalId && !/^\d{7,8}$/.test(nationalId)) {
+            formMessage.textContent = "Please enter a valid National ID number (7-8 digits).";
+            formMessage.style.color = "#ffb3b3";
+            valid = false;
+          }
+          
+          // Basic phone number validation
+          if (phoneNumber && !/^(\+254|0)[17]\d{8}$/.test(phoneNumber.replace(/\s/g, ''))) {
+            formMessage.textContent = "Please enter a valid Kenyan phone number.";
+            formMessage.style.color = "#ffb3b3";
+            valid = false;
+          }
+          
+          if (valid && (formMessage.textContent.includes("National ID") || formMessage.textContent.includes("phone"))) {
+            formMessage.textContent = "";
+          }
+        }
+        
+        // Validate institution selection for step 3
+        if (stepIndex === 2) {
+          // Use window.currentRegistrationMethod to ensure we get the latest value
+          const activeMethod = window.currentRegistrationMethod || currentRegistrationMethod;
+          console.log('DEBUG: Validating step 2, activeMethod:', activeMethod, 'local:', currentRegistrationMethod, 'window:', window.currentRegistrationMethod);
+          if (activeMethod === 'search') {
+            const selectedInstitutionId = document.getElementById('selectedInstitutionId').value;
+            const registrationNumber = document.getElementById('registrationNumber').value.trim();
+            const yearOfStudy = document.getElementById('yearOfStudy').value.trim();
+            
+            if (!selectedInstitutionId) {
+              formMessage.textContent = "Please search and select your institution.";
+              formMessage.style.color = "#ffb3b3";
+              valid = false;
+            } else if (!registrationNumber) {
+              formMessage.textContent = "Registration number is required for university search method.";
+              formMessage.style.color = "#ffb3b3";
+              valid = false;
+            } else if (!yearOfStudy) {
+              formMessage.textContent = "Year of study is required for university search method.";
+              formMessage.style.color = "#ffb3b3";
+              valid = false;
+            }
+            
+            // Validate registration number format for search method
+            if (registrationNumber && !/^[A-Z0-9\/-]{6,20}$/i.test(registrationNumber)) {
+              formMessage.textContent = "Registration number must be 6-20 characters (letters, numbers, /, - only).";
+              formMessage.style.color = "#ffb3b3";
+              valid = false;
+            }
+          } else if (activeMethod === 'code') {
+            const universityCode = document.getElementById('universityCode').value.trim();
+            const registrationNumber = document.getElementById('registrationNumber').value.trim();
+            const yearOfStudy = document.getElementById('yearOfStudy').value.trim();
+            const validationResult = document.getElementById('codeValidationResult');
+            
+            console.log('DEBUG: Code method validation:', {
+              universityCode,
+              registrationNumber,
+              yearOfStudy,
+              validationState: validationResult ? validationResult.dataset.validated : 'null',
+              validationElement: validationResult ? 'found' : 'not found'
+            });
+            
+            if (!universityCode) {
+              console.log('DEBUG: Failed - no university code');
+              formMessage.textContent = "Please enter a university code.";
+              formMessage.style.color = "#ffb3b3";
+              valid = false;
+            } else if (!validationResult.dataset.validated || validationResult.dataset.validated !== 'true') {
+              console.log('DEBUG: Failed - validation state:', validationResult.dataset.validated);
+              formMessage.textContent = "Please validate your university code first.";
+              formMessage.style.color = "#ffb3b3";
+              valid = false;
+            } else if (!registrationNumber) {
+              console.log('DEBUG: Failed - no registration number');
+              formMessage.textContent = "Registration number is required.";
+              formMessage.style.color = "#ffb3b3";
+              valid = false;
+            } else if (!yearOfStudy) {
+              console.log('DEBUG: Failed - no year of study');
+              formMessage.textContent = "Year of study is required.";
+              formMessage.style.color = "#ffb3b3";
+              valid = false;
+            }
+            
+            // Validate registration number format for code method
+            if (registrationNumber && !/^[A-Z0-9\/-]{6,20}$/i.test(registrationNumber)) {
+              formMessage.textContent = "Registration number must be 6-20 characters (letters, numbers, /, - only).";
+              formMessage.style.color = "#ffb3b3";
+              valid = false;
+            }
+          }
+          
+          if (valid && (formMessage.textContent.includes("institution") || formMessage.textContent.includes("university code") || formMessage.textContent.includes("registration"))) {
+            formMessage.textContent = "";
+          }
+        }
+        
         return valid;
       }
 
@@ -491,14 +1134,48 @@
         if (validateStep(currentStep)) {
           currentStep++;
           showStep(currentStep);
+          // Announce step change to screen readers
+          announceToScreenReader(`Moved to step ${currentStep + 1} of ${steps.length}`);
         }
       });
 
       prevBtn.addEventListener('click', () => {
         currentStep--;
         showStep(currentStep);
+        // Announce step change to screen readers
+        announceToScreenReader(`Moved to step ${currentStep + 1} of ${steps.length}`);
       });
 
+      // Add keyboard navigation
+      document.addEventListener('keydown', function(e) {
+        if (e.target.closest('#registerForm')) {
+          if (e.key === 'Enter' && e.target.tagName !== 'BUTTON' && e.target.type !== 'submit') {
+            e.preventDefault();
+            if (currentStep < steps.length - 1 && validateStep(currentStep)) {
+              nextBtn.click();
+            } else if (currentStep === steps.length - 1) {
+              submitBtn.click();
+            }
+          }
+        }
+      });
+
+      // Input sanitization function
+      function sanitizeInput(input) {
+        if (typeof input !== 'string') return input;
+        return input.trim()
+          .replace(/[<>"'&]/g, function(match) {
+            const map = {
+              '<': '&lt;',
+              '>': '&gt;',
+              '"': '&quot;',
+              "'": '&#x27;',
+              '&': '&amp;'
+            };
+            return map[match];
+          });
+      }
+      
       form.addEventListener('submit', async function(e) {
         e.preventDefault();
         
@@ -513,73 +1190,405 @@
           }
         }
 
-        formMessage.innerHTML = 'Submitting...';
-        formMessage.style.color = '#c8e6c9';
+        // Clear previous errors and show enhanced loading state
+        clearAllFieldErrors();
         hideErrorToast();
+        formMessage.innerHTML = '<div class="loading-spinner"></div> <span class="loading-text">Submitting your registration...</span>';
+        formMessage.style.color = 'rgb(17, 204, 173)';
+        
+        // Disable submit button and add enhanced loading state
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<div class="loading-spinner" style="width: 18px; height: 18px; margin-right: 10px; display: inline-block; border: 2px solid rgba(255, 255, 255, 0.3); border-top: 2px solid white;"></div> Submitting...';
+        
+        // Add enhanced loading overlay to form
+        const formBox = document.querySelector('.form-box');
+        const loadingOverlay = document.createElement('div');
+        loadingOverlay.className = 'loading-overlay';
+        loadingOverlay.innerHTML = '<div class="loading-spinner"></div><div class="loading-text">Processing your registration...</div>';
+        formBox.style.position = 'relative';
+        formBox.appendChild(loadingOverlay);
         const formData = new FormData(form);
         const data = Object.fromEntries(formData.entries());
-        delete data.confirm_password;
+        
+        // Sanitize all string inputs except passwords
+        Object.keys(data).forEach(key => {
+          if (typeof data[key] === 'string' && key !== 'password' && key !== 'confirm_password') {
+            data[key] = sanitizeInput(data[key]);
+          }
+        });
+        
+        // Map confirm_password to password_confirm for backend
+        if (data.confirm_password) {
+          data.password_confirm = data.confirm_password;
+          delete data.confirm_password;
+        }
+        
         delete data.course_code; // Remove course code from data before sending
+        
+        // Map registration method to backend expected values
+        // Use window.currentRegistrationMethod to ensure we get the latest value
+        const activeMethod = window.currentRegistrationMethod || currentRegistrationMethod;
+        console.log('DEBUG: Form submission using activeMethod:', activeMethod, 'local:', currentRegistrationMethod, 'window:', window.currentRegistrationMethod);
+        if (activeMethod === 'code') {
+          data.registration_method = 'university_code';
+          // For university code method, include code and student-specific fields
+          delete data.institution_name;
+          delete data.institution_id;
+          delete data.course_code;
+          // Ensure university_code and student fields are included
+          data.university_code = sanitizeInput(document.getElementById('universityCode').value);
+          data.registration_number = sanitizeInput(document.getElementById('registrationNumber').value);
+          // Ensure year_of_study is properly set as integer
+          if (data.year_of_study) {
+            data.year_of_study = parseInt(data.year_of_study);
+          }
+        } else {
+          data.registration_method = 'university_search';
+          // For search method, ensure institution_name is included
+          if (selectedInstitution) {
+            data.institution_name = sanitizeInput(selectedInstitution.name);
+            data.institution_id = selectedInstitution.id;
+          }
+          // Remove university code specific fields for search method
+          delete data.university_code;
+          // Ensure year_of_study is properly set as integer for search method
+          if (data.year_of_study) {
+            data.year_of_study = parseInt(data.year_of_study);
+          }
+        }
 
         try {
-          const response = await fetch('http://127.0.0.1:8000/api/auth/register/', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-          });
-          const result = await response.json();
-          if (response.ok) {
-            hideErrorToast();
-            formMessage.textContent = result.message || "Registration successful! Redirecting...";
-            formMessage.style.color = "#c8e6c9";
+          const response = await ApiHelper.request(API_CONFIG.ENDPOINTS.AUTH.REGISTER, {
+             method: 'POST',
+             credentials: 'same-origin',
+             body: JSON.stringify(data)
+           });
+          
+          let result;
+          try {
+            result = await response.json();
+          } catch (jsonError) {
+            console.error('JSON parsing error:', jsonError);
+            throw new Error('Invalid response format from server');
+          }
+          
+          if (response.ok && result.success !== false) {
+            // Show success message
+            const successMessage = result.message || "Registration successful! Please check your email for verification.";
+            showSuccessToast(successMessage);
+            formMessage.innerHTML = '<span style="color: rgb(17, 204, 173); font-weight: 600;">✓ Registration completed successfully! Redirecting to login...</span>';
+            
+            // Reset form state
             form.reset();
-            setTimeout(() => { window.location.href = 'login.html'; }, 2000);
+            currentStep = 0;
+            showStep(currentStep);
+            selectedInstitution = null;
+            currentRegistrationMethod = 'search';
+            window.currentRegistrationMethod = 'search';
+            clearInstitutionSelection();
+            clearAllFieldErrors();
+            
+            // Redirect after showing success
+            setTimeout(() => { 
+              window.location.href = 'login.html'; 
+            }, 3000);
           } else {
-            let errorMsg = "Registration failed. Please check your details.";
-            if (result && typeof result === 'object') {
-              errorMsg = Object.entries(result).map(([field, errors]) => {
-                const formattedField = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                if (field === 'non_field_errors' && errors.includes('Invalid course code for the specified institution')) {
-                  return `<strong>Course Code Error:</strong> The course code you entered is not registered for ${data.institution_name}. Please verify the code with your institution or leave it blank.`;
-                }
-                return `<strong>${formattedField}:</strong> ${Array.isArray(errors) ? errors.join(' ') : errors}`;
-              }).join('<br>');
+            // Enhanced error handling with field highlighting
+            const errorMsg = formatErrorMessage(result);
+            showErrorToast(errorMsg, true);
+            formMessage.innerHTML = '<span style="color: #dc2626; font-weight: 600;">⚠ Please correct the errors above and try again.</span>';
+            
+            // Scroll to first error field if any
+            const firstErrorField = document.querySelector('.field-error');
+            if (firstErrorField) {
+              firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              firstErrorField.focus();
             }
-            showErrorToast(errorMsg);
-            formMessage.textContent = '';
           }
         } catch (err) {
-          showErrorToast("An error occurred. Please try again later.");
-          formMessage.textContent = '';
+          console.error('Registration error:', err.message);
+          // Only show network error if it's actually a network issue
+          if (err.message.includes('fetch') || err.message.includes('network') || err.message.includes('Failed to fetch')) {
+            showErrorToast("Network error occurred. Please check your internet connection and try again.");
+            formMessage.innerHTML = '<span style="color: #dc2626; font-weight: 600;">⚠ Connection failed. Please try again.</span>';
+          } else {
+            showErrorToast("An unexpected error occurred. Please try again.");
+            formMessage.innerHTML = '<span style="color: #dc2626; font-weight: 600;">⚠ An error occurred. Please try again.</span>';
+          }
+        } finally {
+          // Remove loading overlay
+          const loadingOverlay = document.querySelector('.loading-overlay');
+          if (loadingOverlay) {
+            loadingOverlay.remove();
+          }
+          
+          // Reset submit button with delay to prevent rapid submissions
+          setTimeout(() => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Register';
+            formMessage.innerHTML = '';
+          }, 1500);
         }
       });
 
+      // Initialize institution search and method switching
+      initializeInstitutionSearch();
+      initializeMethodSwitching();
+      initializeUniversityCodeValidation();
+      
+      // Screen reader announcement function
+      function announceToScreenReader(message) {
+        const announcement = document.createElement('div');
+        announcement.setAttribute('aria-live', 'polite');
+        announcement.setAttribute('aria-atomic', 'true');
+        announcement.className = 'sr-only';
+        announcement.textContent = message;
+        document.body.appendChild(announcement);
+        setTimeout(() => document.body.removeChild(announcement), 1000);
+      }
+
+      // Show initial step
       showStep(currentStep);
 
     });
-    function togglePassword(span) {
-      const input = span.previousElementSibling;
-      const icon = span.querySelector('i');
-      if (input.type === "password") {
-        input.type = "text";
-        icon.className = 'bi bi-eye-slash-fill';
-      } else {
-        input.type = "password";
-        icon.className = 'bi bi-eye-fill';
+    
+    // Institution search functionality is now handled by the external script
+    // The optimized search manager will be initialized automatically
+    
+    function initializeInstitutionSearch() {
+      // The new search manager handles all search functionality
+      // We just need to listen for institution selection events
+      document.addEventListener('institutionSelected', function(event) {
+        const institution = event.detail.institution;
+        handleInstitutionSelection(institution);
+      });
+    }
+    
+    function handleInstitutionSelection(institution) {
+      selectedInstitution = institution;
+      const form = document.getElementById('registerForm');
+      
+      // Set the institution ID for form submission
+      document.getElementById('selectedInstitutionId').value = institution.id || '';
+      
+      // Store institution name for form submission
+      let institutionNameInput = form.querySelector('input[name="institution_name"]');
+      if (!institutionNameInput) {
+        institutionNameInput = document.createElement('input');
+        institutionNameInput.type = 'hidden';
+        institutionNameInput.name = 'institution_name';
+        form.appendChild(institutionNameInput);
       }
+      institutionNameInput.value = institution.name;
+      
+      // Show selected institution
+      const selectedInstitutionDiv = document.getElementById('selectedInstitution');
+      selectedInstitutionDiv.innerHTML = `<strong>Selected:</strong> ${institution.name}`;
+      selectedInstitutionDiv.style.display = 'block';
     }
-    // Add error toast functions
-    function showErrorToast(message) {
-      const toast = document.getElementById('errorToast');
-      const msg = document.getElementById('errorToastMsg');
-      msg.innerHTML = message;
-      toast.style.display = 'flex';
-      toast.style.animation = 'fadeInDown 0.5s';
+    
+    // Method switching functionality
+    function initializeMethodSwitching() {
+      const methodBtns = document.querySelectorAll('.method-btn');
+      const searchMethod = document.getElementById('searchMethod');
+      const codeMethod = document.getElementById('codeMethod');
+      
+      // Ensure currentRegistrationMethod is accessible (only set if truly undefined)
+      if (typeof currentRegistrationMethod === 'undefined') {
+        currentRegistrationMethod = 'search';
+      }
+      
+      // Initialize default state based on current method
+      const registrationNumberField = document.getElementById('registrationNumber');
+      const yearOfStudyField = document.getElementById('yearOfStudy');
+      
+      // Set initial state based on current method
+      if (currentRegistrationMethod === 'code') {
+        searchMethod.style.display = 'none';
+        codeMethod.style.display = 'block';
+      } else {
+        searchMethod.style.display = 'block';
+        codeMethod.style.display = 'none';
+      }
+      // Both fields are required for all methods as they are student-specific
+      registrationNumberField.setAttribute('required', 'required');
+      yearOfStudyField.setAttribute('required', 'required');
+      
+      // Set initial button styles based on current method
+      const searchBtn = document.querySelector('.method-btn[data-method="search"]');
+      const codeBtn = document.querySelector('.method-btn[data-method="code"]');
+      
+      // Reset all buttons first
+      methodBtns.forEach(btn => {
+        btn.classList.remove('active');
+        btn.style.border = '2px solid rgba(200, 230, 201, 0.3)';
+        btn.style.background = 'transparent';
+        btn.style.color = 'rgba(200, 230, 201, 0.7)';
+      });
+      
+      // Set active button based on current method
+      const activeBtn = currentRegistrationMethod === 'code' ? codeBtn : searchBtn;
+      if (activeBtn) {
+        activeBtn.classList.add('active');
+        activeBtn.style.border = '2px solid #c8e6c9';
+        activeBtn.style.background = 'rgba(200, 230, 201, 0.1)';
+        activeBtn.style.color = '#c8e6c9';
+      }
+      
+      methodBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+          const method = this.dataset.method;
+          
+          // Update button styles
+          methodBtns.forEach(b => {
+            b.classList.remove('active');
+            b.style.border = '2px solid rgba(200, 230, 201, 0.3)';
+            b.style.background = 'transparent';
+            b.style.color = 'rgba(200, 230, 201, 0.7)';
+          });
+          
+          this.classList.add('active');
+          this.style.border = '2px solid #c8e6c9';
+          this.style.background = 'rgba(200, 230, 201, 0.1)';
+          this.style.color = '#c8e6c9';
+          
+          // Show/hide methods and set required fields
+          const registrationNumberField = document.getElementById('registrationNumber');
+          const yearOfStudyField = document.getElementById('yearOfStudy');
+          
+          if (method === 'search') {
+             searchMethod.style.display = 'block';
+             codeMethod.style.display = 'none';
+           } else {
+             searchMethod.style.display = 'none';
+             codeMethod.style.display = 'block';
+           }
+           // Both registration_number and year_of_study remain required for all methods
+           // as they are student-specific information
+           registrationNumberField.setAttribute('required', 'required');
+           yearOfStudyField.setAttribute('required', 'required');
+          
+          // Clear previous selections only when switching methods
+          if (currentRegistrationMethod !== method) {
+            clearInstitutionSelection();
+          }
+          currentRegistrationMethod = method;
+          window.currentRegistrationMethod = method;
+          console.log('DEBUG: Method switched to:', currentRegistrationMethod);
+        });
+      });
     }
-    function hideErrorToast() {
-      const toast = document.getElementById('errorToast');
-      toast.style.display = 'none';
+    
+    // University code validation
+    function initializeUniversityCodeValidation() {
+      const validateBtn = document.getElementById('validateCodeBtn');
+      const universityCodeInput = document.getElementById('universityCode');
+      const validationResult = document.getElementById('codeValidationResult');
+      
+      validateBtn.addEventListener('click', async function() {
+        const code = universityCodeInput.value.trim();
+        
+        if (!code) {
+          showValidationResult('Please enter a university code', 'error');
+          return;
+        }
+        
+        this.textContent = 'Validating...';
+        this.disabled = true;
+        
+        try {
+          const response = await ApiHelper.request(API_CONFIG.ENDPOINTS.INSTITUTIONS.VALIDATE_CODE, {
+            method: 'POST',
+            body: JSON.stringify({ university_code: code })
+          });
+          
+          const data = await response.json();
+          
+          if (response.ok && data.valid && data.institution) {
+            showValidationResult(`✓ Valid code for ${data.institution.display_name}`, 'success');
+            
+            // Mark validation as successful
+            validationResult.dataset.validated = 'true';
+            
+            // Store institution data securely for later use
+            sessionStorage.setItem('validatedInstitution', JSON.stringify({
+              id: data.institution.id,
+              name: data.institution.display_name,
+              validated: true
+            }));
+            
+          } else {
+            showValidationResult('⚠ Invalid university code or institution not verified', 'error');
+            validationResult.dataset.validated = 'false';
+          }
+        } catch (error) {
+          console.error('Validation error:', error);
+          showValidationResult('Validation failed. Please try again.', 'error');
+        }
+        
+        this.textContent = 'Validate Code';
+        this.disabled = false;
+      });
+      
+      // Reset validation status when university code input changes
+      universityCodeInput.addEventListener('input', function() {
+        const validationResult = document.getElementById('codeValidationResult');
+        validationResult.dataset.validated = 'false';
+        validationResult.style.display = 'none';
+        sessionStorage.removeItem('validatedInstitution');
+      });
     }
+    
+    function showValidationResult(message, type) {
+      const validationResult = document.getElementById('codeValidationResult');
+      const color = type === 'success' ? '#4caf50' : '#f44336';
+      const bgColor = type === 'success' ? 'rgba(76, 175, 80, 0.1)' : 'rgba(244, 67, 54, 0.1)';
+      
+      // Sanitize message before displaying
+      const sanitizedMessage = message.replace(/[<>"'&]/g, function(match) {
+        const map = {
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#x27;',
+          '&': '&amp;'
+        };
+        return map[match];
+      });
+      
+      validationResult.innerHTML = `
+        <div style="padding: 12px; background: ${bgColor}; border: 1px solid ${color}; border-radius: 8px; color: ${color}; font-weight: 600;">
+          ${sanitizedMessage}
+        </div>
+      `;
+      validationResult.style.display = 'block';
+    }
+    
+    function clearInstitutionSelection() {
+      selectedInstitution = null;
+      document.getElementById('institutionSearch').value = '';
+      document.getElementById('universityCode').value = '';
+      document.getElementById('selectedInstitution').style.display = 'none';
+      
+      const codeValidationResult = document.getElementById('codeValidationResult');
+      codeValidationResult.style.display = 'none';
+      codeValidationResult.dataset.validated = 'false';
+      
+      document.getElementById('selectedInstitutionId').value = '';
+      window.validatedInstitution = null;
+      
+      // Remove any existing hidden institution name inputs
+      const form = document.getElementById('registerForm');
+      const existingInputs = form.querySelectorAll('input[name="institution_name"]');
+      existingInputs.forEach(input => input.remove());
+      
+      // Clear validation state
+      sessionStorage.removeItem('validatedInstitution');
+    }
+
   </script>
+  
+  <!-- Debug Script for Registration Form -->
+  <script src="debug_registration.js"></script>
 </body>
 </html>

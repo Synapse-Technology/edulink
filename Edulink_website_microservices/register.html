@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - EduLink KE</title>
+    <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+    <link href="assets/vendor/aos/aos.css" rel="stylesheet">
+    <script src="js/config.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .registration-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            max-width: 900px;
+            width: 100%;
+            min-height: 600px;
+        }
+
+        .header-section {
+            background: linear-gradient(135deg, #1ab8aa 0%, #17a2b8 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header-section h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .header-section p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin-bottom: 30px;
+        }
+
+        .registration-types {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            padding: 50px 40px;
+        }
+
+        .registration-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 40px 30px;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .registration-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(26, 184, 170, 0.1), transparent);
+            transition: left 0.5s;
+        }
+
+        .registration-card:hover::before {
+            left: 100%;
+        }
+
+        .registration-card:hover {
+            transform: translateY(-5px);
+            border-color: #1ab8aa;
+            box-shadow: 0 15px 40px rgba(26, 184, 170, 0.2);
+        }
+
+        .card-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #1ab8aa, #17a2b8);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 25px;
+            font-size: 2rem;
+            color: white;
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .card-description {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 25px;
+        }
+
+        .card-features {
+            list-style: none;
+            text-align: left;
+            margin-bottom: 30px;
+        }
+
+        .card-features li {
+            padding: 8px 0;
+            color: #555;
+            position: relative;
+            padding-left: 25px;
+        }
+
+        .card-features li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #1ab8aa;
+            font-weight: bold;
+        }
+
+        .register-btn {
+            background: linear-gradient(135deg, #1ab8aa, #17a2b8);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .register-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(26, 184, 170, 0.3);
+            color: white;
+        }
+
+        .existing-user {
+            text-align: center;
+            padding: 30px;
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .existing-user a {
+            color: #1ab8aa;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .existing-user a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .header-section {
+                padding: 30px 20px;
+            }
+
+            .header-section h1 {
+                font-size: 2rem;
+            }
+
+            .registration-types {
+                grid-template-columns: 1fr;
+                padding: 30px 20px;
+                gap: 20px;
+            }
+
+            .registration-card {
+                padding: 30px 20px;
+            }
+        }
+
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #1ab8aa;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <div class="registration-container">
+        <div class="header-section">
+            <h1>Join EduLink KE</h1>
+            <p>Choose your registration type to get started with Kenya's premier internship platform</p>
+        </div>
+
+        <div class="registration-types">
+            <!-- Institution Registration -->
+            <div class="registration-card" onclick="selectRegistrationType('institution')">
+                <div class="card-icon">
+                    <i class="bi bi-building"></i>
+                </div>
+                <h3 class="card-title">Educational Institution</h3>
+                <p class="card-description">
+                    Register your university, college, or training institution to connect students with internship opportunities.
+                </p>
+                <ul class="card-features">
+                    <li>Manage student internship programs</li>
+                    <li>Track student progress and performance</li>
+                    <li>Access comprehensive reporting tools</li>
+                    <li>Coordinate with industry partners</li>
+                    <li>Automated verification with CUE/TVETA</li>
+                </ul>
+                <a href="register-institution.html" class="register-btn">Register Institution</a>
+            </div>
+
+            <!-- Employer Registration -->
+            <div class="registration-card" onclick="selectRegistrationType('employer')">
+                <div class="card-icon">
+                    <i class="bi bi-briefcase"></i>
+                </div>
+                <h3 class="card-title">Employer/Organization</h3>
+                <p class="card-description">
+                    Register your company or organization to offer internship opportunities to talented students.
+                </p>
+                <ul class="card-features">
+                    <li>Post internship opportunities</li>
+                    <li>Access qualified student candidates</li>
+                    <li>Manage application processes</li>
+                    <li>Track intern performance</li>
+                    <li>Build talent pipeline for future hiring</li>
+                </ul>
+                <a href="register-employer.html" class="register-btn">Register Employer</a>
+            </div>
+        </div>
+
+        <div class="existing-user">
+            <p>Already have an account? 
+                <a href="login.html">Sign in here</a> | 
+                <a href="index.html">Back to Home</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        function selectRegistrationType(type) {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            loadingOverlay.style.display = 'flex';
+            
+            // Simulate loading and redirect
+            setTimeout(() => {
+                if (type === 'institution') {
+                    window.location.href = 'register-institution.html';
+                } else if (type === 'employer') {
+                    window.location.href = 'register-employer.html';
+                }
+            }, 500);
+        }
+
+        // Add click handlers for the registration buttons
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.registration-card');
+            cards.forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-5px)';
+                });
+                
+                card.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0)';
+                });
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Verification Reminder - Edulink</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo {
+            font-size: 32px;
+            font-weight: bold;
+            color: #ffc107;
+            margin-bottom: 10px;
+        }
+        .title {
+            color: #ffc107;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        .content {
+            margin-bottom: 30px;
+        }
+        .verify-button {
+            display: inline-block;
+            background-color: #ffc107;
+            color: #212529;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .verify-button:hover {
+            background-color: #e0a800;
+        }
+        .info-box {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .warning-box {
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .footer {
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        .countdown {
+            background-color: #f8f9fa;
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .countdown-number {
+            font-size: 36px;
+            font-weight: bold;
+            color: #ffc107;
+            margin-bottom: 5px;
+        }
+        .countdown-label {
+            font-size: 14px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">Edulink</div>
+            <h1 class="title">Email Verification Reminder</h1>
+        </div>
+        
+        <div class="content">
+            <p>Dear {{ first_name }},</p>
+            
+            <p>We noticed that you haven't verified your email address yet for your Edulink registration request. To continue with your application, please verify your email address as soon as possible.</p>
+            
+            <div class="info-box">
+                <strong>Registration Details:</strong><br>
+                Request Number: {{ request_number }}<br>
+                Email: {{ email }}<br>
+                Organization: {{ organization_name }}<br>
+                Submitted: {{ created_at|date:"F d, Y" }}
+            </div>
+            
+            {% if days_until_expiry <= 3 %}
+            <div class="warning-box">
+                <strong>⚠️ Urgent: Your registration will expire soon!</strong><br>
+                Your registration request will expire in {{ days_until_expiry }} day{{ days_until_expiry|pluralize }}. Please verify your email immediately to avoid having to restart the registration process.
+            </div>
+            {% endif %}
+            
+            <div class="countdown">
+                <div class="countdown-number">{{ days_until_expiry }}</div>
+                <div class="countdown-label">Day{{ days_until_expiry|pluralize }} Remaining</div>
+            </div>
+            
+            <div style="text-align: center;">
+                <a href="{{ verification_url }}" class="verify-button">Verify Email Address</a>
+            </div>
+            
+            <p><strong>What happens after verification?</strong></p>
+            <ul>
+                <li>Your email address will be confirmed</li>
+                <li>We'll verify your organization's domain (if applicable)</li>
+                <li>Your application will be reviewed by our team</li>
+                <li>You'll receive updates on your registration status</li>
+            </ul>
+            
+            <div class="info-box">
+                <strong>Need Help?</strong><br>
+                If you're having trouble with the verification link or have any questions, please contact our support team at {{ support_email }}. We're here to help!
+            </div>
+            
+            <p><strong>Didn't request this registration?</strong> If you didn't create this registration request, you can safely ignore this email. The request will expire automatically.</p>
+            
+            <p>Thank you for choosing Edulink!</p>
+        </div>
+        
+        <div class="footer">
+            <p>This email was sent by Edulink Registration System</p>
+            <p>If the button above doesn't work, copy and paste this link into your browser:</p>
+            <p style="word-break: break-all; color: #666;">{{ verification_url }}</p>
+            <p>If you have any questions, please contact our support team at {{ support_email }}</p>
+            <p>&copy; {{ current_year }} Edulink. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

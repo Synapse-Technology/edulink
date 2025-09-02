@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard Data Test</title>
+</head>
+<body>
+    <h1>Dashboard Data Test</h1>
+    <div id="test-output"></div>
+    
+    <script>
+        // Simulate the dashboard data structure
+        const testData = {
+            statistics: {
+                total_applications: { count: 25, trend: { direction: 'up', percentage: 12 } },
+                active_internships: { count: 8, trend: { direction: 'up', percentage: 5 } },
+                pending_reviews: { count: 3, trend: { direction: 'down', percentage: 3 } },
+                completion_rate: { count: 85, trend: { direction: 'up', percentage: 8 } }
+            }
+        };
+        
+        // Test the safeGetValue function
+        function safeGetValue(value, defaultValue = 0) {
+            console.log('Testing safeGetValue with:', value, 'type:', typeof value);
+            if (value === null || value === undefined || value === '' || (typeof value === 'number' && isNaN(value))) {
+                console.log('Returning default value:', defaultValue);
+                return defaultValue;
+            }
+            if (typeof value === 'string') {
+                const numValue = Number(value);
+                console.log('String conversion result:', numValue);
+                return isNaN(numValue) ? defaultValue : numValue;
+            }
+            const result = typeof value === 'number' && !isNaN(value) ? value : defaultValue;
+            console.log('Final result:', result);
+            return result;
+        }
+        
+        // Test the data processing
+        function testDataProcessing() {
+            console.log('=== Testing Dashboard Data Processing ===');
+            console.log('Original data:', testData);
+            
+            const stats = testData.statistics || testData;
+            console.log('Extracted stats:', stats);
+            
+            const statsMapping = {
+                'total-applications': {
+                    value: safeGetValue(stats.total_applications?.count || stats.totalApplications || stats.total_applications, 0),
+                    trend: stats.total_applications?.trend
+                },
+                'active-internships': {
+                    value: safeGetValue(stats.active_internships?.count || stats.activeInternships || stats.active_internships, 0),
+                    trend: stats.active_internships?.trend
+                },
+                'pending-reviews': {
+                    value: safeGetValue(stats.pending_reviews?.count || stats.pending_reviews, 0),
+                    trend: stats.pending_reviews?.trend
+                },
+                'completion-rate': {
+                    value: `${safeGetValue(stats.completion_rate?.count || stats.completion_rate, 0)}%`,
+                    trend: stats.completion_rate?.trend
+                }
+            };
+            
+            console.log('Stats mapping result:', statsMapping);
+            
+            // Display results
+            const output = document.getElementById('test-output');
+            output.innerHTML = '<h2>Test Results:</h2><pre>' + JSON.stringify(statsMapping, null, 2) + '</pre>';
+        }
+        
+        // Test with problematic data
+        function testProblematicData() {
+            console.log('=== Testing Problematic Data ===');
+            const problematicData = {
+                statistics: {
+                    total_applications: undefined,
+                    active_internships: null,
+                    pending_reviews: '',
+                    completion_rate: NaN
+                }
+            };
+            
+            console.log('Problematic data:', problematicData);
+            
+            const stats = problematicData.statistics;
+            const results = {
+                'total-applications': safeGetValue(stats.total_applications, 0),
+                'active-internships': safeGetValue(stats.active_internships, 0),
+                'pending-reviews': safeGetValue(stats.pending_reviews, 0),
+                'completion-rate': safeGetValue(stats.completion_rate, 0)
+            };
+            
+            console.log('Problematic data results:', results);
+        }
+        
+        // Run tests when page loads
+        window.onload = function() {
+            testDataProcessing();
+            testProblematicData();
+        };
+    </script>
+</body>
+</html>

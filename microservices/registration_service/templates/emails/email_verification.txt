@@ -1,0 +1,22 @@
+EDULINK - VERIFY YOUR EMAIL ADDRESS
+
+Hello {{ first_name }},
+
+Thank you for registering with Edulink! To complete your registration, please verify your email address by visiting the following link:
+
+{{ verification_url }}
+
+Registration Details:
+- Request Number: {{ request_number }}
+- Email: {{ email }}
+- Verification expires in: {{ expires_in_hours }} hours
+
+IMPORTANT: This verification link will expire in {{ expires_in_hours }} hours. If you don't verify your email within this time, you'll need to start the registration process again.
+
+If you didn't create an account with Edulink, please ignore this email or contact our support team.
+
+---
+This email was sent by Edulink Registration System
+If you have any questions, please contact our support team.
+
+© {{ current_year }} Edulink. All rights reserved.
