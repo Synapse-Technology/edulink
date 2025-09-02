@@ -20,7 +20,7 @@ load_dotenv()  # Load variables from .env
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 
 # Quick-start development settings - unsuitable for production
@@ -33,10 +33,7 @@ SECRET_KEY = "django-insecure-7z9(td$skyj--_ur+r4=f$)g*lm#&*t*$-xsey=ke1dstw8=c^
 DEBUG = True
 
 # Add type annotation for ALLOWED_HOSTS
-ALLOWED_HOSTS: list[str] = []
-
-CORS_ALLOW_ALL_ORIGINS = True
-
+ALLOWED_HOSTS: list[str] = ['localhost', '127.0.0.1', '0.0.0.0']
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 # For dev only, restrict in production!
@@ -56,14 +53,17 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django.contrib.sites",
     "rest_framework",
+    "rest_framework_simplejwt.token_blacklist",  # Required for JWT token blacklisting
     "corsheaders",
     "authentication",
     "employers",
     "users",
     "chatbot",
+    "security",
     "institutions",
     "internship",
     "dashboards",
+    "internship_progress",
     "notifications",  # Added notifications app
     "application",  # Ensure application app is registered
 ]
@@ -89,10 +89,15 @@ SIMPLE_JWT = {
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "security.middleware.SecurityMiddleware",  # Custom security middleware
+    "security.middleware.RateLimitMiddleware",  # Rate limiting middleware
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "security.middleware.SessionSecurityMiddleware",  # Session security middleware
+    "dashboards.middleware.PageViewTrackingMiddleware",  # Page view tracking
+    "dashboards.middleware.ApplicationCountTrackingMiddleware",  # Application tracking
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -101,6 +106,21 @@ MIDDLEWARE = [
 CORS_ALLOW_ALL_ORIGINS = True
 # dev
 CORS_ALLOW_CREDENTIALS = True
+
+# Allow additional headers for security and caching
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+    'cache-control',
+    'pragma',
+]
 
 ROOT_URLCONF = "Edulink.urls"
 
@@ -125,6 +145,7 @@ WSGI_APPLICATION = "Edulink.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+# PostgreSQL configuration (restored with working credentials)
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
@@ -136,6 +157,13 @@ DATABASES = {
     }
 }
 
+# SQLite fallback (commented out)
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.sqlite3",
+#         "NAME": BASE_DIR / "db.sqlite3",
+#     }
+# }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -172,6 +200,13 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = "static/"
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
+
+# Media files (User uploaded content)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -184,4 +219,93 @@ PASSWORD_RESET_URL_TEMPLATE = (
     "http://localhost:8000/api/auth/reset-password/{uid}/{token}/"
 )
 
+# Security Configuration (Privacy-First Approach)
+SECURITY_SETTINGS = {
+    'MAX_LOGIN_ATTEMPTS': 5,
+    'LOGIN_ATTEMPT_TIMEOUT': 300,  # 5 minutes
+    'SESSION_TIMEOUT': 3600,  # 1 hour
+    'PASSWORD_RESET_TIMEOUT': 3600,  # 1 hour
+    'BRUTE_FORCE_THRESHOLD': 10,
+    'RATE_LIMIT_REQUESTS': 100,
+    'RATE_LIMIT_WINDOW': 3600,  # 1 hour
+    'ENABLE_THREAT_DETECTION': True,
+    'ENABLE_SESSION_SECURITY': True,
+    'ENABLE_AUDIT_LOGGING': True,  # NOW MIGRATION-AWARE
+    
+    # Privacy-First Security Settings
+    'ANONYMIZE_IP_ADDRESSES': True,  # Mask IP addresses for privacy
+    'MINIMAL_LOGGING': True,         # Log only what's necessary for security
+    'DATA_RETENTION_DAYS': 90,       # Automatic data cleanup after 90 days
+    'GDPR_COMPLIANT': True,          # Enable GDPR compliance features
+}
+
+# Security Headers
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
+SECURE_HSTS_SECONDS = 31536000
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+
+# Session Security
+SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
+# CSRF Protection
+CSRF_COOKIE_SECURE = False  # Set to True in production with HTTPS
+CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SAMESITE = 'Lax'
+
+# Additional Security Settings
+SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
+SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin'
+
+# Additional Security Policies
+# Allow camera and microphone for development
+SECURE_PERMISSIONS_POLICY = {
+    'geolocation': ['self'],
+    'microphone': ['self'],
+    'camera': ['self'],
+}
+
+# Privacy-First Data Collection Settings
+# These settings control what data is collected and logged for security purposes
+# Set to False to minimize data collection and enhance privacy
+SECURITY_TRACK_SESSION_IPS = False      # Don't track IP addresses in sessions
+SECURITY_TRACK_USER_AGENTS = False      # Don't track user agents in sessions
+SECURITY_LOG_IP_ADDRESSES = False       # Don't log IP addresses in security events
+SECURITY_LOG_USER_AGENTS = False        # Don't log user agents in security events
+SECURITY_LOG_DETAILED_METADATA = False  # Only log minimal metadata
+
+# Development Security Settings
+# Allow localhost access during development
+DEVELOPMENT_MODE = True
+LOCALHOST_ALLOWED_IPS = ['127.0.0.1', '::1', 'localhost']
+SKIP_SECURITY_FOR_LOCALHOST = True
+
+# Rate limiting settings - more lenient for development
+API_RATE_LIMIT = 1000  # Increased from default
+API_RATE_WINDOW = 3600
+AUTH_RATE_LIMIT = 50   # Increased from default
+AUTH_RATE_WINDOW = 300
+
+# Data Protection Compliance
+DATA_PROTECTION_ENABLED = True
+GDPR_COMPLIANCE = True
+DATA_RETENTION_DAYS = 90
+ANONYMIZE_LOGS = True
+MINIMAL_DATA_COLLECTION = True
+
 GOOGLE_GEMINI_API_KEY = os.environ.get("GOOGLE_GEMINI_API_KEY")
+
+# Content Security Policy
+CONTENT_SECURITY_POLICY = {
+    'default-src': "'self'",
+    'script-src': "'self' 'unsafe-inline'",
+    'style-src': "'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com",
+    'font-src': "'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com",
+    'img-src': "'self' data: https:",
+    'connect-src': "'self'",
+}
