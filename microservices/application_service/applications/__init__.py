@@ -1,1 +1,0 @@
-# Applications Django app for the Application Service

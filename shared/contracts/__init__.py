@@ -1,1 +1,0 @@
-"""Shared API contracts for microservices communication."""
