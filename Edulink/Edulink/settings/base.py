@@ -27,16 +27,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-7z9(td$skyj--_ur+r4=f$)g*lm#&*t*$-xsey=ke1dstw8=c^"
+# This default key should only be used in development
+SECRET_KEY = config('SECRET_KEY', default="django-insecure-7z9(td$skyj--_ur+r4=f$)g*lm#&*t*$-xsey=ke1dstw8=c^")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('DEBUG', default=True, cast=bool)
 
 # Add type annotation for ALLOWED_HOSTS
-ALLOWED_HOSTS: list[str] = ['localhost', '127.0.0.1', '0.0.0.0']
+ALLOWED_HOSTS: list[str] = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,0.0.0.0', cast=lambda v: [s.strip() for s in v.split(',')])
 
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-# For dev only, restrict in production!
+# Email backend - use console for development, SMTP for production
+EMAIL_BACKEND = config('EMAIL_BACKEND', default="django.core.mail.backends.console.EmailBackend")
 
 DEFAULT_FROM_EMAIL = "noreply@edulink.com"
 
@@ -55,6 +56,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework_simplejwt.token_blacklist",  # Required for JWT token blacklisting
     "corsheaders",
+    "core",  # Core utilities and template tags for error handling
     "authentication",
     "employers",
     "users",
@@ -66,12 +68,19 @@ INSTALLED_APPS = [
     "internship_progress",
     "notifications",  # Added notifications app
     "application",  # Ensure application app is registered
+    "monitoring",  # System monitoring and health checks
 ]
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
-    )
+    ),
+    "EXCEPTION_HANDLER": "Edulink.utils.error_handlers.custom_exception_handler",
+    "DEFAULT_RENDERER_CLASSES": [
+        "rest_framework.renderers.JSONRenderer",
+    ],
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 20,
 }
 
 AUTH_USER_MODEL = "authentication.User"
@@ -91,6 +100,7 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "security.middleware.SecurityMiddleware",  # Custom security middleware
     "security.middleware.RateLimitMiddleware",  # Rate limiting middleware
+    "security.middleware.CSRFSecurityMiddleware",  # Enhanced CSRF protection
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -102,10 +112,10 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-# Allow frontend & Flutter apps to access
-CORS_ALLOW_ALL_ORIGINS = True
-# dev
-CORS_ALLOW_CREDENTIALS = True
+# CORS Configuration - restrictive by default, can be overridden in dev.py
+CORS_ALLOW_ALL_ORIGINS = config('CORS_ALLOW_ALL_ORIGINS', default=False, cast=bool)
+CORS_ALLOW_CREDENTIALS = config('CORS_ALLOW_CREDENTIALS', default=True, cast=bool)
+CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='', cast=lambda v: [s.strip() for s in v.split(',') if s.strip()])
 
 # Allow additional headers for security and caching
 CORS_ALLOW_HEADERS = [
@@ -145,7 +155,7 @@ WSGI_APPLICATION = "Edulink.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# PostgreSQL configuration (restored with working credentials)
+# PostgreSQL configuration (Supabase)
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
@@ -202,6 +212,7 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATICFILES_DIRS = [
     BASE_DIR / "static",
+    BASE_DIR.parent / "Edulink_website",  # Frontend files integration
 ]
 
 # Media files (User uploaded content)
@@ -247,16 +258,22 @@ SECURE_HSTS_SECONDS = 31536000
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 
-# Session Security
-SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
+# Session Security - environment configurable
+SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=False, cast=bool)
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
-# CSRF Protection
-CSRF_COOKIE_SECURE = False  # Set to True in production with HTTPS
+# Enhanced CSRF Protection - environment configurable
+CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=False, cast=bool)
 CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_AGE = 3600  # 1 hour
+CSRF_USE_SESSIONS = True
+CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='http://localhost:3000,http://127.0.0.1:3000', cast=lambda v: [s.strip() for s in v.split(',') if s.strip()])
+
+# Enhanced CSRF failure handling
+CSRF_FAILURE_VIEW = 'Edulink.utils.error_handlers.csrf_failure_view'
 
 # Additional Security Settings
 SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
@@ -279,17 +296,62 @@ SECURITY_LOG_IP_ADDRESSES = False       # Don't log IP addresses in security eve
 SECURITY_LOG_USER_AGENTS = False        # Don't log user agents in security events
 SECURITY_LOG_DETAILED_METADATA = False  # Only log minimal metadata
 
-# Development Security Settings
-# Allow localhost access during development
-DEVELOPMENT_MODE = True
+# Development Security Settings - environment configurable
+DEVELOPMENT_MODE = config('DEVELOPMENT_MODE', default=True, cast=bool)
 LOCALHOST_ALLOWED_IPS = ['127.0.0.1', '::1', 'localhost']
-SKIP_SECURITY_FOR_LOCALHOST = True
+SKIP_SECURITY_FOR_LOCALHOST = config('SKIP_SECURITY_FOR_LOCALHOST', default=True, cast=bool)
 
-# Rate limiting settings - more lenient for development
+# Enhanced Rate Limiting Configuration
 API_RATE_LIMIT = 1000  # Increased from default
 API_RATE_WINDOW = 3600
 AUTH_RATE_LIMIT = 50   # Increased from default
 AUTH_RATE_WINDOW = 300
+
+# Advanced Rate Limiting Configurations
+RATE_LIMIT_CONFIGS = {
+    r'^/api/auth/login/$': {
+        'requests': 10,
+        'window': 900,  # 15 minutes
+    },
+    r'^/api/auth/register/$': {
+        'requests': 5,
+        'window': 3600,  # 1 hour
+    },
+    r'^/api/auth/password-reset/$': {
+        'requests': 3,
+        'window': 3600,  # 1 hour
+    },
+    r'^/api/institutions/search/$': {
+        'requests': 200,
+        'window': 3600,  # 1 hour
+    },
+    r'^/api/applications/$': {
+        'requests': 50,
+        'window': 3600,  # 1 hour
+    },
+}
+
+# Rate limiting skip paths
+RATE_LIMIT_SKIP_PATHS = [
+    '/admin/',
+    '/api/health/',
+    '/api/monitoring/health/',
+]
+
+# Enhanced Security Threat Detection
+THREAT_BLOCK_THRESHOLD = 3  # Block IP after 3 threats
+MAX_REQUEST_SIZE = 10 * 1024 * 1024  # 10MB max request size
+SUSPICIOUS_USER_AGENT_PATTERNS = [
+    r'sqlmap', r'nikto', r'nmap', r'masscan', r'zap', r'burp',
+    r'scanner', r'bot.*attack', r'hack.*tool'
+]
+
+# Session Security Settings
+SESSION_MAX_AGE = 86400  # 24 hours
+MAX_CONCURRENT_SESSIONS = 3  # Maximum concurrent sessions per user
+
+# Admin Security Settings
+ADMIN_ALLOWED_IPS = []  # Empty list means no IP restrictions for development
 
 # Data Protection Compliance
 DATA_PROTECTION_ENABLED = True
@@ -305,7 +367,7 @@ CONTENT_SECURITY_POLICY = {
     'default-src': "'self'",
     'script-src': "'self' 'unsafe-inline'",
     'style-src': "'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com",
-    'font-src': "'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com",
+    'font-src': "'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:",
     'img-src': "'self' data: https:",
-    'connect-src': "'self'",
+    'connect-src': "'self' http://127.0.0.1:8000 http://localhost:8000",
 }

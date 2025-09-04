@@ -12,6 +12,7 @@ from .views import (
     InstitutionDashboardStatsView,
     InstitutionRecentActivityView,
     GenerateRegistrationCodeView,
+    InstitutionProfileDetailView,
 )
 
 app_name = 'institutions'

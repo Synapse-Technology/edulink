@@ -1,0 +1,60 @@
+{% comment %}
+Error Display Component Template
+Used by the error_display template tag to render consistent error messages
+{% endcomment %}
+
+<div class="error-component error-component--{{ error_type }}{% if display_type %} error-component--{{ display_type }}{% endif %}{% if container_class %} {{ container_class }}{% endif %}"
+     role="alert"
+     aria-live="{% if error_type == 'critical' %}assertive{% else %}polite{% endif %}">
+    
+    <!-- Error Icon -->
+    <div class="error-component__icon" aria-hidden="true">
+        <i class="{{ icon_class }}"></i>
+    </div>
+    
+    <!-- Error Content -->
+    <div class="error-component__content">
+        {% if title %}
+        <div class="error-component__title">{{ title }}</div>
+        {% endif %}
+        
+        {% if message %}
+        <div class="error-component__message">{{ message }}</div>
+        {% endif %}
+        
+        {% if details %}
+        <div class="error-component__details">{{ details }}</div>
+        {% endif %}
+        
+        {% if actions %}
+        <div class="error-component__actions">
+            {% for action in actions %}
+                {% if action.url %}
+                    <a href="{{ action.url }}" 
+                       class="error-action-btn{% if action.secondary %} error-action-btn--secondary{% endif %}">
+                        {% if action.icon %}<i class="{{ action.icon }}"></i>{% endif %}
+                        {{ action.text }}
+                    </a>
+                {% else %}
+                    <button type="button" 
+                            class="error-action-btn{% if action.secondary %} error-action-btn--secondary{% endif %}"
+                            {% if action.onclick %}onclick="{{ action.onclick }}"{% endif %}>
+                        {% if action.icon %}<i class="{{ action.icon }}"></i>{% endif %}
+                        {{ action.text }}
+                    </button>
+                {% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Dismiss Button -->
+    {% if dismissible %}
+    <button type="button" 
+            class="error-component__dismiss" 
+            aria-label="Dismiss notification"
+            onclick="this.parentElement.remove()">
+        <i class="fas fa-times"></i>
+    </button>
+    {% endif %}
+</div>

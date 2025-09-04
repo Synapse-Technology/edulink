@@ -13,6 +13,7 @@ from security.models import SecurityLog
 from security.serializers import SecurityLogSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.views import APIView
+from Edulink.utils.error_handlers import APIErrorHandler, APIResponseMixin
 
 from users.models.institution_profile import InstitutionProfile
 from users.models.employer_profile import EmployerProfile
@@ -209,31 +210,42 @@ class StudentDetailView(RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated, IsAdmin]
 
 # Role Management
-class UserRoleUpdateView(APIView):
+class UserRoleUpdateView(APIView, APIResponseMixin):
     permission_classes = [IsAuthenticated, IsAdmin]
     def patch(self, request, pk):
-        user = User.objects.get(pk=pk)
+        try:
+            user = User.objects.get(pk=pk)
+        except User.DoesNotExist:
+            return APIErrorHandler.handle_not_found('User not found')
+        
         new_role = request.data.get('role')
         if new_role not in [choice[0] for choice in user._meta.get_field('role').choices]:
-            return Response({'error': 'Invalid role'}, status=status.HTTP_400_BAD_REQUEST)
+            return APIErrorHandler.handle_bad_request('Invalid role')
+        
         user.role = new_role
         user.save()
-        return Response({'message': 'Role updated', 'role': user.role})
+        return self.success_response(
+            data={'role': user.role},
+            message='Role updated successfully'
+        )
 
 # System Analytics
-class SystemAnalyticsView(APIView):
+class SystemAnalyticsView(APIView, APIResponseMixin):
     permission_classes = [IsAuthenticated, IsAdmin]
     def get(self, request):
-        total_users = User.objects.count()
-        total_students = StudentProfile.objects.count()
-        total_employers = EmployerProfile.objects.count()
-        total_institutions = InstitutionProfile.objects.count()
-        return Response({
-            "total_users": total_users,
-            "total_students": total_students,
-            "total_employers": total_employers,
-            "total_institutions": total_institutions,
-        })
+        try:
+            analytics_data = {
+                "total_users": User.objects.count(),
+                "total_students": StudentProfile.objects.count(),
+                "total_employers": EmployerProfile.objects.count(),
+                "total_institutions": InstitutionProfile.objects.count(),
+            }
+            return self.success_response(
+                data=analytics_data,
+                message='System analytics retrieved successfully'
+            )
+        except Exception as e:
+            return APIErrorHandler.handle_server_error('Failed to retrieve system analytics')
 
 # Impersonation
 class ImpersonateUserView(APIView):
