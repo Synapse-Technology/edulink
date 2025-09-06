@@ -54,7 +54,7 @@ django-prometheus==2.3.1
 
 # Email & Notifications
 celery==5.3.4
-django-celery-beat==2.7.0
+django-celery-beat>=2.8.0
 django-celery-results==2.5.1
 django-anymail==10.2
 django-notifications-hq==1.8.3
