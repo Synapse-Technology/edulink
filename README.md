@@ -1,7 +1,7 @@
 # Edulink - Internship Management Platform
 
 [![Version](https://img.shields.io/badge/version-1.0--beta-blue.svg)](https://github.com/Synapse-Technology/Edulink)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-Proprietary-red.svg)](LICENSE)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/Synapse-Technology/Edulink/actions)
 [![Python](https://img.shields.io/badge/python-3.9+-blue.svg)](https://python.org)
 [![Django](https://img.shields.io/badge/django-4.2+-green.svg)](https://djangoproject.com)
@@ -275,7 +275,7 @@ Redis is used for:
 
 Edulink provides a comprehensive RESTful API for integration with external systems.
 
-**Base URL**: `http://localhost:8000/api/v1/`
+**Base URL**: `https://edulink.jhubafrica.com/api/v1/`
 
 ### Authentication
 
@@ -319,9 +319,9 @@ curl -H "Authorization: Bearer your_jwt_token" \
 
 ### API Documentation Links
 
-- **Interactive API Docs**: `http://localhost:8000/api/docs/` (Swagger UI)
-- **API Schema**: `http://localhost:8000/api/schema/` (OpenAPI 3.0)
-- **Redoc Documentation**: `http://localhost:8000/api/redoc/`
+- **Interactive API Docs**: `https://edulink.jhubafrica.com/api/docs/` (Swagger UI)
+- **API Schema**: `https://edulink.jhubafrica.com/api/schema/` (OpenAPI 3.0)
+- **Redoc Documentation**: `https://edulink.jhubafrica.com/api/redoc/`
 
 ### Rate Limiting
 
@@ -416,20 +416,20 @@ For feature requests:
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This is a proprietary commercial software product. All rights reserved.
 
-### MIT License Summary
+### Commercial License
 
-- ✅ **Commercial use**
-- ✅ **Modification**
-- ✅ **Distribution**
-- ✅ **Private use**
+- ❌ **Open source distribution**
+- ❌ **Public modification**
+- ❌ **Free commercial use**
+- ✅ **Licensed commercial use**
 - ❌ **Liability**
 - ❌ **Warranty**
 
 ### Third-Party Licenses
 
-This project uses several open-source libraries. See [THIRD_PARTY_LICENSES.md](docs/THIRD_PARTY_LICENSES.md) for details.
+This project uses several open-source libraries under their respective licenses. See [THIRD_PARTY_LICENSES.md](docs/THIRD_PARTY_LICENSES.md) for details.
 
 ## 🆘 Support
 
@@ -442,9 +442,9 @@ This project uses several open-source libraries. See [THIRD_PARTY_LICENSES.md](d
 
 ### Contact Information
 
-- **Project Lead**: Bouric Enos Okwaro - [bouric@edulink.platform](mailto:bouric@edulink.platform)
-- **Technical Support**: [support@edulink.platform](mailto:support@edulink.platform)
-- **Security Issues**: [security@edulink.platform](mailto:security@edulink.platform)
+- **Project Lead**: Bouric Enos Okwaro - [bokwaro@edulink.jhubafrica.com](mailto:bokwaro@edulink.jhubafrica.com)
+- **Technical Support**: [support@edulink.jhubafrica.com](mailto:support@edulink.jhubafrica.com)
+- **Security Issues**: [security@edulink.jhubafrica.com](mailto:security@edulink.jhubafrica.com)
 
 ### Community
 
@@ -459,7 +459,7 @@ For enterprise deployments and professional support:
 - **Training**: Team training and onboarding programs
 - **SLA Support**: 24/7 support with guaranteed response times
 
-Contact: [enterprise@edulink.platform](mailto:enterprise@edulink.platform)
+Contact: [enterprise@edulink.jhubafrica.com](mailto:enterprise@edulink.jhubafrica.com)
 
 ---
 
