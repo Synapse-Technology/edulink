@@ -1,6 +1,9 @@
 from .base import *
 import os
 from decouple import config
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
+from sentry_sdk.integrations.celery import CeleryIntegration
 
 # SECURITY WARNING: Override insecure development settings
 SECRET_KEY = config('SECRET_KEY', default=None)
@@ -11,9 +14,12 @@ DEBUG = False
 
 # Production domain configuration
 ALLOWED_HOSTS = [
-    config('DOMAIN_NAME', default='edulink.com'),
-    config('API_DOMAIN', default='api.edulink.com'),
-    config('WWW_DOMAIN', default='www.edulink.com'),
+    config('DOMAIN_NAME', default='edulink.jhubafrica.com'),
+    config('API_DOMAIN', default='api.edulink.jhubafrica.com'),
+    config('WWW_DOMAIN', default='www.edulink.jhubafrica.com'),
+    'edulink.jhubafrica.com',
+    'www.edulink.jhubafrica.com',
+    'api.edulink.jhubafrica.com',
 ]
 
 # Production email configuration
@@ -40,15 +46,20 @@ SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 # Production CORS Configuration
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = [
-    config('FRONTEND_URL', default='https://edulink.com'),
-    config('ADMIN_URL', default='https://admin.edulink.com'),
+    config('FRONTEND_URL', default='https://edulink.jhubafrica.com'),
+    config('ADMIN_URL', default='https://admin.edulink.jhubafrica.com'),
+    'https://edulink.jhubafrica.com',
+    'https://www.edulink.jhubafrica.com',
 ]
 CORS_ALLOW_CREDENTIALS = True
 
 # Production CSRF Configuration
 CSRF_TRUSTED_ORIGINS = [
-    config('FRONTEND_URL', default='https://edulink.com'),
-    config('API_URL', default='https://api.edulink.com'),
+    config('FRONTEND_URL', default='https://edulink.jhubafrica.com'),
+    config('API_URL', default='https://api.edulink.jhubafrica.com'),
+    'https://edulink.jhubafrica.com',
+    'https://www.edulink.jhubafrica.com',
+    'https://api.edulink.jhubafrica.com',
 ]
 
 # Production Database Configuration
@@ -157,9 +168,29 @@ LOGGING = {
     },
 }
 
-# Production Cache Configuration Override
-CACHES['default']['KEY_PREFIX'] = 'edulink_prod'
-CACHES['default']['TIMEOUT'] = 300
+# Production Cache Configuration (Redis)
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': config('REDIS_URL', default='redis://redis:6379/1'),
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'CONNECTION_POOL_KWARGS': {
+                'max_connections': 50,
+                'retry_on_timeout': True,
+            },
+            'COMPRESSOR': 'django_redis.compressors.zlib.ZlibCompressor',
+            'IGNORE_EXCEPTIONS': True,
+        },
+        'KEY_PREFIX': 'edulink_prod',
+        'TIMEOUT': 300,
+        'VERSION': 1,
+    }
+}
+
+# Session backend using Redis
+SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+SESSION_CACHE_ALIAS = 'default'
 
 # Production Session Configuration Override
 SESSION_COOKIE_AGE = 1800  # 30 minutes
@@ -168,8 +199,83 @@ SESSION_SAVE_EVERY_REQUEST = True
 # Production Password Reset URL
 PASSWORD_RESET_URL_TEMPLATE = config(
     'PASSWORD_RESET_URL_TEMPLATE',
-    default='https://edulink.com/reset-password/{uid}/{token}/'
+    default='https://edulink.jhubafrica.com/reset-password/{uid}/{token}/'
 )
+
+# Celery Configuration for Production
+CELERY_BROKER_URL = config('CELERY_BROKER_URL', default='redis://redis:6379/0')
+CELERY_RESULT_BACKEND = config('CELERY_RESULT_BACKEND', default='redis://redis:6379/0')
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
+CELERY_ENABLE_UTC = True
+CELERY_TASK_ALWAYS_EAGER = False
+CELERY_TASK_EAGER_PROPAGATES = False
+CELERY_WORKER_HIJACK_ROOT_LOGGER = False
+CELERY_WORKER_PREFETCH_MULTIPLIER = 4
+CELERY_TASK_ACKS_LATE = True
+CELERY_WORKER_MAX_TASKS_PER_CHILD = 1000
+
+# AWS S3 Configuration for Production
+if config('USE_S3', default=False, cast=bool):
+    AWS_ACCESS_KEY_ID = config('AWS_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = config('AWS_SECRET_ACCESS_KEY')
+    AWS_STORAGE_BUCKET_NAME = config('AWS_STORAGE_BUCKET_NAME')
+    AWS_S3_REGION_NAME = config('AWS_S3_REGION_NAME', default='us-east-1')
+    AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
+    AWS_DEFAULT_ACL = 'public-read'
+    AWS_S3_OBJECT_PARAMETERS = {
+        'CacheControl': 'max-age=86400',
+    }
+    AWS_LOCATION = 'static'
+    AWS_MEDIA_LOCATION = 'media'
+    
+    # Static files
+    STATICFILES_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+    STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/{AWS_LOCATION}/'
+    
+    # Media files
+    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+    MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/{AWS_MEDIA_LOCATION}/'
+
+# Sentry Configuration for Error Tracking
+if config('SENTRY_DSN', default=None):
+    sentry_sdk.init(
+        dsn=config('SENTRY_DSN'),
+        integrations=[
+            DjangoIntegration(transaction_style='url'),
+            CeleryIntegration(monitor_beat_tasks=True),
+        ],
+        traces_sample_rate=config('SENTRY_TRACES_SAMPLE_RATE', default=0.1, cast=float),
+        send_default_pii=False,
+        environment=config('ENVIRONMENT', default='production'),
+        release=config('APP_VERSION', default='1.0.0'),
+    )
+
+# Feature Flags for Production
+FEATURE_FLAGS = {
+    'ENABLE_ANALYTICS': config('ENABLE_ANALYTICS', default=True, cast=bool),
+    'ENABLE_CHATBOT': config('ENABLE_CHATBOT', default=True, cast=bool),
+    'ENABLE_NOTIFICATIONS': config('ENABLE_NOTIFICATIONS', default=True, cast=bool),
+    'ENABLE_MONITORING': config('ENABLE_MONITORING', default=True, cast=bool),
+    'ENABLE_RATE_LIMITING': config('ENABLE_RATE_LIMITING', default=True, cast=bool),
+    'ENABLE_AUDIT_LOGGING': config('ENABLE_AUDIT_LOGGING', default=True, cast=bool),
+}
+
+# Performance Settings
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 1000
+
+# Database Connection Pooling
+DATABASES['default']['CONN_MAX_AGE'] = 600
+DATABASES['default']['OPTIONS'].update({
+    'MAX_CONNS': 20,
+    'OPTIONS': {
+        '-c default_transaction_isolation=serializable'
+    }
+})
 
 # Disable development-only settings
 DEVELOPMENT_MODE = False
