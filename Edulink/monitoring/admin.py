@@ -1,8 +1,18 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from django.urls import reverse
+from django.urls import reverse, path
 from django.utils import timezone
+from django.shortcuts import render, redirect
+from django.http import JsonResponse, HttpResponse
+from django.contrib.admin.views.decorators import staff_member_required
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib import messages
 from .models import SystemHealthCheck, APIMetrics, SystemAlert, MonitoringConfiguration
+from .views import DetailedHealthCheckView
+import json
+import csv
+from datetime import datetime, timedelta
 
 
 @admin.register(SystemHealthCheck)
@@ -317,3 +327,319 @@ class MonitoringConfigurationAdmin(admin.ModelAdmin):
     
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+class MonitoringAdminSite(admin.AdminSite):
+    """Custom admin site with monitoring dashboard integration"""
+    
+    site_header = 'Edulink Monitoring Dashboard'
+    site_title = 'Monitoring Admin'
+    index_title = 'System Monitoring & Health'
+    
+    def get_urls(self):
+        """Add custom URLs for monitoring dashboard"""
+        urls = super().get_urls()
+        custom_urls = [
+            path('monitoring-dashboard/', self.admin_view(self.monitoring_dashboard_view), name='monitoring_dashboard'),
+            path('run-health-check/', self.admin_view(self.run_health_check), name='run_health_check'),
+            path('export-report/', self.admin_view(self.export_report), name='export_report'),
+            path('system-status/', self.admin_view(self.system_status_api), name='system_status_api'),
+        ]
+        return custom_urls + urls
+    
+    def monitoring_dashboard_view(self, request):
+        """Custom monitoring dashboard view for admin"""
+        # Get latest system health
+        latest_health = SystemHealthCheck.objects.first()
+        
+        # Get active alerts
+        active_alerts = SystemAlert.objects.filter(status='active').order_by('-timestamp')[:5]
+        
+        # Get recent API metrics
+        recent_metrics = APIMetrics.objects.filter(
+            timestamp__gte=timezone.now() - timedelta(hours=24)
+        )
+        
+        # Calculate statistics
+        context = {
+            'title': 'Monitoring Dashboard',
+            'latest_health': latest_health,
+            'active_alerts': active_alerts,
+            'alert_count': active_alerts.count(),
+            'critical_alerts': active_alerts.filter(severity='critical').count(),
+            'total_requests_24h': recent_metrics.count(),
+            'avg_response_time': recent_metrics.aggregate(avg=models.Avg('response_time'))['avg'] or 0,
+            'error_rate': (
+                recent_metrics.filter(status_code__gte=400).count() / 
+                max(recent_metrics.count(), 1) * 100
+            ),
+            'config': MonitoringConfiguration.get_current(),
+        }
+        
+        return render(request, 'admin/monitoring/dashboard.html', context)
+    
+    @method_decorator(csrf_exempt)
+    def run_health_check(self, request):
+        """Run a manual health check"""
+        if request.method == 'POST':
+            try:
+                # Create a temporary request object for the health check view
+                health_view = DetailedHealthCheckView()
+                health_view.request = request
+                response = health_view.get(request)
+                
+                if hasattr(response, 'data'):
+                    return JsonResponse({
+                        'success': True,
+                        'data': response.data,
+                        'message': 'Health check completed successfully'
+                    })
+                else:
+                    return JsonResponse({
+                        'success': False,
+                        'message': 'Health check failed'
+                    })
+            except Exception as e:
+                return JsonResponse({
+                    'success': False,
+                    'message': f'Health check error: {str(e)}'
+                })
+        
+        return JsonResponse({'success': False, 'message': 'Invalid request method'})
+    
+    def export_report(self, request):
+        """Export system health report"""
+        # Get date range from request
+        days = int(request.GET.get('days', 7))
+        start_date = timezone.now() - timedelta(days=days)
+        
+        # Create CSV response
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="monitoring_report_{datetime.now().strftime("%Y%m%d")}.csv"'
+        
+        writer = csv.writer(response)
+        
+        # Write health check data
+        writer.writerow(['System Health Report', f'Generated: {datetime.now()}'])
+        writer.writerow([])
+        writer.writerow(['Health Checks'])
+        writer.writerow([
+            'Timestamp', 'Overall Status', 'CPU Usage', 'Memory Usage', 
+            'Disk Usage', 'Database Status', 'Cache Status'
+        ])
+        
+        health_checks = SystemHealthCheck.objects.filter(
+            timestamp__gte=start_date
+        ).order_by('-timestamp')
+        
+        for check in health_checks:
+            writer.writerow([
+                check.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+                check.overall_status,
+                f'{check.cpu_usage:.1f}%' if check.cpu_usage else 'N/A',
+                f'{check.memory_usage:.1f}%' if check.memory_usage else 'N/A',
+                f'{check.disk_usage:.1f}%' if check.disk_usage else 'N/A',
+                check.database_status,
+                check.cache_status
+            ])
+        
+        # Write alerts data
+        writer.writerow([])
+        writer.writerow(['Active Alerts'])
+        writer.writerow(['Timestamp', 'Title', 'Severity', 'Type', 'Status', 'Message'])
+        
+        alerts = SystemAlert.objects.filter(
+            timestamp__gte=start_date
+        ).order_by('-timestamp')
+        
+        for alert in alerts:
+            writer.writerow([
+                alert.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+                alert.title,
+                alert.severity,
+                alert.alert_type,
+                alert.status,
+                alert.message[:100] + '...' if len(alert.message) > 100 else alert.message
+            ])
+        
+        return response
+    
+    def system_status_api(self, request):
+        """API endpoint for real-time system status"""
+        latest_health = SystemHealthCheck.objects.first()
+        active_alerts = SystemAlert.objects.filter(status='active').count()
+        
+        return JsonResponse({
+            'overall_status': latest_health.overall_status if latest_health else 'unknown',
+            'cpu_usage': latest_health.cpu_usage if latest_health else None,
+            'memory_usage': latest_health.memory_usage if latest_health else None,
+            'disk_usage': latest_health.disk_usage if latest_health else None,
+            'active_alerts': active_alerts,
+            'last_check': latest_health.timestamp.isoformat() if latest_health else None
+        })
+    
+    def index(self, request, extra_context=None):
+        """Custom admin index with monitoring widgets"""
+        extra_context = extra_context or {}
+        
+        # Add monitoring data to context
+        latest_health = SystemHealthCheck.objects.first()
+        active_alerts = SystemAlert.objects.filter(status='active').count()
+        
+        extra_context.update({
+            'monitoring_status': {
+                'overall_health': latest_health.overall_status if latest_health else 'unknown',
+                'cpu_usage': latest_health.cpu_usage if latest_health else None,
+                'memory_usage': latest_health.memory_usage if latest_health else None,
+                'active_alerts': active_alerts,
+                'last_check': latest_health.timestamp if latest_health else None
+            }
+        })
+        
+        return super().index(request, extra_context)
+
+
+    def dashboard_view(self, request):
+        """Custom dashboard view for monitoring admin"""
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        # Get latest health check
+        latest_health = SystemHealthCheck.objects.order_by('-timestamp').first()
+        
+        # Get active alerts
+        active_alerts = SystemAlert.objects.filter(
+            status__in=['active', 'acknowledged']
+        ).order_by('-timestamp')[:5]
+        
+        # Get API metrics for last 24 hours
+        yesterday = timezone.now() - timedelta(days=1)
+        api_metrics = APIMetrics.objects.filter(timestamp__gte=yesterday)
+        
+        total_requests_24h = api_metrics.count()
+        avg_response_time = api_metrics.aggregate(
+            avg_time=models.Avg('response_time')
+        )['avg_time'] or 0
+        
+        # Calculate error rate
+        error_requests = api_metrics.filter(status_code__gte=400).count()
+        error_rate = (error_requests / total_requests_24h * 100) if total_requests_24h > 0 else 0
+        
+        # Get monitoring configuration
+        config = MonitoringConfiguration.objects.first()
+        if not config:
+            config = MonitoringConfiguration.objects.create()
+        
+        context = {
+            'title': 'Monitoring Dashboard',
+            'latest_health': latest_health,
+            'active_alerts': active_alerts,
+            'alert_count': active_alerts.count(),
+            'total_requests_24h': total_requests_24h,
+            'avg_response_time': avg_response_time,
+            'error_rate': error_rate,
+            'config': config,
+            'site_title': self.site_title,
+            'site_header': self.site_header,
+        }
+        
+        return render(request, 'admin/monitoring/dashboard.html', context)
+    
+    def run_health_check_view(self, request):
+        """Run manual health check"""
+        if request.method == 'POST':
+            try:
+                # Run detailed health check
+                health_view = DetailedHealthCheckView()
+                health_view.request = request
+                response = health_view.get(request)
+                
+                if response.status_code == 200:
+                    data = json.loads(response.content)
+                    return JsonResponse({
+                        'success': True,
+                        'message': 'Health check completed successfully',
+                        'data': data
+                    })
+                else:
+                    return JsonResponse({
+                        'success': False,
+                        'message': 'Health check failed'
+                    })
+            except Exception as e:
+                return JsonResponse({
+                    'success': False,
+                    'message': str(e)
+                })
+        
+        return JsonResponse({'success': False, 'message': 'Invalid request method'})
+    
+    def export_report_view(self, request):
+        """Export system health report"""
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        # Get data for the last 7 days
+        week_ago = timezone.now() - timedelta(days=7)
+        health_checks = SystemHealthCheck.objects.filter(
+            timestamp__gte=week_ago
+        ).order_by('-timestamp')
+        
+        # Create CSV response
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="system_health_report.csv"'
+        
+        writer = csv.writer(response)
+        writer.writerow([
+            'Timestamp', 'Overall Status', 'CPU Usage (%)', 'Memory Usage (%)', 
+            'Disk Usage (%)', 'Database Status', 'Cache Status'
+        ])
+        
+        for check in health_checks:
+            writer.writerow([
+                check.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+                check.overall_status,
+                check.cpu_usage or 'N/A',
+                check.memory_usage or 'N/A',
+                check.disk_usage or 'N/A',
+                check.database_status,
+                check.cache_status
+            ])
+        
+        return response
+    
+    def system_status_api_view(self, request):
+        """API endpoint for real-time system status"""
+        latest_health = SystemHealthCheck.objects.order_by('-timestamp').first()
+        
+        if latest_health:
+            data = {
+                'overall_status': latest_health.overall_status,
+                'cpu_usage': latest_health.cpu_usage,
+                'memory_usage': latest_health.memory_usage,
+                'disk_usage': latest_health.disk_usage,
+                'timestamp': latest_health.timestamp.isoformat()
+            }
+        else:
+            data = {
+                'overall_status': 'unknown',
+                'cpu_usage': None,
+                'memory_usage': None,
+                'disk_usage': None,
+                'timestamp': None
+            }
+        
+        return JsonResponse(data)
+
+
+# Create custom admin site instance
+monitoring_admin_site = MonitoringAdminSite(name='monitoring_admin')
+
+# Register models with both default admin and custom admin site
+monitoring_admin_site.register(SystemHealthCheck, SystemHealthCheckAdmin)
+monitoring_admin_site.register(APIMetrics, APIMetricsAdmin)
+monitoring_admin_site.register(SystemAlert, SystemAlertAdmin)
+monitoring_admin_site.register(MonitoringConfiguration, MonitoringConfigurationAdmin)
+
+# Import models for the aggregate function
+from django.db import models

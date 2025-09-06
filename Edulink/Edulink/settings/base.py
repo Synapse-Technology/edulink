@@ -362,6 +362,53 @@ MINIMAL_DATA_COLLECTION = True
 
 GOOGLE_GEMINI_API_KEY = os.environ.get("GOOGLE_GEMINI_API_KEY")
 
+# =============================================================================
+# REDIS CONFIGURATION
+# =============================================================================
+
+# Redis Cache Configuration
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': config('REDIS_URL', default='redis://localhost:6379/0'),
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        },
+        'KEY_PREFIX': 'edulink',
+        'TIMEOUT': config('CACHE_TIMEOUT', default=300, cast=int),
+    }
+}
+
+# Session Configuration - Use Redis for sessions
+SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+SESSION_CACHE_ALIAS = 'default'
+SESSION_COOKIE_AGE = config('SESSION_CACHE_TIMEOUT', default=3600, cast=int)
+
+# =============================================================================
+# CELERY CONFIGURATION
+# =============================================================================
+
+# Celery Configuration
+CELERY_BROKER_URL = config('CELERY_BROKER_URL', default='redis://localhost:6379/1')
+CELERY_RESULT_BACKEND = config('CELERY_RESULT_BACKEND', default='redis://localhost:6379/1')
+
+# Celery Task Configuration
+CELERY_TASK_SERIALIZER = config('CELERY_TASK_SERIALIZER', default='json')
+CELERY_RESULT_SERIALIZER = config('CELERY_RESULT_SERIALIZER', default='json')
+CELERY_ACCEPT_CONTENT = [config('CELERY_ACCEPT_CONTENT', default='json')]
+CELERY_TIMEZONE = config('CELERY_TIMEZONE', default='UTC')
+CELERY_ENABLE_UTC = config('CELERY_ENABLE_UTC', default=True, cast=bool)
+
+# Celery Task Execution Configuration
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes
+CELERY_TASK_SOFT_TIME_LIMIT = 25 * 60  # 25 minutes
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+CELERY_WORKER_MAX_TASKS_PER_CHILD = 1000
+
+# Celery Beat Configuration (for scheduled tasks)
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+
 # Content Security Policy
 CONTENT_SECURITY_POLICY = {
     'default-src': "'self'",

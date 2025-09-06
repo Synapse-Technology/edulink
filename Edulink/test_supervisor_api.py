@@ -12,7 +12,8 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'Edulink.settings.dev')
 django.setup()
 
-from institutions.models import Institution, Department, Supervisor
+from institutions.models import Institution, Department
+from users.models import SupervisorProfile
 from django.contrib.auth.models import User
 
 def test_supervisor_api():

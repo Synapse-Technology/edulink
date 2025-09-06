@@ -157,22 +157,11 @@ LOGGING = {
     },
 }
 
-# Production Cache Configuration
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-        'LOCATION': config('REDIS_URL', default='redis://127.0.0.1:6379/1'),
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-        },
-        'KEY_PREFIX': 'edulink_prod',
-        'TIMEOUT': 300,
-    }
-}
+# Production Cache Configuration Override
+CACHES['default']['KEY_PREFIX'] = 'edulink_prod'
+CACHES['default']['TIMEOUT'] = 300
 
-# Production Session Configuration
-SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
-SESSION_CACHE_ALIAS = 'default'
+# Production Session Configuration Override
 SESSION_COOKIE_AGE = 1800  # 30 minutes
 SESSION_SAVE_EVERY_REQUEST = True
 

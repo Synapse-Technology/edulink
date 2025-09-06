@@ -407,3 +407,17 @@ class MonitoringDashboardView(APIView):
         }
         
         return Response(dashboard_data)
+
+
+class MonitoringDashboardTemplateView(View):
+    """Template view for the monitoring dashboard"""
+    
+    def get(self, request):
+        """Serve the monitoring dashboard template"""
+        # Check if user is authenticated and is admin
+        if not request.user.is_authenticated or not request.user.is_staff:
+            from django.contrib.auth.views import redirect_to_login
+            return redirect_to_login(request.get_full_path())
+        
+        from django.shortcuts import render
+        return render(request, 'monitoring/dashboard.html')
