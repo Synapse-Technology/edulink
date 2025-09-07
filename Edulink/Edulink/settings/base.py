@@ -159,11 +159,11 @@ WSGI_APPLICATION = "Edulink.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": config("dbname"),
-        "USER": config("user"),
-        "PASSWORD": config("password"),
-        "HOST": config("host"),
-        "PORT": config("port", default="5432"),
+        "NAME": config("DB_NAME"),
+        "USER": config("DB_USER"),
+        "PASSWORD": config("DB_PASSWORD"),
+        "HOST": config("DB_HOST"),
+        "PORT": config("DB_PORT", default="5432"),
     }
 }
 
