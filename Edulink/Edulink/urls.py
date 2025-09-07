@@ -21,6 +21,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.http import Http404, FileResponse
 from django.views.generic import TemplateView
+from monitoring.views import HealthCheckView
 import os
 
 # Custom view to serve frontend HTML files
@@ -36,6 +37,8 @@ def serve_frontend_file(request, filename):
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    # Health check endpoint for CI/CD and load balancers
+    path("health/", HealthCheckView.as_view(), name='root_health_check'),
     # 🔑 Link your app's routes
     path("api/auth/", include("authentication.urls")),
     path("api/employers/", include("employers.urls")),
