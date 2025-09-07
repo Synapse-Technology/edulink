@@ -711,7 +711,7 @@ class InstitutionRegistrationSerializer(BaseProfileSerializer):
             "email": validated_data["email"],
             "phone_number": phone_number,
             "address": validated_data["address"],
-            "website": validated_data.get("website"),
+            "website": validated_data.get("website", ""),
         }
         
         if master_institution:
