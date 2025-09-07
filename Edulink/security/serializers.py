@@ -103,6 +103,7 @@ class SecurityDashboardSerializer(serializers.Serializer):
     """Serializer for security dashboard statistics."""
     
     total_events = serializers.IntegerField()
+    unresolved_events = serializers.IntegerField()
     critical_events = serializers.IntegerField()
     failed_logins_today = serializers.IntegerField()
     active_sessions = serializers.IntegerField()

@@ -36,6 +36,10 @@ CACHES = {
     }
 }
 
+# Sessions
+# Use database sessions for tests since DummyCache doesn't support sessions
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+
 # Email
 # Use locmem backend for testing
 EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'

@@ -21,7 +21,7 @@ urlpatterns = [
     
     # User Sessions
     path('sessions/', views.UserSessionListView.as_view(), name='user-sessions-list'),
-    path('sessions/<int:pk>/terminate/', views.TerminateSessionView.as_view(), name='terminate-session'),
+    path('sessions/<uuid:pk>/terminate/', views.TerminateSessionView.as_view(), name='terminate-session'),
     
     # Failed Login Attempts
     path('failed-logins/', views.FailedLoginAttemptListView.as_view(), name='failed-logins-list'),

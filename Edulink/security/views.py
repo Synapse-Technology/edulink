@@ -35,6 +35,9 @@ class SecurityDashboardView(APIView):
         
         # Get statistics
         total_events = SecurityEvent.objects.count()
+        unresolved_events = SecurityEvent.objects.filter(
+            resolved=False
+        ).count()
         critical_events = SecurityEvent.objects.filter(
             severity='critical',
             resolved=False
@@ -63,6 +66,7 @@ class SecurityDashboardView(APIView):
         
         data = {
             'total_events': total_events,
+            'unresolved_events': unresolved_events,
             'critical_events': critical_events,
             'failed_logins_today': failed_logins_today,
             'active_sessions': active_sessions,
@@ -161,10 +165,10 @@ class TerminateSessionView(APIView):
     
     permission_classes = [permissions.IsAuthenticated, IsSecurityAdmin]
     
-    def post(self, request, session_id):
+    def post(self, request, pk):
         """Terminate a specific session."""
         try:
-            session = UserSession.objects.get(id=session_id, is_active=True)
+            session = UserSession.objects.get(id=pk, is_active=True)
             session.is_active = False
             session.logout_reason = 'forced'
             session.save()
@@ -353,7 +357,7 @@ class SecurityAlertView(APIView):
         alerts = threat_detector.get_active_alerts()
         
         serializer = SecurityAlertSerializer(alerts, many=True)
-        return Response(serializer.data)
+        return Response({'alerts': serializer.data})
     
     def post(self, request):
         """Create a new security alert."""
@@ -403,11 +407,30 @@ def security_metrics(request):
     security_analyzer = SecurityAnalyzer()
     security_score_trend = security_analyzer.get_security_score_trend(days=30)
     
+    # Current security score and threat level
+    current_security_score = security_analyzer.calculate_security_score()
+    threat_detector = ThreatDetector()
+    
+    # Calculate current threat level based on recent events
+    recent_critical_events = SecurityEvent.objects.filter(
+        severity='critical',
+        timestamp__gte=now - timedelta(hours=24)
+    ).count()
+    
+    if recent_critical_events >= 5:
+        current_threat_level = 'high'
+    elif recent_critical_events >= 2:
+        current_threat_level = 'medium'
+    else:
+        current_threat_level = 'low'
+    
     return Response({
         'event_statistics': list(event_stats),
         'failed_login_trends': failed_login_trends,
         'top_failed_ips': list(top_failed_ips),
-        'security_score_trend': security_score_trend
+        'security_score_trend': security_score_trend,
+        'security_score': current_security_score,
+        'threat_level': current_threat_level
     })
 
 

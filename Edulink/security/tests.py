@@ -86,15 +86,15 @@ class SecurityModelTests(TestCase):
         log = AuditLog.objects.create(
             action='create',
             user=self.user,
-            model_name='User',
-            object_id='1',
+            resource_type='User',
+            resource_id='1',
             description='User created',
             ip_address='192.168.1.1'
         )
         
         self.assertEqual(log.action, 'create')
         self.assertEqual(log.user, self.user)
-        self.assertEqual(log.model_name, 'User')
+        self.assertEqual(log.resource_type, 'User')
         self.assertIsNotNone(log.timestamp)
 
 
@@ -281,7 +281,8 @@ class SecurityAPITests(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(
             email='test@example.com',
-            password='testpass123'
+            password='testpass123',
+            is_superuser=True
         )
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
@@ -506,6 +507,13 @@ class SecuritySerializerTests(TestCase):
 
 class SecurityConfigurationTests(TestCase):
     """Test cases for security configuration management."""
+    
+    def setUp(self):
+        """Set up test data."""
+        self.user = User.objects.create_user(
+            email='testuser@example.com',
+            password='testpass123'
+        )
     
     def test_security_configuration_retrieval(self):
         """Test retrieving security configuration values."""

@@ -23,12 +23,12 @@ class SupervisorFeedbackSerializer(serializers.ModelSerializer):
 class LogbookEntrySerializer(serializers.ModelSerializer):
     feedbacks = SupervisorFeedbackSerializer(many=True, read_only=True)
     student = serializers.StringRelatedField(read_only=True)
-    internship = serializers.StringRelatedField(read_only=True)
+    internship_display = serializers.StringRelatedField(source='internship', read_only=True)
 
     class Meta:
         model = LogbookEntry
         fields = [
-            'id', 'student', 'internship', 'week_number', 'activities',
+            'id', 'student', 'internship', 'internship_display', 'week_number', 'activities',
             'date_submitted', 'status', 'supervisor_comment', 'feedbacks'
         ]
-        read_only_fields = ['id', 'date_submitted', 'feedbacks', 'student', 'internship'] 
+        read_only_fields = ['id', 'date_submitted', 'feedbacks', 'student', 'internship_display']
