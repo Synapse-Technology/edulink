@@ -668,7 +668,7 @@ class InstitutionRegistrationSerializer(BaseProfileSerializer):
                 similarity += 0.1
             
             # Update best match if this is better
-            if similarity > best_similarity and similarity >= 0.85:  # 85% similarity threshold
+            if similarity > best_similarity and similarity >= 0.7:  # 70% similarity threshold
                 best_similarity = similarity
                 best_match = master_inst
         
