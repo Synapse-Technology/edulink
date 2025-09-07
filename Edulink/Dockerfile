@@ -94,9 +94,8 @@ RUN apt-get update && apt-get install -y \
     postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
-# Install development Python packages
-COPY requirements-dev.txt .
-RUN pip install --user --no-cache-dir -r requirements-dev.txt
+# Development packages are already included in requirements.txt
+# No additional packages needed for development
 
 # Switch back to edulink user
 USER edulink
