@@ -62,6 +62,16 @@ CSRF_TRUSTED_ORIGINS = [
     'https://api.edulink.jhubafrica.com',
 ]
 
+# Production Content Security Policy Override
+CONTENT_SECURITY_POLICY = {
+    'default-src': "'self'",
+    'script-src': "'self' 'unsafe-inline'",
+    'style-src': "'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com",
+    'font-src': "'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:",
+    'img-src': "'self' data: https:",
+    'connect-src': "'self' https://edulink.jhubafrica.com https://api.edulink.jhubafrica.com",
+}
+
 # Production Database Configuration
 DATABASES = {
     'default': {

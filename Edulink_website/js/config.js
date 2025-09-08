@@ -10,7 +10,7 @@ const isDevelopment = !isProduction;
 // API Configuration with enhanced security
 const API_CONFIG = {
     // Base URL - Single backend architecture
-    BASE_URL: isProduction ? 'https://your-domain.com' : 'http://127.0.0.1:8000',
+    BASE_URL: isProduction ? 'https://edulink.jhubafrica.com' : 'http://127.0.0.1:8000',
     
     // Security Configuration
     SECURITY: {

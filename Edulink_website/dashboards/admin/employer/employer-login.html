@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://edulink.jhubafrica.com http://127.0.0.1:8000 http://localhost:8000; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self';">
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
   <meta http-equiv="X-XSS-Protection" content="1; mode=block">
   <meta http-equiv="Strict-Transport-Security" content="max-age=31536000; includeSubDomains">
@@ -483,6 +483,7 @@
     </div>
   </div>
 
+  <script src="../../js/config.js"></script>
   <script src="js/employer-auth-security.js"></script>
   <script>
   document.addEventListener('DOMContentLoaded', function() {
@@ -609,7 +610,7 @@
         // Generate CSRF token for additional security
         const csrfToken = security.generateCSRFToken();
         
-        const response = await fetch('http://127.0.0.1:8000/api/auth/login/', {
+        const response = await fetch(`${API_CONFIG.BASE_URL}/api/auth/login/`, {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
@@ -706,7 +707,7 @@
       clearMessages();
       
       try {
-        const response = await fetch('http://127.0.0.1:8000/api/auth/password-reset/', {
+        const response = await fetch(`${API_CONFIG.BASE_URL}/api/auth/password-reset/`, {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
