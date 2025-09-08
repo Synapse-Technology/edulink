@@ -31,12 +31,19 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build and push Docker image
+      - name: Build and push Backend Docker image
         uses: docker/build-push-action@v3
         with:
-          context: ./
+          context: ./Edulink/
           push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}:${{ github.sha }}, ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}:latest
+          tags: ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}-backend:${{ github.sha }}, ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}-backend:latest
+
+      - name: Build and push Frontend Docker image
+        uses: docker/build-push-action@v3
+        with:
+          context: ./Edulink_website/
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}-frontend:${{ github.sha }}, ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}-frontend:latest
 
       - name: Set up SSH
         run: |
@@ -46,5 +53,5 @@ jobs:
           ssh-keyscan ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
 
       - name: Deploy to production server
-        run:
-          ssh ${{ secrets.SERVER_BOT }}@${{ secrets.SERVER_IP }} "~/deploy.sh"
+        run: |
+          ssh ${{ secrets.SERVER_BOT }}@${{ secrets.SERVER_IP }} "~/deploy.sh ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}-backend:${{ github.sha }} ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}-frontend:${{ github.sha }}"
