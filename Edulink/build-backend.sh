@@ -8,9 +8,10 @@ echo "Starting backend build process..."
 # Install Python dependencies
 echo "Installing Python dependencies..."
 pip install --upgrade pip
-pip install -r requirements.txt
+pip install -r Edulink/requirements.txt
 
-# We're already in the edulink directory
+# Change to the Edulink directory for Django commands
+cd Edulink
 
 # Collect static files (Django admin and DRF only)
 echo "Collecting Django static files..."
