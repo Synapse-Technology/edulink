@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=5.0, minimum-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=3.0, minimum-scale=0.5, viewport-fit=cover, interactive-widget=resizes-content">
     <meta name="csrf-token" content="">
     <title>Institution Dashboard - EduLink</title>
     <link rel="stylesheet" href="styles.css">
@@ -298,7 +298,11 @@
             setupEventListeners();
         });
         
-        // Sidebar toggle functionality
+        // Enhanced sidebar toggle functionality with touch support
+        let touchStartX = 0;
+        let touchEndX = 0;
+        let isSwiping = false;
+        
         function toggleSidebar() {
             const sidebar = document.querySelector('.sidebar');
             const overlay = document.querySelector('.mobile-overlay');
@@ -314,6 +318,17 @@
                 if (mainContent) {
                     mainContent.style.overflowY = 'auto';
                     mainContent.style.height = 'calc(100vh - 80px)';
+                    mainContent.style.touchAction = 'pan-y';
+                }
+                // Prevent body scroll when sidebar is open on mobile
+                if (window.innerWidth <= 768) {
+                    body.style.overflow = 'hidden';
+                }
+            } else {
+                // Re-enable body scroll when sidebar is closed
+                body.style.overflow = '';
+                if (mainContent) {
+                    mainContent.style.touchAction = 'pan-y';
                 }
             }
         }
@@ -326,20 +341,70 @@
             sidebar.classList.remove('open');
             overlay.classList.remove('active');
             body.classList.remove('sidebar-open');
+            
+            // Re-enable body scroll
+            body.style.overflow = '';
         }
         
+        // Enhanced touch and swipe handling
+        function handleTouchStart(e) {
+            touchStartX = e.changedTouches[0].screenX;
+            isSwiping = true;
+        }
+        
+        function handleTouchMove(e) {
+            if (!isSwiping) return;
+            
+            touchEndX = e.changedTouches[0].screenX;
+            const deltaX = touchEndX - touchStartX;
+            
+            // Prevent default scrolling during horizontal swipe
+            if (Math.abs(deltaX) > 10) {
+                e.preventDefault();
+            }
+        }
+        
+        function handleTouchEnd(e) {
+            if (!isSwiping) return;
+            
+            touchEndX = e.changedTouches[0].screenX;
+            const deltaX = touchEndX - touchStartX;
+            const sidebar = document.querySelector('.sidebar');
+            
+            // Swipe right to open sidebar (from left edge)
+            if (deltaX > 50 && touchStartX < 50 && !sidebar.classList.contains('open')) {
+                toggleSidebar();
+            }
+            // Swipe left to close sidebar
+            else if (deltaX < -50 && sidebar.classList.contains('open')) {
+                closeSidebar();
+            }
+            
+            isSwiping = false;
+        }
+        
+        // Add touch event listeners for swipe gestures
+        document.addEventListener('touchstart', handleTouchStart, { passive: false });
+        document.addEventListener('touchmove', handleTouchMove, { passive: false });
+        document.addEventListener('touchend', handleTouchEnd, { passive: true });
+        
         // Close sidebar when clicking on main content on mobile
-        document.querySelector('.main-content').addEventListener('click', function() {
-            if (window.innerWidth <= 768) {
+        document.querySelector('.main-content').addEventListener('click', function(e) {
+            if (window.innerWidth <= 768 && !e.target.closest('.sidebar')) {
                 closeSidebar();
             }
         });
         
-        // Handle window resize
+        // Enhanced window resize handling
+        let resizeTimeout;
         window.addEventListener('resize', function() {
-            if (window.innerWidth > 768) {
-                closeSidebar();
-            }
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(function() {
+                if (window.innerWidth > 768) {
+                    closeSidebar();
+                    document.body.style.overflow = '';
+                }
+            }, 100);
         });
         
         // Logout functionality
@@ -1052,13 +1117,50 @@
         document.addEventListener('DOMContentLoaded', () => {
             new InstitutionDashboard();
             
-            // Ensure scrolling is always enabled
+            // Enhanced scrolling and mobile optimizations
             const mainContent = document.querySelector('.main-content');
             if (mainContent) {
                 mainContent.style.overflowY = 'auto';
                 mainContent.style.height = 'calc(100vh - 80px)';
-                console.log('Main content scrolling enabled');
+                mainContent.style.webkitOverflowScrolling = 'touch';
+                mainContent.style.overscrollBehavior = 'contain';
+                console.log('Enhanced mobile scrolling enabled');
             }
+            
+            // Optimize performance for mobile devices
+            if (window.innerWidth <= 768) {
+                // Reduce animations on mobile for better performance
+                document.documentElement.style.setProperty('--animation-duration', '0.2s');
+                
+                // Add momentum scrolling to all scrollable elements
+                const scrollableElements = document.querySelectorAll('.sidebar, .main-content, .card, .activity-list');
+                scrollableElements.forEach(element => {
+                    element.style.webkitOverflowScrolling = 'touch';
+                    element.style.overscrollBehavior = 'contain';
+                });
+            }
+            
+            // Prevent zoom on input focus (iOS Safari)
+            const inputs = document.querySelectorAll('input, select, textarea');
+            inputs.forEach(input => {
+                input.addEventListener('focus', function() {
+                    if (window.innerWidth <= 768) {
+                        const viewport = document.querySelector('meta[name=viewport]');
+                        viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+                    }
+                });
+                
+                input.addEventListener('blur', function() {
+                    if (window.innerWidth <= 768) {
+                        const viewport = document.querySelector('meta[name=viewport]');
+                        viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=3.0, minimum-scale=0.5, viewport-fit=cover, interactive-widget=resizes-content');
+                    }
+                });
+            });
+            
+            // Add passive event listeners for better scroll performance
+            document.addEventListener('touchstart', function() {}, { passive: true });
+            document.addEventListener('touchmove', function() {}, { passive: true });
         });
     </script>
     
