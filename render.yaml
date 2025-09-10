@@ -35,6 +35,8 @@ services:
         value: mzfw jytm jgxn zrmi
       - key: DEFAULT_FROM_EMAIL
         value: synapsetechnology14@gmail.com
+      - key: ADMIN_ALLOWED_IPS
+        value: 196.216.85.226
 
 # Database service removed - using external Supabase database
 # Connection details are provided via environment variables
