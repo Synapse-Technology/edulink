@@ -25,8 +25,9 @@ services:
           name: edulink-redis
           property: connectionString
 
-  - type: postgres
+  - type: pserv
     name: edulink-db
+    env: postgresql
     region: oregon
     plan: free
     databaseName: edulink
