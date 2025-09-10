@@ -5,7 +5,7 @@ services:
     region: oregon
     plan: free
     buildCommand: "./build.sh"
-    startCommand: "gunicorn Edulink.wsgi:application --bind 0.0.0.0:$PORT"
+    startCommand: "cd Edulink && gunicorn Edulink.wsgi:application --bind 0.0.0.0:$PORT"
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
@@ -48,7 +48,7 @@ services:
     region: oregon
     plan: free
     buildCommand: "./build.sh"
-    startCommand: "celery -A Edulink worker --loglevel=info"
+    startCommand: "cd Edulink && celery -A Edulink worker --loglevel=info"
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
