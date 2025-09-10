@@ -145,7 +145,7 @@ AUTH_RATE_WINDOW = 900
 # Production Admin Security
 ADMIN_ALLOWED_IPS = config('ADMIN_ALLOWED_IPS', default='', cast=lambda v: [s.strip() for s in v.split(',') if s.strip()])
 
-# Production Logging Configuration
+# Production Logging Configuration (Console-based for Render)
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -160,23 +160,17 @@ LOGGING = {
         },
     },
     'handlers': {
-        'file': {
-            'level': 'INFO',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs', 'django.log'),
-            'maxBytes': 1024*1024*10,  # 10MB
-            'backupCount': 5,
-            'formatter': 'verbose',
-        },
-        'security_file': {
-            'level': 'WARNING',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs', 'security.log'),
-            'maxBytes': 1024*1024*10,  # 10MB
-            'backupCount': 10,
-            'formatter': 'verbose',
-        },
         'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+        'security_console': {
+            'level': 'WARNING',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+        'error_console': {
             'level': 'ERROR',
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
@@ -184,17 +178,17 @@ LOGGING = {
     },
     'loggers': {
         'django': {
-            'handlers': ['file', 'console'],
+            'handlers': ['console'],
             'level': 'INFO',
             'propagate': False,
         },
         'security': {
-            'handlers': ['security_file', 'console'],
+            'handlers': ['security_console'],
             'level': 'WARNING',
             'propagate': False,
         },
         'django.security': {
-            'handlers': ['security_file'],
+            'handlers': ['security_console'],
             'level': 'WARNING',
             'propagate': False,
         },
