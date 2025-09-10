@@ -5,7 +5,8 @@ services:
     region: oregon
     plan: free
     buildCommand: "./build.sh"
-    startCommand: "cd Edulink && gunicorn Edulink.wsgi:application --bind 0.0.0.0:$PORT"
+    startCommand: "cd Edulink && gunicorn Edulink.wsgi:application --bind 0.0.0.0:$PORT --timeout 120 --workers 2"
+    staticPublishPath: ./Edulink/staticfiles
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0

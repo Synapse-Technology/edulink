@@ -13,9 +13,15 @@ pip install -r Edulink/requirements.txt
 # Navigate to Django project directory
 cd Edulink
 
+# Copy frontend assets to static directory
+echo "Copying frontend assets..."
+cp -r ../Edulink_website/assets/* static/
+cp -r ../Edulink_website/js/* static/js/
+cp -r ../Edulink_website/css/* static/css/ 2>/dev/null || true
+
 # Collect static files
 echo "Collecting static files..."
-python manage.py collectstatic --noinput
+python manage.py collectstatic --noinput --clear
 
 # Run database migrations
 echo "Running database migrations..."

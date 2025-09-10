@@ -80,9 +80,13 @@ CORS_ALLOWED_ORIGINS = [
     'https://edulink.jhubafrica.com',
     'https://www.edulink.jhubafrica.com',
     # Render.com domains
-    'https://*.onrender.com',
+    'https://edulink-web.onrender.com',
 ]
 CORS_ALLOW_CREDENTIALS = True
+
+# Static files serving configuration
+STATIC_URL = '/static/'
+MEDIA_URL = '/media/'
 
 # Production CSRF Configuration
 CSRF_TRUSTED_ORIGINS = [
