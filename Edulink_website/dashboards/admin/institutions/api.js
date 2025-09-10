@@ -1,7 +1,7 @@
 // Institution Dashboard API Implementation
 // Base API configuration
-const API_BASE = (window.API_CONFIG?.BASE_URL || '${API_BASE_URL:-https://edulink-api.onrender.com}') + '/api/institutions';
-const AUTH_API_BASE = (window.API_CONFIG?.BASE_URL || '${API_BASE_URL:-https://edulink-api.onrender.com}') + '/api/auth';
+const API_BASE = (window.API_CONFIG?.BASE_URL || 'https://edulink-api-n422.onrender.com') + '/api/institutions';
+const AUTH_API_BASE = (window.API_CONFIG?.BASE_URL || 'https://edulink-api-n422.onrender.com') + '/api/auth';
 
 // Utility function to get auth token
 function getAuthToken() {
@@ -82,23 +82,50 @@ const AuthAPI = {
             });
             
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.detail || 'Login failed');
+                let errorMessage = 'Login failed. Please check your credentials and try again.';
+                try {
+                    const errorData = await response.json();
+                    errorMessage = errorData.detail || errorMessage;
+                } catch (jsonError) {
+                    // If we can't parse the error response, use a generic message
+                    if (response.status === 401) {
+                        errorMessage = 'Invalid email or password. Please try again.';
+                    } else if (response.status === 500) {
+                        errorMessage = 'Server error. Please try again later.';
+                    } else {
+                        errorMessage = `Login failed (Error ${response.status}). Please try again.`;
+                    }
+                }
+                throw new Error(errorMessage);
             }
             
-            const data = await response.json();
+            let data;
+            try {
+                data = await response.json();
+            } catch (jsonError) {
+                console.error('Failed to parse login response:', jsonError);
+                throw new Error('Login response was invalid. Please try again or contact support.');
+            }
             
             // Store auth token and user info
-            localStorage.setItem('authToken', data.access);
-            localStorage.setItem('userInfo', JSON.stringify({
-                email: data.user.email,
-                role: data.user.role,
-                name: (data.user.profile.first_name || '') + ' ' + (data.user.profile.last_name || '')
-            }));
+            if (data.access) {
+                localStorage.setItem('authToken', data.access);
+                localStorage.setItem('userInfo', JSON.stringify({
+                    email: data.user?.email || email,
+                    role: data.user?.role || 'institution',
+                    name: (data.user?.profile?.first_name || '') + ' ' + (data.user?.profile?.last_name || '')
+                }));
+            } else {
+                throw new Error('Login successful but no access token received. Please try again.');
+            }
             
             return data;
         } catch (error) {
             console.error('Login error:', error);
+            // Ensure we always throw a user-friendly error message
+            if (error.message.includes('Failed to fetch')) {
+                throw new Error('Unable to connect to the server. Please check your internet connection and try again.');
+            }
             throw error;
         }
     },
