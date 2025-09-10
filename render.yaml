@@ -16,28 +16,31 @@ services:
       - key: DEBUG
         value: False
       - key: DATABASE_URL
-        fromDatabase:
-          name: edulink-db
-          property: connectionString
+        value: postgresql://postgres.kszzwjavodfvxbsglipr:Edulinksynapse254%25@aws-0-eu-west-2.pooler.supabase.com:6543/postgres
       - key: REDIS_URL
-        fromService:
-          type: redis
-          name: edulink-redis
-          property: connectionString
+        value: redis://:8vGeHnCVI34G3djDnLYx7RmC9FJVQ42b@redis-15858.crce204.eu-west-2-3.ec2.redns.redis-cloud.com:15858/0
+      - key: CELERY_BROKER_URL
+         value: redis://:8vGeHnCVI34G3djDnLYx7RmC9FJVQ42b@redis-15858.crce204.eu-west-2-3.ec2.redns.redis-cloud.com:15858/1
+       - key: CELERY_RESULT_BACKEND
+         value: redis://:8vGeHnCVI34G3djDnLYx7RmC9FJVQ42b@redis-15858.crce204.eu-west-2-3.ec2.redns.redis-cloud.com:15858/1
+      - key: EMAIL_HOST
+        value: smtp.gmail.com
+      - key: EMAIL_PORT
+        value: 587
+      - key: EMAIL_USE_TLS
+        value: True
+      - key: EMAIL_HOST_USER
+        value: synapsetechnology14@gmail.com
+      - key: EMAIL_HOST_PASSWORD
+        value: mzfw jytm jgxn zrmi
+      - key: DEFAULT_FROM_EMAIL
+        value: synapsetechnology14@gmail.com
 
-  - type: pserv
-    name: edulink-db
-    env: postgresql
-    region: oregon
-    plan: free
-    databaseName: edulink
-    user: edulink
+# Database service removed - using external Supabase database
+# Connection details are provided via environment variables
 
-  - type: redis
-    name: edulink-redis
-    region: oregon
-    plan: free
-    maxmemoryPolicy: allkeys-lru
+# Redis service removed - using external Redis Cloud
+# Connection details are provided via environment variables
 
   - type: worker
     name: edulink-worker
@@ -57,11 +60,6 @@ services:
           name: edulink-web
           envVarKey: SECRET_KEY
       - key: DATABASE_URL
-        fromDatabase:
-          name: edulink-db
-          property: connectionString
+        value: postgresql://postgres.kszzwjavodfvxbsglipr:Edulinksynapse254%25@aws-0-eu-west-2.pooler.supabase.com:6543/postgres
       - key: REDIS_URL
-        fromService:
-          type: redis
-          name: edulink-redis
-          property: connectionString
+        value: redis://:8vGeHnCVI34G3djDnLYx7RmC9FJVQ42b@redis-15858.crce204.eu-west-2-3.ec2.redns.redis-cloud.com:15858/0
