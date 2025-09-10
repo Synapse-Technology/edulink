@@ -20,9 +20,9 @@ services:
       - key: REDIS_URL
         value: redis://:8vGeHnCVI34G3djDnLYx7RmC9FJVQ42b@redis-15858.crce204.eu-west-2-3.ec2.redns.redis-cloud.com:15858/0
       - key: CELERY_BROKER_URL
-         value: redis://:8vGeHnCVI34G3djDnLYx7RmC9FJVQ42b@redis-15858.crce204.eu-west-2-3.ec2.redns.redis-cloud.com:15858/1
-       - key: CELERY_RESULT_BACKEND
-         value: redis://:8vGeHnCVI34G3djDnLYx7RmC9FJVQ42b@redis-15858.crce204.eu-west-2-3.ec2.redns.redis-cloud.com:15858/1
+        value: redis://:8vGeHnCVI34G3djDnLYx7RmC9FJVQ42b@redis-15858.crce204.eu-west-2-3.ec2.redns.redis-cloud.com:15858/1
+      - key: CELERY_RESULT_BACKEND
+        value: redis://:8vGeHnCVI34G3djDnLYx7RmC9FJVQ42b@redis-15858.crce204.eu-west-2-3.ec2.redns.redis-cloud.com:15858/1
       - key: EMAIL_HOST
         value: smtp.gmail.com
       - key: EMAIL_PORT
