@@ -75,7 +75,7 @@ services:
   - type: web
     name: edulink-frontend
     env: static
-    plan: free
+    plan: starter
     buildCommand: "./edulink_website/build-frontend.sh"
     staticPublishPath: ./edulink_website
     envVars:
