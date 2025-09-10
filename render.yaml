@@ -72,9 +72,9 @@ services:
         value: redis://:8vGeHnCVI34G3djDnLYx7RmC9FJVQ42b@redis-15858.crce204.eu-west-2-3.ec2.redns.redis-cloud.com:15858/1
 
   # Frontend Static Service
-  - type: static
+  - type: web
     name: edulink-frontend
-    env: static
+    runtime: static
     buildCommand: "./edulink_website/build-frontend.sh"
     staticPublishPath: ./edulink_website
     envVars:
