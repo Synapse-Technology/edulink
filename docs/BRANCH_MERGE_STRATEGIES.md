@@ -351,8 +351,8 @@ jobs:
       - uses: actions/checkout@v2
       - name: Deploy to production
         run: |
-          # Deployment script
-          ./deploy.sh production
+          # Render deployment uses build.sh automatically
+          echo "Deployment handled by Render platform"
       - name: Run smoke tests
         run: |
           # Post-deployment validation
@@ -407,8 +407,8 @@ git log --oneline
 # Create rollback branch
 git checkout -b rollback/v1.0.0 v1.0.0
 
-# Deploy previous version
-./deploy.sh production rollback
+# Deploy previous version (handled by Render platform)
+echo "Rollback handled by Render platform via Git rollback"
 
 # Update main branch
 git checkout main

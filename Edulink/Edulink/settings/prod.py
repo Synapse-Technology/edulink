@@ -1,9 +1,15 @@
 from .base import *
 import os
 from decouple import config
-import sentry_sdk
-from sentry_sdk.integrations.django import DjangoIntegration
-from sentry_sdk.integrations.celery import CeleryIntegration
+
+# Optional Sentry integration
+try:
+    import sentry_sdk
+    from sentry_sdk.integrations.django import DjangoIntegration
+    from sentry_sdk.integrations.celery import CeleryIntegration
+    SENTRY_AVAILABLE = True
+except ImportError:
+    SENTRY_AVAILABLE = False
 
 # SECURITY WARNING: Override insecure development settings
 SECRET_KEY = config('SECRET_KEY', default=None)
@@ -20,6 +26,10 @@ ALLOWED_HOSTS = [
     'edulink.jhubafrica.com',
     'www.edulink.jhubafrica.com',
     'api.edulink.jhubafrica.com',
+    # Render.com domains
+    '.onrender.com',
+    'localhost',
+    '127.0.0.1',
 ]
 
 # Production email configuration
@@ -50,6 +60,8 @@ CORS_ALLOWED_ORIGINS = [
     config('ADMIN_URL', default='https://admin.edulink.jhubafrica.com'),
     'https://edulink.jhubafrica.com',
     'https://www.edulink.jhubafrica.com',
+    # Render.com domains
+    'https://*.onrender.com',
 ]
 CORS_ALLOW_CREDENTIALS = True
 
@@ -60,6 +72,8 @@ CSRF_TRUSTED_ORIGINS = [
     'https://edulink.jhubafrica.com',
     'https://www.edulink.jhubafrica.com',
     'https://api.edulink.jhubafrica.com',
+    # Render.com domains
+    'https://*.onrender.com',
 ]
 
 # Production Content Security Policy Override
@@ -73,20 +87,29 @@ CONTENT_SECURITY_POLICY = {
 }
 
 # Production Database Configuration
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('DB_NAME'),
-        'USER': config('DB_USER'),
-        'PASSWORD': config('DB_PASSWORD'),
-        'HOST': config('DB_HOST'),
-        'PORT': config('DB_PORT', default='5432'),
-        'OPTIONS': {
-            'sslmode': 'require',
-        },
-        'CONN_MAX_AGE': 600,
+import dj_database_url
+
+# Use DATABASE_URL if available (for Render), otherwise use individual config vars
+DATABASE_URL = config('DATABASE_URL', default=None)
+if DATABASE_URL:
+    DATABASES = {
+        'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600)
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': config('DB_NAME'),
+            'USER': config('DB_USER'),
+            'PASSWORD': config('DB_PASSWORD'),
+            'HOST': config('DB_HOST'),
+            'PORT': config('DB_PORT', default='5432'),
+            'OPTIONS': {
+                'sslmode': 'require',
+            },
+            'CONN_MAX_AGE': 600,
+        }
+    }
 
 # Production Static Files Configuration
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
@@ -250,7 +273,7 @@ if config('USE_S3', default=False, cast=bool):
     MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/{AWS_MEDIA_LOCATION}/'
 
 # Sentry Configuration for Error Tracking
-if config('SENTRY_DSN', default=None):
+if SENTRY_AVAILABLE and config('SENTRY_DSN', default=None):
     sentry_sdk.init(
         dsn=config('SENTRY_DSN'),
         integrations=[
@@ -280,11 +303,11 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = 1000
 
 # Database Connection Pooling
 DATABASES['default']['CONN_MAX_AGE'] = 600
+if 'OPTIONS' not in DATABASES['default']:
+    DATABASES['default']['OPTIONS'] = {}
 DATABASES['default']['OPTIONS'].update({
-    'MAX_CONNS': 20,
-    'OPTIONS': {
-        '-c default_transaction_isolation=serializable'
-    }
+    'sslmode': 'require',
+    'connect_timeout': 10,
 })
 
 # Disable development-only settings
