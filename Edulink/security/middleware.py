@@ -115,7 +115,35 @@ class SecurityMiddleware(MiddlewareMixin):
     
     def is_ip_blocked(self, ip_address):
         """Check if IP address is blocked."""
-        # Check cache for blocked IPs
+        # ============================================================================
+        # TEMPORARY BYPASS FOR RENDER FREE TIER DEPLOYMENT
+        # ============================================================================
+        # 
+        # ISSUE: IP 196.216.85.226 was blocked and cannot be unblocked via shell
+        # on Render's free tier (no shell access available).
+        # 
+        # TEMPORARY SOLUTION: Bypass IP blocking for this specific IP address
+        # until we migrate to our own server infrastructure.
+        # 
+        # TO RESTORE ORIGINAL BEHAVIOR WHEN DEPLOYING TO OWN SERVER:
+        # 1. Remove the entire "TEMPORARY BYPASS" section below (lines with the IP check)
+        # 2. Keep only the original cache check logic:
+        #    blocked_ips = cache.get('blocked_ips', set())
+        #    return ip_address in blocked_ips
+        # 
+        # ORIGINAL BEHAVIOR: All IPs in the 'blocked_ips' cache set are blocked
+        # CURRENT BEHAVIOR: All IPs except 196.216.85.226 in the cache set are blocked
+        # 
+        # Date Added: Current deployment
+        # Reason: Render free tier shell access limitation
+        # Expected Removal: When migrating to dedicated server with shell access
+        # ============================================================================
+        
+        # TEMPORARY BYPASS: Allow specific IP that got blocked on Render
+        if ip_address == '196.216.85.226':
+            return False  # Never block this IP
+        
+        # Original IP blocking logic (restore this when removing bypass)
         blocked_ips = cache.get('blocked_ips', set())
         return ip_address in blocked_ips
     
