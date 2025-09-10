@@ -81,6 +81,7 @@ urlpatterns = [
     path("<str:filename>", serve_frontend_file, name='frontend-file'),
 ]
 
+# Static and media files serving
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATICFILES_DIRS[0])
@@ -88,3 +89,8 @@ if settings.DEBUG:
     urlpatterns += static('assets/', document_root=os.path.join(settings.BASE_DIR.parent, 'Edulink_website', 'assets'))
     # Serve JavaScript files from frontend directory
     urlpatterns += static('js/', document_root=os.path.join(settings.BASE_DIR.parent, 'Edulink_website', 'js'))
+else:
+    # Production: Serve frontend assets through static files
+    urlpatterns += static('assets/', document_root=os.path.join(settings.BASE_DIR.parent, 'Edulink_website', 'assets'))
+    urlpatterns += static('js/', document_root=os.path.join(settings.BASE_DIR.parent, 'Edulink_website', 'js'))
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

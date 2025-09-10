@@ -2,6 +2,25 @@ from .base import *
 import os
 from decouple import config
 
+# Add WhiteNoise to middleware for static file serving in production
+MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
+    "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",  # Add WhiteNoise for static files
+    "security.middleware.SecurityMiddleware",
+    "security.middleware.RateLimitMiddleware",
+    "security.middleware.CSRFSecurityMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "security.middleware.SessionSecurityMiddleware",
+    "dashboards.middleware.PageViewTrackingMiddleware",
+    "dashboards.middleware.ApplicationCountTrackingMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+]
+
 # Optional Sentry integration
 try:
     import sentry_sdk
@@ -113,7 +132,19 @@ else:
 
 # Production Static Files Configuration
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# WhiteNoise configuration for serving frontend assets
+WHITENOISE_USE_FINDERS = True
+WHITENOISE_AUTOREFRESH = True
+
+# Add frontend assets to static files directories
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+    BASE_DIR.parent / "Edulink_website",  # Frontend files integration
+    BASE_DIR.parent / "Edulink_website" / "assets",  # Frontend assets
+    BASE_DIR.parent / "Edulink_website" / "js",  # Frontend JavaScript
+]
 
 # Production Media Files Configuration
 MEDIA_ROOT = config('MEDIA_ROOT', default=os.path.join(BASE_DIR, 'media'))
