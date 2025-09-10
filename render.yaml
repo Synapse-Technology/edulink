@@ -8,8 +8,8 @@ services:
     env: python
     region: oregon
     plan: free
-    buildCommand: "./edulink/build-backend.sh"
-    startCommand: "cd edulink && gunicorn Edulink.wsgi:application --bind 0.0.0.0:$PORT --timeout 120 --workers 2"
+    buildCommand: "./Edulink/build-backend.sh"
+    startCommand: "cd Edulink && gunicorn Edulink.wsgi:application --bind 0.0.0.0:$PORT --timeout 120 --workers 2"
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
@@ -50,8 +50,8 @@ services:
     env: python
     region: oregon
     plan: free
-    buildCommand: "./edulink/build-backend.sh"
-    startCommand: "cd edulink && celery -A Edulink worker --loglevel=info"
+    buildCommand: "./Edulink/build-backend.sh"
+    startCommand: "cd Edulink && celery -A Edulink worker --loglevel=info"
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
@@ -75,8 +75,8 @@ services:
   - type: web
     name: edulink-frontend
     runtime: static
-    buildCommand: "./edulink_website/build-frontend.sh"
-    staticPublishPath: ./edulink_website
+    buildCommand: "./Edulink_website/build-frontend.sh"
+    staticPublishPath: ./Edulink_website
     envVars:
       - key: API_BASE_URL
         value: https://edulink-api.onrender.com
