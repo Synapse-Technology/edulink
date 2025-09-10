@@ -75,7 +75,6 @@ services:
   - type: web
     name: edulink-frontend
     env: static
-    region: oregon
     plan: free
     buildCommand: "./edulink_website/build-frontend.sh"
     staticPublishPath: ./edulink_website
