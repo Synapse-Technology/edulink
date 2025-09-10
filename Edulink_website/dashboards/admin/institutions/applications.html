@@ -1358,8 +1358,8 @@
             try {
                 // Check if APIs are available
                 if (typeof InstitutionAPIs === 'undefined' || !InstitutionAPIs.Applications) {
-                    console.warn('Applications API not available, loading demo data');
-                    loadDemoApplications();
+                    console.error('Applications API not available');
+                    showErrorMessage('Applications API is not available. Please refresh the page.');
                     return;
                 }
                 
@@ -1370,60 +1370,11 @@
                 renderApplications();
             } catch (error) {
                 console.error('Error loading applications:', error);
-                loadDemoApplications();
+                showErrorMessage('Failed to load applications. Please try refreshing the page.');
             }
         }
         
-        // Load demo applications data
-        function loadDemoApplications() {
-            currentApplications = [
-                {
-                    id: 1,
-                    student_name: 'John Doe',
-                    student_email: 'john.doe@university.edu',
-                    student_id: 'STU001',
-                    internship_title: 'Software Developer Intern',
-                    company: 'Tech Corp',
-                    status: 'pending',
-                    application_date: '2024-01-15',
-                    created_at: '2024-01-15T10:30:00Z'
-                },
-                {
-                    id: 2,
-                    student_name: 'Jane Smith',
-                    student_email: 'jane.smith@university.edu',
-                    student_id: 'STU002',
-                    internship_title: 'Data Analyst Intern',
-                    company: 'Data Solutions Inc',
-                    status: 'accepted',
-                    application_date: '2024-01-10',
-                    created_at: '2024-01-10T14:20:00Z'
-                },
-                {
-                    id: 3,
-                    student_name: 'Mike Johnson',
-                    student_email: 'mike.johnson@university.edu',
-                    student_id: 'STU003',
-                    internship_title: 'UI/UX Designer Intern',
-                    company: 'Design Studio',
-                    status: 'reviewed',
-                    application_date: '2024-01-12',
-                    created_at: '2024-01-12T09:15:00Z'
-                }
-            ];
-            filteredApplications = [...currentApplications];
-            updateStatistics();
-            renderApplications();
-            
-            // Show demo mode notice
-            const applicationsList = document.getElementById('applicationsList');
-            if (applicationsList) {
-                const demoNotice = document.createElement('div');
-                demoNotice.className = 'alert alert-info';
-                demoNotice.innerHTML = '<i class="fas fa-info-circle"></i> Demo mode: Showing sample application data';
-                applicationsList.insertBefore(demoNotice, applicationsList.firstChild);
-            }
-        }
+        // Demo applications function removed - platform now only displays real user data
 
         // Filter applications
         function filterApplications() {

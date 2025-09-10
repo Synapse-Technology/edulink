@@ -270,32 +270,22 @@
         document.addEventListener('DOMContentLoaded', function() {
             // Check if APIs are available
             if (typeof InstitutionAPIs === 'undefined') {
-                console.warn('InstitutionAPIs not loaded, running in demo mode');
-                initializeCharts();
-                setupEventListeners();
-                loadDemoData();
+                console.error('InstitutionAPIs not loaded');
+                showErrorMessage('System error: API not available. Please refresh the page.');
                 return;
             }
             
             // Check authentication
             if (!InstitutionAPIs.Auth.isAuthenticated()) {
                 console.warn('User not authenticated, redirecting to login');
-                // window.location.href = 'login.html';
-                // For demo purposes, continue loading
-                initializeCharts();
-                setupEventListeners();
-                loadDemoData();
+                window.location.href = 'login.html';
                 return;
             }
 
             const user = InstitutionAPIs.Auth.getCurrentUser();
             if (!user || user.role !== 'institution_admin') {
                 console.warn('User role not authorized, redirecting to login');
-                // window.location.href = 'login.html';
-                // For demo purposes, continue loading
-                initializeCharts();
-                setupEventListeners();
-                loadDemoData();
+                window.location.href = 'login.html';
                 return;
             }
 
@@ -402,8 +392,8 @@
         async function loadDashboardData() {
             try {
                 if (typeof InstitutionAPIs === 'undefined' || !InstitutionAPIs.Dashboard) {
-                    console.warn('Dashboard APIs not available, loading demo data');
-                    loadDemoData();
+                    console.error('Dashboard APIs not available');
+                    showErrorMessage('Dashboard API is not available. Please refresh the page.');
                     return;
                 }
                 
@@ -419,8 +409,8 @@
                 updateChartsWithRealData(stats);
             } catch (error) {
                 console.error('Error loading dashboard data:', error);
-                showErrorMessage('Failed to load dashboard statistics');
-                loadDemoData(); // Fallback to demo data
+                showErrorMessage('Failed to load dashboard statistics. Please try refreshing the page.');
+                // No fallback to demo data - show error instead
             }
         }
 
@@ -533,8 +523,8 @@
         async function loadRecentActivity() {
             try {
                 if (typeof InstitutionAPIs === 'undefined' || !InstitutionAPIs.Dashboard) {
-                    console.warn('Dashboard APIs not available, loading demo activity');
-                    loadDemoActivity();
+                    console.error('Dashboard APIs not available');
+                    showErrorMessage('Unable to load recent activity. Please refresh the page.');
                     return;
                 }
                 
@@ -554,21 +544,7 @@
                                 <span class="activity-time">Check back later</span>
                             </div>
                         </div>
-             `;
-             
-             // Add some test content to ensure there's enough content to scroll
-             activityList.innerHTML += `
-                 <div class="activity-item">
-                     <div class="activity-icon info">
-                         <i class="fas fa-info-circle"></i>
-                     </div>
-                     <div class="activity-content">
-                         <p>Test scrolling content</p>
-                         <span class="activity-description">This is additional content to test scrolling functionality</span>
-                         <span class="activity-time">Test item</span>
-                     </div>
-                 </div>
-             `.repeat(10);
+                    `;
                     return;
                 }
                 
@@ -591,7 +567,7 @@
                 }).join('');
             } catch (error) {
                 console.error('Error loading recent activity:', error);
-                loadDemoActivity(); // Fallback to demo activity
+                showErrorMessage('Failed to load recent activity. Please try refreshing the page.');
             }
         }
         
@@ -811,20 +787,8 @@
                     this.renderStats(stats);
                 } catch (error) {
                     console.error('Error loading stats:', error);
-                    // Load demo data as fallback
-                    this.loadDemoStats();
+                    this.showErrorMessage('Failed to load dashboard statistics. Please try refreshing the page.');
                 }
-            }
-
-            loadDemoStats() {
-                const demoStats = {
-                    total_students: 156,
-                    total_applications: 89,
-                    approved_applications: 67,
-                    pending_applications: 22
-                };
-                this.renderStats(demoStats);
-                this.showDemoNotice();
             }
 
             async loadRecentActivity() {
@@ -833,33 +797,8 @@
                     this.renderRecentActivity(activity);
                 } catch (error) {
                     console.error('Error loading recent activity:', error);
-                    // Load demo data as fallback
-                    this.loadDemoActivity();
+                    this.showErrorMessage('Failed to load recent activity. Please try refreshing the page.');
                 }
-            }
-
-            loadDemoActivity() {
-                const demoActivity = [
-                    {
-                        type: 'application',
-                        title: 'New Application Received',
-                        description: 'John Smith submitted internship application',
-                        created_at: new Date().toISOString()
-                    },
-                    {
-                        type: 'approval',
-                        title: 'Application Approved',
-                        description: 'Sarah Johnson\'s application was approved',
-                        created_at: new Date(Date.now() - 3600000).toISOString()
-                    },
-                    {
-                        type: 'student',
-                        title: 'Student Registered',
-                        description: 'Mike Davis joined the program',
-                        created_at: new Date(Date.now() - 7200000).toISOString()
-                    }
-                ];
-                this.renderRecentActivity(demoActivity);
             }
 
             renderStats(stats) {
@@ -869,7 +808,7 @@
                 statsContainer.innerHTML = `
                     <div class="card">
                         <div class="card-header">
-                            <div class="card-icon">👥</div>
+                            <div class="card-icon"><i class="fas fa-users"></i></div>
                             <div>
                                 <h3>Total Students</h3>
                                 <div class="card-value">${stats.total_students || 0}</div>
@@ -878,7 +817,7 @@
                     </div>
                     <div class="card">
                         <div class="card-header">
-                            <div class="card-icon">📄</div>
+                            <div class="card-icon"><i class="fas fa-file-alt"></i></div>
                             <div>
                                 <h3>Applications</h3>
                                 <div class="card-value">${stats.total_applications || 0}</div>
@@ -887,7 +826,7 @@
                     </div>
                     <div class="card">
                         <div class="card-header">
-                            <div class="card-icon">✅</div>
+                            <div class="card-icon"><i class="fas fa-check-circle"></i></div>
                             <div>
                                 <h3>Approved</h3>
                                 <div class="card-value">${stats.approved_applications || 0}</div>
@@ -896,7 +835,7 @@
                     </div>
                     <div class="card">
                         <div class="card-header">
-                            <div class="card-icon">⏳</div>
+                            <div class="card-icon"><i class="fas fa-clock"></i></div>
                             <div>
                                 <h3>Pending</h3>
                                 <div class="card-value">${stats.pending_applications || 0}</div>
@@ -935,11 +874,11 @@
 
             getActivityIcon(type) {
                 const icons = {
-                    'application': '📄',
-                    'student': '👤',
-                    'approval': '✅',
-                    'rejection': '❌',
-                    'default': '📋'
+                    'application': '<i class="fas fa-file-alt"></i>',
+                    'student': '<i class="fas fa-user"></i>',
+                    'approval': '<i class="fas fa-check-circle"></i>',
+                    'rejection': '<i class="fas fa-times-circle"></i>',
+                    'default': '<i class="fas fa-clipboard"></i>'
                 };
                 return icons[type] || icons.default;
             }
@@ -1098,62 +1037,7 @@
             }
         });
 
-        // Demo data loading functions
-        function loadDemoData() {
-            // Load demo statistics
-            document.getElementById('activeInternships').textContent = '24';
-            document.getElementById('verifiedStudents').textContent = '156';
-            document.getElementById('certificatesIssued').textContent = '18';
-            document.getElementById('avgCompletionTime').textContent = '12';
-            
-            // Update charts with demo data
-            const demoStats = {
-                application_status: {
-                    pending: 8,
-                    reviewed: 12,
-                    accepted: 18,
-                    rejected: 5
-                },
-                total_applications: 43
-            };
-            updateChartsWithRealData(demoStats);
-        }
-        
-        function loadDemoActivity() {
-            const activityList = document.getElementById('activityList');
-            activityList.innerHTML = `
-                <div class="activity-item">
-                    <div class="activity-icon success">
-                        <i class="fas fa-user-plus"></i>
-                    </div>
-                    <div class="activity-content">
-                        <p>New student registration</p>
-                        <span class="activity-description">John Doe registered for Computer Science program</span>
-                        <span class="activity-time">2 hours ago</span>
-                    </div>
-                </div>
-                <div class="activity-item">
-                    <div class="activity-icon info">
-                        <i class="fas fa-file-alt"></i>
-                    </div>
-                    <div class="activity-content">
-                        <p>Application submitted</p>
-                        <span class="activity-description">Sarah Smith submitted internship application</span>
-                        <span class="activity-time">4 hours ago</span>
-                    </div>
-                </div>
-                <div class="activity-item">
-                    <div class="activity-icon success">
-                        <i class="fas fa-check-circle"></i>
-                    </div>
-                    <div class="activity-content">
-                        <p>Application approved</p>
-                        <span class="activity-description">Mike Johnson's application was approved</span>
-                        <span class="activity-time">1 day ago</span>
-                    </div>
-                </div>
-            `;
-        }
+        // Demo data functions removed - platform now only displays real user data
 
         // Legacy logout function for compatibility
         function logout() {

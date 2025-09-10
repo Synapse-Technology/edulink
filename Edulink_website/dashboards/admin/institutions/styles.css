@@ -792,7 +792,9 @@ body {
 }
 
 .student-filters h3::before {
-    content: "🔍";
+    content: "\f002";
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
     font-size: 1.25rem;
     filter: grayscale(0.2);
 }

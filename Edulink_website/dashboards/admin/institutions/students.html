@@ -272,8 +272,8 @@
             try {
                 // Check if APIs are available
                 if (typeof InstitutionAPIs === 'undefined' || !InstitutionAPIs.Students) {
-                    console.warn('Students API not available, loading demo data');
-                    loadDemoStudents();
+                    console.error('Students API not available');
+                    showErrorMessage('Students API is not available. Please refresh the page.');
                     return;
                 }
                 
@@ -284,60 +284,11 @@
                 renderStudents();
             } catch (error) {
                 console.error('Error loading students:', error);
-                loadDemoStudents();
+                showErrorMessage('Failed to load students. Please try refreshing the page.');
             }
         }
         
-        // Load demo students data
-        function loadDemoStudents() {
-            currentStudents = [
-                {
-                    id: 1,
-                    name: 'John Doe',
-                    email: 'john.doe@university.edu',
-                    student_id: 'STU001',
-                    course: 'Computer Science',
-                    year: '3rd Year',
-                    status: 'active',
-                    gpa: 3.8,
-                    phone: '+1234567890'
-                },
-                {
-                    id: 2,
-                    name: 'Jane Smith',
-                    email: 'jane.smith@university.edu',
-                    student_id: 'STU002',
-                    course: 'Information Technology',
-                    year: '2nd Year',
-                    status: 'active',
-                    gpa: 3.9,
-                    phone: '+1234567891'
-                },
-                {
-                    id: 3,
-                    name: 'Mike Johnson',
-                    email: 'mike.johnson@university.edu',
-                    student_id: 'STU003',
-                    course: 'Software Engineering',
-                    year: '4th Year',
-                    status: 'inactive',
-                    gpa: 3.7,
-                    phone: '+1234567892'
-                }
-            ];
-            filteredStudents = [...currentStudents];
-            updateStats();
-            renderStudents();
-            
-            // Show demo mode notice
-            const studentsList = document.getElementById('studentsList');
-            if (studentsList) {
-                const demoNotice = document.createElement('div');
-                demoNotice.className = 'alert alert-info';
-                demoNotice.innerHTML = '<i class="fas fa-info-circle"></i> Demo mode: Showing sample student data';
-                studentsList.insertBefore(demoNotice, studentsList.firstChild);
-            }
-        }
+        // Demo students function removed - platform now only displays real user data
 
         // Load courses for filter
         async function loadCourses() {
