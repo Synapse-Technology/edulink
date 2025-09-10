@@ -5,7 +5,7 @@
 
 class ApiUtils {
   constructor() {
-    this.baseUrl = (window.API_CONFIG?.BASE_URL || 'http://127.0.0.1:8000') + '/api';
+    this.baseUrl = (window.API_CONFIG?.BASE_URL || '${API_BASE_URL:-https://edulink-api.onrender.com}') + '/api';
     this.defaultHeaders = {
       'Content-Type': 'application/json',
       'X-Requested-With': 'XMLHttpRequest'

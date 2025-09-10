@@ -6,7 +6,7 @@
 class APIUtils {
     constructor() {
         this.config = {
-            baseURL: (window.API_CONFIG?.BASE_URL || 'http://127.0.0.1:8000') + '/api',
+            baseURL: (window.API_CONFIG?.BASE_URL || '${API_BASE_URL:-https://edulink-api.onrender.com}') + '/api',
             endpoints: {
                 dashboard: '/dashboards/employer/',
                 applications: '/application/applications/employer/',

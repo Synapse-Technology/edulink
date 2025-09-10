@@ -63,9 +63,9 @@
 
     function botReply(text, options = [], suggestions = [], feedback = true, save = true, updateMsgElem = null) {
         showTyping(true);
+        let msg;
         setTimeout(() => {
             showTyping(false);
-            let msg;
             if (updateMsgElem) {
                 msg = updateMsgElem;
                 msg.innerHTML = `${BOT_AVATAR}<div>${text}</div>`;

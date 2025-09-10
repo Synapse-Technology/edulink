@@ -674,28 +674,32 @@
       }
     }
 
-    searchToggleBtn.addEventListener('click', function () {
-      modernSearchForm.style.display = 'flex';
-      setTimeout(() => modernSearchForm.classList.add('show'), 10);
-      modernSearchInput.focus();
-    });
-    modernSearchInput.addEventListener('blur', function () {
-      setTimeout(() => {
-        if (!modernSearchInput.value.trim()) {
-          modernSearchForm.classList.remove('show');
-          setTimeout(() => modernSearchForm.style.display = 'none', 300);
-        }
-      }, 150);
-    });
-    modernSearchForm.addEventListener('submit', function (e) {
-      e.preventDefault();
-      const term = modernSearchInput.value.trim();
-      highlightTerm(term);
-    });
-    // Optional: clear highlights on new search
-    modernSearchInput.addEventListener('input', function () {
-      if (!this.value.trim()) clearHighlights();
-    });
+    if (searchToggleBtn) {
+      searchToggleBtn.addEventListener('click', function () {
+        modernSearchForm.style.display = 'flex';
+        setTimeout(() => modernSearchForm.classList.add('show'), 10);
+        modernSearchInput.focus();
+      });
+    }
+    if (modernSearchInput && modernSearchForm) {
+      modernSearchInput.addEventListener('blur', function () {
+        setTimeout(() => {
+          if (!modernSearchInput.value.trim()) {
+            modernSearchForm.classList.remove('show');
+            setTimeout(() => modernSearchForm.style.display = 'none', 300);
+          }
+        }, 150);
+      });
+      modernSearchForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const term = modernSearchInput.value.trim();
+        highlightTerm(term);
+      });
+      // Optional: clear highlights on new search
+      modernSearchInput.addEventListener('input', function () {
+        if (!this.value.trim()) clearHighlights();
+      });
+    }
   </script>
 
   <script src="assets/js/edulink-chatbot.js"></script>

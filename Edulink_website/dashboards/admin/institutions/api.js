@@ -1,7 +1,7 @@
 // Institution Dashboard API Implementation
 // Base API configuration
-const API_BASE = (window.API_CONFIG?.BASE_URL || 'http://127.0.0.1:8000') + '/api/institutions';
-const AUTH_API_BASE = (window.API_CONFIG?.BASE_URL || 'http://127.0.0.1:8000') + '/api/auth';
+const API_BASE = (window.API_CONFIG?.BASE_URL || '${API_BASE_URL:-https://edulink-api.onrender.com}') + '/api/institutions';
+const AUTH_API_BASE = (window.API_CONFIG?.BASE_URL || '${API_BASE_URL:-https://edulink-api.onrender.com}') + '/api/auth';
 
 // Utility function to get auth token
 function getAuthToken() {
