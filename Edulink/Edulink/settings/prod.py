@@ -46,8 +46,8 @@ ALLOWED_HOSTS = [
     'www.edulink.jhubafrica.com',
     'api.edulink.jhubafrica.com',
     # Render.com domains for separate deployment
-    'edulink-api.onrender.com',  # Backend API service
-    'edulink-frontend.onrender.com',  # Frontend static site
+    'edulink-api-n422.onrender.com',  # Backend API service
+    'edulink-frontend-fp2f.onrender.com',  # Frontend static site
     '.onrender.com',
     'localhost',
     '127.0.0.1',
@@ -77,12 +77,12 @@ SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 # Production CORS Configuration for separate deployment
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = [
-    config('FRONTEND_URL', default='https://edulink-frontend.onrender.com'),
+    config('FRONTEND_URL', default='https://edulink-frontend-fp2f.onrender.com'),
     config('ADMIN_URL', default='https://admin.edulink.jhubafrica.com'),
     'https://edulink.jhubafrica.com',
     'https://www.edulink.jhubafrica.com',
     # Render.com domains for separate deployment
-    'https://edulink-frontend.onrender.com',  # Frontend static site
+    'https://edulink-frontend-fp2f.onrender.com',  # Frontend static site
     'https://edulink-web.onrender.com',  # Legacy unified deployment
 ]
 CORS_ALLOW_CREDENTIALS = True
