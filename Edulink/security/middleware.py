@@ -457,6 +457,8 @@ class SecurityMiddleware(MiddlewareMixin):
             # Only collect user agent if explicitly enabled
             if getattr(settings, 'SECURITY_LOG_USER_AGENTS', False):
                 user_agent = request.META.get('HTTP_USER_AGENT', '')
+            else:
+                user_agent = ''  # Always use empty string, never None
             
             # Only collect detailed metadata if enabled
             if getattr(settings, 'SECURITY_LOG_DETAILED_METADATA', False):
