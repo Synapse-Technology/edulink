@@ -37,7 +37,7 @@ if not SECRET_KEY:
 
 DEBUG = False
 
-# Production domain configuration
+# Production domain configuration for separate deployment
 ALLOWED_HOSTS = [
     config('DOMAIN_NAME', default='edulink.jhubafrica.com'),
     config('API_DOMAIN', default='api.edulink.jhubafrica.com'),
@@ -45,7 +45,9 @@ ALLOWED_HOSTS = [
     'edulink.jhubafrica.com',
     'www.edulink.jhubafrica.com',
     'api.edulink.jhubafrica.com',
-    # Render.com domains
+    # Render.com domains for separate deployment
+    'edulink-api.onrender.com',  # Backend API service
+    'edulink-frontend.onrender.com',  # Frontend static site
     '.onrender.com',
     'localhost',
     '127.0.0.1',
@@ -72,17 +74,37 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
 SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 
-# Production CORS Configuration
+# Production CORS Configuration for separate deployment
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = [
-    config('FRONTEND_URL', default='https://edulink.jhubafrica.com'),
+    config('FRONTEND_URL', default='https://edulink-frontend.onrender.com'),
     config('ADMIN_URL', default='https://admin.edulink.jhubafrica.com'),
     'https://edulink.jhubafrica.com',
     'https://www.edulink.jhubafrica.com',
-    # Render.com domains
-    'https://edulink-web.onrender.com',
+    # Render.com domains for separate deployment
+    'https://edulink-frontend.onrender.com',  # Frontend static site
+    'https://edulink-web.onrender.com',  # Legacy unified deployment
 ]
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
 
 # Static files serving configuration
 STATIC_URL = '/static/'

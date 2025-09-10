@@ -6,7 +6,7 @@
 class APIUtils {
     constructor() {
         this.config = {
-            baseURL: 'http://localhost:8000/api',
+            baseURL: (window.API_CONFIG?.BASE_URL || 'http://127.0.0.1:8000') + '/api',
             endpoints: {
                 dashboard: '/dashboards/employer/',
                 applications: '/application/applications/employer/',

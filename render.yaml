@@ -1,12 +1,15 @@
+# Unified Render Blueprint - Separate Backend and Frontend Deployments
+# This configuration deploys both backend and frontend services under a single blueprint
+
 services:
+  # Backend API Service
   - type: web
-    name: edulink-web
+    name: edulink-api
     env: python
     region: oregon
     plan: free
-    buildCommand: "./build.sh"
-    startCommand: "cd Edulink && gunicorn Edulink.wsgi:application --bind 0.0.0.0:$PORT --timeout 120 --workers 2"
-    staticPublishPath: ./Edulink/staticfiles
+    buildCommand: "./edulink/build-backend.sh"
+    startCommand: "cd edulink && gunicorn Edulink.wsgi:application --bind 0.0.0.0:$PORT --timeout 120 --workers 2"
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
@@ -38,20 +41,17 @@ services:
         value: synapsetechnology14@gmail.com
       - key: ADMIN_ALLOWED_IPS
         value: 196.216.85.226
+      - key: FRONTEND_URL
+        value: https://edulink-frontend.onrender.com
 
-# Database service removed - using external Supabase database
-# Connection details are provided via environment variables
-
-# Redis service removed - using external Redis Cloud
-# Connection details are provided via environment variables
-
+  # Backend Worker Service
   - type: worker
     name: edulink-worker
     env: python
     region: oregon
     plan: free
-    buildCommand: "./build.sh"
-    startCommand: "cd Edulink && celery -A Edulink worker --loglevel=info"
+    buildCommand: "./edulink/build-backend.sh"
+    startCommand: "cd edulink && celery -A Edulink worker --loglevel=info"
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
@@ -60,9 +60,38 @@ services:
       - key: SECRET_KEY
         fromService:
           type: web
-          name: edulink-web
+          name: edulink-api
           envVarKey: SECRET_KEY
       - key: DATABASE_URL
         value: postgresql://postgres.kszzwjavodfvxbsglipr:Edulinksynapse254%25@aws-0-eu-west-2.pooler.supabase.com:6543/postgres
       - key: REDIS_URL
         value: redis://:8vGeHnCVI34G3djDnLYx7RmC9FJVQ42b@redis-15858.crce204.eu-west-2-3.ec2.redns.redis-cloud.com:15858/0
+      - key: CELERY_BROKER_URL
+        value: redis://:8vGeHnCVI34G3djDnLYx7RmC9FJVQ42b@redis-15858.crce204.eu-west-2-3.ec2.redns.redis-cloud.com:15858/1
+      - key: CELERY_RESULT_BACKEND
+        value: redis://:8vGeHnCVI34G3djDnLYx7RmC9FJVQ42b@redis-15858.crce204.eu-west-2-3.ec2.redns.redis-cloud.com:15858/1
+
+  # Frontend Static Service
+  - type: static
+    name: edulink-frontend
+    env: static
+    region: oregon
+    plan: free
+    buildCommand: "./edulink_website/build-frontend.sh"
+    staticPublishPath: ./edulink_website
+    envVars:
+      - key: API_BASE_URL
+        value: https://edulink-api.onrender.com
+    routes:
+      - type: rewrite
+        source: /api/*
+        destination: https://edulink-api.onrender.com/api/:splat
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
+# Database service removed - using external Supabase database
+# Connection details are provided via environment variables
+
+# Redis service removed - using external Redis Cloud
+# Connection details are provided via environment variables

@@ -5,7 +5,7 @@
 
 class SystemBackend {
   constructor() {
-    this.baseUrl = window.API_BASE_URL || 'http://localhost:8000/api';
+    this.baseUrl = (window.API_CONFIG?.BASE_URL || 'http://127.0.0.1:8000') + '/api';
     this.cache = new Map();
     this.cacheTimeout = 5 * 60 * 1000; // 5 minutes
     this.retryAttempts = 3;

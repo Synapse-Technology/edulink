@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=5.0, minimum-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token }}">
+    <meta name="csrf-token" content="">
     <title>Institution Dashboard - EduLink</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1028,7 +1028,7 @@
                             expires_days: parseInt(formData.get('expiresDays'))
                         };
                         
-                        const response = await fetch('http://localhost:8000/api/institutions/generate-code/', {
+                        const response = await fetch((window.API_CONFIG?.BASE_URL || 'http://127.0.0.1:8000') + '/api/institutions/generate-code/', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',

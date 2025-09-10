@@ -286,13 +286,14 @@
       startDashboardLoadingMessages();
       
       // Test API endpoints and capture errors
+      const baseUrl = (window.API_CONFIG?.BASE_URL || 'http://127.0.0.1:8000');
       const apiEndpoints = [
-        'http://127.0.0.1:8000/api/dashboards/student/',
-        'http://127.0.0.1:8000/api/dashboards/progress/',
-        'http://127.0.0.1:8000/api/internship-progress/progress/',
-        'http://127.0.0.1:8000/api/dashboards/analytics/',
-        'http://127.0.0.1:8000/api/dashboards/achievements/',
-        'http://127.0.0.1:8000/api/dashboards/calendar-events/'
+        `${baseUrl}/api/dashboards/student/`,
+        `${baseUrl}/api/dashboards/progress/`,
+        `${baseUrl}/api/internship-progress/progress/`,
+        `${baseUrl}/api/dashboards/analytics/`,
+        `${baseUrl}/api/dashboards/achievements/`,
+        `${baseUrl}/api/dashboards/calendar-events/`
       ];
       
       console.log('🐛 DEBUG: Testing API endpoints...');
