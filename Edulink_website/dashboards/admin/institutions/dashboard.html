@@ -332,6 +332,11 @@
         
         // Enhanced touch and swipe handling
         function handleTouchStart(e) {
+            // Don't interfere with button clicks or form elements
+            if (e.target.closest('button, .btn, input, select, textarea, .modal')) {
+                return;
+            }
+            
             touchStartX = e.changedTouches[0].screenX;
             isSwiping = true;
         }
@@ -339,17 +344,28 @@
         function handleTouchMove(e) {
             if (!isSwiping) return;
             
+            // Don't interfere with button clicks or form elements
+            if (e.target.closest('button, .btn, input, select, textarea, .modal')) {
+                return;
+            }
+            
             touchEndX = e.changedTouches[0].screenX;
             const deltaX = touchEndX - touchStartX;
             
-            // Prevent default scrolling during horizontal swipe
-            if (Math.abs(deltaX) > 10) {
+            // Only prevent default for significant horizontal swipes, not button interactions
+            if (Math.abs(deltaX) > 30 && Math.abs(deltaX) > Math.abs(e.changedTouches[0].screenY - e.changedTouches[0].screenY)) {
                 e.preventDefault();
             }
         }
         
         function handleTouchEnd(e) {
             if (!isSwiping) return;
+            
+            // Don't interfere with button clicks or form elements
+            if (e.target.closest('button, .btn, input, select, textarea, .modal')) {
+                isSwiping = false;
+                return;
+            }
             
             touchEndX = e.changedTouches[0].screenX;
             const deltaX = touchEndX - touchStartX;
@@ -367,13 +383,18 @@
             isSwiping = false;
         }
         
-        // Add touch event listeners for swipe gestures
-        document.addEventListener('touchstart', handleTouchStart, { passive: false });
+        // Add touch event listeners for swipe gestures with improved targeting
+        document.addEventListener('touchstart', handleTouchStart, { passive: true });
         document.addEventListener('touchmove', handleTouchMove, { passive: false });
         document.addEventListener('touchend', handleTouchEnd, { passive: true });
         
-        // Close sidebar when clicking on main content on mobile
+        // Close sidebar when clicking on main content on mobile - but not on interactive elements
         document.querySelector('.main-content').addEventListener('click', function(e) {
+            // Don't close sidebar if clicking on buttons, links, or form elements
+            if (e.target.closest('button, .btn, a, input, select, textarea, .modal, .card-actions')) {
+                return;
+            }
+            
             if (window.innerWidth <= 768 && !e.target.closest('.sidebar')) {
                 closeSidebar();
             }
