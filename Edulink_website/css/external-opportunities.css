@@ -1,0 +1,370 @@
+/* External Opportunities Styles */
+
+/* External opportunity cards */
+.external-opportunity {
+    border-left: 4px solid #007bff;
+    position: relative;
+}
+
+.external-opportunity::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 0;
+    height: 0;
+    border-left: 20px solid transparent;
+    border-top: 20px solid #007bff;
+}
+
+.external-badge {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.external-badge i {
+    font-size: 0.7rem;
+}
+
+/* Quality indicators */
+.quality-indicator {
+    display: flex;
+    align-items: center;
+    font-size: 0.9rem;
+}
+
+.quality-high {
+    color: #28a745;
+}
+
+.quality-medium {
+    color: #ffc107;
+}
+
+.quality-low {
+    color: #dc3545;
+}
+
+/* Recent badge */
+.recent-badge {
+    background: #28a745;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 8px;
+    font-size: 0.7rem;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+/* Attribution styles */
+.opportunity-attribution {
+    margin-top: 12px;
+    padding: 8px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border-left: 3px solid #007bff;
+}
+
+.attribution-fallback {
+    font-size: 0.8rem;
+    color: #6c757d;
+    font-style: italic;
+}
+
+/* Attribution templates */
+.attribution-minimal {
+    font-size: 0.75rem;
+    color: #6c757d;
+    text-align: right;
+}
+
+.attribution-standard {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: #495057;
+}
+
+.attribution-standard .source-logo {
+    width: 20px;
+    height: 20px;
+    border-radius: 3px;
+}
+
+.attribution-detailed {
+    background: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 12px;
+    margin-top: 8px;
+}
+
+.attribution-detailed .source-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.attribution-detailed .source-logo {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+}
+
+.attribution-detailed .source-name {
+    font-weight: 600;
+    color: #212529;
+}
+
+.attribution-detailed .source-description {
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin-bottom: 8px;
+}
+
+.attribution-detailed .source-links {
+    display: flex;
+    gap: 12px;
+}
+
+.attribution-detailed .source-links a {
+    font-size: 0.8rem;
+    color: #007bff;
+    text-decoration: none;
+}
+
+.attribution-detailed .source-links a:hover {
+    text-decoration: underline;
+}
+
+.attribution-card {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    border-radius: 8px;
+    padding: 10px;
+    border-left: 4px solid #007bff;
+}
+
+.attribution-footer {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    font-size: 0.7rem;
+    color: #6c757d;
+    opacity: 0.8;
+}
+
+/* Results metadata */
+.results-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.results-metadata {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.metadata-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.85rem;
+    color: #6c757d;
+    background: #f8f9fa;
+    padding: 4px 8px;
+    border-radius: 12px;
+}
+
+.metadata-item i {
+    font-size: 0.8rem;
+    color: #007bff;
+}
+
+/* Opportunity header improvements */
+.opportunity-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+/* Opportunity meta improvements */
+.opportunity-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.opportunity-meta > div {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+.opportunity-meta i {
+    font-size: 0.8rem;
+    color: #007bff;
+}
+
+/* Salary info */
+.salary-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 8px 0;
+    padding: 6px 10px;
+    background: #e8f5e8;
+    border-radius: 6px;
+    font-weight: 600;
+    color: #155724;
+}
+
+.salary-info i {
+    color: #28a745;
+}
+
+/* Loading states */
+.opportunity-card.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.opportunity-card.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Error states */
+.opportunity-card.error {
+    border-left-color: #dc3545;
+    background: #f8d7da;
+}
+
+.opportunity-card.error .opportunity-title {
+    color: #721c24;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .results-metadata {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .metadata-item {
+        justify-content: center;
+    }
+    
+    .opportunity-meta {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .attribution-detailed .source-links {
+        flex-direction: column;
+        gap: 8px;
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .opportunity-attribution {
+        background: #2d3748;
+        border-left-color: #4299e1;
+    }
+    
+    .attribution-detailed {
+        background: #2d3748;
+        border-color: #4a5568;
+    }
+    
+    .attribution-detailed .source-name {
+        color: #e2e8f0;
+    }
+    
+    .attribution-detailed .source-description {
+        color: #a0aec0;
+    }
+    
+    .metadata-item {
+        background: #2d3748;
+        color: #a0aec0;
+    }
+    
+    .salary-info {
+        background: #2d5a2d;
+        color: #68d391;
+    }
+}
+
+/* Print styles */
+@media print {
+    .opportunity-attribution {
+        background: transparent !important;
+        border: 1px solid #000 !important;
+    }
+    
+    .external-badge,
+    .quality-indicator,
+    .recent-badge {
+        background: transparent !important;
+        color: #000 !important;
+        border: 1px solid #000;
+    }
+}
+
+/* Accessibility improvements */
+.opportunity-card:focus-within {
+    outline: 2px solid #007bff;
+    outline-offset: 2px;
+}
+
+.attribution-detailed .source-links a:focus {
+    outline: 2px solid #007bff;
+    outline-offset: 1px;
+    border-radius: 2px;
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+    .external-opportunity {
+        border-left-width: 6px;
+    }
+    
+    .opportunity-attribution {
+        border-left-width: 4px;
+    }
+    
+    .metadata-item {
+        border: 1px solid #000;
+    }
+}

@@ -333,6 +333,192 @@
       font-weight: 500;
       margin-top: 8px;
     }
+    
+    /* External Opportunity Styles */
+    .external-badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(0, 153, 153, 0.9);
+      color: white;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.8em;
+      font-weight: 600;
+    }
+    
+    .opportunity-image {
+      position: relative;
+      width: 100%;
+      height: 180px;
+      overflow: hidden;
+    }
+    
+    .opportunity-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .opportunity-content {
+      padding: 20px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .opportunity-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+    
+    .company-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .company-details h4 {
+      margin: 0;
+      font-size: 1em;
+      font-weight: 600;
+    }
+    
+    .verified-badge {
+      color: #22c55e;
+      margin-left: 5px;
+    }
+    
+    .opportunity-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    
+    .badge-category { background: #e0f7f7; color: #009999; }
+    .badge-level { background: #f0f9ff; color: #0369a1; }
+    .badge-external { background: #fef3c7; color: #d97706; }
+    .badge-external.quality-high { background: #d1fae5; color: #047857; }
+    .badge-external.quality-medium { background: #fef3c7; color: #d97706; }
+    .badge-external.quality-low { background: #fee2e2; color: #dc2626; }
+    .badge-featured { background: #22c55e; color: white; }
+    
+    .opportunity-title {
+      font-size: 1.2em;
+      font-weight: 700;
+      margin: 8px 0;
+      color: #1f2937;
+    }
+    
+    .opportunity-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin: 12px 0;
+    }
+    
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9em;
+      color: #6b7280;
+    }
+    
+    .meta-item i {
+      width: 16px;
+      color: #009999;
+    }
+    
+    .opportunity-description {
+      color: #4b5563;
+      line-height: 1.5;
+      margin: 12px 0;
+    }
+    
+    .skill-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 12px 0;
+    }
+    
+    .skill-tag {
+      background: #f0fdf4;
+      color: #22c55e;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.8em;
+      font-weight: 500;
+    }
+    
+    .skill-tag.more {
+      background: #f3f4f6;
+      color: #6b7280;
+    }
+    
+    .opportunity-footer {
+      margin-top: auto;
+      padding-top: 12px;
+    }
+    
+    .source-attribution {
+      margin-bottom: 12px;
+      padding: 8px;
+      background: #f9fafb;
+      border-radius: 6px;
+      border-left: 3px solid #009999;
+    }
+    
+    .source-attribution small {
+      color: #6b7280;
+      font-size: 0.8em;
+    }
+    
+    .source-attribution a {
+      color: #009999;
+      text-decoration: none;
+    }
+    
+    .source-attribution a:hover {
+      text-decoration: underline;
+    }
+    
+    .opportunity-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+    
+    .alert {
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin: 16px 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .alert-error {
+      background: #fee2e2;
+      color: #dc2626;
+      border: 1px solid #fecaca;
+    }
+    
+    .spinner-border {
+      width: 2rem;
+      height: 2rem;
+      border: 0.25em solid currentColor;
+      border-right-color: transparent;
+      border-radius: 50%;
+      animation: spinner-border 0.75s linear infinite;
+    }
+    
+    @keyframes spinner-border {
+      to { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body class="opportunities-page">
@@ -372,7 +558,7 @@
         <h1 class="display-5 fw-bold mb-2">Find Your Next Opportunity</h1>
         <p class="lead mb-4">Browse verified internships and jobs from top employers and institutions across Kenya.</p>
         <form class="search-bar shadow" onsubmit="event.preventDefault();">
-          <input type="text" placeholder="Search by role, company, or keyword..." aria-label="Search opportunities">
+          <input type="text" id="opportunity-search" placeholder="Search by role, company, or keyword..." aria-label="Search opportunities">
           <button type="submit"><i class="bi bi-search"></i> Search</button>
         </form>
         <div class="marketplace-cta">Tip: Use filters below to narrow your search by category or location.</div>
@@ -381,152 +567,74 @@
 
     <!-- Category Filters -->
     <div class="marketplace-categories" data-aos="fade-up">
-      <button class="cat-btn active">All</button>
-      <button class="cat-btn">Tech</button>
-      <button class="cat-btn">Marketing</button>
-      <button class="cat-btn">Finance</button>
-      <button class="cat-btn">Healthcare</button>
-      <button class="cat-btn">Engineering</button>
-      <button class="cat-btn">Remote</button>
-      <button class="cat-btn">Nairobi</button>
-      <button class="cat-btn">Mombasa</button>
-      <button class="cat-btn">Kisumu</button>
+      <button class="cat-btn category-filter active" data-category="">All</button>
+      <button class="cat-btn category-filter" data-category="technology">Tech</button>
+      <button class="cat-btn category-filter" data-category="marketing">Marketing</button>
+      <button class="cat-btn category-filter" data-category="finance">Finance</button>
+      <button class="cat-btn category-filter" data-category="healthcare">Healthcare</button>
+      <button class="cat-btn category-filter" data-category="engineering">Engineering</button>
+      <button class="cat-btn category-filter" data-category="remote">Remote</button>
+    </div>
+
+    <!-- Advanced Filters -->
+    <div class="container mb-4" data-aos="fade-up" data-aos-delay="50">
+      <div class="row g-3">
+        <div class="col-md-3">
+          <select id="location-filter" class="form-select">
+            <option value="">All Locations</option>
+            <option value="nairobi">Nairobi</option>
+            <option value="mombasa">Mombasa</option>
+            <option value="kisumu">Kisumu</option>
+            <option value="eldoret">Eldoret</option>
+            <option value="remote">Remote</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <select id="source-filter" class="form-select">
+            <option value="">All Sources</option>
+            <option value="internal">EduLink Direct</option>
+            <option value="external">External Sources</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <select id="quality-filter" class="form-select">
+            <option value="">All Quality</option>
+            <option value="high">High Quality (80%+)</option>
+            <option value="medium">Medium Quality (60%+)</option>
+            <option value="low">All Quality Levels</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <select id="sort-options" class="form-select">
+            <option value="-created_at">Newest First</option>
+            <option value="deadline">Deadline Soon</option>
+            <option value="-stipend">Highest Stipend</option>
+            <option value="title">Alphabetical</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading and Error States -->
+    <div class="container" id="opportunities-container">
+      <div id="error-container" style="display: none;"></div>
+      
+      <div id="opportunities-loader" class="text-center py-5" style="display: none;">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading opportunities...</span>
+        </div>
+        <p class="mt-3">Loading opportunities...</p>
+      </div>
+      
+      <div id="results-info" class="d-flex justify-content-between align-items-center mb-4">
+        <div id="results-count">Loading opportunities...</div>
+        <div id="pagination-info"></div>
+      </div>
     </div>
 
     <!-- Opportunities Grid -->
-    <section class="container opportunities-grid" data-aos="fade-up" data-aos-delay="100">
-      <!-- Sample Opportunity Card 1 -->
-      <div class="opportunity-card">
-        <div class="card-img"><img src="assets/img/course-1.jpg" alt="Software Development Intern"></div>
-        <div class="card-content">
-          <div class="d-flex align-items-center mb-2">
-            <div class="company-avatar"><img src="assets/img/partner1.png" alt="Synapse Technologies"></div>
-            <span class="badge tech">Tech</span>
-            <span class="badge featured ms-2">Featured</span>
-          </div>
-          <h3 class="fw-bold mb-1">Software Development Intern</h3>
-          <div class="location"><i class="bi bi-geo-alt"></i> Nairobi, Kenya</div>
-          <div class="salary">KES 40,000/mo</div>
-          <div class="tags mb-2">
-            <span class="tag">Python</span>
-            <span class="tag">Django</span>
-            <span class="tag">Full-time</span>
-          </div>
-          <div class="actions">
-            <a href="#" class="btn btn-primary">Apply</a>
-            <a href="#" class="btn btn-outline">Details</a>
-          </div>
-        </div>
-      </div>
-      <!-- Sample Opportunity Card 2 -->
-      <div class="opportunity-card">
-        <div class="card-img"><img src="assets/img/course-2.jpg" alt="Digital Marketing Assistant"></div>
-        <div class="card-content">
-          <div class="d-flex align-items-center mb-2">
-            <div class="company-avatar"><img src="assets/img/partner2.png" alt="Creative Hub Inc."></div>
-            <span class="badge marketing">Marketing</span>
-          </div>
-          <h3 class="fw-bold mb-1">Digital Marketing Assistant</h3>
-          <div class="location"><i class="bi bi-geo-alt"></i> Mombasa, Kenya</div>
-          <div class="salary">KES 35,000/mo</div>
-          <div class="tags mb-2">
-            <span class="tag">SEO</span>
-            <span class="tag">Content</span>
-            <span class="tag">Remote</span>
-          </div>
-          <div class="actions">
-            <a href="#" class="btn btn-primary">Apply</a>
-            <a href="#" class="btn btn-outline">Details</a>
-          </div>
-        </div>
-      </div>
-      <!-- Sample Opportunity Card 3 -->
-      <div class="opportunity-card">
-        <div class="card-img"><img src="assets/img/course-3.jpg" alt="Finance & Accounting Intern"></div>
-        <div class="card-content">
-          <div class="d-flex align-items-center mb-2">
-            <div class="company-avatar"><img src="assets/img/partner3.png" alt="Kenya Trust Bank"></div>
-            <span class="badge finance">Finance</span>
-          </div>
-          <h3 class="fw-bold mb-1">Finance & Accounting Intern</h3>
-          <div class="location"><i class="bi bi-geo-alt"></i> Kisumu, Kenya</div>
-          <div class="salary">KES 38,000/mo</div>
-          <div class="tags mb-2">
-            <span class="tag">Excel</span>
-            <span class="tag">CPA</span>
-            <span class="tag">Graduate</span>
-          </div>
-          <div class="actions">
-            <a href="#" class="btn btn-primary">Apply</a>
-            <a href="#" class="btn btn-outline">Details</a>
-          </div>
-        </div>
-      </div>
-      <!-- Sample Opportunity Card 4 -->
-      <div class="opportunity-card">
-        <div class="card-img"><img src="assets/img/events-item-1.jpg" alt="Healthcare Assistant"></div>
-        <div class="card-content">
-          <div class="d-flex align-items-center mb-2">
-            <div class="company-avatar"><img src="assets/img/team/team-1.jpg" alt="HealthFirst"></div>
-            <span class="badge health">Healthcare</span>
-          </div>
-          <h3 class="fw-bold mb-1">Healthcare Assistant</h3>
-          <div class="location"><i class="bi bi-geo-alt"></i> Nairobi, Kenya</div>
-          <div class="salary">KES 30,000/mo</div>
-          <div class="tags mb-2">
-            <span class="tag">Patient Care</span>
-            <span class="tag">Full-time</span>
-          </div>
-          <div class="actions">
-            <a href="#" class="btn btn-primary">Apply</a>
-            <a href="#" class="btn btn-outline">Details</a>
-          </div>
-        </div>
-      </div>
-      <!-- Sample Opportunity Card 5 -->
-      <div class="opportunity-card">
-        <div class="card-img"><img src="assets/img/events-item-2.jpg" alt="Mechanical Engineering Intern"></div>
-        <div class="card-content">
-          <div class="d-flex align-items-center mb-2">
-            <div class="company-avatar"><img src="assets/img/team/team-2.jpg" alt="MechWorks"></div>
-            <span class="badge engineering">Engineering</span>
-          </div>
-          <h3 class="fw-bold mb-1">Mechanical Engineering Intern</h3>
-          <div class="location"><i class="bi bi-geo-alt"></i> Eldoret, Kenya</div>
-          <div class="salary">KES 42,000/mo</div>
-          <div class="tags mb-2">
-            <span class="tag">AutoCAD</span>
-            <span class="tag">Internship</span>
-          </div>
-          <div class="actions">
-            <a href="#" class="btn btn-primary">Apply</a>
-            <a href="#" class="btn btn-outline">Details</a>
-          </div>
-        </div>
-      </div>
-      <!-- Sample Opportunity Card 6 -->
-      <div class="opportunity-card">
-        <div class="card-img"><img src="assets/img/web.jpg" alt="Remote Data Analyst"></div>
-        <div class="card-content">
-          <div class="d-flex align-items-center mb-2">
-            <div class="company-avatar"><img src="assets/img/trainers/trainer-1.jpg" alt="Data Insights"></div>
-            <span class="badge tech">Tech</span>
-            <span class="badge featured ms-2">Remote</span>
-          </div>
-          <h3 class="fw-bold mb-1">Remote Data Analyst</h3>
-          <div class="location"><i class="bi bi-geo-alt"></i> Remote</div>
-          <div class="salary">KES 50,000/mo</div>
-          <div class="tags mb-2">
-            <span class="tag">SQL</span>
-            <span class="tag">Python</span>
-            <span class="tag">Remote</span>
-          </div>
-          <div class="actions">
-            <a href="#" class="btn btn-primary">Apply</a>
-            <a href="#" class="btn btn-outline">Details</a>
-          </div>
-        </div>
-      </div>
+    <section class="container opportunities-grid" id="opportunities-grid" data-aos="fade-up" data-aos-delay="100">
+      <!-- Dynamic opportunities will be loaded here by JavaScript -->
     </section>
 
     <!-- Featured Employers Carousel -->
@@ -678,6 +786,13 @@
   <!-- Main JS File -->
   <script src="assets/js/main.js"></script>
   <script src="assets/js/edulink-chatbot.js"></script>
+  
+  <!-- API Configuration -->
+  <script src="js/config.js"></script>
+  
+  <!-- Opportunities Management -->
+  <script src="js/opportunities.js"></script>
+  
   <script>
     // Swiper for featured employers
     var employerSwiper = new Swiper('.employer-swiper', {
@@ -690,14 +805,6 @@
         768: { slidesPerView: 3 },
         1200: { slidesPerView: 5 }
       }
-    });
-    // Category filter (demo only)
-    document.querySelectorAll('.cat-btn').forEach(btn => {
-      btn.addEventListener('click', function() {
-        document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-        this.classList.add('active');
-        // In a real app, filter the grid here
-      });
     });
   </script>
 </body>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://edulink.jhubafrica.com https://edulink-api-n422.onrender.com https://edulink-api.onrender.com http://127.0.0.1:8000 http://localhost:8000; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://edulink.jhubafrica.com https://edulink-api-n422.onrender.com http://127.0.0.1:8000 http://localhost:8000; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self';">
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
   <meta http-equiv="X-XSS-Protection" content="1; mode=block">
   <meta http-equiv="Strict-Transport-Security" content="max-age=31536000; includeSubDomains">
@@ -483,12 +483,31 @@
     </div>
   </div>
 
-  <script src="../../../js/config.js"></script>
+  <script>
+    // Ensure API_CONFIG is available before other scripts
+    window.API_CONFIG = {
+      BASE_URL: 'https://edulink-api-n422.onrender.com',
+      ENDPOINTS: {
+        AUTH: {
+          LOGIN: '/api/auth/login/',
+          LOGOUT: '/api/auth/logout/',
+          REGISTER: '/api/auth/register/',
+          PASSWORD_RESET: '/api/auth/password-reset/',
+          PASSWORD_RESET_CONFIRM: '/api/auth/password-reset-confirm/',
+          VERIFY_EMAIL: '/api/auth/verify-email/',
+          RESEND_VERIFICATION: '/api/auth/resend-verification/'
+        }
+      }
+    };
+  </script>
   <script src="js/employer-auth-security.js"></script>
   <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Initialize security
-    const security = window.employerAuthSecurity;
+   document.addEventListener('DOMContentLoaded', function() {
+     // Test API URL - add console log to verify correct URL is being used
+     console.log('Using API_CONFIG.BASE_URL:', window.API_CONFIG.BASE_URL);
+     
+     // Initialize security
+     const security = window.employerAuthSecurity;
     
     // Initialize security features
     if (security) {
