@@ -313,21 +313,10 @@
             overlay.classList.toggle('active');
             body.classList.toggle('sidebar-open');
             
-            // Ensure main content can still scroll when sidebar is open
-            if (body.classList.contains('sidebar-open')) {
-                if (mainContent) {
-                    mainContent.style.overflowY = 'auto';
-                    mainContent.style.minHeight = 'calc(100vh - 80px)';
-                    mainContent.style.touchAction = 'pan-y';
-                }
-                // Allow body scroll at all times for proper vertical scrolling
-                body.style.overflow = '';
-            } else {
-                // Ensure body scroll is always enabled
-                body.style.overflow = '';
-                if (mainContent) {
-                    mainContent.style.touchAction = 'pan-y';
-                }
+            // Ensure proper touch scrolling behavior
+            if (mainContent) {
+                mainContent.style.touchAction = 'pan-y';
+            }
             }
         }
         
@@ -339,9 +328,6 @@
             sidebar.classList.remove('open');
             overlay.classList.remove('active');
             body.classList.remove('sidebar-open');
-            
-            // Re-enable body scroll
-            body.style.overflow = '';
         }
         
         // Enhanced touch and swipe handling
