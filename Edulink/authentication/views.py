@@ -396,6 +396,7 @@ class StudentRegistrationView(APIView, APIResponseMixin):
         return base_data
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class LoginView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
     permission_classes = [AllowAny]
