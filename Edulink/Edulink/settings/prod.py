@@ -96,6 +96,8 @@ CORS_ALLOWED_HEADERS = [
     'user-agent',
     'x-csrftoken',
     'x-requested-with',
+    'cache-control',
+    'pragma',
 ]
 CORS_ALLOW_METHODS = [
     'DELETE',
