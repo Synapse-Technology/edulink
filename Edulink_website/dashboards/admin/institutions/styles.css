@@ -710,6 +710,11 @@ body {
     .mobile-overlay {
         display: block;
         touch-action: none;
+        pointer-events: none;
+    }
+    
+    .mobile-overlay.active {
+        pointer-events: auto;
     }
     
     .sidebar {
@@ -777,6 +782,12 @@ body {
     button, .btn, .nav-link, .card {
         min-height: 44px;
         touch-action: manipulation;
+    }
+    
+    /* Ensure buttons are above overlays */
+    .btn, button {
+        position: relative;
+        z-index: 1002;
     }
 }
 
