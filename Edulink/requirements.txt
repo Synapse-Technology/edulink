@@ -98,6 +98,8 @@ django-health-check
 pandas
 numpy
 openpyxl
+beautifulsoup4
+requests
 psutil
 
 # HTTP & API Clients
