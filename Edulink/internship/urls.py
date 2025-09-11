@@ -11,6 +11,14 @@ from internship.views.internship_views import (
     InternshipSearchView,
     InternshipAnalyticsView,
 )
+from .views.external_opportunity_views import (
+    ExternalOpportunityListView,
+    ExternalOpportunityDetailView,
+    ExternalSourceListView,
+    AttributionStylesView,
+    ComplianceReportView,
+    track_external_click,
+)
 
 app_name = 'internship'
 
@@ -30,4 +38,17 @@ urlpatterns = [
     path('search/', InternshipSearchView.as_view(), name='internship-search'),
     path('skill-tags/', SkillTagListView.as_view(), name='skill-tags'),
     path('analytics/', InternshipAnalyticsView.as_view(), name='internship-analytics'),
+    
+    # External opportunities
+    path('external/', ExternalOpportunityListView.as_view(), name='external-opportunities-list'),
+    path('external/<int:pk>/', ExternalOpportunityDetailView.as_view(), name='external-opportunity-detail'),
+    path('external/track-click/', track_external_click, name='track-external-click'),
+    
+    # External sources management
+    path('external/sources/', ExternalSourceListView.as_view(), name='external-sources-list'),
+    path('external/sources/<int:source_id>/compliance/', ComplianceReportView.as_view(), name='source-compliance-report'),
+    path('external/compliance/', ComplianceReportView.as_view(), name='compliance-report'),
+    
+    # Attribution and styling
+    path('external/attribution/styles/', AttributionStylesView.as_view(), name='attribution-styles'),
 ]

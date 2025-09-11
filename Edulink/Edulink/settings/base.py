@@ -57,6 +57,8 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework_simplejwt.token_blacklist",  # Required for JWT token blacklisting
     "corsheaders",
+    "django_celery_beat",  # Celery Beat for scheduled tasks
+    "django_redis",  # Redis cache backend
     "core",  # Core utilities and template tags for error handling
     "authentication",
     "employers",
@@ -406,6 +408,77 @@ CELERY_WORKER_MAX_TASKS_PER_CHILD = 1000
 
 # Celery Beat Configuration (for scheduled tasks)
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+
+# =============================================================================
+# EXTERNAL OPPORTUNITIES CONFIGURATION
+# =============================================================================
+
+# External Opportunity Aggregation Settings
+EXTERNAL_OPPORTUNITIES_ENABLED = config('EXTERNAL_OPPORTUNITIES_ENABLED', default=True, cast=bool)
+ENABLE_EXTERNAL_CACHE = config('ENABLE_EXTERNAL_CACHE', default=True, cast=bool)
+
+# External API Configuration
+EXTERNAL_API_TIMEOUT = config('EXTERNAL_API_TIMEOUT', default=30, cast=int)
+EXTERNAL_API_MAX_RETRIES = config('EXTERNAL_API_MAX_RETRIES', default=3, cast=int)
+EXTERNAL_API_RETRY_DELAY = config('EXTERNAL_API_RETRY_DELAY', default=1, cast=int)
+
+# Data Quality Settings
+MIN_DATA_QUALITY_SCORE = config('MIN_DATA_QUALITY_SCORE', default=0.6, cast=float)
+MAX_EXTERNAL_OPPORTUNITIES_PER_SOURCE = config('MAX_EXTERNAL_OPPORTUNITIES_PER_SOURCE', default=1000, cast=int)
+
+# Refresh Schedule Settings
+EXTERNAL_REFRESH_INTERVAL_HOURS = config('EXTERNAL_REFRESH_INTERVAL_HOURS', default=4, cast=int)
+EXTERNAL_CLEANUP_DAYS = config('EXTERNAL_CLEANUP_DAYS', default=30, cast=int)
+
+# Cache Settings for External Opportunities
+EXTERNAL_CACHE_TIMEOUT = config('EXTERNAL_CACHE_TIMEOUT', default=3600, cast=int)  # 1 hour
+EXTERNAL_SEARCH_CACHE_TIMEOUT = config('EXTERNAL_SEARCH_CACHE_TIMEOUT', default=900, cast=int)  # 15 minutes
+EXTERNAL_STATS_CACHE_TIMEOUT = config('EXTERNAL_STATS_CACHE_TIMEOUT', default=1800, cast=int)  # 30 minutes
+
+# Notification Settings
+SEND_ERROR_NOTIFICATIONS = config('SEND_ERROR_NOTIFICATIONS', default=False, cast=bool)
+SEND_HEALTH_ALERTS = config('SEND_HEALTH_ALERTS', default=False, cast=bool)
+SEND_DAILY_REPORTS = config('SEND_DAILY_REPORTS', default=False, cast=bool)
+SEND_TASK_FAILURE_NOTIFICATIONS = config('SEND_TASK_FAILURE_NOTIFICATIONS', default=False, cast=bool)
+
+# Admin Email Configuration
+ADMIN_EMAIL_LIST = config('ADMIN_EMAIL_LIST', default='', cast=lambda v: [s.strip() for s in v.split(',') if s.strip()])
+REPORT_EMAIL_LIST = config('REPORT_EMAIL_LIST', default='', cast=lambda v: [s.strip() for s in v.split(',') if s.strip()])
+
+# External Source Rate Limiting
+EXTERNAL_SOURCE_RATE_LIMIT = config('EXTERNAL_SOURCE_RATE_LIMIT', default=60, cast=int)  # requests per minute
+EXTERNAL_SOURCE_CONCURRENT_LIMIT = config('EXTERNAL_SOURCE_CONCURRENT_LIMIT', default=5, cast=int)
+
+# Consolidated External Opportunities Settings
+EXTERNAL_OPPORTUNITIES = {
+    'enabled': EXTERNAL_OPPORTUNITIES_ENABLED,
+    'cache_enabled': ENABLE_EXTERNAL_CACHE,
+    'api_timeout': EXTERNAL_API_TIMEOUT,
+    'api_max_retries': EXTERNAL_API_MAX_RETRIES,
+    'api_retry_delay': EXTERNAL_API_RETRY_DELAY,
+    'min_data_quality_score': MIN_DATA_QUALITY_SCORE,
+    'max_opportunities_per_source': MAX_EXTERNAL_OPPORTUNITIES_PER_SOURCE,
+    'refresh_interval_hours': EXTERNAL_REFRESH_INTERVAL_HOURS,
+    'cleanup_days': EXTERNAL_CLEANUP_DAYS,
+    'cache_timeout': EXTERNAL_CACHE_TIMEOUT,
+    'search_cache_timeout': EXTERNAL_SEARCH_CACHE_TIMEOUT,
+    'stats_cache_timeout': EXTERNAL_STATS_CACHE_TIMEOUT,
+    'rate_limit_per_minute': EXTERNAL_SOURCE_RATE_LIMIT,
+    'concurrent_limit': EXTERNAL_SOURCE_CONCURRENT_LIMIT,
+    'notifications': {
+        'send_error_notifications': SEND_ERROR_NOTIFICATIONS,
+        'send_health_alerts': SEND_HEALTH_ALERTS,
+        'send_daily_reports': SEND_DAILY_REPORTS,
+        'send_task_failure_notifications': SEND_TASK_FAILURE_NOTIFICATIONS,
+    },
+    'admin_emails': ADMIN_EMAIL_LIST,
+    'report_emails': REPORT_EMAIL_LIST,
+}
+
+# Attribution and Compliance
+REQUIRE_SOURCE_ATTRIBUTION = config('REQUIRE_SOURCE_ATTRIBUTION', default=True, cast=bool)
+ENABLE_EXTERNAL_TRACKING = config('ENABLE_EXTERNAL_TRACKING', default=True, cast=bool)
+EXTERNAL_LINK_TRACKING = config('EXTERNAL_LINK_TRACKING', default=True, cast=bool)
 
 # Content Security Policy
 CONTENT_SECURITY_POLICY = {
