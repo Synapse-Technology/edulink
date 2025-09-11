@@ -28,6 +28,7 @@ cryptography
 django-axes
 bandit
 safety
+beautifulsoup4
 
 # Development Tools
 mypy
