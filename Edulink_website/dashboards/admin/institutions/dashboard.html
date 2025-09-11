@@ -317,17 +317,13 @@
             if (body.classList.contains('sidebar-open')) {
                 if (mainContent) {
                     mainContent.style.overflowY = 'auto';
-                    mainContent.style.maxHeight = 'calc(100vh - 80px)';
+                    mainContent.style.minHeight = 'calc(100vh - 80px)';
                     mainContent.style.touchAction = 'pan-y';
                 }
-                // Only prevent body scroll when sidebar is actually open on mobile
-                if (window.innerWidth <= 768 && sidebar.classList.contains('open')) {
-                    body.style.overflow = 'hidden';
-                } else {
-                    body.style.overflow = '';
-                }
+                // Allow body scroll at all times for proper vertical scrolling
+                body.style.overflow = '';
             } else {
-                // Re-enable body scroll when sidebar is closed
+                // Ensure body scroll is always enabled
                 body.style.overflow = '';
                 if (mainContent) {
                     mainContent.style.touchAction = 'pan-y';
@@ -1035,7 +1031,7 @@
                             expires_days: parseInt(formData.get('expiresDays'))
                         };
                         
-                        const response = await fetch((window.API_CONFIG?.BASE_URL || 'http://127.0.0.1:8000') + '/api/institutions/generate-code/', {
+                        const response = await fetch(window.API_CONFIG.BASE_URL + window.API_CONFIG.ENDPOINTS.INSTITUTIONS.GENERATE_CODE, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -1126,7 +1122,7 @@
             const mainContent = document.querySelector('.main-content');
             if (mainContent) {
                 mainContent.style.overflowY = 'auto';
-                mainContent.style.maxHeight = 'calc(100vh - 80px)';
+                mainContent.style.minHeight = 'calc(100vh - 80px)';
                 mainContent.style.webkitOverflowScrolling = 'touch';
                 mainContent.style.overscrollBehavior = 'contain';
                 console.log('Enhanced mobile scrolling enabled');
@@ -1219,5 +1215,6 @@
             margin-bottom: 2rem;
         }
     </style>
+    <script src="../../../js/config.js"></script>
 </body>
 </html>

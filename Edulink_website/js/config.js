@@ -11,7 +11,9 @@ const API_CONFIG = {
             STUDENT_PROFILE: '/api/users/student-profile/'
         },
         INSTITUTIONS: {
-            VALIDATE_CODE: '/api/institutions/validate-code/'
+            VALIDATE_CODE: '/api/institutions/validate-code/',
+            GENERATE_CODE: '/api/institutions/generate-code/',
+            DASHBOARD_STATS: '/api/institutions/dashboard/stats/'
         },
         APPLICATIONS: {
             MY_APPLICATIONS: '/api/applications/my-applications/',

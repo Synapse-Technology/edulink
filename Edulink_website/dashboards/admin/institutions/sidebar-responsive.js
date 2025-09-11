@@ -52,25 +52,8 @@ function initResponsiveSidebar() {
         }
     });
     
-    // Prevent body scroll when sidebar is open on mobile
-    const sidebar = document.querySelector('.sidebar');
-    if (sidebar) {
-        const observer = new MutationObserver(function(mutations) {
-            mutations.forEach(function(mutation) {
-                if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-                    const isOpen = sidebar.classList.contains('open');
-                    if (window.innerWidth <= 768) {
-                        document.body.style.overflow = isOpen ? 'hidden' : '';
-                    }
-                }
-            });
-        });
-        
-        observer.observe(sidebar, {
-            attributes: true,
-            attributeFilter: ['class']
-        });
-    }
+    // Note: Body overflow management removed to ensure consistent vertical scrolling
+    // The sidebar overlay now handles preventing interaction with background content
 }
 
 // Initialize when DOM is loaded

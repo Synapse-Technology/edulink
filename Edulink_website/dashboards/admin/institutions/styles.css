@@ -36,6 +36,7 @@
 
 html {
     overflow-x: hidden;
+    overflow-y: auto;
     scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
     -ms-text-size-adjust: 100%;
@@ -49,6 +50,7 @@ body {
     line-height: 1.7;
     transition: background 0.3s, color 0.3s;
     overflow-x: hidden;
+    overflow-y: auto;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     touch-action: manipulation;
@@ -743,7 +745,7 @@ body {
     
     body.sidebar-open .main-content {
         overflow-y: auto !important;
-        height: calc(100vh - 80px) !important;
+        min-height: calc(100vh - 80px) !important;
         position: relative !important;
         touch-action: pan-y;
         -webkit-overflow-scrolling: touch;
