@@ -317,12 +317,14 @@
             if (body.classList.contains('sidebar-open')) {
                 if (mainContent) {
                     mainContent.style.overflowY = 'auto';
-                    mainContent.style.height = 'calc(100vh - 80px)';
+                    mainContent.style.maxHeight = 'calc(100vh - 80px)';
                     mainContent.style.touchAction = 'pan-y';
                 }
-                // Prevent body scroll when sidebar is open on mobile
-                if (window.innerWidth <= 768) {
+                // Only prevent body scroll when sidebar is actually open on mobile
+                if (window.innerWidth <= 768 && sidebar.classList.contains('open')) {
                     body.style.overflow = 'hidden';
+                } else {
+                    body.style.overflow = '';
                 }
             } else {
                 // Re-enable body scroll when sidebar is closed
@@ -1117,11 +1119,14 @@
         document.addEventListener('DOMContentLoaded', () => {
             new InstitutionDashboard();
             
+            // Ensure body can scroll by default
+            document.body.style.overflow = '';
+            
             // Enhanced scrolling and mobile optimizations
             const mainContent = document.querySelector('.main-content');
             if (mainContent) {
                 mainContent.style.overflowY = 'auto';
-                mainContent.style.height = 'calc(100vh - 80px)';
+                mainContent.style.maxHeight = 'calc(100vh - 80px)';
                 mainContent.style.webkitOverflowScrolling = 'touch';
                 mainContent.style.overscrollBehavior = 'contain';
                 console.log('Enhanced mobile scrolling enabled');
