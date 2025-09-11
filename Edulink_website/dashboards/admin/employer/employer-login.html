@@ -483,7 +483,7 @@
     </div>
   </div>
 
-  <script src="/js/config.js"></script>
+  <script src="../../../js/config.js"></script>
   <script src="js/employer-auth-security.js"></script>
   <script>
   document.addEventListener('DOMContentLoaded', function() {
@@ -607,21 +607,33 @@
       clearMessages();
       
       try {
-        // Generate CSRF token for additional security
-        const csrfToken = security.generateCSRFToken();
+        // Get CSRF token from Django cookie (same as institution login)
+        function getCookie(name) {
+          let cookieValue = null;
+          if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+              const cookie = cookies[i].trim();
+              if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+              }
+            }
+          }
+          return cookieValue;
+        }
+        
+        const csrfToken = getCookie('csrftoken');
         
         const response = await fetch(`${API_CONFIG.BASE_URL}/api/auth/login/`, {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'X-CSRFToken': csrfToken,
-            'X-Requested-With': 'XMLHttpRequest'
+            'X-CSRFToken': csrfToken
           },
           body: JSON.stringify({ 
             email: security.sanitizeInput(email), 
-            password: password,
-            csrf_token: csrfToken
+            password: password
           })
         });
         
