@@ -1,0 +1,428 @@
+/* Import Google Fonts matching existing design */
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500;1,600;1,700;1,800&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Raleway:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+
+/* Tailwind CSS base styles */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom CSS variables - Exact match from Edulink_website reference theme */
+:root {
+  /* Global Colors - Exact match from reference theme */
+  --background-color: #ffffff; /* Background color for the entire website */
+  --default-color: #444444; /* Default color used for majority of text content */
+  --heading-color: #37423b; /* Color for headings, subheadings and title */
+  --accent-color: #1ab8aa; /* Accent color for buttons, links, and standout elements */
+  --surface-color: #ffffff; /* Background of boxed elements within sections */
+  --contrast-color: #ffffff; /* Contrast color for text readability */
+  
+  /* Navigation Colors - Exact match from reference theme */
+  --nav-color: #272828; /* Default color of main navmenu links */
+  --nav-hover-color: #5fcf80; /* Applied to navmenu links when hovered/active */
+  --nav-mobile-background-color: #ffffff; /* Background color for mobile navigation */
+  --nav-dropdown-background-color: #ffffff; /* Background for dropdown items */
+  --nav-dropdown-color: #272828; /* Color for dropdown navigation links */
+  --nav-dropdown-hover-color: #5fcf80; /* Color for dropdown links when hovered */
+  
+  /* Status colors */
+  --success-color: #5fcf80;
+  --warning-color: #f0ad4e;
+  --error-color: #d9534f;
+  --info-color: #5bc0de;
+  
+  /* Font families from existing design */
+  --default-font: "Open Sans", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --heading-font: "Raleway", sans-serif;
+  --nav-font: "Poppins", sans-serif;
+  
+  /* Typography */
+  font-family: var(--default-font);
+  line-height: 1.5;
+  font-weight: 400;
+  
+  /* Reset */
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Dark mode support - Disabled for consistent white/bright theme */
+/* @media (prefers-color-scheme: dark) {
+  :root {
+    --background-color: #1a1a1a;
+    --default-color: #e5e7eb;
+    --heading-color: #f9fafb;
+    --surface-color: #374151;
+    --contrast-color: #1f2937;
+  }
+}
+
+/*--------------------------------------------------------------
+# Global Page Titles & Breadcrumbs
+--------------------------------------------------------------*/
+.page-title {
+  --default-color: var(--contrast-color);
+  --background-color: var(--accent-color);
+  --heading-color: var(--contrast-color);
+  color: var(--default-color);
+  background-color: var(--background-color);
+  position: relative;
+}
+
+.page-title .heading {
+  padding: 80px 0;
+  border-top: 1px solid color-mix(in srgb, var(--default-color), transparent 90%);
+}
+
+.page-title .heading h1 {
+  font-size: 38px;
+  font-weight: 700;
+}
+
+.page-title nav {
+  background-color: color-mix(in srgb, var(--accent-color) 90%, black 5%);
+  padding: 20px 0;
+}
+
+.page-title nav a {
+  color: var(--default-color);
+}
+
+.page-title nav ol {
+  display: flex;
+  flex-wrap: wrap;
+  list-style: none;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  padding: 0;
+}
+
+.page-title nav ol li+li {
+  padding-left: 10px;
+}
+
+.page-title nav ol li+li::before {
+  content: "/";
+  display: inline-block;
+  padding-right: 10px;
+  color: color-mix(in srgb, var(--default-color), transparent 70%);
+} */
+
+/* Base styles */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--default-font);
+  color: var(--default-color);
+  background-color: var(--background-color);
+  line-height: 1.5;
+}
+
+/* Typography styles matching existing design */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--heading-font);
+  color: var(--heading-color);
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0 0 1rem 0;
+}
+
+h1 {
+  font-size: 2.5rem;
+  font-weight: 800;
+}
+
+h2 {
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+h4 {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+h5 {
+  font-size: 1.125rem;
+  font-weight: 500;
+}
+
+h6 {
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+p {
+  margin: 0 0 1rem 0;
+  line-height: 1.6;
+}
+
+/* Link styles */
+a {
+  color: var(--accent-color);
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+a:hover {
+  color: var(--accent-dark);
+  text-decoration: underline;
+}
+
+/* Button styles matching existing design */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  font-family: var(--nav-font);
+  font-weight: 500;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  border-radius: 0.375rem;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.btn-primary {
+  background-color: var(--accent-color);
+  color: var(--contrast-color);
+  border-color: var(--accent-color);
+}
+
+.btn-primary:hover {
+  background-color: var(--accent-dark);
+  border-color: var(--accent-dark);
+  color: var(--contrast-color);
+  text-decoration: none;
+}
+
+.btn-outline {
+  background-color: transparent;
+  color: var(--accent-color);
+  border-color: var(--accent-color);
+}
+
+.btn-outline:hover {
+  background-color: var(--accent-color);
+  color: var(--contrast-color);
+  text-decoration: none;
+}
+
+/* Form styles */
+.form-control {
+  display: block;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--default-color);
+  background-color: var(--surface-color);
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px rgba(26, 184, 170, 0.1);
+}
+
+.form-control::placeholder {
+  color: #9ca3af;
+}
+
+/* Section title styles matching existing design */
+.section-title {
+  text-align: center;
+  padding-bottom: 30px;
+  position: relative;
+}
+
+.section-title h2 {
+  font-size: 20px; /* Match original size */
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  position: relative;
+  color: var(--heading-color);
+}
+
+.section-title h2::before {
+  content: '';
+  position: absolute;
+  display: block;
+  width: 120px;
+  height: 1px;
+  background: #ddd;
+  bottom: 1px;
+  left: calc(50% - 60px);
+}
+
+.section-title h2::after {
+  content: '';
+  position: absolute;
+  display: block;
+  width: 50px;
+  height: 3px;
+  background: var(--accent-color);
+  bottom: 0;
+  left: calc(50% - 25px);
+}
+
+.section-title p {
+  margin-bottom: 0;
+  color: var(--default-color);
+}
+
+/* Card styles */
+.card {
+  background-color: var(--surface-color);
+  border-radius: 0.5rem;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 0 35px rgba(0, 0, 0, 0.15);
+}
+
+/* Navigation styles */
+.nav-menu {
+  font-family: var(--nav-font);
+}
+
+.nav-menu a {
+  color: var(--nav-color);
+  font-weight: 400;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: color 0.3s ease;
+}
+
+.nav-menu a:hover,
+.nav-menu .active {
+  color: var(--nav-hover-color);
+  text-decoration: none;
+}
+
+/* Utility classes */
+.text-accent {
+  color: var(--accent-color);
+}
+
+.bg-accent {
+  background-color: var(--accent-color);
+}
+
+.border-accent {
+  border-color: var(--accent-color);
+}
+
+.text-heading {
+  color: var(--heading-color);
+}
+
+.bg-heading {
+  background-color: var(--heading-color);
+}
+
+.font-default {
+  font-family: var(--default-font);
+}
+
+.font-heading {
+  font-family: var(--heading-font);
+}
+
+.font-nav {
+  font-family: var(--nav-font);
+}
+
+/* Responsive utilities */
+@media (max-width: 768px) {
+  h1 {
+    font-size: 2rem;
+  }
+  
+  h2 {
+    font-size: 1.5rem;
+  }
+  
+  .section-title h2 {
+    font-size: 18px; /* Smaller size for mobile */
+  }
+  
+  .btn {
+    padding: 0.625rem 1.25rem;
+    font-size: 0.75rem;
+  }
+}
+
+/* Animation utilities */
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+.animate-slide-down {
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
