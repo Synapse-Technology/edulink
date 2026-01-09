@@ -115,16 +115,12 @@ class ApplicationValidator:
         
         # Define valid status transitions
         valid_transitions = {
-            'pending': ['under_review', 'rejected', 'withdrawn'],
-            'under_review': ['shortlisted', 'rejected', 'interview_scheduled'],
-            'shortlisted': ['interview_scheduled', 'rejected', 'accepted'],
-            'interview_scheduled': ['interviewed', 'rejected', 'accepted'],
-            'interviewed': ['accepted', 'rejected'],
-            'accepted': ['confirmed', 'declined'],
-            'confirmed': [],  # Final state
+            'pending': ['reviewed', 'rejected', 'withdrawn'],
+            'reviewed': ['interview_scheduled', 'accepted', 'rejected', 'withdrawn'],
+            'interview_scheduled': ['accepted', 'rejected', 'withdrawn'],
+            'accepted': ['withdrawn'],  # Only withdrawal allowed after acceptance
             'rejected': [],   # Final state
             'withdrawn': [],  # Final state
-            'declined': []    # Final state
         }
         
         if new_status not in valid_transitions.get(current_status, []):
@@ -186,7 +182,7 @@ class ApplicationValidator:
         # Check skill requirements
         if hasattr(internship, 'required_skills') and internship.required_skills:
             student_skills = set(student.skills) if student.skills else set()
-            required_skills = set([s.name for s in internship.required_skills.all()])
+            required_skills = set(internship.required_skills)  # required_skills is already a list
             missing_skills = required_skills - student_skills
             
             if missing_skills:

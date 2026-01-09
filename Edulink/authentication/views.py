@@ -3,6 +3,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.views import TokenObtainPairView
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
@@ -18,6 +20,7 @@ from security.utils import ThreatDetector
 from security.models import SecurityEvent, FailedLoginAttempt, AuditLog
 from users.roles import RoleChoices
 from application.validators import RegistrationValidator
+from Edulink.utils.error_handlers import APIErrorHandler, APIResponseMixin
 from .serializers import (
     EmployerRegistrationSerializer,
     InstitutionRegistrationSerializer,
@@ -43,14 +46,20 @@ import json
 User = get_user_model()
 
 
-class CSRFTokenView(APIView):
+class CSRFTokenView(APIView, APIResponseMixin):
     """View to get CSRF token for frontend authentication."""
     permission_classes = [AllowAny]
     
     def get(self, request):
         """Return CSRF token."""
-        csrf_token = get_token(request)
-        return Response({'csrfToken': csrf_token})
+        try:
+            csrf_token = get_token(request)
+            return self.success_response(
+                data={'csrfToken': csrf_token},
+                message='CSRF token retrieved successfully'
+            )
+        except Exception as e:
+            return APIErrorHandler.handle_server_error(str(e))
 
 
 class PasswordResetConfirmTemplateView(View):
@@ -171,8 +180,8 @@ class InviteRegisterTemplateView(View):
                     "company_name": request.POST.get("company_name"),
                     "industry": request.POST.get("industry"),
                     "company_size": request.POST.get("company_size"),
-                    "location": request.POST.get("location"),
-                    "website": request.POST.get("website"),
+                    "location": request.POST.get("company_address"),
+                    "website": request.POST.get("company_website"),
                     "department": request.POST.get("department"),
                     "position": request.POST.get("position"),
                 }
@@ -263,7 +272,7 @@ class InviteRegisterTemplateView(View):
         )
 
 
-class StudentRegistrationView(APIView):
+class StudentRegistrationView(APIView, APIResponseMixin):
     """
     Unified student registration endpoint that handles all registration methods.
     Supports university code and university search registration with automatic method detection.
@@ -307,11 +316,11 @@ class StudentRegistrationView(APIView):
                     # Determine response data based on registration method
                     response_data = self._build_response_data(student_profile, request.data.get('registration_method'))
                     
-                    return Response({
-                        'success': True,
-                        'message': 'Registration completed successfully! Please check your email for verification.',
-                        'data': response_data
-                    }, status=status.HTTP_201_CREATED)
+                    return self.success_response(
+                        data=response_data,
+                        message='Registration completed successfully! Please check your email for verification.',
+                        status_code=status.HTTP_201_CREATED
+                    )
             
             else:
                 # Log validation errors
@@ -320,11 +329,7 @@ class StudentRegistrationView(APIView):
                     f"for email {request.data.get('email')}"
                 )
                 
-                return Response({
-                    'success': False,
-                    'message': 'Registration failed due to validation errors',
-                    'errors': serializer.errors
-                }, status=status.HTTP_400_BAD_REQUEST)
+                return APIErrorHandler.handle_validation_error(serializer.errors)
         
         except Exception as e:
             # Log unexpected errors
@@ -350,11 +355,7 @@ class StudentRegistrationView(APIView):
                 }
             )
             
-            return Response({
-                'success': False,
-                'message': 'An unexpected error occurred during registration',
-                'error': 'Please try again later or contact support'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return APIErrorHandler.handle_server_error('An unexpected error occurred during registration')
     
     def _detect_registration_method(self, data):
         """
@@ -500,7 +501,7 @@ class InviteCreateView(generics.CreateAPIView):
     permission_classes = [IsAuthenticated, IsAdmin]
 
 
-class InviteRegisterView(APIView):
+class InviteRegisterView(APIView, APIResponseMixin):
     permission_classes = [AllowAny]
     
     def get_client_ip(self, request):
@@ -515,12 +516,12 @@ class InviteRegisterView(APIView):
     def post(self, request):
         invite_token = request.data.get("invite_token")
         if not invite_token:
-            return Response({"invite_token": "This field is required."}, status=400)
+            return APIErrorHandler.handle_bad_request("Invite token is required")
 
         try:
             invite = Invite.objects.get(token=invite_token, is_used=False)  # type: ignore[attr-defined]
         except Invite.DoesNotExist:  # type: ignore[attr-defined]
-            return Response({"invite_token": "Invalid or used token."}, status=400)
+            return APIErrorHandler.handle_not_found("Invalid or used invitation token")
 
         role = invite.role
 
@@ -530,9 +531,7 @@ class InviteRegisterView(APIView):
         elif role == RoleChoices.EMPLOYER:
             serializer_class = EmployerRegistrationSerializer
         else:
-            return Response(
-                {"detail": "Invalid role for invited registration."}, status=400
-            )
+            return APIErrorHandler.handle_bad_request("Invalid role for invited registration")
 
         # Validate registration data based on role
         try:
@@ -553,9 +552,8 @@ class InviteRegisterView(APIView):
                 }
                 RegistrationValidator.validate_employer_registration(company_data)
         except ValidationError as e:
-            return Response(
-                {"validation_errors": e.messages if hasattr(e, 'messages') else [str(e)]},
-                status=400
+            return APIErrorHandler.handle_validation_error(
+                e.messages if hasattr(e, 'messages') else [str(e)]
             )
 
         serializer = serializer_class(data=request.data)
@@ -566,15 +564,13 @@ class InviteRegisterView(APIView):
             invite.is_used = True
             invite.save()
 
-            return Response(
-                {
-                    "message": f"{role.replace('_', ' ').title()} registered successfully.",
-                    "user": {"email": user.email, "role": role},  # type: ignore[attr-defined]
-                },
-                status=201,
+            return self.success_response(
+                data={"user": {"email": user.email, "role": role}},
+                message=f"{role.replace('_', ' ').title()} registered successfully.",
+                status_code=status.HTTP_201_CREATED
             )
 
-        return Response(serializer.errors, status=400)
+        return APIErrorHandler.handle_validation_error(serializer.errors)
 
 class PasswordChangeView(APIView):
     permission_classes = [IsAuthenticated]
@@ -673,6 +669,7 @@ class VerifyOTPView(generics.GenericAPIView):
 # Login endpoint
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 

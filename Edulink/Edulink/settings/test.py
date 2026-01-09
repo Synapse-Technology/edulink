@@ -22,13 +22,6 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': ':memory:',
-        'OPTIONS': {
-            'timeout': 20,
-            'journal_mode': 'WAL',
-            'synchronous': 'NORMAL',
-            'cache_size': -64000,  # 64MB
-            'temp_store': 'MEMORY',
-        },
         'TEST': {
             'NAME': ':memory:',
         },
@@ -42,6 +35,10 @@ CACHES = {
         'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
     }
 }
+
+# Sessions
+# Use database sessions for tests since DummyCache doesn't support sessions
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 
 # Email
 # Use locmem backend for testing

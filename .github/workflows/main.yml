@@ -3,14 +3,14 @@ name: CI/CD Pipeline
 on:
   push:
     branches:
-      - feature/dashboards
+      - main
 
   # schedule:
   #   - cron: '0 0 0 * *' # Uncomment to schedule the workflow
 
   pull_request:
     branches:
-      - feature/dashboards
+      - main
     types:
       - closed
 
@@ -31,12 +31,14 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v3
+      - name: Build and push Unified Docker image
+        uses: docker/build-push-action@v5
         with:
-          context: ./Edulink_website/
+          context: ./
           push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}:${{ github.sha }}, ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}:latest
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/edulink:${{ github.sha }}
+            ${{ secrets.DOCKER_USERNAME }}/edulink:latest
 
       - name: Set up SSH
         run: |
@@ -46,5 +48,5 @@ jobs:
           ssh-keyscan ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
 
       - name: Deploy to production server
-        run:
-          ssh ${{ secrets.SERVER_BOT }}@${{ secrets.SERVER_IP }} "~/deploy.sh"
+        run: |
+          ssh ${{ secrets.SERVER_BOT }}@${{ secrets.SERVER_IP }} "~/deploy.sh ${{ secrets.DOCKER_USERNAME }}/edulink:${{ github.sha }}"

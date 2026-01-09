@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>EduLink KE - Progress Report</title>
+  <script src="../../js/config.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.css" rel="stylesheet" />
@@ -369,12 +370,7 @@ body.dark-mode #closeWeekModal:hover {
 
         async function loadAcceptedInternships() {
           const token = localStorage.getItem('access_token');
-          const response = await fetch('/api/application/my-applications/', {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-          });
+          const response = await ApiHelper.request(API_CONFIG.ENDPOINTS.APPLICATION.MY_APPLICATIONS);
           const data = await response.json();
           acceptedInternships = (data.results || data).filter(app => app.status === 'accepted');
           const selector = document.getElementById('internshipSelector');
@@ -413,12 +409,7 @@ body.dark-mode #closeWeekModal:hover {
             return;
           }
           const token = localStorage.getItem('access_token');
-          const response = await fetch(`/api/internship-progress/logbook/?internship=${selectedInternshipId}`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-          });
+          const response = await ApiHelper.request(`${API_CONFIG.ENDPOINTS.INTERNSHIP_PROGRESS.LOGBOOK}?internship=${selectedInternshipId}`);
           if (!response.ok) {
             document.getElementById('weeklyLogsBody').innerHTML = '<tr><td colspan="6" class="text-center text-red-500">Failed to load logbook data.</td></tr>';
             return;
@@ -456,12 +447,7 @@ body.dark-mode #closeWeekModal:hover {
         // Dummy for modal view (implement as needed)
         async function viewLogDetails(logId) {
           const token = localStorage.getItem('access_token');
-          const response = await fetch(`/api/internship-progress/logbook/${logId}/`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-          });
+          const response = await ApiHelper.request(`${API_CONFIG.ENDPOINTS.INTERNSHIP_PROGRESS.LOGBOOK}${logId}/`);
           if (!response.ok) {
             alert('Failed to load logbook entry details.');
             return;
@@ -767,9 +753,7 @@ body.dark-mode #closeWeekModal:hover {
       const accessToken = localStorage.getItem('access_token');
       if (!accessToken) return;
 
-      fetch('http://127.0.0.1:8000/api/users/student/profile/', {
-        headers: { 'Authorization': 'Bearer ' + accessToken }
-      })
+      ApiHelper.request(API_CONFIG.ENDPOINTS.USERS.STUDENT_PROFILE)
         .then(res => res.json())
         .then(data => {
           if (data.profile_picture) {
@@ -1126,12 +1110,7 @@ function closeAddTaskModal() {
 async function checkInternshipPlacement() {
   const token = localStorage.getItem('access_token');
   // Fetch student's applications and check for accepted status
-  const response = await fetch('/api/application/my-applications/', {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-  });
+  const response = await ApiHelper.request(API_CONFIG.ENDPOINTS.APPLICATION.MY_APPLICATIONS);
   if (!response.ok) {
     // Hide Add Task and submit week if error
     disableLogbookEntryUI('Could not verify internship placement.');

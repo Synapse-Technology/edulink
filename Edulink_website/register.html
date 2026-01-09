@@ -3,7 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <base href="/">
   <title>Edulink KE - Sign Up</title>
+  <script src="js/config.js"></script>
+    <script src="js/security.js"></script>
+    <script src="js/production.js"></script>
+    <script src="js/validation.js"></script>
+    <script src="js/error-handler.js"></script>
+    <script src="js/performance.js"></script>
   <!-- Vendor CSS Files -->
   <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
   <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
@@ -921,10 +928,7 @@
       return errorMessages.length > 0 ? errorMessages.join('') : "<div class='error-item'>An unexpected error occurred. Please try again.</div>";
     }
 
-    // Define API base URL with environment detection
-    const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-      ? 'http://127.0.0.1:8000' 
-      : 'https://edulink-backend.vercel.app';
+    // API configuration is now handled by config.js
     
     document.addEventListener('DOMContentLoaded', function() {
       let currentStep = 0;
@@ -1260,13 +1264,8 @@
         }
 
         try {
-          const response = await fetch(`${API_BASE_URL}/api/auth/register/student/`, {
+          const response = await ApiHelper.request(API_CONFIG.ENDPOINTS.AUTH.REGISTER, {
              method: 'POST',
-             headers: {
-               'Content-Type': 'application/json',
-               'X-Requested-With': 'XMLHttpRequest',
-               'Accept': 'application/json'
-             },
              credentials: 'same-origin',
              body: JSON.stringify(data)
            });
@@ -1504,9 +1503,8 @@
         this.disabled = true;
         
         try {
-          const response = await fetch(`${API_BASE_URL}/api/institutions/validate-code/`, {
+          const response = await ApiHelper.request(API_CONFIG.ENDPOINTS.INSTITUTIONS.VALIDATE_CODE, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ university_code: code })
           });
           
@@ -1596,7 +1594,6 @@
 
   </script>
   
-  <!-- Debug Script for Registration Form -->
-  <script src="debug_registration.js"></script>
+
 </body>
 </html>

@@ -1,7 +1,7 @@
 // Institution Dashboard API Implementation
 // Base API configuration
-const API_BASE = 'http://127.0.0.1:8000/api/institutions';
-const AUTH_API_BASE = 'http://127.0.0.1:8000/api/auth';
+const API_BASE = (window.API_CONFIG?.BASE_URL || 'http://127.0.0.1:8000') + '/api/institutions';
+const AUTH_API_BASE = (window.API_CONFIG?.BASE_URL || 'http://127.0.0.1:8000') + '/api/auth';
 
 // Utility function to get auth token
 function getAuthToken() {
@@ -216,11 +216,67 @@ const DepartmentsAPI = {
         return await apiCall(`${API_BASE}/departments/`);
     },
     
+    // Get single department
+    async getDepartment(departmentId) {
+        return await apiCall(`${API_BASE}/departments/${departmentId}/`);
+    },
+    
     // Create new department
     async createDepartment(departmentData) {
         return await apiCall(`${API_BASE}/departments/`, {
             method: 'POST',
             body: JSON.stringify(departmentData)
+        });
+    },
+    
+    // Update department
+    async updateDepartment(departmentId, departmentData) {
+        return await apiCall(`${API_BASE}/departments/${departmentId}/`, {
+            method: 'PUT',
+            body: JSON.stringify(departmentData)
+        });
+    },
+    
+    // Delete department
+    async deleteDepartment(departmentId) {
+        return await apiCall(`${API_BASE}/departments/${departmentId}/`, {
+            method: 'DELETE'
+        });
+    }
+};
+
+// Supervisors API
+const SupervisorsAPI = {
+    // Get all supervisors
+    async getSupervisors() {
+        return await apiCall(`${API_BASE}/supervisors/`);
+    },
+    
+    // Get single supervisor
+    async getSupervisor(supervisorId) {
+        return await apiCall(`${API_BASE}/supervisors/${supervisorId}/`);
+    },
+    
+    // Create new supervisor
+    async createSupervisor(supervisorData) {
+        return await apiCall(`${API_BASE}/supervisors/`, {
+            method: 'POST',
+            body: JSON.stringify(supervisorData)
+        });
+    },
+    
+    // Update supervisor
+    async updateSupervisor(supervisorId, supervisorData) {
+        return await apiCall(`${API_BASE}/supervisors/${supervisorId}/`, {
+            method: 'PUT',
+            body: JSON.stringify(supervisorData)
+        });
+    },
+    
+    // Delete supervisor
+    async deleteSupervisor(supervisorId) {
+        return await apiCall(`${API_BASE}/supervisors/${supervisorId}/`, {
+            method: 'DELETE'
         });
     }
 };
@@ -253,12 +309,12 @@ const StudentsAPI = {
 const ApplicationsAPI = {
     // Get all applications from institution students
     async getApplications() {
-        return await apiCall('/institutions/applications/');
+        return await apiCall(`${API_BASE}/applications/`);
     },
     
     // Update application status
     async updateApplicationStatus(applicationId, status, notes = '') {
-        return await apiCall(`/institutions/applications/${applicationId}/status/`, {
+        return await apiCall(`${API_BASE}/application/${applicationId}/status/`, {
             method: 'PATCH',
             body: JSON.stringify({ status, review_notes: notes })
         });
@@ -286,6 +342,7 @@ window.InstitutionAPIs = {
     Auth: AuthAPI,
     Dashboard: DashboardAPI,
     Departments: DepartmentsAPI,
+    Supervisors: SupervisorsAPI,
     Internships: InternshipsAPI,
     Reports: ReportsAPI,
     Students: StudentsAPI,

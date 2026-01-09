@@ -21,7 +21,7 @@ urlpatterns = [
     
     # User Sessions
     path('sessions/', views.UserSessionListView.as_view(), name='user-sessions-list'),
-    path('sessions/<int:pk>/terminate/', views.TerminateSessionView.as_view(), name='terminate-session'),
+    path('sessions/<uuid:pk>/terminate/', views.TerminateSessionView.as_view(), name='terminate-session'),
     
     # Failed Login Attempts
     path('failed-logins/', views.FailedLoginAttemptListView.as_view(), name='failed-logins-list'),
@@ -44,6 +44,9 @@ urlpatterns = [
     
     # User's own login history
     path('my-login-history/', views.MyLoginHistoryView.as_view(), name='my_login_history'),
+    
+    # Recent user activities
+    path('recent-activities/', views.RecentUserActivitiesView.as_view(), name='recent_user_activities'),
     
     # Include router URLs
     path('api/', include(router.urls)),

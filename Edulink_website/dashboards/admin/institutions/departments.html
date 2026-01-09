@@ -134,11 +134,11 @@
                         </div>
                     </div>
                     <div class="hero-actions">
-                        <button class="hero-btn primary" onclick="document.querySelector('[data-tab=\"add-department\"]').click()">
+                        <button class="hero-btn primary" onclick='document.querySelector("[data-tab=\"add-department\"]").click()'>
                             <i class="fas fa-plus"></i>
                             Add Department
                         </button>
-                        <button class="hero-btn secondary" onclick="document.querySelector('[data-tab=\"assign-supervisors\"]').click()">
+                        <button class="hero-btn secondary" onclick='document.querySelector("[data-tab=\"assign-supervisors\"]").click()'>
                             <i class="fas fa-user-plus"></i>
                             Assign Supervisors
                         </button>
@@ -238,7 +238,7 @@
     <!-- Add Department Modal -->
     <div id="addDepartmentModal" class="modal">
         <div class="modal-content">
-            <span class="close">&times;</span>
+            <span class="close" onclick="closeAddDepartmentModal()">&times;</span>
             <h2>Add Department</h2>
             <form id="addDepartmentForm">
                 <div class="form-row" style="display: flex; gap: 24px; flex-wrap: wrap;">
@@ -269,7 +269,7 @@
     <!-- Edit Department Modal -->
     <div id="editDepartmentModal" class="modal">
         <div class="modal-content">
-            <span class="close">&times;</span>
+            <span class="close" onclick="closeEditDepartmentModal()">&times;</span>
             <h2>Edit Department</h2>
             <form id="editDepartmentForm">
                 <div class="form-group">
@@ -310,40 +310,62 @@
 
         // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
-            loadSampleDepartments();
+            loadDepartments();
             setupDepartmentTabs();
             setupEventListeners();
         });
 
-        // Load sample departments data
-        function loadSampleDepartments() {
-            departments = [
-                {
-                    id: 1,
-                    name: 'Computer Science',
-                    courses: [
-                        { id: 1, name: 'Software Engineering', students: [] },
-                        { id: 2, name: 'Data Science', students: [] }
-                    ],
-                    supervisors: [
-                        { id: 1, name: 'Dr. John Smith', email: 'john.smith@university.edu' },
-                        { id: 2, name: 'Prof. Jane Doe', email: 'jane.doe@university.edu' }
-                    ]
-                },
-                {
-                    id: 2,
-                    name: 'Business Administration',
-                    courses: [
-                        { id: 3, name: 'Marketing', students: [] },
-                        { id: 4, name: 'Finance', students: [] }
-                    ],
-                    supervisors: [
-                        { id: 3, name: 'Dr. Mike Johnson', email: 'mike.johnson@university.edu' }
-                    ]
-                }
-            ];
-            renderManageDepartmentsDropdown();
-            renderAssignSupervisorsDropdown();
+        // Load departments from backend API
+        async function loadDepartments() {
+            try {
+                showLoading();
+                const response = await InstitutionAPIs.Departments.getDepartments();
+                departments = response.data || response || [];
+                renderManageDepartmentsDropdown();
+                renderAssignSupervisorsDropdown();
+                hideLoading();
+            } catch (error) {
+                console.error('Error loading departments:', error);
+                showError('Failed to load departments. Please try again.');
+                hideLoading();
+                // Fallback to empty array
+                departments = [];
+            }
+        }
+
+        // Show loading indicator
+        function showLoading() {
+            const loadingDiv = document.createElement('div');
+            loadingDiv.id = 'loading-indicator';
+            loadingDiv.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading departments...</div>';
+            loadingDiv.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 1000;';
+            document.body.appendChild(loadingDiv);
+        }
+
+        // Hide loading indicator
+        function hideLoading() {
+            const loadingDiv = document.getElementById('loading-indicator');
+            if (loadingDiv) {
+                loadingDiv.remove();
+            }
+        }
+
+        // Show error message
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.innerHTML = `<div class="error-message"><i class="fas fa-exclamation-triangle"></i> ${message}</div>`;
+            errorDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px; border: 1px solid #f5c6cb; z-index: 1000; max-width: 400px;';
+            document.body.appendChild(errorDiv);
+            setTimeout(() => errorDiv.remove(), 5000);
+        }
+
+        // Show success message
+        function showSuccess(message) {
+            const successDiv = document.createElement('div');
+            successDiv.innerHTML = `<div class="success-message"><i class="fas fa-check-circle"></i> ${message}</div>`;
+            successDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #d4edda; color: #155724; padding: 15px; border-radius: 8px; border: 1px solid #c3e6cb; z-index: 1000; max-width: 400px;';
+            document.body.appendChild(successDiv);
+            setTimeout(() => successDiv.remove(), 3000);
         }
 
         // Setup department tabs
@@ -365,6 +387,7 @@
                         renderManageDepartmentsDropdown();
                     } else if (tab === 'assign-supervisors') {
                         renderAssignSupervisorsDropdown();
+                        loadAvailableSupervisors();
                     }
                 });
             });
@@ -378,6 +401,15 @@
                 addDeptForm.addEventListener('submit', function(e) {
                     e.preventDefault();
                     handleAddDepartment(e);
+                });
+            }
+            
+            // Edit department form
+            const editDeptForm = document.getElementById('editDepartmentForm');
+            if (editDeptForm) {
+                editDeptForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    handleEditDepartment(e);
                 });
             }
 
@@ -496,61 +528,75 @@
         }
 
         // Handle add department
-        function handleAddDepartment(e) {
+        async function handleAddDepartment(e) {
             const form = e.target;
             const name = form.departmentName.value.trim();
             
-            // Gather courses
-            const courses = [];
-            const courseInputs = form.querySelectorAll('#addDeptCoursesList input');
-            courseInputs.forEach((input, index) => {
-                if (input.value.trim()) {
-                    courses.push({
-                        id: Date.now() + index,
-                        name: input.value.trim(),
-                        students: []
-                    });
-                }
-            });
+            if (!name) {
+                showError('Department name is required.');
+                return;
+            }
             
-            // Gather supervisors
-            const supervisors = [];
-            const supervisorRows = form.querySelectorAll('#addDeptSupervisorsList .supervisor-input-row');
-            supervisorRows.forEach((row, index) => {
-                const nameInput = row.querySelector('input[type="text"]');
-                const emailInput = row.querySelector('input[type="email"]');
-                const passwordInput = row.querySelector('input[type="password"]');
+            try {
+                showLoading();
                 
-                if (nameInput.value.trim() && emailInput.value.trim() && passwordInput.value.trim()) {
-                    supervisors.push({
-                        id: Date.now() + index,
-                        name: nameInput.value.trim(),
-                        email: emailInput.value.trim(),
-                        password: passwordInput.value.trim()
-                    });
-                }
-            });
-            
-            // Add department
-            const newDept = {
-                id: Date.now(),
-                name: name,
-                courses: courses,
-                supervisors: supervisors
-            };
-            
-            departments.push(newDept);
-            
-            // Reset form
-            form.reset();
-            document.getElementById('addDeptCoursesList').innerHTML = '';
-            document.getElementById('addDeptSupervisorsList').innerHTML = '';
-            
-            // Refresh dropdowns
-            renderManageDepartmentsDropdown();
-            renderAssignSupervisorsDropdown();
-            
-            alert('Department added successfully!');
+                // Gather courses
+                const courses = [];
+                const courseInputs = form.querySelectorAll('#addDeptCoursesList input');
+                courseInputs.forEach((input) => {
+                    if (input.value.trim()) {
+                        courses.push({
+                            name: input.value.trim(),
+                            description: '' // Add description if needed
+                        });
+                    }
+                });
+                
+                // Gather supervisors
+                const supervisors = [];
+                const supervisorRows = form.querySelectorAll('#addDeptSupervisorsList .supervisor-input-row');
+                supervisorRows.forEach((row) => {
+                    const nameInput = row.querySelector('input[type="text"]');
+                    const emailInput = row.querySelector('input[type="email"]');
+                    const passwordInput = row.querySelector('input[type="password"]');
+                    
+                    if (nameInput.value.trim() && emailInput.value.trim() && passwordInput.value.trim()) {
+                        supervisors.push({
+                            name: nameInput.value.trim(),
+                            email: emailInput.value.trim(),
+                            password: passwordInput.value.trim()
+                        });
+                    }
+                });
+                
+                // Create department data
+                const departmentData = {
+                    name: name,
+                    code: name.replace(/\s+/g, '').toUpperCase().substring(0, 10), // Generate code from name
+                    description: `${name} Department`,
+                    courses: courses,
+                    supervisors: supervisors
+                };
+                
+                // Create department via API
+                const response = await InstitutionAPIs.Departments.createDepartment(departmentData);
+                
+                // Reset form
+                form.reset();
+                document.getElementById('addDeptCoursesList').innerHTML = '';
+                document.getElementById('addDeptSupervisorsList').innerHTML = '';
+                
+                // Reload departments from backend
+                await loadDepartments();
+                
+                hideLoading();
+                showSuccess('Department added successfully!');
+                
+            } catch (error) {
+                console.error('Error creating department:', error);
+                hideLoading();
+                showError('Failed to create department. Please try again.');
+            }
         }
 
         // Edit department
@@ -568,19 +614,151 @@
             
             modal.style.display = 'block';
         }
+        
+        // Handle edit department form submission
+        async function handleEditDepartment(e) {
+            const form = e.target;
+            const departmentId = form.editDepartmentId.value;
+            const name = form.editDepartmentName.value.trim();
+            
+            if (!name) {
+                showError('Department name is required.');
+                return;
+            }
+            
+            try {
+                showLoading();
+                
+                const departmentData = {
+                    name: name,
+                    code: name.replace(/\s+/g, '').toUpperCase().substring(0, 10),
+                    description: `${name} Department`
+                };
+                
+                await InstitutionAPIs.Departments.updateDepartment(departmentId, departmentData);
+                
+                // Close modal
+                document.getElementById('editDepartmentModal').style.display = 'none';
+                
+                // Reload departments
+                await loadDepartments();
+                
+                hideLoading();
+                showSuccess('Department updated successfully!');
+                
+            } catch (error) {
+                console.error('Error updating department:', error);
+                hideLoading();
+                showError('Failed to update department. Please try again.');
+            }
+        }
 
         // Delete department
-        function deleteDepartment() {
+        async function deleteDepartment() {
             if (!selectedDepartmentId) return;
             
-            if (confirm('Are you sure you want to delete this department?')) {
-                departments = departments.filter(d => d.id !== selectedDepartmentId);
-                document.getElementById('selectedDepartmentDetails').style.display = 'none';
-                renderManageDepartmentsDropdown();
-                renderAssignSupervisorsDropdown();
-                selectedDepartmentId = null;
-                alert('Department deleted successfully!');
+            if (confirm('Are you sure you want to delete this department? This action cannot be undone.')) {
+                try {
+                    showLoading();
+                    
+                    await InstitutionAPIs.Departments.deleteDepartment(selectedDepartmentId);
+                    
+                    // Hide department details
+                    document.getElementById('selectedDepartmentDetails').style.display = 'none';
+                    selectedDepartmentId = null;
+                    
+                    // Reload departments
+                    await loadDepartments();
+                    
+                    hideLoading();
+                    showSuccess('Department deleted successfully!');
+                    
+                } catch (error) {
+                    console.error('Error deleting department:', error);
+                    hideLoading();
+                    showError('Failed to delete department. Please try again.');
+                }
             }
+        }
+
+        // Load available supervisors
+        async function loadAvailableSupervisors() {
+            try {
+                const supervisors = await InstitutionAPIs.Supervisors.getSupervisors();
+                const container = document.getElementById('availableSupervisorsList');
+                container.innerHTML = '';
+                
+                supervisors.forEach(supervisor => {
+                    const div = document.createElement('div');
+                    div.className = 'supervisor-item';
+                    div.innerHTML = `
+                        <label>
+                            <input type="checkbox" value="${supervisor.id}" data-name="${supervisor.name}" data-email="${supervisor.email}">
+                            ${supervisor.name} (${supervisor.email}) - ${supervisor.title || 'No Title'}
+                        </label>
+                    `;
+                    container.appendChild(div);
+                });
+            } catch (error) {
+                console.error('Error loading supervisors:', error);
+                showError('Failed to load supervisors.');
+            }
+        }
+        
+        // Assign selected supervisors to department
+        async function assignSelectedSupervisors() {
+            const dropdown = document.getElementById('assignSupervisorsDropdown');
+            const departmentId = dropdown.value;
+            
+            if (!departmentId) {
+                showError('Please select a department first.');
+                return;
+            }
+            
+            // Get selected supervisors
+            const checkboxes = document.querySelectorAll('#availableSupervisorsList input[type="checkbox"]:checked');
+            if (checkboxes.length === 0) {
+                showError('Please select at least one supervisor to assign.');
+                return;
+            }
+            
+            try {
+                showLoading();
+                
+                // Update each selected supervisor to assign them to the department
+                for (const checkbox of checkboxes) {
+                    const supervisorId = checkbox.value;
+                    const supervisorData = {
+                        department: departmentId
+                    };
+                    
+                    await InstitutionAPIs.Supervisors.updateSupervisor(supervisorId, supervisorData);
+                }
+                
+                // Reload departments and supervisors
+                await loadDepartments();
+                await loadAvailableSupervisors();
+                
+                // Clear selections
+                checkboxes.forEach(cb => cb.checked = false);
+                
+                hideLoading();
+                showSuccess(`Successfully assigned ${checkboxes.length} supervisor(s) to the department.`);
+                
+            } catch (error) {
+                console.error('Error assigning supervisors:', error);
+                hideLoading();
+                showError('Failed to assign supervisors. Please try again.');
+            }
+        }
+        
+        // Modal close functions
+        function closeAddDepartmentModal() {
+            document.getElementById('addDepartmentModal').style.display = 'none';
+        }
+        
+        function closeEditDepartmentModal() {
+            document.getElementById('editDepartmentModal').style.display = 'none';
         }
 
         // Notifications

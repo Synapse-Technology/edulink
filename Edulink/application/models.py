@@ -102,7 +102,7 @@ class Application(BaseModel):
                     )
         
         # Validate that student exists and is active
-        if self.student and not self.student.user.is_active:
+        if self.student and not self.student.is_active:
             raise ValidationError("Cannot create application for inactive student")
             
         # Validate that internship exists and is active
@@ -111,7 +111,7 @@ class Application(BaseModel):
             
         # Validate application deadline
         if self.internship and self.internship.deadline:
-            if timezone.now().date() > self.internship.deadline:
+            if timezone.now() > self.internship.deadline:
                 raise ValidationError("Application deadline has passed")
     
     def save(self, *args, **kwargs):

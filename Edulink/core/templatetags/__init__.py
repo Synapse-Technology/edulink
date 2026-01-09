@@ -1,0 +1,1 @@
+# Template tags for EduLink error handling system

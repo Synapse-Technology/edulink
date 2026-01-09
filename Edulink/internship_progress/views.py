@@ -65,7 +65,7 @@ class LogbookEntryListCreateView(generics.ListCreateAPIView):
             try:
                 # Check if the student has an accepted application for this internship
                 application = Application.objects.get(
-                    student=student,
+                    student=student.user,
                     internship=internship,
                     status='accepted'
                 )

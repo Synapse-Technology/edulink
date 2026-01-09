@@ -668,7 +668,7 @@ class InstitutionRegistrationSerializer(BaseProfileSerializer):
                 similarity += 0.1
             
             # Update best match if this is better
-            if similarity > best_similarity and similarity >= 0.85:  # 85% similarity threshold
+            if similarity > best_similarity and similarity >= 0.7:  # 70% similarity threshold
                 best_similarity = similarity
                 best_match = master_inst
         
@@ -711,7 +711,7 @@ class InstitutionRegistrationSerializer(BaseProfileSerializer):
             "email": validated_data["email"],
             "phone_number": phone_number,
             "address": validated_data["address"],
-            "website": validated_data.get("website"),
+            "website": validated_data.get("website", ""),
         }
         
         if master_institution:
@@ -855,7 +855,7 @@ class EmployerRegistrationSerializer(BaseProfileSerializer):
 
         # Create UserRole
         UserRole.objects.create(  # type: ignore[attr-defined]
-            user=user, role="employer"
+            user=user, role="employer", employer=employer_profile
         )
 
         # Log user registration security event

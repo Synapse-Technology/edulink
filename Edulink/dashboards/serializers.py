@@ -1,7 +1,8 @@
 from rest_framework import serializers
 from .models import (
     InternshipProgress, Achievement, StudentAchievement, 
-    AnalyticsEvent, CalendarEvent, DashboardInsight
+    AnalyticsEvent, CalendarEvent, DashboardInsight,
+    Workflow, WorkflowTemplate, WorkflowExecution, WorkflowAnalytics
 )
 from users.serializers.student_serializer import StudentProfileSerializer
 from application.models import Application
@@ -281,3 +282,209 @@ class AchievementProgressSerializer(serializers.Serializer):
     target_value = serializers.IntegerField()
     is_earned = serializers.BooleanField()
     earned_date = serializers.DateTimeField(allow_null=True)
+
+
+# Workflow Management Serializers
+
+class WorkflowTemplateSerializer(serializers.ModelSerializer):
+    """Serializer for workflow templates"""
+    category_display = serializers.CharField(source='get_category_display', read_only=True)
+    created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True)
+    usage_count = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = WorkflowTemplate
+        fields = [
+            'id', 'name', 'description', 'category', 'category_display',
+            'icon', 'color', 'steps', 'trigger_conditions', 'default_settings',
+            'estimated_time', 'steps_count', 'popularity_score', 'tags',
+            'is_active', 'is_public', 'created_by', 'created_by_name',
+            'created_at', 'updated_at', 'usage_count'
+        ]
+        read_only_fields = ['id', 'popularity_score', 'created_at', 'updated_at']
+    
+    def get_usage_count(self, obj):
+        """Get the number of workflows created from this template"""
+        return obj.workflow_instances.count()
+    
+    def create(self, validated_data):
+        """Set created_by to current user if authenticated"""
+        request = self.context.get('request')
+        if request and hasattr(request, 'user') and request.user.is_authenticated:
+            validated_data['created_by'] = request.user
+        return super().create(validated_data)
+
+
+class WorkflowTemplateListSerializer(serializers.ModelSerializer):
+    """Lightweight serializer for template listings"""
+    category_display = serializers.CharField(source='get_category_display', read_only=True)
+    usage_count = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = WorkflowTemplate
+        fields = [
+            'id', 'name', 'description', 'category', 'category_display',
+            'icon', 'color', 'estimated_time', 'steps_count', 
+            'popularity_score', 'tags', 'usage_count'
+        ]
+    
+    def get_usage_count(self, obj):
+        return obj.workflow_instances.count()
+
+
+class WorkflowSerializer(serializers.ModelSerializer):
+    """Serializer for workflow instances"""
+    workflow_type_display = serializers.CharField(source='get_workflow_type_display', read_only=True)
+    trigger_event_display = serializers.CharField(source='get_trigger_event_display', read_only=True)
+    action_type_display = serializers.CharField(source='get_action_type_display', read_only=True)
+    delay_unit_display = serializers.CharField(source='get_delay_unit_display', read_only=True)
+    template_name = serializers.CharField(source='template.name', read_only=True)
+    employer_name = serializers.CharField(source='employer.company_name', read_only=True)
+    execution_count = serializers.SerializerMethodField()
+    last_execution_status = serializers.SerializerMethodField()
+    success_rate = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Workflow
+        fields = [
+            'id', 'employer', 'employer_name', 'template', 'template_name',
+            'name', 'description', 'workflow_type', 'workflow_type_display',
+            'trigger_event', 'trigger_event_display', 'trigger_conditions',
+            'action_type', 'action_type_display', 'action_config',
+            'delay_amount', 'delay_unit', 'delay_unit_display',
+            'is_active', 'is_paused', 'created_at', 'updated_at',
+            'last_executed', 'execution_count', 'last_execution_status', 'success_rate'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at', 'last_executed']
+    
+    def get_execution_count(self, obj):
+        """Get total number of executions"""
+        return obj.executions.count()
+    
+    def get_last_execution_status(self, obj):
+        """Get status of the most recent execution"""
+        last_execution = obj.executions.first()
+        return last_execution.status if last_execution else None
+    
+    def get_success_rate(self, obj):
+        """Calculate success rate of workflow executions"""
+        total = obj.executions.count()
+        if total == 0:
+            return 0.0
+        successful = obj.executions.filter(status='completed').count()
+        return round((successful / total) * 100, 1)
+    
+    def create(self, validated_data):
+        """Set employer from request context"""
+        request = self.context.get('request')
+        if request and hasattr(request, 'user') and hasattr(request.user, 'employer_profile'):
+            validated_data['employer'] = request.user.employer_profile
+        return super().create(validated_data)
+
+
+class WorkflowListSerializer(serializers.ModelSerializer):
+    """Lightweight serializer for workflow listings"""
+    workflow_type_display = serializers.CharField(source='get_workflow_type_display', read_only=True)
+    trigger_event_display = serializers.CharField(source='get_trigger_event_display', read_only=True)
+    execution_count = serializers.SerializerMethodField()
+    success_rate = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Workflow
+        fields = [
+            'id', 'name', 'workflow_type', 'workflow_type_display',
+            'trigger_event', 'trigger_event_display', 'is_active', 'is_paused',
+            'created_at', 'last_executed', 'execution_count', 'success_rate'
+        ]
+    
+    def get_execution_count(self, obj):
+        return obj.executions.count()
+    
+    def get_success_rate(self, obj):
+        total = obj.executions.count()
+        if total == 0:
+            return 0.0
+        successful = obj.executions.filter(status='completed').count()
+        return round((successful / total) * 100, 1)
+
+
+class WorkflowExecutionSerializer(serializers.ModelSerializer):
+    """Serializer for workflow execution tracking"""
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    workflow_name = serializers.CharField(source='workflow.name', read_only=True)
+    duration_seconds = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = WorkflowExecution
+        fields = [
+            'id', 'workflow', 'workflow_name', 'status', 'status_display',
+            'triggered_by', 'trigger_data', 'scheduled_at', 'started_at',
+            'completed_at', 'duration', 'duration_seconds', 'result_data',
+            'error_message', 'logs', 'created_at'
+        ]
+        read_only_fields = [
+            'id', 'duration', 'created_at', 'started_at', 'completed_at'
+        ]
+    
+    def get_duration_seconds(self, obj):
+        """Get duration in seconds for easier frontend handling"""
+        if obj.duration:
+            return obj.duration.total_seconds()
+        return None
+
+
+class WorkflowAnalyticsSerializer(serializers.ModelSerializer):
+    """Serializer for workflow analytics data"""
+    period_type_display = serializers.CharField(source='get_period_type_display', read_only=True)
+    workflow_name = serializers.CharField(source='workflow.name', read_only=True)
+    employer_name = serializers.CharField(source='employer.company_name', read_only=True)
+    average_duration_seconds = serializers.SerializerMethodField()
+    time_saved_seconds = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = WorkflowAnalytics
+        fields = [
+            'id', 'employer', 'employer_name', 'workflow', 'workflow_name',
+            'date', 'period_type', 'period_type_display', 'total_executions',
+            'successful_executions', 'failed_executions', 'cancelled_executions',
+            'average_duration', 'average_duration_seconds', 'total_time_saved',
+            'time_saved_seconds', 'tasks_automated', 'success_rate',
+            'metrics_data', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'success_rate', 'created_at', 'updated_at']
+    
+    def get_average_duration_seconds(self, obj):
+        """Get average duration in seconds"""
+        if obj.average_duration:
+            return obj.average_duration.total_seconds()
+        return None
+    
+    def get_time_saved_seconds(self, obj):
+        """Get time saved in seconds"""
+        return obj.total_time_saved.total_seconds()
+
+
+class WorkflowAnalyticsSummarySerializer(serializers.Serializer):
+    """Serializer for workflow analytics summary data"""
+    total_workflows = serializers.IntegerField()
+    active_workflows = serializers.IntegerField()
+    total_executions = serializers.IntegerField()
+    successful_executions = serializers.IntegerField()
+    failed_executions = serializers.IntegerField()
+    overall_success_rate = serializers.FloatField()
+    total_time_saved_hours = serializers.FloatField()
+    tasks_automated_today = serializers.IntegerField()
+    most_used_workflow = serializers.CharField(allow_null=True)
+    recent_executions = WorkflowExecutionSerializer(many=True)
+
+
+class WorkflowToggleSerializer(serializers.Serializer):
+    """Serializer for toggling workflow status"""
+    is_active = serializers.BooleanField()
+    is_paused = serializers.BooleanField(required=False)
+
+
+class WorkflowExecuteSerializer(serializers.Serializer):
+    """Serializer for manually executing workflows"""
+    trigger_data = serializers.JSONField(required=False, default=dict)
+    scheduled_at = serializers.DateTimeField(required=False)

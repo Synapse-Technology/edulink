@@ -112,9 +112,21 @@ class EmployerApplicationListView(generics.ListAPIView):
         user = self.request.user
         if not user.is_authenticated or not hasattr(user, "employer_profile"):
             return Application.objects.none()
-        return Application.objects.filter(
+        
+        queryset = Application.objects.filter(
             internship__employer=user.employer_profile  # type: ignore[attr-defined]
-        )
+        ).select_related('internship', 'student').order_by('-application_date')
+        
+        # Support for recent applications (limit parameter)
+        limit = self.request.query_params.get('limit')
+        if limit:
+            try:
+                limit = int(limit)
+                queryset = queryset[:limit]
+            except ValueError:
+                pass
+                
+        return queryset
 
 
 class InternshipApplicationListView(generics.ListAPIView):
@@ -258,3 +270,51 @@ class InstitutionApplicationListView(generics.ListAPIView):
             institution = self.request.user.institution_profile.institution  # type: ignore[attr-defined]
             return Application.objects.filter(student__student_profile__institution=institution)  # type: ignore[attr-defined]
         return Application.objects.none()  # type: ignore[attr-defined]
+
+
+class RecentApplicationsView(generics.ListAPIView):
+    """API endpoint for recent applications with enhanced data for dashboard"""
+    serializer_class = ApplicationListSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        user = self.request.user
+        if not user.is_authenticated or not hasattr(user, "employer_profile"):
+            return Application.objects.none()
+        
+        # Get recent applications with related data
+        queryset = Application.objects.filter(
+            internship__employer=user.employer_profile
+        ).select_related(
+            'internship', 'student'
+        ).order_by('-application_date')
+        
+        # Default limit to 10 recent applications
+        limit = int(self.request.query_params.get('limit', 10))
+        return queryset[:limit]
+    
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        
+        # Enhanced data structure for dashboard
+        recent_applications = []
+        for app in queryset:
+            recent_applications.append({
+                'id': app.id,
+                'student_name': f"{app.student.first_name} {app.student.last_name}",
+                'student_email': app.student.email,
+                'internship_title': app.internship.title,
+                'internship_id': app.internship.id,
+                'status': app.status,
+                'application_date': app.application_date,
+                'created_at': app.application_date,
+                'applied_on': app.application_date,
+                'cover_letter_excerpt': app.cover_letter[:100] + '...' if app.cover_letter and len(app.cover_letter) > 100 else app.cover_letter,
+                'resume': app.resume.url if app.resume else None,
+                'is_active': app.is_active
+            })
+        
+        return Response({
+            'results': recent_applications,
+            'count': len(recent_applications)
+        })

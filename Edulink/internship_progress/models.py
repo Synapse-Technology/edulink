@@ -35,7 +35,7 @@ class LogbookEntry(models.Model):
         # Check if student has accepted application for this internship
         try:
             application = Application.objects.get(
-                student=self.student,
+                student=self.student.user,
                 internship=self.internship,
                 status='accepted'
             )

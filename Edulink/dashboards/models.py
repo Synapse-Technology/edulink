@@ -12,6 +12,7 @@ from django.core.exceptions import ValidationError
 import json
 import uuid
 from datetime import datetime, timedelta
+from django.utils import timezone
 
 User = get_user_model()
 
@@ -663,3 +664,369 @@ class StudentActivityLog(models.Model):
 
     def __str__(self):
         return f"{self.student} - {self.activity_type} on {self.activity_date}"
+
+
+class PageView(models.Model):
+    """Model to track page views for analytics"""
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='page_views')
+    session_key = models.CharField(max_length=40, null=True, blank=True, db_index=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True)
+    
+    # Page information
+    path = models.CharField(max_length=500, db_index=True)
+    full_url = models.URLField(max_length=1000, blank=True)
+    referrer = models.URLField(max_length=1000, blank=True, null=True)
+    
+    # Timing
+    timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
+    duration = models.PositiveIntegerField(null=True, blank=True, help_text="Time spent on page in seconds")
+    
+    # Additional metadata
+    is_authenticated = models.BooleanField(default=False, db_index=True)
+    device_type = models.CharField(max_length=20, blank=True, choices=[
+        ('desktop', 'Desktop'),
+        ('mobile', 'Mobile'),
+        ('tablet', 'Tablet'),
+        ('unknown', 'Unknown'),
+    ])
+    
+    class Meta:
+        ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['timestamp', 'path']),
+            models.Index(fields=['user', 'timestamp']),
+            models.Index(fields=['session_key', 'timestamp']),
+            models.Index(fields=['is_authenticated', 'timestamp']),
+        ]
+    
+    def __str__(self):
+        user_info = self.user.email if self.user else f"Anonymous ({self.session_key[:8]})"
+        return f"{user_info} - {self.path} at {self.timestamp}"
+    
+    @classmethod
+    def get_daily_views(cls, date=None):
+        """Get page views for a specific date"""
+        if date is None:
+            date = timezone.now().date()
+        return cls.objects.filter(timestamp__date=date).count()
+    
+    @classmethod
+    def get_unique_daily_visitors(cls, date=None):
+        """Get unique visitors for a specific date"""
+        if date is None:
+            date = timezone.now().date()
+        
+        # Count unique users and unique sessions for anonymous users
+        authenticated_users = cls.objects.filter(
+            timestamp__date=date,
+            is_authenticated=True
+        ).values('user').distinct().count()
+        
+        anonymous_sessions = cls.objects.filter(
+            timestamp__date=date,
+            is_authenticated=False,
+            session_key__isnull=False
+        ).values('session_key').distinct().count()
+        
+        return authenticated_users + anonymous_sessions
+
+
+# Workflow Management Models
+
+class WorkflowTemplate(models.Model):
+    """Model for reusable workflow templates"""
+    
+    TEMPLATE_CATEGORIES = [
+        ('application', 'Application Management'),
+        ('communication', 'Communication'),
+        ('scheduling', 'Scheduling'),
+        ('analytics', 'Analytics & Reporting'),
+        ('custom', 'Custom Workflow'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=200, db_index=True)
+    description = models.TextField()
+    category = models.CharField(max_length=20, choices=TEMPLATE_CATEGORIES, default='custom')
+    icon = models.CharField(max_length=50, default='fas fa-cog')
+    color = models.CharField(max_length=20, default='blue')
+    
+    # Template configuration
+    steps = models.JSONField(default=list, help_text="List of workflow steps")
+    trigger_conditions = models.JSONField(default=dict, help_text="Conditions that trigger this workflow")
+    default_settings = models.JSONField(default=dict, help_text="Default settings for workflows created from this template")
+    
+    # Metadata
+    estimated_time = models.CharField(max_length=20, default='5 min')
+    steps_count = models.PositiveIntegerField(default=1)
+    popularity_score = models.PositiveIntegerField(default=0)
+    tags = models.JSONField(default=list, blank=True)
+    
+    # Status and permissions
+    is_active = models.BooleanField(default=True)
+    is_public = models.BooleanField(default=True, help_text="Whether this template is available to all users")
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_workflow_templates', null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-popularity_score', 'name']
+        indexes = [
+            models.Index(fields=['category', 'is_active']),
+            models.Index(fields=['is_public', 'is_active']),
+            models.Index(fields=['popularity_score']),
+        ]
+    
+    def __str__(self):
+        return f"{self.name} ({self.get_category_display()})"
+    
+    def increment_popularity(self):
+        """Increment popularity score when template is used"""
+        self.popularity_score += 1
+        self.save(update_fields=['popularity_score'])
+
+
+class Workflow(models.Model):
+    """Model for individual workflow instances"""
+    
+    WORKFLOW_TYPES = [
+        ('application_review', 'Application Review'),
+        ('interview_scheduling', 'Interview Scheduling'),
+        ('candidate_communication', 'Candidate Communication'),
+        ('onboarding', 'Onboarding Process'),
+        ('performance_tracking', 'Performance Tracking'),
+        ('custom', 'Custom Workflow'),
+    ]
+    
+    TRIGGER_EVENTS = [
+        ('new_application', 'New Application Received'),
+        ('application_approved', 'Application Approved'),
+        ('interview_scheduled', 'Interview Scheduled'),
+        ('interview_completed', 'Interview Completed'),
+        ('offer_sent', 'Offer Sent'),
+        ('manual', 'Manual Trigger'),
+        ('scheduled', 'Scheduled Trigger'),
+    ]
+    
+    ACTION_TYPES = [
+        ('send_email', 'Send Email'),
+        ('update_status', 'Update Status'),
+        ('create_task', 'Create Task'),
+        ('send_notification', 'Send Notification'),
+        ('schedule_interview', 'Schedule Interview'),
+        ('generate_report', 'Generate Report'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    employer = models.ForeignKey('users.EmployerProfile', on_delete=models.CASCADE, related_name='workflows')
+    template = models.ForeignKey(WorkflowTemplate, on_delete=models.SET_NULL, null=True, blank=True, related_name='workflow_instances')
+    
+    # Basic workflow information
+    name = models.CharField(max_length=200, db_index=True)
+    description = models.TextField(blank=True)
+    workflow_type = models.CharField(max_length=30, choices=WORKFLOW_TYPES, default='custom')
+    
+    # Trigger configuration
+    trigger_event = models.CharField(max_length=30, choices=TRIGGER_EVENTS, default='manual')
+    trigger_conditions = models.JSONField(default=dict, help_text="Specific conditions for triggering")
+    
+    # Action configuration
+    action_type = models.CharField(max_length=30, choices=ACTION_TYPES, default='send_email')
+    action_config = models.JSONField(default=dict, help_text="Configuration for the action")
+    
+    # Timing and scheduling
+    delay_amount = models.PositiveIntegerField(default=0, help_text="Delay before execution")
+    delay_unit = models.CharField(max_length=10, choices=[
+        ('minutes', 'Minutes'),
+        ('hours', 'Hours'),
+        ('days', 'Days'),
+        ('weeks', 'Weeks'),
+    ], default='minutes')
+    
+    # Status and control
+    is_active = models.BooleanField(default=True, db_index=True)
+    is_paused = models.BooleanField(default=False)
+    
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    last_executed = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['employer', 'is_active']),
+            models.Index(fields=['workflow_type', 'is_active']),
+            models.Index(fields=['trigger_event']),
+            models.Index(fields=['last_executed']),
+        ]
+    
+    def __str__(self):
+        return f"{self.name} - {self.employer.company_name}"
+    
+    def can_execute(self):
+        """Check if workflow can be executed"""
+        return self.is_active and not self.is_paused
+    
+    def get_delay_timedelta(self):
+        """Convert delay amount and unit to timedelta"""
+        if self.delay_amount == 0:
+            return timedelta(0)
+        
+        unit_mapping = {
+            'minutes': timedelta(minutes=self.delay_amount),
+            'hours': timedelta(hours=self.delay_amount),
+            'days': timedelta(days=self.delay_amount),
+            'weeks': timedelta(weeks=self.delay_amount),
+        }
+        return unit_mapping.get(self.delay_unit, timedelta(0))
+
+
+class WorkflowExecution(models.Model):
+    """Model to track workflow execution history"""
+    
+    EXECUTION_STATUS = [
+        ('pending', 'Pending'),
+        ('running', 'Running'),
+        ('completed', 'Completed'),
+        ('failed', 'Failed'),
+        ('cancelled', 'Cancelled'),
+        ('skipped', 'Skipped'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    workflow = models.ForeignKey(Workflow, on_delete=models.CASCADE, related_name='executions')
+    
+    # Execution details
+    status = models.CharField(max_length=20, choices=EXECUTION_STATUS, default='pending', db_index=True)
+    triggered_by = models.CharField(max_length=100, help_text="What triggered this execution")
+    trigger_data = models.JSONField(default=dict, help_text="Data that triggered the workflow")
+    
+    # Timing
+    scheduled_at = models.DateTimeField(null=True, blank=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    duration = models.DurationField(null=True, blank=True)
+    
+    # Results
+    result_data = models.JSONField(default=dict, help_text="Results of the workflow execution")
+    error_message = models.TextField(blank=True)
+    logs = models.JSONField(default=list, help_text="Execution logs")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['workflow', 'status']),
+            models.Index(fields=['status', 'scheduled_at']),
+            models.Index(fields=['started_at']),
+        ]
+    
+    def __str__(self):
+        return f"{self.workflow.name} - {self.get_status_display()} ({self.created_at})"
+    
+    def calculate_duration(self):
+        """Calculate and save execution duration"""
+        if self.started_at and self.completed_at:
+            self.duration = self.completed_at - self.started_at
+            self.save(update_fields=['duration'])
+    
+    def mark_completed(self, result_data=None):
+        """Mark execution as completed"""
+        self.status = 'completed'
+        self.completed_at = timezone.now()
+        if result_data:
+            self.result_data = result_data
+        self.calculate_duration()
+        self.save()
+    
+    def mark_failed(self, error_message):
+        """Mark execution as failed"""
+        self.status = 'failed'
+        self.completed_at = timezone.now()
+        self.error_message = error_message
+        self.calculate_duration()
+        self.save()
+
+
+class WorkflowAnalytics(models.Model):
+    """Model to store workflow analytics and performance metrics"""
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    employer = models.ForeignKey('users.EmployerProfile', on_delete=models.CASCADE, related_name='workflow_analytics')
+    workflow = models.ForeignKey(Workflow, on_delete=models.CASCADE, related_name='analytics', null=True, blank=True)
+    
+    # Time period for analytics
+    date = models.DateField(db_index=True)
+    period_type = models.CharField(max_length=10, choices=[
+        ('daily', 'Daily'),
+        ('weekly', 'Weekly'),
+        ('monthly', 'Monthly'),
+    ], default='daily')
+    
+    # Execution metrics
+    total_executions = models.PositiveIntegerField(default=0)
+    successful_executions = models.PositiveIntegerField(default=0)
+    failed_executions = models.PositiveIntegerField(default=0)
+    cancelled_executions = models.PositiveIntegerField(default=0)
+    
+    # Performance metrics
+    average_duration = models.DurationField(null=True, blank=True)
+    total_time_saved = models.DurationField(default=timedelta(0))
+    tasks_automated = models.PositiveIntegerField(default=0)
+    
+    # Success rates
+    success_rate = models.FloatField(default=0.0, validators=[MinValueValidator(0.0), MaxValueValidator(100.0)])
+    
+    # Additional metrics
+    metrics_data = models.JSONField(default=dict, help_text="Additional custom metrics")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ('employer', 'workflow', 'date', 'period_type')
+        ordering = ['-date']
+        indexes = [
+            models.Index(fields=['employer', 'date']),
+            models.Index(fields=['workflow', 'date']),
+            models.Index(fields=['period_type', 'date']),
+        ]
+    
+    def __str__(self):
+        workflow_name = self.workflow.name if self.workflow else "All Workflows"
+        return f"{workflow_name} - {self.date} ({self.get_period_type_display()})"
+    
+    def calculate_success_rate(self):
+        """Calculate and update success rate"""
+        if self.total_executions > 0:
+            self.success_rate = (self.successful_executions / self.total_executions) * 100
+        else:
+            self.success_rate = 0.0
+        self.save(update_fields=['success_rate'])
+    
+    def update_metrics(self, execution):
+        """Update analytics based on a workflow execution"""
+        self.total_executions += 1
+        
+        if execution.status == 'completed':
+            self.successful_executions += 1
+            if execution.duration:
+                # Update average duration
+                if self.average_duration:
+                    total_duration = self.average_duration * (self.successful_executions - 1) + execution.duration
+                    self.average_duration = total_duration / self.successful_executions
+                else:
+                    self.average_duration = execution.duration
+        elif execution.status == 'failed':
+            self.failed_executions += 1
+        elif execution.status == 'cancelled':
+            self.cancelled_executions += 1
+        
+        self.calculate_success_rate()
+        self.save()

@@ -95,6 +95,10 @@ class User(AbstractBaseUser, PermissionsMixin):
             return getattr(self, "institution_profile", None)
         elif self.role == RoleChoices.EMPLOYER:
             return getattr(self, "employer_profile", None)
+        elif self.role == RoleChoices.COMPANY_SUPERVISOR:
+            return getattr(self, "companysupervisorprofile", None)
+        elif self.role == RoleChoices.INSTITUTION_SUPERVISOR:
+            return getattr(self, "institutionsupervisorprofile", None)
         return None
 
 
