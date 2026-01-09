@@ -10,6 +10,7 @@ import WhyUs from './pages/WhyUs';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import StudentDashboard from './pages/dashboard/studentdashboard';
+import NotFound from './pages/NotFound';
 import './App.css';
 
 function App() {
@@ -33,6 +34,9 @@ function App() {
         
         {/* Dashboard routes without layout */}
         <Route path="/dashboard/student" element={<StudentDashboard />} />
+        
+        {/* Catch-all route for 404 errors */}
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </Router>
   );

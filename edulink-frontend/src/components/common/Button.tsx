@@ -1,9 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import PropTypes from 'prop-types';
 
 interface ButtonProps {
   children: React.ReactNode;
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'gradient';
   size?: 'sm' | 'md' | 'lg';
   href?: string;
   to?: string;
@@ -39,6 +40,7 @@ const Button: React.FC<ButtonProps> = ({
     secondary: 'bg-edulink-secondary text-white hover:bg-edulink-secondary/90 focus:ring-edulink-secondary',
     outline: 'border-2 border-edulink-primary text-edulink-primary hover:bg-edulink-primary hover:text-white focus:ring-edulink-primary',
     ghost: 'text-edulink-primary hover:bg-edulink-primary/10 focus:ring-edulink-primary',
+    gradient: 'bg-gradient-to-r from-[rgb(10,187,163)] to-[rgb(7,168,141)] text-white hover:from-[rgb(26,194,171)] hover:to-[rgb(7,168,141)] focus:ring-edulink-primary shadow-[0_2px_8px_rgba(56,142,60,0.10)] hover:shadow-[0_4px_16px_rgba(56,142,60,0.18)]',
   };
 
   const sizeClasses = {
@@ -54,10 +56,7 @@ const Button: React.FC<ButtonProps> = ({
   const content = (
     <>
       {loading && (
-        <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
+        <span className="mr-2">●</span>
       )}
       {!loading && leftIcon && <span className="mr-2">{leftIcon}</span>}
       {children}
@@ -101,6 +100,22 @@ const Button: React.FC<ButtonProps> = ({
       {content}
     </button>
   );
+};
+
+Button.propTypes = {
+  children: PropTypes.node.isRequired,
+  variant: PropTypes.oneOf(['primary', 'secondary', 'outline', 'ghost', 'gradient']),
+  size: PropTypes.oneOf(['sm', 'md', 'lg']),
+  href: PropTypes.string,
+  to: PropTypes.string,
+  onClick: PropTypes.func,
+  type: PropTypes.oneOf(['button', 'submit', 'reset']),
+  disabled: PropTypes.bool,
+  loading: PropTypes.bool,
+  className: PropTypes.string,
+  fullWidth: PropTypes.bool,
+  leftIcon: PropTypes.node,
+  rightIcon: PropTypes.node,
 };
 
 export default Button;
