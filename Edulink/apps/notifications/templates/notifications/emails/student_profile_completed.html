@@ -1,0 +1,27 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}Profile Completed - {{ site_name }}{% endblock %}
+
+{% block content %}
+<h2>Profile Completion Milestone!</h2>
+
+<p>Hello {{ user_name }},</p>
+
+<p>Great job! You have successfully completed your student profile on {{ site_name }}.</p>
+
+<div class="highlight-box">
+    <p><strong>What does this mean?</strong></p>
+    <p>A complete profile significantly increases your chances of being noticed by top employers and institutions. You are now fully ready to apply for internships.</p>
+</div>
+
+<p>We have unlocked all platform features for you.</p>
+
+<div style="text-align: center;">
+    <a href="{{ dashboard_url }}" class="email-button">
+        Explore Opportunities
+    </a>
+</div>
+
+<p>Best regards,<br>
+The {{ site_name }} Team</p>
+{% endblock %}

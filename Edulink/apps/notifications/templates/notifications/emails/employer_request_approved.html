@@ -1,0 +1,23 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}Employer Onboarding Request Approved{% endblock %}
+
+{% block content %}
+<p>Dear {{ name }},</p>
+
+<p>We are pleased to inform you that your request to join Edulink as an Employer Partner has been <strong>APPROVED</strong>.</p>
+
+<p>Your organization <strong>{{ name }}</strong> has been verified.</p>
+
+<p>Please use the link below to activate your administrator account and complete your organization's profile:</p>
+
+<div style="text-align: center;">
+    <a href="{{ invite_link }}" class="email-button">Activate Account</a>
+</div>
+
+<p>This link is valid for 72 hours. If you did not request this, please ignore this email.</p>
+
+<p>Welcome to Edulink!</p>
+
+<p>Best regards,<br>The Edulink Team</p>
+{% endblock %}

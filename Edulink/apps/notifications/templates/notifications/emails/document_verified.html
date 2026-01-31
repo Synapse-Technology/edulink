@@ -1,0 +1,27 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}Document Verified - {{ site_name }}{% endblock %}
+
+{% block content %}
+<h2>Document Verified</h2>
+
+<p>Hello {{ user_name }},</p>
+
+<p>Your uploaded document has been successfully verified.</p>
+
+<div class="highlight-box">
+    <p><strong>Document:</strong> {{ document_type }}</p>
+    <p><strong>Status:</strong> Verified</p>
+</div>
+
+<p>Your profile trust score has been updated accordingly.</p>
+
+<div style="text-align: center;">
+    <a href="{{ dashboard_url }}" class="email-button">
+        View Documents
+    </a>
+</div>
+
+<p>Best regards,<br>
+The {{ site_name }} Team</p>
+{% endblock %}

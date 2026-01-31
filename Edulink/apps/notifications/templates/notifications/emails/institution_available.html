@@ -1,0 +1,24 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}Great News! {{ institution_name }} is on Edulink{% endblock %}
+
+{% block content %}
+<h2>Great News!</h2>
+
+<p>Hi there,</p>
+
+<p>We're excited to let you know that <strong>{{ institution_name }}</strong> is now available on Edulink!</p>
+
+<div class="highlight-box">
+    <p>You previously expressed interest in this institution. You can now connect with them and access their opportunities.</p>
+</div>
+
+<div style="text-align: center;">
+    <a href="{{ dashboard_url }}" class="email-button">
+        Connect Now
+    </a>
+</div>
+
+<p>Best regards,<br>
+The Edulink Team</p>
+{% endblock %}

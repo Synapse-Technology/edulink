@@ -1,0 +1,20 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}New Onboarding Request - {{ request_type }}{% endblock %}
+
+{% block content %}
+<p>Dear Admin,</p>
+
+<p>A new {{ request_type }} onboarding request has been submitted and is pending review.</p>
+
+<p><strong>Organization:</strong> {{ name }}<br>
+<strong>Representative:</strong> {{ representative_name }}<br>
+<strong>Email:</strong> {{ email }}<br>
+<strong>Tracking Code:</strong> {{ tracking_code }}</p>
+
+<div style="text-align: center;">
+    <a href="{{ review_link }}" class="email-button">Review Request</a>
+</div>
+
+<p>Best regards,<br>The Edulink System</p>
+{% endblock %}

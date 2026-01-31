@@ -1,0 +1,60 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}Application Update - Edulink{% endblock %}
+
+{% block content %}
+<h2>Application Status Update</h2>
+
+<p>Hello {{ applicant_name }},</p>
+
+<p>We have an update regarding your application for the <strong>{{ internship_title }}</strong> position at <strong>{{ company_name }}</strong>.</p>
+
+<div class="highlight-box" style="background-color: {% if status == 'approved' %}#d1fae5{% elif status == 'rejected' %}#fee2e2{% else %}#fef3c7{% endif %}; border-left-color: {% if status == 'approved' %}#10b981{% elif status == 'rejected' %}#ef4444{% else %}#f59e0b{% endif %};">
+    <p><strong>Your application status has been updated to: {{ status|title }}</strong></p>
+    {% if status_message %}
+    <p style="margin-top: 10px; font-size: 14px;">{{ status_message }}</p>
+    {% endif %}
+</div>
+
+{% if status == 'approved' and next_steps %}
+    <p><strong>Next Steps:</strong></p>
+    <div style="background-color: #f3f4f6; padding: 20px; border-radius: 5px; margin: 20px 0;">
+        {{ next_steps|linebreaks }}
+    </div>
+    
+    {% if interview_date %}
+    <p><strong>Interview Scheduled:</strong> {{ interview_date }}</p>
+    {% endif %}
+    
+    <div style="text-align: center; margin: 30px 0;">
+        <a href="{{ dashboard_url }}" class="email-button">View Application</a>
+    </div>
+{% elif status == 'rejected' %}
+    <p>We encourage you to continue applying for other opportunities on our platform. Your skills and experience are valuable, and we're here to help you find the right fit.</p>
+    
+    <div style="text-align: center;">
+        <a href="{{ opportunities_url }}" class="email-button">Browse Opportunities</a>
+    </div>
+{% else %}
+    <p>We'll keep you updated as your application progresses through the review process.</p>
+    
+    <div style="text-align: center; margin: 30px 0;">
+        <a href="{{ dashboard_url }}" class="email-button">View Application Status</a>
+    </div>
+{% endif %}
+
+<div class="divider"></div>
+
+<p><strong>Application Details:</strong></p>
+<ul>
+    <li><strong>Position:</strong> {{ internship_title }}</li>
+    <li><strong>Company:</strong> {{ company_name }}</li>
+    <li><strong>Applied on:</strong> {{ application_date }}</li>
+    <li><strong>Current Status:</strong> {{ status|title }}</li>
+</ul>
+
+<p>If you have any questions about your application, please don't hesitate to contact us at <a href="mailto:{{ support_email }}">{{ support_email }}</a></p>
+
+<p>Best regards,<br>
+<strong>The Edulink Team</strong></p>
+{% endblock %}

@@ -2,7 +2,7 @@ import React from 'react';
 import ErrorHero from '../components/common/ErrorHero';
 import ErrorCard from '../components/common/ErrorCard';
 import { Layout } from '../components';
-import { Link } from 'react-router-dom';
+// import { Link } from 'react-router-dom';
 import '../styles/error-page.css';
 
 const NotFound: React.FC = () => {

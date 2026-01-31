@@ -1,0 +1,35 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}Welcome to {{ site_name }} - Account Verified{% endblock %}
+
+{% block content %}
+<h2>Welcome to {{ site_name }}</h2>
+
+<p>Hello,</p>
+
+<p>Congratulations! Your email address has been successfully verified and your {{ site_name }} account is now fully activated.</p>
+
+<div class="highlight-box">
+    <p><strong>What's next?</strong></p>
+    <p>You're now ready to explore all the features {{ site_name }} has to offer:</p>
+    <ul style="margin: 10px 0; padding-left: 20px;">
+        <li>Complete your profile setup</li>
+        <li>Connect with students and institutions</li>
+        <li>Apply for internships and opportunities</li>
+        <li>Track your academic progress</li>
+    </ul>
+</div>
+
+<div style="text-align: center;">
+    <a href="{{ login_url }}" class="email-button">
+        Get Started
+    </a>
+</div>
+
+<p>If you have any questions or need help getting started, don't hesitate to reach out to our support team at <a href="mailto:{{ support_email }}">{{ support_email }}</a>. We're here to help you succeed!</p>
+
+<p>Thank you for joining our community. We can't wait to see what you'll accomplish with {{ site_name }}!</p>
+
+<p>Best regards,<br>
+The {{ site_name }} Team</p>
+{% endblock %}

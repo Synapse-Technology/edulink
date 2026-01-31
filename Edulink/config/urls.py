@@ -1,0 +1,24 @@
+"""
+URL configuration for Edulink project.
+"""
+from django.contrib import admin
+from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
+
+urlpatterns = [
+    path("admin/", admin.site.urls),
+    # API Endpoints
+    path("api/admin/", include("edulink.apps.platform_admin.urls")),
+    path("api/auth/", include("edulink.apps.accounts.urls")),
+    path("api/students/", include("edulink.apps.students.urls")),
+    path("api/institutions/", include("edulink.apps.institutions.urls")),
+    path("api/employers/", include("edulink.apps.employers.urls")),
+    path("api/internships/", include("edulink.apps.internships.urls")),
+    path("api/ledger/", include("edulink.apps.ledger.urls")),
+    path("api/reports/", include("edulink.apps.reports.urls")),
+    path("api/notifications/", include("edulink.apps.notifications.urls")),
+]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -1,0 +1,27 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}Affiliation Update - {{ site_name }}{% endblock %}
+
+{% block content %}
+<h2>Affiliation Request Update</h2>
+
+<p>Hello {{ student_name }},</p>
+
+<p>We are writing to update you on your affiliation request with <strong>{{ institution_name }}</strong>.</p>
+
+<div class="highlight-box" style="background-color: #fee2e2; border-left-color: #ef4444;">
+    <p><strong>Status: Rejected</strong></p>
+    <p>Reason: {{ rejection_reason }}</p>
+</div>
+
+<p>Please review the rejection reason and update your profile or contact your institution for further clarification.</p>
+
+<div style="text-align: center;">
+    <a href="{{ dashboard_url }}" class="email-button">
+        Update Profile
+    </a>
+</div>
+
+<p>Best regards,<br>
+The {{ site_name }} Team</p>
+{% endblock %}

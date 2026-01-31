@@ -1,0 +1,33 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}Profile Updated - {{ site_name }}{% endblock %}
+
+{% block content %}
+<h2>Profile Updated Successfully</h2>
+
+<p>Hello {{ user_name }},</p>
+
+<p>This email is to confirm that your student profile on {{ site_name }} has been successfully updated.</p>
+
+<div class="highlight-box">
+    <p><strong>Updated Information:</strong></p>
+    <ul>
+        {% for field in updated_fields %}
+        <li>{{ field|title|replace:"_":" " }}</li>
+        {% endfor %}
+    </ul>
+</div>
+
+<p>Keeping your profile up-to-date helps us match you with the best internship opportunities.</p>
+
+<div style="text-align: center;">
+    <a href="{{ dashboard_url }}" class="email-button">
+        View My Profile
+    </a>
+</div>
+
+<p>If you did not make these changes, please contact our support team immediately.</p>
+
+<p>Best regards,<br>
+The {{ site_name }} Team</p>
+{% endblock %}

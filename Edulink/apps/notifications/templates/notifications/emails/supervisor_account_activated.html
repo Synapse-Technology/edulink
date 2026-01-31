@@ -1,0 +1,41 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}Supervisor Account Activated - Edulink{% endblock %}
+
+{% block content %}
+<h2>Account Activated Successfully</h2>
+
+<p>Dear {{ user_name }},</p>
+
+<p>Your {% if is_employer %}employer{% else %}institution{% endif %} supervisor account for <strong>{{ organization_name }}</strong> has been successfully activated.</p>
+
+<div class="highlight-box">
+    {% if is_employer %}
+    <p>You can now log in to the Employer Portal to manage your assigned interns and logbooks.</p>
+    {% else %}
+    <p>You can now log in to the Edulink Institution Portal to manage your department and cohorts.</p>
+    {% endif %}
+</div>
+
+<div style="text-align: center;">
+    <a href="{{ login_url }}" class="email-button">
+        Log In to Dashboard
+    </a>
+</div>
+
+<p><strong>Account Details:</strong></p>
+<ul>
+    <li>Email: {{ email }}</li>
+    {% if department %}
+    <li>Department: {{ department }}</li>
+    {% endif %}
+    {% if cohort %}
+    <li>Cohort: {{ cohort }}</li>
+    {% endif %}
+</ul>
+
+<p>If you have any questions, please contact your {% if is_employer %}employer admin{% else %}institution admin{% endif %} or Edulink support.</p>
+
+<p>Best regards,<br>
+The Edulink Team</p>
+{% endblock %}

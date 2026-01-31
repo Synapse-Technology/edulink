@@ -4,8 +4,12 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
-  role: 'student' | 'employer' | 'institution' | 'admin';
+  role: 'student' | 'employer' | 'institution' | 'admin' | 'institution_admin' | 'employer_admin' | 'supervisor' | 'system_admin';
+  trustLevel?: number;
+  trustPoints?: number;
   avatar?: string;
+  institution_id?: string;
+  employer_id?: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

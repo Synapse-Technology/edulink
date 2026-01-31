@@ -1,0 +1,39 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}{{ subject }} - {{ site_name }}{% endblock %}
+
+{% block content %}
+<h2>{{ title }}</h2>
+
+<p>Hello {{ user_name|default:"" }},</p>
+
+{% if highlight_message %}
+<div class="highlight-box">
+    <p>{{ highlight_message }}</p>
+</div>
+{% endif %}
+
+{% autoescape off %}
+{{ body }}
+{% endautoescape %}
+
+{% if action_url %}
+<div style="text-align: center;">
+    <a href="{{ action_url }}" class="email-button">
+        {{ action_text|default:"View Details" }}
+    </a>
+</div>
+{% endif %}
+
+{% if additional_info %}
+<div class="highlight-box">
+    <p><strong>Additional Information:</strong></p>
+    <p>{{ additional_info }}</p>
+</div>
+{% endif %}
+
+<p>If you have any questions about this notification, please contact our support team at <a href="mailto:{{ support_email }}">{{ support_email }}</a>.</p>
+
+<p>Best regards,<br>
+The {{ site_name }} Team</p>
+{% endblock %}

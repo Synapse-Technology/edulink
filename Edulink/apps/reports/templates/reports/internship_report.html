@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Internship Logbook Report</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 15mm;
+        }
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            line-height: 1.4;
+            color: #1f2937;
+            background-color: #ffffff;
+            margin: 0;
+            padding: 0;
+        }
+        
+        /* Header Section */
+        .header-table {
+            width: 100%;
+            border-bottom: 3pt solid #1ab8aa;
+            margin-bottom: 20pt;
+            padding-bottom: 10pt;
+            border-collapse: collapse;
+        }
+        .header-table td {
+            padding: 0;
+        }
+        .brand {
+            font-size: 24pt;
+            font-weight: bold;
+            color: #1ab8aa;
+            letter-spacing: 2pt;
+        }
+        .report-title {
+            text-align: right;
+            vertical-align: bottom;
+        }
+        .report-title h1 {
+            margin: 0;
+            font-size: 16pt;
+            color: #111827;
+            text-transform: uppercase;
+        }
+        .gen-date {
+            font-size: 9pt;
+            color: #6b7280;
+        }
+
+        /* Info Section (Refined Design) */
+        .info-card {
+            background-color: #f9fafb;
+            border: 1pt solid #e5e7eb;
+            border-radius: 8pt;
+            padding: 15pt;
+            margin-bottom: 25pt;
+        }
+        .info-card-title {
+            font-size: 12pt;
+            font-weight: bold;
+            color: #1ab8aa;
+            margin-bottom: 12pt;
+            text-transform: uppercase;
+            letter-spacing: 1pt;
+            border-bottom: 1pt solid #d1d5db;
+            padding-bottom: 4pt;
+        }
+        .info-grid {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .info-grid td {
+            padding: 0;
+        }
+        .info-item {
+            padding-bottom: 10pt;
+            vertical-align: top;
+        }
+        .info-label {
+            font-size: 8pt;
+            font-weight: bold;
+            color: #6b7280;
+            text-transform: uppercase;
+            margin-bottom: 2pt;
+        }
+        .info-value {
+            font-size: 11pt;
+            font-weight: bold;
+            color: #111827;
+        }
+
+        /* Log Entries */
+        .section-header {
+            font-size: 14pt;
+            font-weight: bold;
+            color: #111827;
+            margin-bottom: 15pt;
+            padding-left: 5pt;
+            border-left: 4pt solid #1ab8aa;
+        }
+        .log-entry {
+            margin-bottom: 25pt;
+            border: 1pt solid #e5e7eb;
+            border-radius: 6pt;
+            overflow: hidden;
+        }
+        .log-header {
+            background-color: #f3f4f6;
+            padding: 10pt 15pt;
+            border-bottom: 1pt solid #e5e7eb;
+        }
+        .log-title {
+            font-weight: bold;
+            font-size: 12pt;
+            color: #111827;
+        }
+        .log-status {
+            font-size: 9pt;
+            font-weight: bold;
+            color: #1ab8aa;
+            text-transform: uppercase;
+        }
+        .log-body {
+            padding: 15pt;
+        }
+        .log-desc {
+            font-size: 11pt;
+            color: #374151;
+            margin-bottom: 15pt;
+            line-height: 1.5;
+        }
+
+        /* Daily Breakdown */
+        .daily-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15pt;
+        }
+        .daily-row td {
+            padding: 8pt;
+            border-bottom: 1pt solid #f3f4f6;
+        }
+        .day-name {
+            width: 80pt;
+            font-weight: bold;
+            font-size: 9pt;
+            color: #6b7280;
+            text-transform: uppercase;
+        }
+        .day-text {
+            font-size: 10pt;
+            color: #111827;
+        }
+
+        /* Review Section */
+        .review-box {
+            background-color: #f0fdfa;
+            border: 1pt solid #ccfbf1;
+            padding: 10pt;
+            margin-top: 10pt;
+            border-radius: 4pt;
+        }
+        .review-label {
+            font-size: 8pt;
+            font-weight: bold;
+            color: #0f766e;
+            text-transform: uppercase;
+            margin-bottom: 2pt;
+        }
+        .review-content {
+            font-size: 10pt;
+            font-style: italic;
+            color: #134e4a;
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: 40pt;
+            text-align: center;
+            font-size: 8pt;
+            color: #9ca3af;
+            border-top: 1pt solid #e5e7eb;
+            padding-top: 15pt;
+        }
+    </style>
+</head>
+<body>
+    <table class="header-table">
+        <tr>
+            <td class="brand">EDULINK</td>
+            <td class="report-title">
+                <h1>Internship Logbook Report</h1>
+                <div class="gen-date">Generated: {{ generated_at }}</div>
+            </td>
+        </tr>
+    </table>
+
+    <div class="info-card">
+        <div class="info-card-title">Internship Engagement Details</div>
+        <table class="info-grid">
+            <tr>
+                <td class="info-item" style="width: 50%;">
+                    <div class="info-label">Student Professional</div>
+                    <div class="info-value">{{ student_name }}</div>
+                </td>
+                <td class="info-item">
+                    <div class="info-label">Placement Position</div>
+                    <div class="info-value">{{ position }}</div>
+                </td>
+            </tr>
+            <tr>
+                <td class="info-item">
+                    <div class="info-label">Host Organization</div>
+                    <div class="info-value">{{ employer_name }}</div>
+                </td>
+                <td class="info-item">
+                    <div class="info-label">Affiliated Institution</div>
+                    <div class="info-value">{{ institution_name }}</div>
+                </td>
+            </tr>
+            <tr>
+                <td class="info-item">
+                    <div class="info-label">Program Duration</div>
+                    <div class="info-value">{{ start_date }} — {{ end_date }}</div>
+                </td>
+                <td class="info-item">
+                    <div class="info-label">Report ID</div>
+                    <div class="info-value" style="font-family: monospace; font-size: 9pt;">{{ application_id|truncatechars:12 }}</div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="section-header">Weekly Logbook Archive</div>
+
+    {% for log in logbooks %}
+    <div class="log-entry">
+        <div class="log-header">
+            <table style="width: 100%;">
+                <tr>
+                    <td class="log-title">{{ log.title }}</td>
+                    <td style="text-align: right;" class="log-status">Verified Status: Accepted</td>
+                </tr>
+            </table>
+        </div>
+        <div class="log-body">
+            <div class="log-desc">{{ log.description }}</div>
+            
+            <table class="daily-table">
+                {% for day, text in log.daily_entries.items %}
+                <tr class="daily-row">
+                    <td class="day-name">{{ day }}</td>
+                    <td class="day-text">{{ text }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+
+            {% if log.employer_notes %}
+            <div class="review-box">
+                <div class="review-label">Employer Review Feedback</div>
+                <div class="review-content">{{ log.employer_notes }}</div>
+            </div>
+            {% endif %}
+
+            {% if log.institution_notes %}
+            <div class="review-box" style="margin-top: 5pt; background-color: #eff6ff; border-color: #dbeafe;">
+                <div class="review-label" style="color: #1d4ed8;">Institutional Academic Review</div>
+                <div class="review-content" style="color: #1e3a8a;">{{ log.institution_notes }}</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% empty %}
+    <div style="text-align: center; padding: 40pt; color: #9ca3af; border: 2pt dashed #e5e7eb; border-radius: 8pt;">
+        No verified logbook entries available for this reporting period.
+    </div>
+    {% endfor %}
+
+    <div class="footer">
+        This is an official document generated by the Edulink Professional Platform.<br>
+        Digital authenticity can be verified via the platform ledger.<br>
+        &copy; {{ current_year }} Edulink. All Rights Reserved.
+    </div>
+</body>
+</html>

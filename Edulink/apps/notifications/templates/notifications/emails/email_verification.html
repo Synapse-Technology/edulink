@@ -1,0 +1,29 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}Verify Your Email Address - {{ site_name }}{% endblock %}
+
+{% block content %}
+<h2>Welcome to {{ site_name }}!</h2>
+
+<p>Hello,</p>
+
+<p>Thank you for signing up for {{ site_name }}. To complete your registration and start using our platform, please verify your email address by clicking the button below:</p>
+
+<div style="text-align: center;">
+    <a href="{{ verification_url }}" class="email-button">
+        Verify Email Address
+    </a>
+</div>
+
+<div class="highlight-box">
+    <p><strong>Having trouble with the button?</strong> Copy and paste this link into your browser:</p>
+    <p style="word-break: break-all; margin-top: 10px;">{{ verification_url }}</p>
+</div>
+
+<p>This verification link will expire in 24 hours for security reasons. If the link expires, you can request a new verification email from your account settings.</p>
+
+<p>If you didn't create an account with {{ site_name }}, please ignore this email or contact our support team at <a href="mailto:{{ support_email }}">{{ support_email }}</a>.</p>
+
+<p>Best regards,<br>
+The {{ site_name }} Team</p>
+{% endblock %}

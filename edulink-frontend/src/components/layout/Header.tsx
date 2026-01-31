@@ -94,6 +94,15 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
                 Search
               </Link>
             </li>
+            <li>
+              <Link 
+                to="/admin" 
+                className={`nav-link ${isActive('/admin') ? 'active' : ''}`}
+                onClick={closeMobileMenu}
+              >
+                Admin Portal
+              </Link>
+            </li>
           </ul>
         </nav>
 

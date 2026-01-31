@@ -1,0 +1,19 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}Employer Onboarding Request Received{% endblock %}
+
+{% block content %}
+<p>Dear {{ name }},</p>
+
+<p>Thank you for submitting your request to join Edulink as an Employer Partner.</p>
+
+<p>We have received your application for <strong>{{ name }}</strong>.</p>
+
+<p>Your tracking code is: <strong>{{ tracking_code }}</strong></p>
+
+<p>Our team will review your details, including your organization's official email ({{ official_email }}) and domain ({{ domain }}). You will receive an update within 3-5 business days.</p>
+
+<p>You can track the status of your request on our platform using your tracking code.</p>
+
+<p>Best regards,<br>The Edulink Team</p>
+{% endblock %}

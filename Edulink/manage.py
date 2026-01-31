@@ -4,9 +4,15 @@ import os
 import sys
 
 
+base_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(base_dir)
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+
 def main():
     """Run administrative tasks."""
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'Edulink.settings.dev')
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "edulink.config.settings.dev")
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:
@@ -18,5 +24,5 @@ def main():
     execute_from_command_line(sys.argv)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

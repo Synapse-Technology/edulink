@@ -10,6 +10,9 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children, className = '' }) => {
   useEffect(() => {
+    // Force light mode for public layout
+    document.body.classList.remove('dark-mode');
+    
     // Scroll top button functionality
     const scrollTop = document.getElementById('scroll-top');
     const preloader = document.getElementById('preloader');

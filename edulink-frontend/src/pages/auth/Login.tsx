@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useAuthStore } from '../../stores/authStore';
 import { Eye, EyeOff } from 'lucide-react';
 
 // CSS Animations and Keyframes
@@ -31,31 +32,12 @@ const styles = `
     }
   }
 
-  @keyframes spin {
-    0% { transform: rotate(0deg) scale(1); }
-    50% { transform: rotate(180deg) scale(1.1); }
-    100% { transform: rotate(360deg) scale(1); }
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 0.7; }
-    50% { opacity: 1; }
-  }
-
   .toast-enter {
     animation: slideInFromTop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
   }
 
   .toast-exit {
     animation: slideOutToTop 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  }
-
-  .loading-spinner {
-    animation: spin 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
-  }
-
-  .loading-text {
-    animation: pulse 2s ease-in-out infinite;
   }
 
   .forgot-password-link:hover {
@@ -156,19 +138,6 @@ const styles = `
       height: 26px !important;
       font-size: 16px !important;
     }
-    
-    .loading-overlay {
-      border-radius: 15px !important;
-    }
-    
-    .loading-spinner {
-      width: 28px !important;
-      height: 28px !important;
-    }
-    
-    .loading-text {
-      font-size: 13px !important;
-    }
   }
 `;
 
@@ -178,21 +147,13 @@ interface LoginFormData {
   rememberMe: boolean;
 }
 
-interface ForgotFormData {
-  email: string;
-}
-
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const [currentView, setCurrentView] = useState<'login' | 'forgot'>('login');
   const [loginForm, setLoginForm] = useState<LoginFormData>({
     email: '',
     password: '',
     rememberMe: false
-  });
-  const [forgotForm, setForgotForm] = useState<ForgotFormData>({
-    email: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState('');
@@ -203,17 +164,10 @@ const Login: React.FC = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
-    if (currentView === 'login') {
-      setLoginForm(prev => ({
-        ...prev,
-        [name]: type === 'checkbox' ? checked : value
-      }));
-    } else {
-      setForgotForm(prev => ({
-        ...prev,
-        [name]: value
-      }));
-    }
+    setLoginForm(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
   };
 
   const showToastMessage = (msg: string, type: 'error' | 'success') => {
@@ -248,14 +202,6 @@ const Login: React.FC = () => {
     return true;
   };
 
-  const validateForgotForm = () => {
-    if (!forgotForm.email.trim()) {
-      showToastMessage('Please enter your email address', 'error');
-      return false;
-    }
-    return true;
-  };
-
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage('');
@@ -266,72 +212,88 @@ const Login: React.FC = () => {
 
     setIsSubmitting(true);
 
-    // Create loading overlay
-    const formBox = document.querySelector('.form-box');
-    if (formBox) {
-      const loadingOverlay = document.createElement('div');
-      loadingOverlay.className = 'loading-overlay';
-      loadingOverlay.innerHTML = '<div class="loading-spinner"></div><div class="loading-text">Signing you in...</div>';
-      (formBox as HTMLElement).style.position = 'relative';
-      formBox.appendChild(loadingOverlay);
-    }
-
     try {
       await login(loginForm.email, loginForm.password);
-      navigate('/dashboard/student');
+      
+      const user = useAuthStore.getState().user;
+      if (user?.role === 'student') {
+        navigate('/dashboard/student');
+      } else {
+        showToastMessage('Access restricted to Students. Please use the appropriate portal.', 'error');
+        await useAuthStore.getState().logout();
+      }
     } catch (_error) {
       showToastMessage('Login failed. Please check your credentials.', 'error');
     } finally {
       setIsSubmitting(false);
-      // Remove loading overlay
-      const loadingOverlay = document.querySelector('.loading-overlay');
-      if (loadingOverlay) {
-        loadingOverlay.remove();
-      }
-    }
-  };
-
-  const handleForgotSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setMessage('');
-
-    if (!validateForgotForm()) {
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    // Create loading overlay
-    const formBox = document.querySelector('.form-box');
-    if (formBox) {
-      const loadingOverlay = document.createElement('div');
-      loadingOverlay.className = 'loading-overlay';
-      loadingOverlay.innerHTML = '<div class="loading-spinner"></div><div class="loading-text">Sending reset link...</div>';
-      (formBox as HTMLElement).style.position = 'relative';
-      formBox.appendChild(loadingOverlay);
-    }
-
-    try {
-      // Simulate password reset request
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      showToastMessage('Password reset link has been sent to your email.', 'success');
-      setCurrentView('login');
-    } catch (_error) {
-      showToastMessage('Failed to send reset link. Please try again.', 'error');
-    } finally {
-      setIsSubmitting(false);
-      // Remove loading overlay
-      const loadingOverlay = document.querySelector('.loading-overlay');
-      if (loadingOverlay) {
-        loadingOverlay.remove();
-      }
     }
   };
 
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: styles }} />
-      <div className="min-h-screen flex login-container" style={{
+        {/* Toast Notifications */}
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          left: 0,
+          right: 0,
+          display: 'flex',
+          justifyContent: 'center',
+          zIndex: 9999,
+          pointerEvents: 'none'
+        }}>
+          {showToast && (
+            <div className={`toast ${toastClosing ? 'toast-exit' : 'toast-enter'}`} style={{
+              pointerEvents: 'auto',
+              backgroundColor: messageType === 'error' ? 'rgba(255, 179, 179, 0.1)' : '#dcfce7',
+              color: messageType === 'error' ? '#ffb3b3' : '#16a34a',
+              padding: '16px 50px 16px 20px',
+              borderRadius: '12px',
+              boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)',
+              fontSize: '14px',
+              fontWeight: '500',
+              maxWidth: '350px',
+              display: 'flex',
+              alignItems: 'center',
+              backdropFilter: 'blur(10px)',
+              border: messageType === 'error' ? '1px solid rgba(255, 179, 179, 0.3)' : '1px solid #bbf7d0'
+            }}>
+              <div>{message}</div>
+              <button 
+                onClick={hideToast}
+                className="close-btn"
+                style={{
+                  position: 'absolute',
+                  right: '18px',
+                  top: '18px',
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '50%',
+                  background: messageType === 'error' 
+                    ? 'rgba(220, 38, 38, 0.1)'
+                    : 'rgba(17, 204, 173, 0.1)',
+                  color: messageType === 'error' ? '#dc2626' : 'rgb(17, 204, 173)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '18px',
+                  fontWeight: 'bold',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  flexShrink: 0,
+                  backdropFilter: 'blur(10px)'
+                }}
+                aria-label="Close notification"
+                type="button"
+              >
+                ×
+              </button>
+            </div>
+          )}
+        </div>
+        <div className="min-h-screen flex login-container" style={{
         background: 'url(/src/assets/images/signin.jpeg) no-repeat center center/cover',
         minHeight: '100vh',
         width: '100%',
@@ -479,59 +441,7 @@ const Login: React.FC = () => {
               color: '#fff'
             }}>
               
-              {/* Toast Notifications */}
-              {showToast && (
-                <div className={`toast ${toastClosing ? 'toast-exit' : 'toast-enter'}`} style={{
-                  position: 'fixed',
-                  top: '20px',
-                  right: '20px',
-                  backgroundColor: messageType === 'error' ? 'rgba(255, 179, 179, 0.1)' : '#dcfce7',
-                  color: messageType === 'error' ? '#ffb3b3' : '#16a34a',
-                  padding: '16px 50px 16px 20px',
-                  borderRadius: '12px',
-                  boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)',
-                  zIndex: 1000,
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  maxWidth: '350px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  backdropFilter: 'blur(10px)',
-                  border: messageType === 'error' ? '1px solid rgba(255, 179, 179, 0.3)' : '1px solid #bbf7d0'
-                }}>
-                  <div>{message}</div>
-                  <button 
-                    onClick={hideToast}
-                    className="close-btn"
-                    style={{
-                      position: 'absolute',
-                      right: '18px',
-                      top: '18px',
-                      width: '28px',
-                      height: '28px',
-                      borderRadius: '50%',
-                      background: messageType === 'error' 
-                        ? 'rgba(220, 38, 38, 0.1)'
-                        : 'rgba(17, 204, 173, 0.1)',
-                      color: messageType === 'error' ? '#dc2626' : 'rgb(17, 204, 173)',
-                      border: 'none',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '18px',
-                      fontWeight: 'bold',
-                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                      flexShrink: 0,
-                      backdropFilter: 'blur(10px)'
-                    }}
-                    aria-label="Close notification"
-                    type="button"
-                  >
-                    ×
-                  </button>
-                </div>
-              )}
+
 
               <h2 style={{
                 fontSize: '24px',
@@ -540,7 +450,7 @@ const Login: React.FC = () => {
                 marginBottom: '8px',
                 textAlign: 'center'
               }}>
-                {currentView === 'login' ? 'Sign In' : 'Forgot Password'}
+                Sign In
               </h2>
               
               <p style={{
@@ -550,22 +460,18 @@ const Login: React.FC = () => {
                 textAlign: 'center',
                 lineHeight: '1.5'
               }}>
-                {currentView === 'login' 
-                  ? 'Please enter your credentials to proceed.'
-                  : 'Enter your email to receive a password reset link'
-                }
+                Please enter your credentials to proceed.
               </p>
 
-              {currentView === 'login' ? (
-                <form onSubmit={handleLoginSubmit} id="loginForm" role="form" aria-label="Login form">
-                  <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '18px'
-                  }}>
-                    <div>
-                      <label htmlFor="email" className="sr-only">Email Address</label>
-                      <input
+              <form onSubmit={handleLoginSubmit} id="loginForm" role="form" aria-label="Login form">
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '18px'
+                }}>
+                  <div>
+                    <label htmlFor="email" className="sr-only">Email Address</label>
+                    <input
                         type="email"
                         id="email"
                         name="email"
@@ -666,9 +572,8 @@ const Login: React.FC = () => {
                         Remember me
                       </label>
                       
-                      <button
-                        type="button"
-                        onClick={() => setCurrentView('forgot')}
+                      <Link
+                        to="/forgot-password"
                         className="forgot-password-link"
                         style={{
                           background: 'none',
@@ -681,7 +586,7 @@ const Login: React.FC = () => {
                         }}
                       >
                         Forgot password?
-                      </button>
+                      </Link>
                     </div>
 
                     <button
@@ -708,83 +613,6 @@ const Login: React.FC = () => {
                     </button>
                   </div>
                 </form>
-              ) : (
-                <form onSubmit={handleForgotSubmit} id="forgotForm" role="form" aria-label="Forgot password form">
-                  <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '18px'
-                  }}>
-                    <div>
-                      <label htmlFor="email" className="sr-only">Email Address</label>
-                      <input
-                        type="email"
-                        id="email"
-                        name="email"
-                        placeholder="Email Address"
-                        value={forgotForm.email}
-                        onChange={handleInputChange}
-                        required
-                        autoComplete="email"
-                        style={{
-                          width: '100%',
-                          padding: '12px 14px',
-                          border: 'none',
-                          borderRadius: '10px',
-                          backgroundColor: 'rgba(255, 255, 255, 0.82)',
-                          color: '#222',
-                          fontSize: '15px',
-                          boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-                          transition: 'box-shadow 0.2s'
-                        }}
-                      />
-                    </div>
-
-                    <button
-                      type="submit"
-                      className="submit-button"
-                      style={{
-                        width: '100%',
-                        padding: '13px',
-                        background: 'linear-gradient(90deg,rgb(10, 187, 163) 0%,rgb(7, 168, 141) 100%)',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '10px',
-                        fontSize: '17px',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        marginTop: '8px',
-                        boxShadow: '0 2px 8px rgba(56, 142, 60, 0.10)',
-                        transition: 'background 0.2s, box-shadow 0.2s',
-                        opacity: isSubmitting ? '0.7' : '1'
-                      }}
-                      disabled={isSubmitting}
-                    >
-                      {isSubmitting ? 'Sending...' : 'Send Reset Link'}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setCurrentView('login')}
-                      className="back-button"
-                      style={{
-                        width: '100%',
-                        padding: '13px',
-                        background: 'transparent',
-                        color: '#c8e6c9',
-                        border: '1px solid #c8e6c9',
-                        borderRadius: '10px',
-                        fontSize: '17px',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s'
-                      }}
-                    >
-                      Back to Sign In
-                    </button>
-                  </div>
-                </form>
-              )}
 
               <div style={{
                 textAlign: 'center',
@@ -806,43 +634,6 @@ const Login: React.FC = () => {
         </main>
 
         {/* Enhanced Loading State */}
-        {isSubmitting && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'linear-gradient(135deg, rgba(17, 204, 173, 0.1) 0%, rgba(6, 165, 165, 0.1) 100%)',
-            backdropFilter: 'blur(20px)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: '20px',
-            zIndex: 1001,
-            border: '1px solid rgba(255, 255, 255, 0.2)'
-          }}>
-            <div style={{
-              width: '32px',
-              height: '32px',
-              border: '3px solid rgba(17, 204, 173, 0.2)',
-              borderTop: '3px solid rgb(17, 204, 173)',
-              borderRadius: '50%',
-              marginBottom: '12px',
-              filter: 'drop-shadow(0 4px 8px rgba(17, 204, 173, 0.2))'
-            }} />
-            <div style={{
-              color: 'rgb(17, 204, 173)',
-              fontSize: '14px',
-              fontWeight: '600',
-              textAlign: 'center',
-              opacity: '0.9'
-            }}>
-              Processing your request...
-            </div>
-          </div>
-        )}
       </div>
     </>
   );

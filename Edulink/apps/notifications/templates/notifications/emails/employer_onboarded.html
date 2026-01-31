@@ -1,0 +1,25 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}Welcome to Edulink - Employer Setup Complete{% endblock %}
+
+{% block content %}
+<p>Dear {{ user_name }},</p>
+
+<p>Congratulations! Your account has been successfully activated and you are now an administrator for <strong>{{ employer_name }}</strong> on Edulink.</p>
+
+<p>You can now:</p>
+<ul>
+    <li>Post internship opportunities</li>
+    <li>Manage applications</li>
+    <li>Assign supervisors</li>
+    <li>Track intern progress</li>
+</ul>
+
+<div style="text-align: center;">
+    <a href="{{ dashboard_link }}" class="email-button">Go to Dashboard</a>
+</div>
+
+<p>We look forward to helping you connect with talented students.</p>
+
+<p>Best regards,<br>The Edulink Team</p>
+{% endblock %}

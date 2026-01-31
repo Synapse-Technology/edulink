@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Certificate of Completion</title>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 10mm;
+        }
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #1f2937;
+        }
+        
+        .main-container {
+            width: 100%;
+            height: 180mm;
+            border: 5pt solid #1ab8aa;
+            border-spacing: 15pt;
+            border-collapse: separate;
+        }
+        
+        .inner-frame {
+            border: 1.5pt solid #1ab8aa;
+            background-color: #fcfcfc;
+            text-align: center;
+            vertical-align: middle;
+            padding: 40pt;
+            position: relative;
+        }
+
+        .content-container {
+            padding: 0;
+            position: relative;
+        }
+
+        /* Chess Pattern Accents - Scaled Down */
+        .chess-grid {
+            border-collapse: collapse;
+            width: 25pt;
+            height: 25pt;
+            opacity: 0.12;
+            padding: 0;
+            margin: 0;
+        }
+        .chess-tile-filled {
+            background-color: #1ab8aa;
+            width: 8.3pt;
+            height: 8.3pt;
+            padding: 0;
+        }
+        .chess-tile-empty {
+            background-color: transparent;
+            width: 8.3pt;
+            height: 8.3pt;
+            padding: 0;
+        }
+
+        /* Branding & Titles - Scaled Up */
+        .brand {
+            font-size: 32pt;
+            font-weight: bold;
+            color: #1ab8aa;
+            letter-spacing: 8pt;
+            margin-bottom: 12pt;
+        }
+        .main-title {
+            font-size: 56pt;
+            font-weight: 900;
+            color: #111827;
+            margin: 15pt 0;
+            letter-spacing: 3pt;
+        }
+        .subtitle {
+            font-size: 18pt;
+            color: #4b5563;
+            text-transform: uppercase;
+            letter-spacing: 5pt;
+            margin-bottom: 30pt;
+        }
+
+        /* Recipient Section - Scaled Up */
+        .certify-text {
+            font-size: 16pt;
+            font-style: italic;
+            color: #6b7280;
+        }
+        .recipient-name {
+            font-size: 48pt;
+            font-weight: bold;
+            color: #111827;
+            margin: 20pt 0;
+            padding-bottom: 8pt;
+            border-bottom: 3pt solid #1ab8aa;
+            display: inline-block;
+            width: 80%;
+        }
+
+        /* Achievement Details - Scaled Up */
+        .achievement-text {
+            font-size: 18pt;
+            line-height: 1.6;
+            color: #374151;
+            margin: 15pt auto;
+            width: 90%;
+        }
+        .highlight {
+            color: #1ab8aa;
+            font-weight: bold;
+        }
+        .meta-info {
+            font-size: 14pt;
+            color: #6b7280;
+            margin-top: 15pt;
+        }
+
+        /* Signatures - Adjusted */
+        .signature-table {
+            width: 90%;
+            margin: 40pt auto 0;
+            border-collapse: collapse;
+        }
+        .sig-box {
+            width: 45%;
+            text-align: center;
+            padding: 0;
+        }
+        .sig-spacer {
+            width: 10%;
+            padding: 0;
+        }
+        .sig-line {
+            border-top: 2pt solid #374151;
+            margin: 0 auto 8pt;
+            width: 200pt;
+        }
+        .sig-name {
+            font-weight: bold;
+            font-size: 14pt;
+            color: #111827;
+        }
+        .sig-title {
+            font-size: 11pt;
+            color: #6b7280;
+        }
+
+        /* Verification Footer */
+        .footer-info {
+            margin-top: 35pt;
+            font-size: 10pt;
+            color: #9ca3af;
+        }
+        .verify-url {
+            color: #1ab8aa;
+            font-weight: bold;
+        }
+        .cert-id-tag {
+            font-family: 'Courier', monospace;
+            background-color: #f3f4f6;
+            padding: 3pt 6pt;
+        }
+    </style>
+</head>
+<body>
+    <table class="main-container">
+        <tr>
+            <td class="inner-frame">
+                
+                <!-- Minimal Chess Pattern (Top Left) -->
+                <div style="position: absolute; top: 0; left: 0;">
+                    <table class="chess-grid">
+                        <tr><td class="chess-tile-filled"></td><td class="chess-tile-empty"></td><td class="chess-tile-filled"></td></tr>
+                        <tr><td class="chess-tile-empty"></td><td class="chess-tile-filled"></td><td class="chess-tile-empty"></td></tr>
+                        <tr><td class="chess-tile-filled"></td><td class="chess-tile-empty"></td><td class="chess-tile-filled"></td></tr>
+                    </table>
+                </div>
+
+                <!-- Minimal Chess Pattern (Bottom Right) -->
+                <div style="position: absolute; bottom: 0; right: 0;">
+                    <table class="chess-grid">
+                        <tr><td class="chess-tile-filled"></td><td class="chess-tile-empty"></td><td class="chess-tile-filled"></td></tr>
+                        <tr><td class="chess-tile-empty"></td><td class="chess-tile-filled"></td><td class="chess-tile-empty"></td></tr>
+                        <tr><td class="chess-tile-filled"></td><td class="chess-tile-empty"></td><td class="chess-tile-filled"></td></tr>
+                    </table>
+                </div>
+
+                <div class="content-container">
+                    <div class="brand">EDULINK</div>
+                    <div class="main-title">CERTIFICATE</div>
+                    <div class="subtitle">of Professional Internship Completion</div>
+
+                    <div class="certify-text">This is to officially recognize that</div>
+                    <div class="recipient-name">{{ student_name }}</div>
+
+                    <div class="achievement-text">
+                        has successfully completed a professional internship as a 
+                        <span class="highlight">{{ position }}</span> at 
+                        <span class="highlight">{{ employer_name }}</span>, 
+                        facilitated through <span class="highlight">{{ institution_name }}</span>.
+                    </div>
+
+                    <div class="meta-info">
+                        Duration: {{ start_date }} — {{ end_date }} | Department: {{ department }}
+                    </div>
+
+                    <table class="signature-table">
+                        <tr>
+                            <td class="sig-box">
+                                <div class="sig-line"></div>
+                                <div class="sig-name">{{ employer_supervisor_name }}</div>
+                                <div class="sig-title">Employer Supervisor</div>
+                                <div class="sig-title">{{ employer_name }}</div>
+                            </td>
+                            <td class="sig-spacer"></td>
+                            <td class="sig-box">
+                                <div class="sig-line"></div>
+                                <div class="sig-name">{{ institution_supervisor_name }}</div>
+                                <div class="sig-title">Institution Supervisor</div>
+                                <div class="sig-title">{{ institution_name }}</div>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <div class="footer-info">
+                        Verification URL: <span class="verify-url">edulink.app/verify/{{ tracking_code }}</span>
+                        &nbsp;&nbsp;|&nbsp;&nbsp;
+                        Verification Code: <span class="cert-id-tag">{{ tracking_code }}</span>
+                    </div>
+                </div>
+
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

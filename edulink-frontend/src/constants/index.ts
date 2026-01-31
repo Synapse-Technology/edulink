@@ -79,10 +79,10 @@ export const ROUTES = {
   },
   
   EMPLOYER: {
-    PROFILE: '/employer/profile',
-    INTERNSHIPS: '/employer/internships',
-    APPLICATIONS: '/employer/applications',
-    POST_INTERNSHIP: '/employer/post-internship',
+    PROFILE: '/dashboard/employer/profile',
+    INTERNSHIPS: '/dashboard/employer/opportunities',
+    APPLICATIONS: '/dashboard/employer/applications',
+    POST_INTERNSHIP: '/dashboard/employer/post-internship',
   },
   
   INSTITUTION: {

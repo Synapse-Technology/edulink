@@ -1,19 +1,9 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext } from 'react';
 import type { ReactNode } from 'react';
+import { useAuthStore } from '../stores/authStore';
+import { ApiError } from '../services';
+import type { User, RegisterData } from '../types';
 
-// User interface
-interface User {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  role: 'student' | 'employer' | 'institution';
-  institution?: string;
-  phone?: string;
-  avatar?: string;
-}
-
-// Auth context interface
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
@@ -25,190 +15,84 @@ interface AuthContextType {
   refreshToken: () => Promise<void>;
 }
 
-// Register data interface
-interface RegisterData {
-  email: string;
-  password: string;
-  firstName: string;
-  lastName: string;
-  role: 'student' | 'employer' | 'institution';
-  institution: string;
-  phone: string;
-}
+// We don't really use the context provider anymore since we use Zustand
+// But to keep compatibility with existing code that wraps the app in AuthProvider
+// we'll keep the provider but it won't actually "provide" state down via context if we switch useAuth.
+// HOWEVER, to be safe and least invasive, we can make useAuth return values from the store directly.
+// But useAuth currently throws if used outside provider.
+// Let's implement useAuth to return store state.
+// And AuthProvider can just be a shell or perform initialization.
 
-// Create the context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Auth provider props
 interface AuthProviderProps {
   children: ReactNode;
 }
 
-// Mock authentication service
-const mockAuthService = {
-  login: async (email: string, _password: string): Promise<{ user: User; token: string }> => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Mock user data
-    const mockUser: User = {
-      id: '1',
-      email,
-      firstName: 'John',
-      lastName: 'Doe',
-      role: 'student',
-      institution: 'University of Example',
-      phone: '+1234567890',
-      avatar: 'https://via.placeholder.com/150'
-    };
-    
-    const mockToken = 'mock-jwt-token-' + Date.now();
-    
-    return { user: mockUser, token: mockToken };
-  },
-  
-  register: async (userData: RegisterData): Promise<{ user: User; token: string }> => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // Mock user data
-    const mockUser: User = {
-      id: '1',
-      email: userData.email,
-      firstName: userData.firstName,
-      lastName: userData.lastName,
-      role: userData.role,
-      institution: userData.institution,
-      phone: userData.phone,
-      avatar: 'https://via.placeholder.com/150'
-    };
-    
-    const mockToken = 'mock-jwt-token-' + Date.now();
-    
-    return { user: mockUser, token: mockToken };
-  },
-  
-  refreshToken: async (): Promise<{ token: string }> => {
-    // Simulate token refresh
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    const newToken = 'refreshed-jwt-token-' + Date.now();
-    
-    return { token: newToken };
-  }
-};
-
-// Auth provider component
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Check for existing authentication on mount
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const token = localStorage.getItem('authToken');
-        const userData = localStorage.getItem('userData');
-        
-        if (token && userData) {
-          const parsedUser = JSON.parse(userData);
-          setUser(parsedUser);
-          setIsAuthenticated(true);
-        }
-      } catch (error) {
-        console.error('Error checking authentication:', error);
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('userData');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    checkAuth();
-  }, []);
-
-  // Login function
+  // We can use the store here to sync or initialize if needed.
+  // Zustand persist middleware handles hydration automatically.
+  
+  // We don't strictly need to pass values via Context anymore if we update useAuth
+  // But to strictly follow the interface, let's just render children.
+  // Or, we can pass the store state into the context value to keep the pattern valid.
+  
+  const store = useAuthStore();
+  
+  // Map store actions to match Context interface
   const login = async (email: string, password: string) => {
     try {
-      const { user: loggedInUser, token } = await mockAuthService.login(email, password);
-      
-      setUser(loggedInUser);
-      setIsAuthenticated(true);
-      
-      // Store in localStorage
-      localStorage.setItem('authToken', token);
-      localStorage.setItem('userData', JSON.stringify(loggedInUser));
+        await store.login({ email, password });
     } catch (error) {
-      console.error('Login failed:', error);
-      throw new Error('Invalid email or password');
+        if (error instanceof ApiError) {
+            throw new Error(error.message);
+        }
+        console.error('Login failed:', error);
+        throw new Error('Invalid email or password');
     }
   };
 
-  // Register function
   const register = async (userData: RegisterData) => {
-    try {
-      const { user: registeredUser, token } = await mockAuthService.register(userData);
-      
-      setUser(registeredUser);
-      setIsAuthenticated(true);
-      
-      // Store in localStorage
-      localStorage.setItem('authToken', token);
-      localStorage.setItem('userData', JSON.stringify(registeredUser));
-    } catch (error) {
-      console.error('Registration failed:', error);
-      throw new Error('Registration failed. Please try again.');
-    }
+      // Forward to store register
+      // Cast userData to any to bypass strict type checking for now since we are migrating types
+      await store.register(userData as any);
   };
-
-  // Logout function
+  
   const logout = () => {
-    setUser(null);
-    setIsAuthenticated(false);
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('userData');
+      store.logout();
   };
-
-  // Update user function
+  
   const updateUser = (userData: Partial<User>) => {
-    if (user) {
-      const updatedUser = { ...user, ...userData };
-      setUser(updatedUser);
-      localStorage.setItem('userData', JSON.stringify(updatedUser));
-    }
+      // Cast userData to any to bypass strict type checking for now
+      store.updateUser(userData as any);
   };
-
-  // Refresh token function
+  
   const refreshToken = async () => {
-    try {
-      const { token } = await mockAuthService.refreshToken();
-      localStorage.setItem('authToken', token);
-    } catch (error) {
-      console.error('Token refresh failed:', error);
-      // If refresh fails, log out the user
-      logout();
-    }
+      await store.refreshSession();
   };
 
   const value: AuthContextType = {
-    user,
-    isAuthenticated,
-    isLoading,
+    user: store.user as User | null,
+    isAuthenticated: store.isAuthenticated,
+    isLoading: store.isLoading,
     login,
     register,
     logout,
     updateUser,
-    refreshToken,
+    refreshToken
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-// Custom hook to use auth context
 export const useAuth = (): AuthContextType => {
+  // We can just return the store state directly if we want to bypass Context
+  // BUT existing code might rely on being inside AuthProvider (e.g. tests)
+  // Let's stick to using the context for now to minimize refactoring risk.
   const context = useContext(AuthContext);
   if (context === undefined) {
+     // If we really want to support usage outside provider, we could fallback to store here.
+     // But let's keep the constraint.
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;

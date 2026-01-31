@@ -1,0 +1,29 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}We Heard Your Interest in {{ institution_name }}{% endblock %}
+
+{% block content %}
+<h2>Hello!</h2>
+
+<p>We noticed your interest in having <strong>{{ institution_name }}</strong> join the Edulink platform.</p>
+
+<div class="highlight-box">
+    <p>Thank you for helping us expand! We've recorded your request and our outreach team is now looking into onboarding your institution.</p>
+</div>
+
+<p>Having your institution on Edulink will provide you and your fellow students with:</p>
+<ul>
+    <li>Streamlined internship applications</li>
+    <li>Direct verification of your academic records</li>
+    <li>Official logbook tracking and supervisor reviews</li>
+    <li>Access to exclusive opportunities from our employer partners</li>
+</ul>
+
+<p>We'll notify you as soon as {{ institution_name }} is active on the platform. In the meantime, feel free to explore other features of Edulink.</p>
+
+<div style="text-align: center;">
+    <a href="{{ site_url }}/login" class="email-button">Go to Dashboard</a>
+</div>
+
+<p>Best regards,<br>The Edulink Team</p>
+{% endblock %}

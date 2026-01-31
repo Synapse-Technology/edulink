@@ -1,0 +1,26 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}Affiliation Approved - {{ site_name }}{% endblock %}
+
+{% block content %}
+<h2>Affiliation Approved</h2>
+
+<p>Hello {{ student_name }},</p>
+
+<p>We are pleased to inform you that your affiliation request with <strong>{{ institution_name }}</strong> has been approved.</p>
+
+<div class="highlight-box">
+    <p>You are now a verified student of {{ institution_name }} on Edulink.</p>
+</div>
+
+<p>This verification adds a trust badge to your profile and allows you to participate in internship programs managed by your institution.</p>
+
+<div style="text-align: center;">
+    <a href="{{ dashboard_url }}" class="email-button">
+        Go to Dashboard
+    </a>
+</div>
+
+<p>Best regards,<br>
+The {{ site_name }} Team</p>
+{% endblock %}

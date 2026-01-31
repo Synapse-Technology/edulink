@@ -123,7 +123,7 @@ const Footer: React.FC<FooterProps> = ({ className = '' }) => {
       <div className="container copyright text-center mt-4">
         <p>© <span>Copyright</span> <strong className="px-1 sitename">EduLink KE</strong> <span>All Rights Reserved</span></p>
         <div className="credits">
-          Designed &amp; Developed by <a href="https://synapsetechnology.co.ke" target="_blank" rel="noopener noreferrer">Synapse Technology</a>
+          Designed &amp; Developed by <a href="https://sinapstechnology.co.ke" target="_blank" rel="noopener noreferrer">Sinaps Technology</a>
         </div>
       </div>
 

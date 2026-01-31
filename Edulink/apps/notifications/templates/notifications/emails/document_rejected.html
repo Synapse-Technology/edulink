@@ -1,0 +1,22 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}Action Required: Document Rejected - {{ site_name }}{% endblock %}
+
+{% block content %}
+<h2>Document Rejected</h2>
+
+<p>Hello {{ user_name }},</p>
+
+<p>We reviewed your uploaded document <strong>{{ document_type }}</strong>, and unfortunately, it was rejected.</p>
+
+<div class="highlight-box" style="border-left: 4px solid #dc3545; background-color: #f8d7da; color: #721c24;">
+    <p><strong>Reason for Rejection:</strong></p>
+    <p>{{ reason }}</p>
+</div>
+
+<p>Please review the reason above and upload a valid document to proceed with your verification.</p>
+
+<div style="text-align: center;">
+    <a href="{{ dashboard_url }}" class="email-button">Update Document</a>
+</div>
+{% endblock %}

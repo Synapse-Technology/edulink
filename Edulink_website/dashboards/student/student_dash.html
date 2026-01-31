@@ -1,15 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script>
-    // Token validation function (used later in DOMContentLoaded)
-    function isValidTokenFormat(token) {
-      if (!token || typeof token !== 'string') return false;
-      // Basic JWT format check (3 parts separated by dots)
-      const parts = token.split('.');
-      return parts.length === 3 && parts.every(part => part.length > 0);
-    }
-  </script>
+  
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>EduLink KE - Student Dashboard</title>
@@ -1939,12 +1931,7 @@
                 body: JSON.stringify(payload)
               });
             }
-            if (res.status === 401 || res.status === 403) {
-              console.warn('Authentication failed for save event');
-              localStorage.removeItem('access_token');
-              window.location.href = '../../login.html';
-              return;
-            }
+            
             if (!res.ok) throw new Error('Failed to save event');
             await loadCalendarData();
             addEventModal.style.display = 'none';

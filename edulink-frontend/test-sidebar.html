@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sidebar Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Test the exact classes we're using */
+        .test-sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 30;
+            height: 100%;
+            width: 230px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            background: #14b8a6;
+            color: white;
+            transition: transform 300ms;
+        }
+        
+        @media (min-width: 768px) {
+            .test-sidebar {
+                position: static;
+                transform: translateX(0) !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="flex min-h-screen flex-col md:flex-row">
+        <!-- Test Sidebar -->
+        <aside class="test-sidebar">
+            <div class="p-4">
+                <h2 class="text-xl font-bold">Test Sidebar</h2>
+                <p class="text-sm opacity-70">This should be visible on desktop</p>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="flex-1 p-6">
+            <h1 class="text-2xl font-bold mb-4">Main Content</h1>
+            <p>If you can see a teal sidebar on the left, the classes are working correctly.</p>
+            <p class="mt-4 text-sm text-gray-600">On mobile, this sidebar would be hidden and toggleable.</p>
+        </main>
+    </div>
+</body>
+</html>

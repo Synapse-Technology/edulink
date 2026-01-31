@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
+import { Link } from 'react-router-dom';
+import { Search } from 'lucide-react';
 
 // CSS Animations and Keyframes
 const styles = `
@@ -41,6 +41,27 @@ const styles = `
     50% { opacity: 1; }
   }
 
+  @keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  @keyframes glow {
+    0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
+    50% { box-shadow: 0 0 40px rgba(59, 130, 246, 0.6); }
+  }
+
   .toast-enter {
     animation: slideInFromTop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
   }
@@ -55,6 +76,127 @@ const styles = `
 
   .loading-text {
     animation: pulse 2s ease-in-out infinite;
+  }
+
+  .loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 50%, rgba(15, 23, 42, 0.95) 100%);
+    background-size: 200% 200%;
+    animation: gradientShift 8s ease infinite;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    box-shadow: 0 0 40px rgba(59, 130, 246, 0.1);
+    z-index: 1000;
+  }
+
+  .loading-content {
+    text-align: center;
+    padding: 40px;
+    background: rgba(15, 23, 42, 0.8);
+    border-radius: 15px;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.2);
+    animation: float 3s ease-in-out infinite;
+  }
+
+  .loading-spinner-enhanced {
+    width: 60px;
+    height: 60px;
+    border: 4px solid rgba(59, 130, 246, 0.1);
+    border-top: 4px solid #3b82f6;
+    border-right: 4px solid #60a5fa;
+    border-radius: 50%;
+    animation: spin 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+    margin: 0 auto 20px;
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+    position: relative;
+  }
+
+  .loading-spinner-enhanced::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    right: -8px;
+    bottom: -8px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    border-top: 2px solid rgba(96, 165, 250, 0.3);
+    animation: spin 2s linear infinite reverse;
+  }
+
+  .loading-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #f8fafc;
+    margin-bottom: 10px;
+    letter-spacing: 0.5px;
+    text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+  }
+
+  .loading-subtitle {
+    font-size: 14px;
+    color: #94a3b8;
+    margin-bottom: 20px;
+    line-height: 1.4;
+  }
+
+  .loading-shimmer {
+    height: 6px;
+    background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.6), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+    border-radius: 3px;
+    margin: 15px 0;
+  }
+
+  .loading-dots {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 15px;
+  }
+
+  .loading-dot {
+    width: 8px;
+    height: 8px;
+    background: linear-gradient(135deg, #3b82f6, #60a5fa);
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+  }
+
+  .loading-dot:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+
+  .loading-dot:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+
+  .loading-progress {
+    width: 100%;
+    height: 2px;
+    background: rgba(59, 130, 246, 0.2);
+    border-radius: 1px;
+    overflow: hidden;
+    margin-top: 20px;
+  }
+
+  .loading-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #3b82f6, #60a5fa, #93c5fd);
+    border-radius: 1px;
+    animation: shimmer 3s infinite;
+    width: 60%;
   }
 
   /* Responsive Media Queries */
@@ -137,6 +279,10 @@ const styles = `
     .loading-text {
       font-size: 13px !important;
     }
+    
+    .loading-shimmer {
+      height: 4px !important;
+    }
   }
 `;
 
@@ -147,24 +293,12 @@ interface RegisterFormData {
   firstName: string;
   lastName: string;
   phone: string;
-  nationalId: string;
   gender: string;
-  institution: string;
   registrationNumber: string;
-  yearOfStudy: string;
-  courseCode?: string;
   role: 'student' | 'employer' | 'institution';
 }
 
-interface Institution {
-  id: string;
-  name: string;
-  code?: string;
-}
-
 const Register: React.FC = () => {
-  const navigate = useNavigate();
-  const { register } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<RegisterFormData>({
     email: '',
@@ -173,12 +307,8 @@ const Register: React.FC = () => {
     firstName: '',
     lastName: '',
     phone: '',
-    nationalId: '',
     gender: '',
-    institution: '',
     registrationNumber: '',
-    yearOfStudy: '',
-    courseCode: '',
     role: 'student'
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -186,14 +316,21 @@ const Register: React.FC = () => {
   const [messageType, setMessageType] = useState<'error' | 'success' | ''>('');
   const [showToast, setShowToast] = useState(false);
   const [toastClosing, setToastClosing] = useState(false);
-  const [registrationMethod, setRegistrationMethod] = useState<'search' | 'code'>('search');
-  const [selectedInstitution, setSelectedInstitution] = useState<Institution | null>(null);
-  const [institutionSearch, setInstitutionSearch] = useState('');
-  const [institutionResults, setInstitutionResults] = useState<Institution[]>([]);
-  const [showInstitutionResults, setShowInstitutionResults] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
-  const [universityCodeValidated, setUniversityCodeValidated] = useState(false);
+  const [registrationComplete, setRegistrationComplete] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState('');
+  const [isResending, setIsResending] = useState(false);
+
+  const [selectedInstitution, setSelectedInstitution] = useState<any>(null);
+  const [availableInstitutions, setAvailableInstitutions] = useState<any[]>([]);
+  const [isSearchingInstitutions, setIsSearchingInstitutions] = useState(false);
+  const [institutionSearchQuery, setInstitutionSearchQuery] = useState('');
+  const [searchTimeout, setSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const [showInstitutionInterestModal, setShowInstitutionInterestModal] = useState(false);
+  const [institutionInterestName, setInstitutionInterestName] = useState('');
+  const [isSubmittingInterest, setIsSubmittingInterest] = useState(false);
+  const [interestSubmissionStatus, setInterestSubmissionStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -201,6 +338,112 @@ const Register: React.FC = () => {
       ...prev,
       [name]: value
     }));
+  };
+
+
+
+
+
+  // const handleInstitutionSkip = () => {
+  //   setSelectedInstitution(null);
+  // };
+
+  const handleInstitutionSearch = async (query: string) => {
+    setIsSearchingInstitutions(true);
+    try {
+      const response = await fetch(`/api/institutions/institutions/public_list/?q=${encodeURIComponent(query)}`);
+      
+      if (!response.ok) {
+        console.error('Failed to fetch institutions:', response.status);
+        return;
+      }
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.error('Invalid response format for institutions');
+        return;
+      }
+
+      const data = await response.json();
+      setAvailableInstitutions(data.results || data);
+    } catch (error) {
+      console.error('Error fetching institutions:', error);
+    } finally {
+      setIsSearchingInstitutions(false);
+    }
+  };
+
+  const handleInstitutionSearchInput = (query: string) => {
+    setInstitutionSearchQuery(query);
+    
+    // Clear existing timeout
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+    
+    // Don't search if query is too short
+    if (query.length < 2) {
+      setAvailableInstitutions([]);
+      return;
+    }
+    
+    // Set new timeout for debounced search
+    const timeout = setTimeout(() => {
+      handleInstitutionSearch(query);
+    }, 500); // 500ms debounce
+    
+    setSearchTimeout(timeout);
+  };
+
+  const handleSkipInstitution = () => {
+    setSelectedInstitution(null);
+    setInstitutionSearchQuery('');
+    setAvailableInstitutions([]);
+    setInterestSubmissionStatus('idle');
+    setShowInstitutionInterestModal(true);
+  };
+
+  const handleInstitutionInterestSubmit = async () => {
+    if (!institutionInterestName.trim()) {
+      setShowInstitutionInterestModal(false);
+      return;
+    }
+
+    setIsSubmittingInterest(true);
+    setInterestSubmissionStatus('idle');
+
+    try {
+      const response = await fetch('/api/institutions/institutions/record_interest/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          raw_name: institutionInterestName.trim(),
+          user_email: formData.email.trim(),
+          email_domain: formData.email.split('@')[1] || '',
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to record interest');
+      }
+
+      setInterestSubmissionStatus('success');
+      setInstitutionInterestName('');
+      
+      // Close modal after 2 seconds on success
+      setTimeout(() => {
+        setShowInstitutionInterestModal(false);
+        setInterestSubmissionStatus('idle');
+      }, 2500);
+
+    } catch (error) {
+      console.error('Failed to record institution interest:', error);
+      setInterestSubmissionStatus('error');
+    } finally {
+      setIsSubmittingInterest(false);
+    }
   };
 
   const showToastMessage = (msg: string, type: 'error' | 'success') => {
@@ -231,58 +474,7 @@ const Register: React.FC = () => {
     }
   };
 
-  const searchInstitutions = async (query: string) => {
-    if (query.length < 2) {
-      setInstitutionResults([]);
-      setShowInstitutionResults(false);
-      return;
-    }
 
-    try {
-      // Simulate API call - replace with actual endpoint
-      const response = await fetch(`/api/institutions/search/?q=${encodeURIComponent(query)}`);
-      if (response.ok) {
-        const data = await response.json();
-        setInstitutionResults(data.results || []);
-        setShowInstitutionResults(true);
-      }
-    } catch (_error) {
-      console.error('Institution search error:', _error);
-    }
-  };
-
-  const selectInstitution = (institution: Institution) => {
-    setSelectedInstitution(institution);
-    setFormData(prev => ({ ...prev, institution: institution.name }));
-    setInstitutionSearch(institution.name);
-    setShowInstitutionResults(false);
-  };
-
-  const validateUniversityCode = async (code: string) => {
-    if (!code.trim()) return;
-    
-    try {
-      const response = await fetch(`/api/universities/validate-code/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ code: code.trim() })
-      });
-      
-      const data = await response.json();
-      if (data.valid) {
-        setUniversityCodeValidated(true);
-        showToastMessage('University code validated successfully!', 'success');
-      } else {
-        setUniversityCodeValidated(false);
-        showToastMessage(data.message || 'Invalid university code', 'error');
-      }
-    } catch (_error) {
-      setUniversityCodeValidated(false);
-      showToastMessage('Failed to validate university code', 'error');
-    }
-  };
 
   const validateStep = (step: number): boolean => {
     // Clear previous errors
@@ -332,15 +524,7 @@ const Register: React.FC = () => {
         showToastMessage('Please enter a valid Kenyan phone number', 'error');
         return false;
       }
-      if (!formData.nationalId.trim()) {
-        showToastMessage('Please enter your national ID number', 'error');
-        return false;
-      }
-      // Basic national ID validation (Kenya format)
-      if (!/^\d{7,8}$/.test(formData.nationalId)) {
-        showToastMessage('Please enter a valid National ID number (7-8 digits)', 'error');
-        return false;
-      }
+
       if (!formData.gender) {
         showToastMessage('Please select your gender', 'error');
         return false;
@@ -349,26 +533,6 @@ const Register: React.FC = () => {
 
     if (step === 2) {
       // Step 3: Academic Information
-      if (registrationMethod === 'search') {
-        if (!selectedInstitution) {
-          showToastMessage('Please search and select your institution', 'error');
-          return false;
-        }
-        if (!formData.registrationNumber.trim()) {
-          showToastMessage('Registration number is required', 'error');
-          return false;
-        }
-      } else if (registrationMethod === 'code') {
-        if (!universityCodeValidated) {
-          showToastMessage('Please validate your university code first', 'error');
-          return false;
-        }
-        if (!formData.registrationNumber.trim()) {
-          showToastMessage('Registration number is required', 'error');
-          return false;
-        }
-      }
-      
       if (!formData.registrationNumber.trim()) {
         showToastMessage('Registration number is required', 'error');
         return false;
@@ -380,8 +544,9 @@ const Register: React.FC = () => {
         return false;
       }
       
-      if (!formData.yearOfStudy) {
-        showToastMessage('Year of study is required', 'error');
+      // Validate institution selection
+      if (!selectedInstitution) {
+        showToastMessage('Please select your institution', 'error');
         return false;
       }
     }
@@ -420,14 +585,6 @@ const Register: React.FC = () => {
       setMessage('Please enter your phone number');
       return false;
     }
-    if (!formData.role) {
-      setMessage('Please select your role');
-      return false;
-    }
-    if (!formData.institution.trim()) {
-      setMessage('Please enter your institution');
-      return false;
-    }
     if (!formData.password) {
       setMessage('Please enter a password');
       return false;
@@ -458,23 +615,71 @@ const Register: React.FC = () => {
     if (formBox) {
       const loadingOverlay = document.createElement('div');
       loadingOverlay.className = 'loading-overlay';
-      loadingOverlay.innerHTML = '<div class="loading-spinner"></div><div class="loading-text">Processing your registration...</div>';
+      loadingOverlay.innerHTML = `
+        <div class="loading-content">
+          <div class="loading-spinner-enhanced"></div>
+          <div class="loading-title">Creating Your Account</div>
+          <div class="loading-subtitle">Please wait while we set up your profile...</div>
+          <div class="loading-shimmer"></div>
+          <div class="loading-dots">
+            <div class="loading-dot"></div>
+            <div class="loading-dot"></div>
+            <div class="loading-dot"></div>
+          </div>
+          <div class="loading-progress">
+            <div class="loading-progress-bar"></div>
+          </div>
+        </div>
+      `;
       (formBox as HTMLElement).style.position = 'relative';
       formBox.appendChild(loadingOverlay);
     }
 
     try {
-      const registerData = {
-        email: formData.email,
+      const payload = {
+        email: formData.email.trim(),
+        username: formData.email.trim().split('@')[0],
         password: formData.password,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        role: formData.role,
-        institution: formData.institution,
-        phone: formData.phone
+        password_confirm: formData.confirmPassword,
+        first_name: formData.firstName.trim(),
+        last_name: formData.lastName.trim(),
+        phone_number: formData.phone.trim(),
+        gender: formData.gender,
+        role: 'student',
+        registration_number: formData.registrationNumber.trim(),
+        institution_id: selectedInstitution ? selectedInstitution.id : null,
       };
-      await register(registerData);
-      navigate('/dashboard/student');
+
+      const response = await fetch('/api/auth/users/register/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        let errorMessage = 'Registration failed. Please try again.';
+        try {
+          const data = await response.json();
+          if (typeof data.error === 'string' && data.error) {
+            errorMessage = data.error;
+          }
+        } catch (parseError) {
+          console.error('Failed to parse registration error response', parseError);
+        }
+        setMessage(errorMessage);
+        showToastMessage(errorMessage, 'error');
+        return;
+      }
+
+      setRegistrationComplete(true);
+      setRegisteredEmail(formData.email.trim());
+      showToastMessage(
+        'Registration successful. Please check your email to verify your account.',
+        'success',
+      );
+      setCurrentStep(0);
     } catch (_error) {
       setMessage('Registration failed. Please try again.');
       showToastMessage('Registration failed. Please try again.', 'error');
@@ -485,6 +690,45 @@ const Register: React.FC = () => {
       if (loadingOverlay) {
         loadingOverlay.remove();
       }
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (!registeredEmail) {
+      showToastMessage('Please complete registration first.', 'error');
+      return;
+    }
+
+    setIsResending(true);
+
+    try {
+      const response = await fetch('/api/notifications/email-verification/resend/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: registeredEmail }),
+      });
+
+      if (!response.ok) {
+        let errorMessage = 'Failed to resend verification email.';
+        try {
+          const data = await response.json();
+          if (typeof data.error === 'string' && data.error) {
+            errorMessage = data.error;
+          }
+        } catch (parseError) {
+          console.error('Failed to parse resend verification error response', parseError);
+        }
+        showToastMessage(errorMessage, 'error');
+        return;
+      }
+
+      showToastMessage('Verification email resent successfully.', 'success');
+    } catch (_error) {
+      showToastMessage('Failed to resend verification email.', 'error');
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -592,6 +836,48 @@ const Register: React.FC = () => {
               textAlign: 'center',
               fontSize: '15px'
             }}>To sign up, please complete all steps</p>
+
+            {registrationComplete && (
+              <div
+                style={{
+                  borderRadius: '16px',
+                  padding: '18px 20px',
+                  marginBottom: '15px',
+                  boxShadow:
+                    '0 12px 40px rgba(17, 204, 173, 0.15), 0 4px 16px rgba(17, 204, 173, 0.1)',
+                  fontSize: '14px',
+                  lineHeight: '1.6',
+                  backdropFilter: 'blur(20px)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  background:
+                    'linear-gradient(135deg, rgba(17, 204, 173, 0.15) 0%, rgba(6, 165, 165, 0.15) 100%)',
+                  color: '#0d9488',
+                }}
+              >
+                <div style={{ marginBottom: '10px' }}>
+                  A verification link has been sent to{' '}
+                  <span style={{ fontWeight: 600 }}>{registeredEmail}</span>. Check your inbox
+                  and follow the link to activate your account.
+                </div>
+                <button
+                  type="button"
+                  onClick={handleResendVerification}
+                  disabled={isResending}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: '8px',
+                    border: '1px solid #c8e6c9',
+                    backgroundColor: 'transparent',
+                    color: '#c8e6c9',
+                    cursor: isResending ? 'default' : 'pointer',
+                    fontWeight: 600,
+                    fontSize: '13px',
+                  }}
+                >
+                  {isResending ? 'Resending email...' : 'Resend verification email'}
+                </button>
+              </div>
+            )}
 
             {/* Enhanced Error/Success Toast */}
             {showToast && (
@@ -703,6 +989,7 @@ const Register: React.FC = () => {
                     placeholder="Email"
                     value={formData.email}
                     onChange={handleInputChange}
+
                     required
                     autoComplete="email"
                     style={{
@@ -721,6 +1008,28 @@ const Register: React.FC = () => {
                   <div style={{ fontSize: '12px', color: '#c8e6c9', marginBottom: '8px', marginTop: '4px', lineHeight: '1.4', opacity: '0.9' }}>
                     We'll use this email for account verification and important updates.
                   </div>
+                  
+
+                  
+
+                  
+                  {selectedInstitution && (
+                    <div style={{
+                      marginTop: '8px',
+                      padding: '8px 12px',
+                      backgroundColor: 'rgba(17, 204, 173, 0.15)',
+                      borderRadius: '6px',
+                      border: '1px solid rgba(17, 204, 173, 0.3)',
+                      fontSize: '12px',
+                      color: '#c8e6c9'
+                    }}>
+                      ✓ Institution: {selectedInstitution.name}
+                    </div>
+                  )}
+                  
+
+                   
+
                 </div>
 
                 <div style={{ position: 'relative' }}>
@@ -911,34 +1220,7 @@ const Register: React.FC = () => {
                   </div>
                 </div>
 
-                <div>
-                  <label htmlFor="nationalId" className="sr-only">National ID Number</label>
-                  <input
-                    type="text"
-                    id="nationalId"
-                    name="nationalId"
-                    placeholder="National ID Number"
-                    value={formData.nationalId}
-                    onChange={handleInputChange}
-                    required
-                    autoComplete="off"
-                    style={{
-                      width: '100%',
-                      padding: '12px 14px',
-                      border: 'none',
-                      borderRadius: '10px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.82)',
-                      color: '#222',
-                      fontSize: '15px',
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-                      transition: 'box-shadow 0.2s',
-                      marginBottom: '0'
-                    }}
-                  />
-                  <div style={{ fontSize: '12px', color: '#c8e6c9', marginBottom: '8px', marginTop: '4px', lineHeight: '1.4', opacity: '0.9' }}>
-                    Enter your Kenyan National ID number (7-8 digits).
-                  </div>
-                </div>
+
 
                 <div>
                   <label htmlFor="gender" className="sr-only">Gender</label>
@@ -983,147 +1265,11 @@ const Register: React.FC = () => {
               }}>
                 <legend className="sr-only">Academic Information</legend>
                 
-                {/* Registration Method Selection */}
-                <div style={{ marginBottom: '15px' }}>
-                  <label style={{ display: 'block', marginBottom: '10px', color: '#fff', fontSize: '14px' }}>
-                    How would you like to register?
-                  </label>
-                  <div style={{ display: 'flex', gap: '15px' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-                      <input
-                        type="radio"
-                        name="registrationMethod"
-                        value="search"
-                        checked={registrationMethod === 'search'}
-                        onChange={(e) => setRegistrationMethod(e.target.value as 'search' | 'code')}
-                        style={{ marginRight: '5px' }}
-                      />
-                      Search Institution
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-                      <input
-                        type="radio"
-                        name="registrationMethod"
-                        value="code"
-                        checked={registrationMethod === 'code'}
-                        onChange={(e) => setRegistrationMethod(e.target.value as 'search' | 'code')}
-                        style={{ marginRight: '5px' }}
-                      />
-                      University Code
-                    </label>
+                <div style={{ marginBottom: '15px', padding: '10px', backgroundColor: 'rgba(200, 230, 201, 0.1)', borderRadius: '8px', border: '1px solid rgba(200, 230, 201, 0.3)' }}>
+                  <div style={{ color: '#c8e6c9', fontSize: '13px', lineHeight: '1.4' }}>
+                    <strong>Institution Auto-Detection:</strong> Your institution will be automatically detected based on your email address (e.g., student@university.ac.ke). Use your institutional email for automatic linking.
                   </div>
                 </div>
-
-                {registrationMethod === 'search' ? (
-                  <div>
-                    <label htmlFor="institutionSearch" className="sr-only">Search Institution</label>
-                    <input
-                      type="text"
-                      id="institutionSearch"
-                      name="institutionSearch"
-                      placeholder="Search for your institution..."
-                      value={institutionSearch}
-                      onChange={(e) => {
-                        setInstitutionSearch(e.target.value);
-                        searchInstitutions(e.target.value);
-                      }}
-                      style={{
-                        width: '100%',
-                        padding: '12px 14px',
-                        border: 'none',
-                        borderRadius: '10px',
-                        backgroundColor: 'rgba(255, 255, 255, 0.82)',
-                        color: '#222',
-                        fontSize: '15px',
-                        boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-                        transition: 'box-shadow 0.2s',
-                        marginBottom: '0'
-                      }}
-                    />
-                    {showInstitutionResults && institutionResults.length > 0 && (
-                      <div style={{
-                        position: 'absolute',
-                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                        border: '1px solid rgba(0,0,0,0.1)',
-                        borderRadius: '8px',
-                        marginTop: '5px',
-                        maxHeight: '200px',
-                        overflowY: 'auto',
-                        zIndex: 1000,
-                        width: '100%',
-                        maxWidth: '400px'
-                      }}>
-                        {institutionResults.map((institution) => (
-                          <div
-                            key={institution.id}
-                            onClick={() => selectInstitution(institution)}
-                            style={{
-                              padding: '10px 15px',
-                              cursor: 'pointer',
-                              borderBottom: '1px solid rgba(0,0,0,0.05)',
-                              color: '#222'
-                            }}
-                          >
-                            {institution.name}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {selectedInstitution && (
-                      <div style={{ fontSize: '12px', color: '#c8e6c9', marginTop: '5px', opacity: '0.9' }}>
-                        Selected: {selectedInstitution.name}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div>
-                    <label htmlFor="institution" className="sr-only">University Code</label>
-                    <div style={{ display: 'flex', gap: '10px' }}>
-                      <input
-                        type="text"
-                        id="institution"
-                        name="institution"
-                        placeholder="University Code"
-                        value={formData.institution}
-                        onChange={handleInputChange}
-                        style={{
-                          flex: 1,
-                          padding: '12px 14px',
-                          border: 'none',
-                          borderRadius: '10px',
-                          backgroundColor: 'rgba(255, 255, 255, 0.82)',
-                          color: '#222',
-                          fontSize: '15px',
-                          boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-                          transition: 'box-shadow 0.2s',
-                          marginBottom: '0'
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => validateUniversityCode(formData.institution)}
-                        disabled={!formData.institution.trim() || isSubmitting}
-                        style={{
-                          padding: '12px 20px',
-                          borderRadius: '8px',
-                          border: '1px solid #c8e6c9',
-                          backgroundColor: 'transparent',
-                          color: '#c8e6c9',
-                          cursor: 'pointer',
-                          fontWeight: '600',
-                          whiteSpace: 'nowrap'
-                        }}
-                      >
-                        Validate
-                      </button>
-                    </div>
-                    {universityCodeValidated && (
-                      <div style={{ fontSize: '12px', color: '#c8e6c9', marginTop: '5px', opacity: '0.9' }}>
-                        ✓ Code validated successfully
-                      </div>
-                    )}
-                  </div>
-                )}
 
                 <div>
                   <label htmlFor="registrationNumber" className="sr-only">Registration Number</label>
@@ -1153,39 +1299,199 @@ const Register: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Institution Search with Auto-complete */}
                 <div>
-                  <label htmlFor="yearOfStudy" className="sr-only">Year of Study</label>
-                  <select
-                    id="yearOfStudy"
-                    name="yearOfStudy"
-                    value={formData.yearOfStudy}
-                    onChange={handleInputChange}
-                    required
-                    style={{
-                      width: '100%',
-                      padding: '12px 14px',
-                      border: 'none',
-                      borderRadius: '10px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.82)',
-                      color: '#222',
-                      fontSize: '15px',
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-                      transition: 'box-shadow 0.2s',
-                      marginBottom: '8px'
-                    }}
-                  >
-                    <option value="" disabled>Select Year of Study</option>
-                    <option value="1">1st Year</option>
-                    <option value="2">2nd Year</option>
-                    <option value="3">3rd Year</option>
-                    <option value="4">4th Year</option>
-                    <option value="5">5th Year</option>
-                    <option value="6">6th Year</option>
-                  </select>
-                  <div style={{ fontSize: '12px', color: '#c8e6c9', marginBottom: '8px', marginTop: '4px', lineHeight: '1.4', opacity: '0.9' }}>
-                    Select your current year of study.
+                  <label htmlFor="institutionSearch" className="sr-only">Search Institution</label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="text"
+                      id="institutionSearch"
+                      placeholder="Search for your institution..."
+                      value={institutionSearchQuery}
+                      onChange={(e) => handleInstitutionSearchInput(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '12px 14px 12px 40px',
+                        border: 'none',
+                        borderRadius: '10px',
+                        backgroundColor: 'rgba(255, 255, 255, 0.82)',
+                        color: '#222',
+                        fontSize: '15px',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                        transition: 'box-shadow 0.2s'
+                      }}
+                    />
+                    <Search 
+                      size={18} 
+                      style={{
+                        position: 'absolute',
+                        left: '14px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        color: '#666'
+                      }}
+                    />
+                  </div>
+                  
+                  {/* Search Results */}
+                  {isSearchingInstitutions && (
+                    <div style={{ 
+                      marginTop: '8px',
+                      padding: '12px',
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(255, 255, 255, 0.2)',
+                      textAlign: 'center'
+                    }}>
+                      <div className="loading-spinner" style={{
+                        width: '20px',
+                        height: '20px',
+                        border: '2px solid #c8e6c9',
+                        borderTop: '2px solid transparent',
+                        borderRadius: '50%',
+                        animation: 'spin 1s linear infinite',
+                        margin: '0 auto 8px'
+                      }}></div>
+                      <div style={{ fontSize: '13px', color: '#c8e6c9' }}>Searching institutions...</div>
+                    </div>
+                  )}
+                  
+                  {availableInstitutions.length > 0 && !isSearchingInstitutions && (
+                    <div style={{
+                      marginTop: '8px',
+                      padding: '12px',
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(255, 255, 255, 0.2)'
+                    }}>
+                      <div style={{ fontSize: '13px', color: '#c8e6c9', marginBottom: '8px' }}>
+                        Select your institution:
+                      </div>
+                      <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                        {availableInstitutions.map((institution) => (
+                          <div
+                            key={institution.id}
+                            onClick={() => {
+                              setSelectedInstitution(institution);
+                              setAvailableInstitutions([]);
+                              setInstitutionSearchQuery(institution.name);
+                            }}
+                            style={{
+                              padding: '8px 12px',
+                              marginBottom: '4px',
+                              backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              fontSize: '13px',
+                              color: '#222',
+                              transition: 'background-color 0.2s'
+                            }}
+                            onMouseOver={(e) => {
+                              e.currentTarget.style.backgroundColor = 'rgba(200, 230, 201, 0.3)';
+                            }}
+                            onMouseOut={(e) => {
+                              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+                            }}
+                          >
+                            {institution.name}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* No Results Found Message */}
+                  {institutionSearchQuery.length >= 2 && availableInstitutions.length === 0 && !isSearchingInstitutions && !selectedInstitution && (
+                    <div style={{ 
+                      marginTop: '8px',
+                      padding: '12px',
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(255, 255, 255, 0.2)',
+                      textAlign: 'center'
+                    }}>
+                      <div style={{ fontSize: '13px', color: '#ffcdd2', fontWeight: '500' }}>
+                        No institutions found matching "{institutionSearchQuery}"
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#c8e6c9', marginTop: '4px', opacity: 0.8 }}>
+                        Try a different name or use the skip option below to record your interest.
+                      </div>
+                    </div>
+                  )}
+                  
+                  {selectedInstitution && (
+                    <div style={{
+                      marginTop: '8px',
+                      padding: '8px 12px',
+                      backgroundColor: 'rgba(17, 204, 173, 0.15)',
+                      borderRadius: '6px',
+                      border: '1px solid rgba(17, 204, 173, 0.3)',
+                      fontSize: '12px',
+                      color: '#c8e6c9',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>✓ {selectedInstitution.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedInstitution(null);
+                            setInstitutionSearchQuery('');
+                            setAvailableInstitutions([]);
+                          }}
+                          style={{
+                            background: 'transparent',
+                            border: '1px solid rgba(17, 204, 173, 0.5)',
+                            color: '#c8e6c9',
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            fontSize: '11px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Change
+                        </button>
+                      </div>
+                      <div style={{ fontSize: '11px', opacity: 0.8, marginTop: '2px' }}>
+                        Your affiliation request will be sent automatically upon registration. No further action needed.
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div style={{ fontSize: '12px', color: '#c8e6c9', marginTop: '4px', lineHeight: '1.4', opacity: '0.9' }}>
+                    Type to search for your institution. Start typing to see available options.
+                  </div>
+                  
+                  {/* Skip for now option */}
+                  <div style={{ marginTop: '12px' }}>
+                    <button
+                      type="button"
+                      onClick={handleSkipInstitution}
+                      style={{
+                        background: 'transparent',
+                        border: '1px solid rgba(17, 204, 173, 0.3)',
+                        color: '#c8e6c9',
+                        padding: '8px 16px',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                        fontWeight: '500',
+                        opacity: '0.8',
+                        transition: 'opacity 0.2s',
+                      }}
+                      onMouseOver={(e) => e.currentTarget.style.opacity = '1'}
+                      onMouseOut={(e) => e.currentTarget.style.opacity = '0.8'}
+                    >
+                      Can't find your institution? Skip for now
+                    </button>
                   </div>
                 </div>
+
+
+
+
               </fieldset>
 
               {/* Navigation Buttons */}
@@ -1273,47 +1579,158 @@ const Register: React.FC = () => {
       </main>
 
       {/* Enhanced Loading State */}
-      {isSubmitting && (
+      
+
+      {/* Animations and responsive styles moved to CSS file */}
+      
+      {/* Institution Interest Modal */}
+      {showInstitutionInterestModal && (
         <div style={{
           position: 'fixed',
           top: 0,
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'linear-gradient(135deg, rgba(17, 204, 173, 0.1) 0%, rgba(6, 165, 165, 0.1) 100%)',
-          backdropFilter: 'blur(20px)',
+          backgroundColor: 'rgba(0, 0, 0, 0.7)',
           display: 'flex',
-          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          borderRadius: '20px',
-          zIndex: 1001,
-          border: '1px solid rgba(255, 255, 255, 0.2)'
+          zIndex: 1000,
+          backdropFilter: 'blur(4px)'
         }}>
           <div style={{
-            width: '32px',
-            height: '32px',
-            border: '3px solid rgba(17, 204, 173, 0.2)',
-            borderTop: '3px solid rgb(17, 204, 173)',
-            borderRadius: '50%',
-            // Animation removed for now - can be added to CSS file later
-            marginBottom: '12px',
-            filter: 'drop-shadow(0 4px 8px rgba(17, 204, 173, 0.2))'
-          }} />
-          <div style={{
-            color: 'rgb(17, 204, 173)',
-            fontSize: '14px',
-            fontWeight: '600',
-            textAlign: 'center',
-            opacity: '0.9',
-            // Animation removed for now - can be added to CSS file later
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            padding: '32px',
+            maxWidth: '440px',
+            width: '90%',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            textAlign: 'center'
           }}>
-            Processing your registration...
+            {interestSubmissionStatus === 'success' ? (
+              <div className="animate-in fade-in zoom-in duration-300">
+                <div style={{
+                  width: '64px',
+                  height: '64px',
+                  backgroundColor: '#ecfdf5',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 20px',
+                  color: '#10b981'
+                }}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                </div>
+                <h3 style={{ marginBottom: '12px', color: '#111827', fontSize: '20px', fontWeight: '600' }}>Thank you!</h3>
+                <p style={{ color: '#4b5563', fontSize: '15px', lineHeight: '1.5' }}>
+                  We've recorded your interest. Our team will look into adding your institution to Edulink.
+                </p>
+              </div>
+            ) : (
+              <>
+                <h3 style={{ marginBottom: '16px', color: '#111827', fontSize: '20px', fontWeight: '600', textAlign: 'left' }}>Help us expand!</h3>
+                <p style={{ marginBottom: '20px', color: '#4b5563', fontSize: '15px', lineHeight: '1.5', textAlign: 'left' }}>
+                  We couldn't find your institution. Would you like to tell us which institution you're from so we can add it to our platform?
+                </p>
+                
+                <div style={{ position: 'relative', marginBottom: '24px' }}>
+                  <input
+                    type="text"
+                    placeholder="Enter your institution name"
+                    value={institutionInterestName}
+                    onChange={(e) => {
+                      setInstitutionInterestName(e.target.value);
+                      if (interestSubmissionStatus === 'error') setInterestSubmissionStatus('idle');
+                    }}
+                    disabled={isSubmittingInterest}
+                    style={{
+                      width: '100%',
+                      padding: '14px 16px',
+                      border: interestSubmissionStatus === 'error' ? '2px solid #ef4444' : '1px solid #d1d5db',
+                      borderRadius: '10px',
+                      fontSize: '15px',
+                      transition: 'all 0.2s ease',
+                      outline: 'none',
+                      backgroundColor: isSubmittingInterest ? '#f9fafb' : 'white'
+                    }}
+                    onFocus={(e) => {
+                      if (interestSubmissionStatus !== 'error') e.currentTarget.style.borderColor = '#10b981';
+                    }}
+                    onBlur={(e) => {
+                      if (interestSubmissionStatus !== 'error') e.currentTarget.style.borderColor = '#d1d5db';
+                    }}
+                  />
+                  {interestSubmissionStatus === 'error' && (
+                    <p style={{ color: '#ef4444', fontSize: '12px', marginTop: '6px', textAlign: 'left', fontWeight: '500' }}>
+                      Something went wrong. Please try again.
+                    </p>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowInstitutionInterestModal(false);
+                      setInstitutionInterestName('');
+                      setInterestSubmissionStatus('idle');
+                    }}
+                    disabled={isSubmittingInterest}
+                    style={{
+                      padding: '10px 20px',
+                      borderRadius: '10px',
+                      backgroundColor: 'white',
+                      color: '#374151',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      border: '1px solid #d1d5db',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    Maybe later
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleInstitutionInterestSubmit}
+                    disabled={isSubmittingInterest || !institutionInterestName.trim()}
+                    style={{
+                      padding: '10px 24px',
+                      borderRadius: '10px',
+                      backgroundColor: '#10b981',
+                      color: 'white',
+                      cursor: (isSubmittingInterest || !institutionInterestName.trim()) ? 'not-allowed' : 'pointer',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      border: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      transition: 'all 0.2s',
+                      opacity: (isSubmittingInterest || !institutionInterestName.trim()) ? 0.7 : 1
+                    }}
+                  >
+                    {isSubmittingInterest ? (
+                      <>
+                        <div style={{
+                          width: '16px',
+                          height: '16px',
+                          border: '2px solid rgba(255,255,255,0.3)',
+                          borderTop: '2px solid white',
+                          borderRadius: '50%',
+                          animation: 'spin 0.8s linear infinite'
+                        }}></div>
+                        Submitting...
+                      </>
+                    ) : 'Submit Interest'}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
-
-      {/* Animations and responsive styles moved to CSS file */}
     </div>
   </>);
 };
