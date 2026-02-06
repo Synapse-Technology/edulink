@@ -71,10 +71,51 @@ class StudentLoginView(APIView):
             return Response({'detail': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
 
 class StudentViewSet(viewsets.ModelViewSet):
-    queryset = Student.objects.all()
+    def get_queryset(self):
+        """
+        Restrict access to student profiles based on user role.
+        """
+        user = self.request.user
+        if not user.is_authenticated:
+            return Student.objects.none()
+            
+        # 1. System Admins see all
+        if user.is_system_admin:
+            return Student.objects.all()
+            
+        # 2. Students see only themselves
+        if user.is_student:
+            return Student.objects.filter(user_id=user.id)
+            
+        # 3. Institution Admins see students affiliated with their institution
+        if user.is_institution_admin:
+            institution_id = get_institution_id_for_user(user)
+            if institution_id:
+                # Get students who have an approved affiliation with this institution
+                # Since we use UUIDs, we can't do joins directly
+                student_ids = StudentInstitutionAffiliation.objects.filter(
+                    institution_id=institution_id,
+                    status=StudentInstitutionAffiliation.STATUS_APPROVED
+                ).values_list('student_id', flat=True)
+                
+                return Student.objects.filter(id__in=student_ids)
+                
+        # 4. Employers/Supervisors see students who have applied to them
+        if user.is_employer or user.is_supervisor:
+            # This is complex; employers should typically access students via Applications, not the Student list directly.
+            # However, if they need to fetch student details, we can allow it if there is an active application.
+            # For now, we'll return None to force them to use the Application endpoints which are secure.
+            # Or we can allow specific lookup by ID if they have a relationship.
+            # Let's return empty for list, but allow object retrieval in get_object if we implement permission class.
+            # Since get_queryset is used for both list and retrieve, returning none blocks everything.
+            pass
+
+        return Student.objects.none()
+
+    queryset = Student.objects.none() # Default to safe
     serializer_class = StudentSerializer
     filter_backends = [filters.SearchFilter, DjangoFilterBackend]
-    search_fields = ['user__first_name', 'user__last_name', 'user__email', 'registration_number']
+    search_fields = ['email', 'registration_number']
     filterset_class = StudentFilter
 
     @action(detail=False, methods=['get'])
@@ -330,7 +371,30 @@ class StudentViewSet(viewsets.ModelViewSet):
 
 
 class StudentInstitutionAffiliationViewSet(viewsets.ModelViewSet):
-    queryset = StudentInstitutionAffiliation.objects.all()
+    def get_queryset(self):
+        user = self.request.user
+        if not user.is_authenticated:
+            return StudentInstitutionAffiliation.objects.none()
+            
+        if user.is_system_admin:
+            return StudentInstitutionAffiliation.objects.all()
+            
+        if user.is_institution_admin:
+            institution_id = get_institution_id_for_user(user)
+            if institution_id:
+                return StudentInstitutionAffiliation.objects.filter(institution_id=institution_id)
+                
+        if user.is_student:
+            try:
+                # Resolve student_id from user_id since there is no FK
+                student = Student.objects.get(user_id=user.id)
+                return StudentInstitutionAffiliation.objects.filter(student_id=student.id)
+            except Student.DoesNotExist:
+                return StudentInstitutionAffiliation.objects.none()
+            
+        return StudentInstitutionAffiliation.objects.none()
+
+    queryset = StudentInstitutionAffiliation.objects.none()
     serializer_class = StudentInstitutionAffiliationSerializer
     
     @action(detail=False, methods=['get'])

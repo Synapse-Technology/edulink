@@ -5,6 +5,7 @@ import PlacementMonitoringWidget from '../../../components/dashboard/institution
 import InstitutionLayout from '../../../components/admin/institution/InstitutionLayout';
 import DashboardCharts from '../../../components/dashboard/institution/DashboardCharts';
 import InstitutionDashboardSkeleton from '../../../components/admin/skeletons/InstitutionDashboardSkeleton';
+import TrustProgressWidget from '../../../components/dashboard/TrustProgressWidget';
 import { institutionService } from '../../../services/institution/institutionService';
 import type { PlacementStats } from '../../../services/institution/institutionService';
 
@@ -41,13 +42,18 @@ const StatCard = ({ title, value, icon: Icon, color, bgColor, trend }: { title: 
 
 const InstitutionDashboard: React.FC = () => {
   const [stats, setStats] = useState<PlacementStats | null>(null);
+  const [trustStats, setTrustStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const data = await institutionService.getPlacementSuccessStats();
+        const [data, trustData] = await Promise.all([
+          institutionService.getPlacementSuccessStats(),
+          institutionService.getTrustProgress()
+        ]);
         setStats(data);
+        setTrustStats(trustData);
       } catch (error) {
         console.error('Failed to fetch dashboard stats:', error);
       } finally {
@@ -131,7 +137,14 @@ const InstitutionDashboard: React.FC = () => {
             </Col>
           </Row>
 
-          <DashboardCharts stats={stats} />
+          <Row className="g-4 mb-4">
+            <Col lg={8}>
+              <DashboardCharts stats={stats} />
+            </Col>
+            <Col lg={4}>
+              <TrustProgressWidget data={trustStats} isLoading={loading} userType="institution" />
+            </Col>
+          </Row>
 
           <div className="mt-5">
             <PlacementMonitoringWidget />

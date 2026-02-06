@@ -1,0 +1,23 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}Performance Summary Available{% endblock %}
+
+{% block content %}
+    <h2>Performance Summary Ready</h2>
+    
+    <p>Hello {{ student_name }},</p>
+    
+    <p>Your performance summary for the internship at <strong>{{ employer_name }}</strong> has been generated.</p>
+    
+    <div class="highlight-box">
+        <p><strong>Metrics Overview:</strong></p>
+        <ul>
+            <li>Logbooks Verified: {{ logbooks_count }}</li>
+            <li>Milestones Reached: {{ milestones_count }}</li>
+        </ul>
+    </div>
+    
+    <p>This document summarizes your achievements and supervisor feedback. It serves as a valuable addition to your professional portfolio.</p>
+    
+    <a href="{{ dashboard_url }}" class="email-button">View Performance Summary</a>
+{% endblock %}

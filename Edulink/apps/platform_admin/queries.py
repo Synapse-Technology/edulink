@@ -142,7 +142,7 @@ def get_user_institution_info(user_id: str, role: str) -> dict:
     from edulink.apps.students import queries as student_queries
     from edulink.apps.institutions import queries as institution_queries
     from edulink.apps.employers import queries as employer_queries
-    from edulink.apps.accounts.models import User
+    # User is already available at module level via get_user_model()
     
     result = {"id": None, "name": None}
     
@@ -192,12 +192,8 @@ def get_system_analytics():
     Trends are calculated based on growth over the last 30 days.
     """
     from edulink.apps.accounts import queries as account_queries
-    from edulink.apps.accounts.models import User
     from edulink.apps.institutions import queries as institution_queries
-    from edulink.apps.institutions.models import Institution
-    from edulink.apps.internships import models as internship_models
-    from django.utils import timezone
-    from datetime import timedelta
+    from edulink.apps.internships import queries as internship_queries
     import psutil
     
     # 1. Base Stats
@@ -205,29 +201,24 @@ def get_system_analytics():
     institution_stats = institution_queries.get_institution_analytics()
     
     # 2. Date ranges for trends
-    now = timezone.now()
-    thirty_days_ago = now - timedelta(days=30)
+    # (Handled inside domain query functions now)
     
     # 3. Calculate Trends (Growth in last 30 days)
     # Users
-    current_users = User.objects.count()
-    prev_users = User.objects.filter(date_joined__lt=thirty_days_ago).count()
-    users_trend = calculate_trend(current_users, prev_users)
+    user_growth = account_queries.get_user_growth_stats(days=30)
+    users_trend = calculate_trend(user_growth['current_count'], user_growth['previous_count'])
     
     # Institutions
-    current_institutions = Institution.objects.count()
-    prev_institutions = Institution.objects.filter(created_at__lt=thirty_days_ago).count()
-    institutions_trend = calculate_trend(current_institutions, prev_institutions)
+    inst_growth = institution_queries.get_institution_growth_stats(days=30)
+    institutions_trend = calculate_trend(inst_growth['current_count'], inst_growth['previous_count'])
     
-    # Internships
-    current_internships = internship_models.InternshipOpportunity.objects.count()
-    prev_internships = internship_models.InternshipOpportunity.objects.filter(created_at__lt=thirty_days_ago).count()
-    internships_trend = calculate_trend(current_internships, prev_internships)
+    # Internships & Applications
+    intern_growth = internship_queries.get_internship_growth_stats(days=30)
+    internships_trend = calculate_trend(intern_growth['current_opportunities'], intern_growth['previous_opportunities'])
+    applications_trend = calculate_trend(intern_growth['current_applications'], intern_growth['previous_applications'])
     
-    # Applications
-    current_applications = internship_models.InternshipApplication.objects.count()
-    prev_applications = internship_models.InternshipApplication.objects.filter(created_at__lt=thirty_days_ago).count()
-    applications_trend = calculate_trend(current_applications, prev_applications)
+    current_internships = intern_growth['current_opportunities']
+    current_applications = intern_growth['current_applications']
     
     # 4. Performance metrics
     try:

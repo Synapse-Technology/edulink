@@ -1,0 +1,47 @@
+
+{% extends "notifications/emails/base.html" %}
+
+{% block content %}
+<div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+    <h2 style="color: #2c5aa0;">New Student Assigned</h2>
+    
+    <p>Dear {{ supervisor_name }},</p>
+    
+    <p>You have been assigned as the {{ role_type }} Supervisor for a student on Edulink.</p>
+    
+    <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2c5aa0;">
+        <h3 style="margin-top: 0; color: #2c5aa0;">Assignment Details</h3>
+        <ul style="list-style: none; padding: 0;">
+            <li><strong>Student:</strong> {{ student_name }}</li>
+            <li><strong>Internship:</strong> {{ opportunity_title }}</li>
+            {% if employer_name %}
+            <li><strong>Employer:</strong> {{ employer_name }}</li>
+            {% endif %}
+            <li><strong>Assigned By:</strong> {{ assigned_by }}</li>
+        </ul>
+    </div>
+    
+    <p><strong>Your Responsibilities:</strong></p>
+    <ul>
+        <li>Review student logbooks and evidence</li>
+        <li>Monitor student progress</li>
+        <li>Provide guidance and feedback</li>
+        <li>Flag any incidents if necessary</li>
+    </ul>
+    
+    <p style="text-align: center; margin: 25px 0;">
+        <a href="{{ dashboard_url }}" 
+           style="background-color: #2c5aa0; color: white; padding: 12px 24px; 
+                  text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
+            View Student Profile
+        </a>
+    </p>
+    
+    <p>If you have any questions about this assignment, please contact the administrator who assigned you.</p>
+    
+    <p style="margin-top: 30px; font-size: 14px; color: #666;">
+        Best regards,<br>
+        The {{ site_name }} Team
+    </p>
+</div>
+{% endblock %}

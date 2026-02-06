@@ -71,7 +71,14 @@ def get_applications_for_user(user) -> QuerySet[InternshipApplication]:
         inst = get_institution_for_user(str(user.id))
         if inst:
             # Show applications for opportunities posted by this institution
-            return queryset.filter(opportunity__institution_id=inst.id)
+            # AND applications by students affiliated with this institution (for monitoring/certification)
+            from edulink.apps.students.queries import get_affiliated_student_ids
+            affiliated_student_ids = get_affiliated_student_ids(str(inst.id))
+            
+            return queryset.filter(
+                Q(opportunity__institution_id=inst.id) |
+                Q(student_id__in=affiliated_student_ids)
+            ).distinct()
         return InternshipApplication.objects.none()
 
     elif user.is_employer_admin:
@@ -171,6 +178,16 @@ def get_incidents_for_supervisor(user) -> QuerySet[Incident]:
         filters = Q(application__employer_supervisor_id=user_id) | Q(application__institution_supervisor_id=user_id)
         
     return Incident.objects.filter(filters).select_related('application', 'application__opportunity')
+
+def get_incidents_for_student(user) -> QuerySet[Incident]:
+    """
+    Returns incidents reported by the student.
+    """
+    if not user.is_authenticated or not user.is_student:
+        return Incident.objects.none()
+        
+    return Incident.objects.filter(reported_by=user.id).select_related('application', 'application__opportunity')
+
 
 def check_institution_has_internships(institution_id: UUID) -> bool:
     """
@@ -510,3 +527,27 @@ def check_supervisor_assigned_to_student(*, supervisor_id: str, student_id: str)
         Q(employer_supervisor_id=supervisor_id) | 
         Q(institution_supervisor_id=supervisor_id)
     ).exists()
+
+
+def get_internship_growth_stats(days: int = 30) -> dict:
+    """
+    Get internship growth statistics for trend calculation.
+    """
+    from django.utils import timezone
+    from datetime import timedelta
+    
+    now = timezone.now()
+    cutoff = now - timedelta(days=days)
+    
+    current_opps = InternshipOpportunity.objects.count()
+    prev_opps = InternshipOpportunity.objects.filter(created_at__lt=cutoff).count()
+    
+    current_apps = InternshipApplication.objects.count()
+    prev_apps = InternshipApplication.objects.filter(created_at__lt=cutoff).count()
+    
+    return {
+        "current_opportunities": current_opps,
+        "previous_opportunities": prev_opps,
+        "current_applications": current_apps,
+        "previous_applications": prev_apps,
+    }

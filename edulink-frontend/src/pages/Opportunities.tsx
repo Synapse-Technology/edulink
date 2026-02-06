@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { internshipService, type InternshipOpportunity, type SuccessStory, type InternshipParams } from '../services/internship/internshipService';
 import { employerService, type Employer } from '../services/employer/employerService';
 import { useAuth } from '../contexts/AuthContext';
@@ -18,6 +19,7 @@ import LoginRequiredModal from '../components/common/LoginRequiredModal';
 
 const Opportunities: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   
   // State
   const [searchQuery, setSearchQuery] = useState('');
@@ -347,13 +349,19 @@ const Opportunities: React.FC = () => {
                               <span className="tag">+{opportunity.skills.length - 2}</span>
                             )}
                           </div>
-                          <div className="actions mt-auto">
+                          <div className="actions mt-auto d-flex gap-2">
                             <button 
-                              className={`btn w-100 ${opportunity.student_has_applied ? 'btn-success' : 'btn-primary'}`}
+                              className="btn btn-outline-primary flex-grow-1"
+                              onClick={() => navigate(`/opportunities/${opportunity.id}`)}
+                            >
+                              View Details
+                            </button>
+                            <button 
+                              className={`btn flex-grow-1 ${opportunity.student_has_applied ? 'btn-success' : 'btn-primary'}`}
                               onClick={() => initiateApply(opportunity)}
                               disabled={opportunity.student_has_applied}
                             >
-                              {opportunity.student_has_applied ? 'Applied' : 'Apply Now'}
+                              {opportunity.student_has_applied ? 'Applied' : 'Apply'}
                             </button>
                           </div>
                         </div>

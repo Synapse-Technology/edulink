@@ -1,0 +1,20 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}Logbook Report Generated{% endblock %}
+
+{% block content %}
+    <h2>Logbook Report Compiled</h2>
+    
+    <p>Hello {{ student_name }},</p>
+    
+    <p>A comprehensive report of your internship logbooks has been compiled and certified.</p>
+    
+    <p>This report includes all your verified daily entries and supervisor feedback from your time at <strong>{{ employer_name }}</strong>.</p>
+    
+    <div class="highlight-box">
+        <p><strong>Total Logbooks:</strong> {{ logbooks_count }}</p>
+        <p><strong>Tracking Code:</strong> {{ tracking_code }}</p>
+    </div>
+    
+    <a href="{{ dashboard_url }}" class="email-button">View Logbook Report</a>
+{% endblock %}

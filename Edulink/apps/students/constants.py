@@ -13,7 +13,9 @@ TRUST_EVENT_POINTS = {
     "DOCUMENT_UPLOADED": 10,
     "STUDENT_VERIFIED": 20,
     "INTERNSHIP_LOGGED": 15,
+    "EVIDENCE_SUBMITTED": 10,  # Added for Internship Evidence
     "SUPERVISOR_APPROVED": 20,
+    "EVIDENCE_REVIEWED": 20,   # Added for Internship Evidence Review
     "INTERNSHIP_CERTIFIED": 30,
 }
 

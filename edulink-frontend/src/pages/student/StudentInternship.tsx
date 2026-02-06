@@ -10,7 +10,8 @@ import {
   Mail,
   ShieldCheck,
   FileText,
-  Download
+  Download,
+  AlertTriangle
 } from 'lucide-react';
 import StudentSidebar from '../../components/dashboard/StudentSidebar';
 import StudentHeader from '../../components/dashboard/StudentHeader';
@@ -19,12 +20,14 @@ import { artifactService } from '../../services/reports/artifactService';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-hot-toast';
 import StudentInternshipSkeleton from '../../components/student/skeletons/StudentInternshipSkeleton';
+import ReportIncidentModal from '../../components/student/ReportIncidentModal';
 
 const StudentInternship: React.FC = () => {
   const { user } = useAuth();
   const [internship, setInternship] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showIncidentModal, setShowIncidentModal] = useState(false);
 
   // Suppress unused warning
   useEffect(() => {
@@ -336,7 +339,7 @@ const StudentInternship: React.FC = () => {
                        </div>
 
                        {/* Professional Artifacts Actions */}
-                       {['COMPLETED', 'CERTIFIED'].includes(internship.status) && (
+                       {internship.status === 'CERTIFIED' ? (
                          <div className="mt-4 pt-3 border-top border-success border-opacity-25">
                            <h6 className="fw-bold mb-3 small text-success-emphasis text-uppercase" style={{ letterSpacing: '0.05em' }}>Professional Artifacts</h6>
                            <div className="d-grid gap-2">
@@ -353,18 +356,43 @@ const StudentInternship: React.FC = () => {
                                Download Certificate
                              </button>
                            </div>
-                         </div>
-                       )}
-                    </div>
+                       </div>
+                     ) : internship.status === 'COMPLETED' ? (
+                        <div className="mt-4 pt-3 border-top border-warning border-opacity-25">
+                           <h6 className="fw-bold mb-2 small text-warning-emphasis text-uppercase" style={{ letterSpacing: '0.05em' }}>Certification Pending</h6>
+                           <p className="small text-muted mb-0">Your internship is completed and pending final certification from your institution.</p>
+                        </div>
+                     ) : null}
+                  </div>
+
+                  {/* Support & Safety */}
+                  <div className="mt-4 pt-3 border-top border-secondary border-opacity-10">
+                     <h6 className={`fw-bold mb-3 small text-uppercase ${isDarkMode ? 'text-light opacity-50' : 'text-muted'}`} style={{ letterSpacing: '0.05em' }}>Support & Safety</h6>
+                     <button 
+                       className="btn btn-outline-danger btn-sm w-100 fw-bold d-flex align-items-center justify-content-center gap-2"
+                       onClick={() => setShowIncidentModal(true)}
+                     >
+                       <AlertTriangle size={16} />
+                       Report an Incident
+                     </button>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+      
+      {internship && (
+        <ReportIncidentModal 
+          show={showIncidentModal} 
+          onHide={() => setShowIncidentModal(false)} 
+          applicationId={internship.id} 
+        />
+      )}
     </div>
-  );
+  </div>
+);
 };
 
 export default StudentInternship;

@@ -11,7 +11,8 @@ import {
   X,
   FileText,
   Database,
-  Briefcase
+  Briefcase,
+  History
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -96,6 +97,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
         </small>
         <nav className="nav flex-column mb-4">
           <NavItem to="/admin/analytics" icon={BarChart2} label="Analytics" />
+          <NavItem to="/admin/logs" icon={History} label="Audit Logs" />
           <NavItem to="/admin/health" icon={Activity} label="System Health" />
           <NavItem to="/admin/reports" icon={FileText} label="Reports" />
         </nav>

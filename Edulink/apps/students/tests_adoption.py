@@ -6,7 +6,7 @@ from edulink.apps.ledger.models import LedgerEvent
 import uuid
 
 from edulink.apps.employers.models import Employer
-from edulink.apps.internships.models import Internship, InternshipState
+from edulink.apps.internships.models import InternshipOpportunity, InternshipApplication, ApplicationStatus, OpportunityStatus
 from edulink.apps.trust.services import compute_employer_trust_tier
 
 class AdoptionLoopTests(TestCase):
@@ -43,7 +43,7 @@ class AdoptionLoopTests(TestCase):
         supporting the 'Departmental Pilot' adoption trigger.
         """
         verified_students = bulk_verify_students(
-            student_ids=[str(self.student.id)],
+            student_entries=[{'student_id': str(self.student.id), 'registration_number': 'REG123'}],
             institution_id=str(self.institution.id),
             department_id=str(self.department.id),
             cohort_id=str(self.cohort.id),
@@ -75,14 +75,19 @@ class AdoptionLoopTests(TestCase):
         supporting the 'Employer -> Institution' loop.
         """
         # Create 1 completed internship
-        Internship.objects.create(
-            student_id=self.student.id,
+        opp = InternshipOpportunity.objects.create(
+            title="Dev Intern",
             institution_id=self.institution.id,
             employer_id=self.employer.id,
-            status=InternshipState.COMPLETED,
-            title="Dev Intern",
+            status=OpportunityStatus.OPEN,
             start_date="2024-01-01",
             end_date="2024-03-01"
+        )
+        
+        InternshipApplication.objects.create(
+            opportunity=opp,
+            student_id=self.student.id,
+            status=ApplicationStatus.COMPLETED
         )
         
         result = compute_employer_trust_tier(employer_id=self.employer.id)
@@ -90,14 +95,19 @@ class AdoptionLoopTests(TestCase):
         
         # Create 4 more (Total 5)
         for i in range(4):
-             Internship.objects.create(
-                student_id=uuid.uuid4(), # Different students
+             opp_i = InternshipOpportunity.objects.create(
+                title=f"Intern {i}",
                 institution_id=self.institution.id,
                 employer_id=self.employer.id,
-                status=InternshipState.CERTIFIED, # Mixed status
-                title=f"Intern {i}",
+                status=OpportunityStatus.OPEN,
                 start_date="2024-01-01",
                 end_date="2024-03-01"
+            )
+             
+             InternshipApplication.objects.create(
+                opportunity=opp_i,
+                student_id=uuid.uuid4(), # Different students
+                status=ApplicationStatus.COMPLETED 
             )
             
         result = compute_employer_trust_tier(employer_id=self.employer.id)

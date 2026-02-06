@@ -4,6 +4,7 @@ import logging
 from django.utils import timezone
 from django.conf import settings
 
+from django.contrib.auth import get_user_model
 from edulink.apps.ledger.services import record_event
 from edulink.apps.notifications.services import (
     send_institution_request_confirmation,
@@ -15,7 +16,12 @@ from edulink.apps.notifications.services import (
     send_institution_admin_welcome_notification,
     send_institution_supervisor_activated_notification,
 )
-from edulink.apps.accounts.services import update_user_profile
+from edulink.apps.accounts.services import (
+    update_user_profile, 
+    create_activated_user, 
+    get_user_by_id, 
+    get_user_by_email
+)
 from .models import (
     Institution,
     InstitutionSuggestion,
@@ -1027,18 +1033,13 @@ def activate_institution_admin_from_invite(
 
     # Create User
     # Note: AbstractUser requires username, we use email as username
-    user = User.objects.create_user(
-        username=invite.email,
+    user = create_activated_user(
         email=invite.email,
         password=password,
         first_name=first_name,
         last_name=last_name,
         role=User.ROLE_INSTITUTION_ADMIN,
         phone_number=phone_number,
-        is_active=True,  # Active now
-        is_email_verified=True,  # Verified upon activation from invite
-        is_staff=False,
-        is_superuser=False
     )
     
     # Create InstitutionStaff record
@@ -1281,17 +1282,12 @@ def activate_institution_supervisor_from_invite(
         raise ValueError("User with this email already exists")
 
     # Create User
-    user = User.objects.create_user(
-        username=invite.email,
+    user = create_activated_user(
         email=invite.email,
         password=password,
         first_name=first_name,
         last_name=last_name,
         role=User.ROLE_SUPERVISOR,
-        is_active=True,
-        is_email_verified=True,  # Verified upon activation from invite
-        is_staff=False,
-        is_superuser=False,
         institution_id=invite.institution.id  # Link to institution
     )
     
@@ -1362,8 +1358,7 @@ def complete_institution_admin_setup(
     - Add backup admin
     - Explicitly accept verification authority
     """
-    from edulink.apps.accounts.models import User
-    admin_user = User.objects.get(id=admin_user_id)
+    admin_user = get_user_by_id(user_id=admin_user_id)
     if admin_user.role != User.ROLE_INSTITUTION_ADMIN:
         raise ValueError("User must be an institution admin to complete setup")
 
@@ -1433,9 +1428,20 @@ def complete_institution_admin_setup(
                 created_by=admin_user.id
             )
             
-            # TODO: Send invite email to backup admin
-            # For now we just record it, as the notification template might not exist yet
-            logger.info(f"Created backup admin invite for {backup_admin_email}")
+            # Send invite email to backup admin
+            try:
+                send_institution_staff_invite_notification(
+                    recipient_email=backup_admin_email,
+                    invite_token=raw_token,
+                    invite_id=str(invite.id),
+                    role_display="Institution Admin (Backup)",
+                    institution_name=institution_name,
+                    sender_name=admin_user.get_full_name() or admin_user.email,
+                    actor_id=admin_user_id
+                )
+                logger.info(f"Sent backup admin invite to {backup_admin_email}")
+            except Exception as e:
+                logger.error(f"Failed to send backup admin invite to {backup_admin_email}: {e}")
 
     # Record setup completion event
     record_event(

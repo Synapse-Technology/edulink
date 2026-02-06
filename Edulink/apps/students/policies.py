@@ -11,7 +11,9 @@ Guidelines:
 """
 
 from typing import Optional
-from edulink.apps.accounts.models import User
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 
 def is_student(user: User) -> bool:
@@ -96,7 +98,7 @@ def can_institution_certify_completion(*, institution_id: str, student_id: str) 
     and students must have completed required activities
     """
     from .models import Student
-    from .services import compute_student_trust_tier
+    from edulink.apps.trust.services import compute_student_trust_tier
     
     try:
         student = Student.objects.get(id=student_id)

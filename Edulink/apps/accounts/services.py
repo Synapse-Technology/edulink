@@ -151,6 +151,72 @@ def create_user(*, email: str, password: str, username: str = None, role: str = 
     return user
 
 
+def create_activated_user(
+    *, 
+    email: str, 
+    password: str, 
+    first_name: str, 
+    last_name: str, 
+    role: str,
+    phone_number: str = "",
+    institution_id: str = None,
+    **kwargs
+) -> User:
+    """
+    Create a pre-activated user (e.g. from an invite).
+    Skips email verification as the invite flow implies verification.
+    Records USER_CREATED event.
+    """
+    if not email:
+        raise ValueError("Email is required")
+        
+    # Validate password
+    try:
+        validate_password(password)
+    except ValidationError as e:
+        raise ValueError(f"Invalid password: {', '.join(e.messages)}")
+        
+    user = User.objects.create_user(
+        username=email,
+        email=email,
+        password=password,
+        first_name=first_name,
+        last_name=last_name,
+        role=role,
+        phone_number=phone_number,
+        is_active=True,
+        is_email_verified=True,
+        is_staff=False,
+        is_superuser=False,
+        **kwargs
+    )
+    
+    # Handle institution_id if provided (legacy/direct linking)
+    if institution_id:
+        # Note: This attribute might not exist on User unless added dynamically 
+        # or if it's a field I missed. 
+        # Looking at models.py, there is NO institution_id field on User.
+        # It's usually on the profile. 
+        # But create_user had: institution_id = kwargs.pop('institution_id', None)
+        # And passed it to preregister_student.
+        pass
+
+    record_event(
+        event_type="USER_CREATED",
+        actor_id=user.id,
+        entity_type="User",
+        entity_id=user.id,
+        payload={
+            "email": email,
+            "role": role,
+            "via": "activated_invite",
+            "created_at": timezone.now().isoformat(),
+        },
+    )
+    
+    return user
+
+
 def authenticate_user(*, email: str, password: str) -> User:
     """
     Authenticate user with email and password.

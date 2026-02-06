@@ -231,13 +231,140 @@ def send_admin_new_onboarding_request_notification(
                     logger.error(f"Failed to create notification record for admin {admin_profile.user.email}: {e}")
 
         return sent_count
-        
+    
     except ImportError:
         logger.error("Could not import PlatformStaffProfile. Is platform_admin app installed?")
         return 0
     except Exception as e:
         logger.error(f"Error sending admin onboarding notifications: {e}")
         return 0
+
+def send_certificate_generated_notification(*, student_email: str, student_name: str, position: str, employer_name: str, tracking_code: str, artifact_id: str, actor_id: Optional[str] = None) -> bool:
+    """
+    Send notification when an internship certificate is generated.
+    """
+    dashboard_url = f"{settings.FRONTEND_URL}/dashboard/student/artifacts"
+    
+    context = {
+        "student_name": student_name,
+        "position": position,
+        "employer_name": employer_name,
+        "tracking_code": tracking_code,
+        "dashboard_url": dashboard_url,
+        "site_name": "Edulink"
+    }
+    
+    success = send_email_notification(
+        recipient_email=student_email,
+        subject=f"Certificate Generated - {position} at {employer_name}",
+        template_name="certificate_generated",
+        context=context,
+        actor_id=actor_id
+    )
+
+    if success:
+         # Find user ID from email for notification record
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        user = User.objects.filter(email=student_email).first()
+        
+        if user:
+            create_notification(
+                recipient_id=str(user.id),
+                type=Notification.TYPE_CERTIFICATE_GENERATED,
+                title="Certificate Available",
+                body=f"Your certificate for {position} at {employer_name} is ready.",
+                channel=Notification.CHANNEL_EMAIL,
+                related_entity_type="Artifact",
+                related_entity_id=artifact_id,
+                actor_id=actor_id
+            )
+
+    return success
+
+def send_performance_summary_generated_notification(*, student_email: str, student_name: str, employer_name: str, logbooks_count: int, milestones_count: int, artifact_id: str, actor_id: Optional[str] = None) -> bool:
+    """
+    Send notification when a performance summary is generated.
+    """
+    dashboard_url = f"{settings.FRONTEND_URL}/dashboard/student/artifacts"
+    
+    context = {
+        "student_name": student_name,
+        "employer_name": employer_name,
+        "logbooks_count": logbooks_count,
+        "milestones_count": milestones_count,
+        "dashboard_url": dashboard_url,
+        "site_name": "Edulink"
+    }
+    
+    success = send_email_notification(
+        recipient_email=student_email,
+        subject="Performance Summary Generated",
+        template_name="performance_summary_generated",
+        context=context,
+        actor_id=actor_id
+    )
+
+    if success:
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        user = User.objects.filter(email=student_email).first()
+        
+        if user:
+            create_notification(
+                recipient_id=str(user.id),
+                type=Notification.TYPE_PERFORMANCE_SUMMARY_GENERATED,
+                title="Performance Summary Available",
+                body=f"Your performance summary for {employer_name} is ready.",
+                channel=Notification.CHANNEL_EMAIL,
+                related_entity_type="Artifact",
+                related_entity_id=artifact_id,
+                actor_id=actor_id
+            )
+
+    return success
+
+def send_logbook_report_generated_notification(*, student_email: str, student_name: str, employer_name: str, logbooks_count: int, tracking_code: str, artifact_id: str, actor_id: Optional[str] = None) -> bool:
+    """
+    Send notification when a logbook report is generated.
+    """
+    dashboard_url = f"{settings.FRONTEND_URL}/dashboard/student/artifacts"
+    
+    context = {
+        "student_name": student_name,
+        "employer_name": employer_name,
+        "logbooks_count": logbooks_count,
+        "tracking_code": tracking_code,
+        "dashboard_url": dashboard_url,
+        "site_name": "Edulink"
+    }
+    
+    success = send_email_notification(
+        recipient_email=student_email,
+        subject="Logbook Report Generated",
+        template_name="logbook_report_generated",
+        context=context,
+        actor_id=actor_id
+    )
+
+    if success:
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        user = User.objects.filter(email=student_email).first()
+        
+        if user:
+            create_notification(
+                recipient_id=str(user.id),
+                type=Notification.TYPE_LOGBOOK_REPORT_GENERATED,
+                title="Logbook Report Available",
+                body=f"Your logbook report for {employer_name} is ready.",
+                channel=Notification.CHANNEL_EMAIL,
+                related_entity_type="Artifact",
+                related_entity_id=artifact_id,
+                actor_id=actor_id
+            )
+
+    return success
 
 
 def send_employer_onboarded_notification(user: Any, employer: Any, actor_id: Optional[str] = None) -> bool:
@@ -260,6 +387,53 @@ def send_employer_onboarded_notification(user: Any, employer: Any, actor_id: Opt
         actor_id=actor_id
     )
 
+
+def send_supervisor_assigned_notification(*, supervisor_id: str, student_name: str, opportunity_title: str, role_type: str, assigned_by_name: str, employer_name: str = "", application_id: str, actor_id: Optional[str] = None) -> bool:
+    """
+    Send notification to supervisor when they are assigned to a student.
+    """
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    
+    try:
+        supervisor = User.objects.get(id=supervisor_id)
+    except User.DoesNotExist:
+        return False
+        
+    dashboard_url = f"{settings.FRONTEND_URL}/dashboard/students"
+    
+    context = {
+        "supervisor_name": supervisor.get_full_name() or supervisor.username,
+        "student_name": student_name,
+        "opportunity_title": opportunity_title,
+        "role_type": role_type.capitalize(), # "Institution" or "Employer"
+        "assigned_by": assigned_by_name,
+        "employer_name": employer_name,
+        "dashboard_url": dashboard_url,
+        "site_name": "Edulink"
+    }
+    
+    success = send_email_notification(
+        recipient_email=supervisor.email,
+        subject=f"New Student Assigned: {student_name}",
+        template_name="supervisor_assigned",
+        context=context,
+        actor_id=actor_id
+    )
+
+    if success:
+        create_notification(
+            recipient_id=supervisor_id,
+            type=Notification.TYPE_SUPERVISOR_ASSIGNED,
+            title="New Student Assigned",
+            body=f"You have been assigned as supervisor for {student_name}.",
+            channel=Notification.CHANNEL_EMAIL,
+            related_entity_type="InternshipApplication",
+            related_entity_id=application_id,
+            actor_id=actor_id
+        )
+    
+    return success
 
 def mark_notification_sent(*, notification_id: str) -> bool:
     """
@@ -1964,6 +2138,49 @@ def send_student_profile_completed_notification(*, user_id: str) -> bool:
     )
 
 
+def send_document_uploaded_notification(*, user_id: str, document_type: str, file_name: str) -> bool:
+    """
+    Send notification when a student uploads a document.
+    """
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return False
+        
+    context = {
+        "user_name": user.get_full_name() or user.username,
+        "document_type": document_type.replace('_', ' ').title(),
+        "file_name": file_name,
+        "site_name": "Edulink",
+        "dashboard_url": f"{settings.FRONTEND_URL}/dashboard/documents"
+    }
+    
+    success = send_email_notification(
+        recipient_email=user.email,
+        subject=f"Document Uploaded: {context['document_type']}",
+        template_name="document_uploaded",
+        context=context,
+        actor_id=user_id
+    )
+
+    if success:
+        create_notification(
+            recipient_id=user_id,
+            type=Notification.TYPE_DOCUMENT_UPLOADED,
+            title="Document Uploaded",
+            body=f"Your document {context['document_type']} ({file_name}) has been uploaded successfully.",
+            channel=Notification.CHANNEL_EMAIL,
+            related_entity_type="Student", # or Document if we had a model
+            related_entity_id=None, # We don't have a document ID, so using None or maybe student ID?
+            actor_id=user_id
+        )
+    
+    return success
+
+
 def send_document_verified_notification(*, user_id: str, document_type: str) -> bool:
     """
     Send notification when a student document is verified.
@@ -2073,6 +2290,133 @@ def send_institution_interest_outreach_notification(*, recipient_email: str, ins
             
     return success
 
+def send_certificate_generated_notification(*, student_email: str, student_name: str, position: str, employer_name: str, tracking_code: str, artifact_id: str, actor_id: Optional[str] = None) -> bool:
+    """
+    Send notification when an internship certificate is generated.
+    """
+    download_url = f"{settings.FRONTEND_URL}/artifacts/download/{artifact_id}"
+    
+    context = {
+        "student_name": student_name,
+        "position": position,
+        "employer_name": employer_name,
+        "tracking_code": tracking_code,
+        "download_url": download_url,
+        "site_name": "Edulink"
+    }
+    
+    success = send_email_notification(
+        recipient_email=student_email,
+        subject=f"Certificate Generated - {position} at {employer_name}",
+        template_name="certificate_generated",
+        context=context,
+        actor_id=actor_id
+    )
+
+    if success:
+         # Find user ID from email for notification record
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        user = User.objects.filter(email=student_email).first()
+        
+        if user:
+            create_notification(
+                recipient_id=str(user.id),
+                type=Notification.TYPE_CERTIFICATE_GENERATED,
+                title="Certificate Available",
+                body=f"Your certificate for {position} at {employer_name} is ready.",
+                channel=Notification.CHANNEL_EMAIL,
+                related_entity_type="Artifact",
+                related_entity_id=artifact_id,
+                actor_id=actor_id
+            )
+
+    return success
+
+def send_performance_summary_generated_notification(*, student_email: str, student_name: str, employer_name: str, logbooks_count: int, milestones_count: int, artifact_id: str, actor_id: Optional[str] = None) -> bool:
+    """
+    Send notification when a performance summary is generated.
+    """
+    download_url = f"{settings.FRONTEND_URL}/artifacts/download/{artifact_id}"
+    
+    context = {
+        "student_name": student_name,
+        "employer_name": employer_name,
+        "logbooks_count": logbooks_count,
+        "milestones_count": milestones_count,
+        "download_url": download_url,
+        "site_name": "Edulink"
+    }
+    
+    success = send_email_notification(
+        recipient_email=student_email,
+        subject="Performance Summary Generated",
+        template_name="performance_summary_generated",
+        context=context,
+        actor_id=actor_id
+    )
+
+    if success:
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        user = User.objects.filter(email=student_email).first()
+        
+        if user:
+            create_notification(
+                recipient_id=str(user.id),
+                type=Notification.TYPE_PERFORMANCE_SUMMARY_GENERATED,
+                title="Performance Summary Available",
+                body=f"Your performance summary for {employer_name} is ready.",
+                channel=Notification.CHANNEL_EMAIL,
+                related_entity_type="Artifact",
+                related_entity_id=artifact_id,
+                actor_id=actor_id
+            )
+
+    return success
+
+def send_logbook_report_generated_notification(*, student_email: str, student_name: str, employer_name: str, logbooks_count: int, tracking_code: str, artifact_id: str, actor_id: Optional[str] = None) -> bool:
+    """
+    Send notification when a logbook report is generated.
+    """
+    download_url = f"{settings.FRONTEND_URL}/artifacts/download/{artifact_id}"
+    
+    context = {
+        "student_name": student_name,
+        "employer_name": employer_name,
+        "logbooks_count": logbooks_count,
+        "tracking_code": tracking_code,
+        "download_url": download_url,
+        "site_name": "Edulink"
+    }
+    
+    success = send_email_notification(
+        recipient_email=student_email,
+        subject="Logbook Report Generated",
+        template_name="logbook_report_generated",
+        context=context,
+        actor_id=actor_id
+    )
+
+    if success:
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        user = User.objects.filter(email=student_email).first()
+        
+        if user:
+            create_notification(
+                recipient_id=str(user.id),
+                type=Notification.TYPE_LOGBOOK_REPORT_GENERATED,
+                title="Logbook Report Available",
+                body=f"Your logbook report for {employer_name} is ready.",
+                channel=Notification.CHANNEL_EMAIL,
+                related_entity_type="Artifact",
+                related_entity_id=artifact_id,
+                actor_id=actor_id
+            )
+
+    return success
+
 
 def send_institution_admin_welcome_notification(
     *,
@@ -2096,3 +2440,372 @@ def send_institution_admin_welcome_notification(
         context=context,
         actor_id=actor_id
     )
+
+
+def send_internship_application_submitted_notification(*, application_id: str, student_id: str, opportunity_title: str, employer_name: str, actor_id: Optional[str] = None) -> bool:
+    """
+    Send notification to student when they apply for an internship.
+    """
+    from django.contrib.auth import get_user_model
+    from edulink.apps.students.queries import get_student_by_id
+    
+    student = get_student_by_id(uuid.UUID(student_id))
+    if not student:
+        return False
+        
+    context = {
+        "student_name": student.user.get_full_name() or student.user.username,
+        "opportunity_title": opportunity_title,
+        "employer_name": employer_name,
+        "dashboard_url": f"{settings.FRONTEND_URL}/internships/applications",
+        "site_name": "Edulink"
+    }
+    
+    # Notify Student
+    success = send_email_notification(
+        recipient_email=student.user.email,
+        subject=f"Application Received: {opportunity_title}",
+        template_name="internship_application_submitted",
+        context=context,
+        actor_id=actor_id
+    )
+    
+    if success:
+        create_notification(
+            recipient_id=str(student.user.id),
+            type=Notification.TYPE_INTERNSHIP_APPLICATION_SUBMITTED,
+            title="Application Submitted",
+            body=f"Your application for {opportunity_title} at {employer_name} has been submitted.",
+            channel=Notification.CHANNEL_EMAIL,
+            related_entity_type="InternshipApplication",
+            related_entity_id=application_id,
+            actor_id=actor_id
+        )
+    
+    return success
+
+def send_internship_application_status_update_notification(*, application_id: str, student_id: str, opportunity_title: str, status: str, actor_id: Optional[str] = None) -> bool:
+    """
+    Send notification to student when their application status changes.
+    """
+    from edulink.apps.students.queries import get_student_by_id
+    
+    student = get_student_by_id(uuid.UUID(student_id))
+    if not student:
+        return False
+        
+    context = {
+        "student_name": student.user.get_full_name() or student.user.username,
+        "opportunity_title": opportunity_title,
+        "status": status,
+        "dashboard_url": f"{settings.FRONTEND_URL}/internships/applications",
+        "site_name": "Edulink"
+    }
+    
+    success = send_email_notification(
+        recipient_email=student.user.email,
+        subject=f"Application Update: {opportunity_title}",
+        template_name="internship_application_status_update",
+        context=context,
+        actor_id=actor_id
+    )
+    
+    if success:
+        # Map status to notification type
+        notif_type = Notification.TYPE_INTERNSHIP_APPLICATION_REVIEWED
+        if status.upper() == "ACCEPTED":
+            notif_type = Notification.TYPE_INTERNSHIP_ACCEPTED
+        elif status.upper() == "REJECTED":
+            notif_type = Notification.TYPE_INTERNSHIP_REJECTED
+            
+        create_notification(
+            recipient_id=str(student.user.id),
+            type=notif_type,
+            title=f"Application {status.title()}",
+            body=f"Your application for {opportunity_title} has been {status.lower()}.",
+            channel=Notification.CHANNEL_EMAIL,
+            related_entity_type="InternshipApplication",
+            related_entity_id=application_id,
+            actor_id=actor_id
+        )
+    
+    return success
+
+def send_internship_final_feedback_submitted_notification(*, application_id: str, student_id: str, opportunity_title: str, employer_name: str, feedback: str, rating: int = None, actor_id: Optional[str] = None) -> bool:
+    """
+    Send notification to student when final feedback is submitted.
+    """
+    from edulink.apps.students.queries import get_student_by_id
+    
+    student = get_student_by_id(uuid.UUID(student_id))
+    if not student:
+        return False
+        
+    dashboard_url = f"{settings.FRONTEND_URL}/dashboard/student/artifacts"
+    
+    context = {
+        "student_name": student.user.get_full_name() or student.user.username,
+        "opportunity_title": opportunity_title,
+        "employer_name": employer_name,
+        "feedback": feedback,
+        "rating": rating,
+        "has_rating": rating is not None,
+        "dashboard_url": dashboard_url,
+        "site_name": "Edulink"
+    }
+    
+    success = send_email_notification(
+        recipient_email=student.user.email,
+        subject=f"Final Feedback Received: {opportunity_title}",
+        template_name="internship_final_feedback_submitted",
+        context=context,
+        actor_id=actor_id
+    )
+
+    if success:
+        create_notification(
+            recipient_id=str(student.user.id),
+            type=Notification.TYPE_INTERNSHIP_FINAL_FEEDBACK_SUBMITTED,
+            title="Internship Feedback Received",
+            body=f"You have received final feedback for your internship at {employer_name}.",
+            channel=Notification.CHANNEL_EMAIL,
+            related_entity_type="InternshipApplication",
+            related_entity_id=application_id,
+            actor_id=actor_id
+        )
+    
+    return success
+
+def send_incident_resolved_notification(*, incident_id: str, recipient_id: str, incident_title: str, resolution_notes: str = "", actor_id: Optional[str] = None) -> bool:
+    """
+    Send notification when an incident is resolved.
+    """
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    
+    try:
+        user = User.objects.get(id=recipient_id)
+    except User.DoesNotExist:
+        return False
+        
+    dashboard_url = f"{settings.FRONTEND_URL}/dashboard/incidents"
+    
+    context = {
+        "user_name": user.get_full_name() or user.username,
+        "incident_title": incident_title,
+        "resolution_notes": resolution_notes,
+        "dashboard_url": dashboard_url,
+        "site_name": "Edulink"
+    }
+    
+    success = send_email_notification(
+        recipient_email=user.email,
+        subject=f"Incident Resolved: {incident_title}",
+        template_name="incident_resolved",
+        context=context,
+        actor_id=actor_id
+    )
+
+    if success:
+        create_notification(
+            recipient_id=recipient_id,
+            type=Notification.TYPE_INCIDENT_RESOLVED, # Needs to be added to models
+            title="Incident Resolved",
+            body=f"The incident '{incident_title}' has been resolved.",
+            channel=Notification.CHANNEL_EMAIL,
+            related_entity_type="Incident",
+            related_entity_id=incident_id,
+            actor_id=actor_id
+        )
+    
+    return success
+
+def send_trust_tier_changed_notification(*, entity_id: str, entity_type: str, old_level: int, new_level: int, new_level_label: str, recipient_user_id: str, actor_id: Optional[str] = None) -> bool:
+    """
+    Send notification when trust tier changes.
+    """
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    
+    try:
+        user = User.objects.get(id=recipient_user_id)
+    except User.DoesNotExist:
+        return False
+        
+    dashboard_url = f"{settings.FRONTEND_URL}/dashboard"
+    
+    context = {
+        "entity_name": user.get_full_name() or user.username, # Or institution/employer name if passed
+        "old_level": old_level,
+        "new_level": new_level,
+        "new_level_label": new_level_label,
+        "dashboard_url": dashboard_url,
+        "site_name": "Edulink"
+    }
+    
+    success = send_email_notification(
+        recipient_email=user.email,
+        subject="Trust Tier Updated",
+        template_name="trust_tier_changed",
+        context=context,
+        actor_id=actor_id
+    )
+
+    if success:
+        create_notification(
+            recipient_id=recipient_user_id,
+            type=Notification.TYPE_TRUST_TIER_CHANGED,
+            title="Trust Tier Updated",
+            body=f"Your trust tier has changed to {new_level_label}.",
+            channel=Notification.CHANNEL_EMAIL,
+            related_entity_type=entity_type,
+            related_entity_id=entity_id,
+            actor_id=actor_id
+        )
+    
+    return success
+
+def send_evidence_submitted_notification(*, evidence_id: str, supervisor_ids: List[str], student_name: str, evidence_title: str, actor_id: Optional[str] = None) -> int:
+    """
+    Notify supervisors when evidence (logbook) is submitted.
+    """
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    
+    sent_count = 0
+    
+    for supervisor_id in supervisor_ids:
+        if not supervisor_id: 
+            continue
+            
+        try:
+            supervisor = User.objects.get(id=supervisor_id)
+            
+            context = {
+                "supervisor_name": supervisor.get_full_name() or supervisor.username,
+                "student_name": student_name,
+                "evidence_title": evidence_title,
+                "review_url": f"{settings.FRONTEND_URL}/dashboard/evidence/{evidence_id}",
+                "site_name": "Edulink"
+            }
+            
+            success = send_email_notification(
+                recipient_email=supervisor.email,
+                subject=f"New Evidence Submitted by {student_name}",
+                template_name="evidence_submitted",
+                context=context,
+                actor_id=actor_id
+            )
+            
+            if success:
+                sent_count += 1
+                
+                # Create notification record
+                create_notification(
+                    recipient_id=supervisor_id,
+                    type=Notification.TYPE_LOGBOOK_SUBMITTED,
+                    title="New Evidence Submitted",
+                    body=f"{student_name} has submitted new evidence: {evidence_title}",
+                    channel=Notification.CHANNEL_EMAIL,
+                    related_entity_type="Evidence",
+                    related_entity_id=evidence_id,
+                    actor_id=actor_id
+                )
+                
+        except User.DoesNotExist:
+            continue
+            
+    return sent_count
+
+def send_evidence_reviewed_notification(*, evidence_id: str, student_id: str, evidence_title: str, status: str, reviewer_name: str, actor_id: Optional[str] = None) -> bool:
+    """
+    Notify student when evidence is reviewed.
+    """
+    from edulink.apps.students.queries import get_student_by_id
+    
+    student = get_student_by_id(uuid.UUID(student_id))
+    if not student:
+        return False
+        
+    context = {
+        "student_name": student.user.get_full_name() or student.user.username,
+        "evidence_title": evidence_title,
+        "status": status,
+        "reviewer_name": reviewer_name,
+        "dashboard_url": f"{settings.FRONTEND_URL}/dashboard/evidence",
+        "site_name": "Edulink"
+    }
+    
+    success = send_email_notification(
+        recipient_email=student.user.email,
+        subject=f"Evidence Reviewed: {evidence_title}",
+        template_name="evidence_reviewed",
+        context=context,
+        actor_id=actor_id
+    )
+    
+    if success:
+        create_notification(
+            recipient_id=str(student.user.id),
+            type=Notification.TYPE_LOGBOOK_REVIEWED,
+            title="Evidence Reviewed",
+            body=f"Your evidence '{evidence_title}' has been reviewed by {reviewer_name}.",
+            channel=Notification.CHANNEL_EMAIL,
+            related_entity_type="Evidence",
+            related_entity_id=evidence_id,
+            actor_id=actor_id
+        )
+    
+    return success
+
+def send_incident_reported_notification(*, incident_id: str, recipient_ids: List[str], title: str, reporter_name: str, actor_id: Optional[str] = None) -> int:
+    """
+    Notify admins/supervisors about a reported incident.
+    """
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    
+    sent_count = 0
+    
+    for recipient_id in recipient_ids:
+        if not recipient_id:
+            continue
+            
+        try:
+            user = User.objects.get(id=recipient_id)
+            
+            context = {
+                "user_name": user.get_full_name() or user.username,
+                "incident_title": title,
+                "reporter_name": reporter_name,
+                "dashboard_url": f"{settings.FRONTEND_URL}/dashboard/incidents/{incident_id}",
+                "site_name": "Edulink"
+            }
+            
+            success = send_email_notification(
+                recipient_email=user.email,
+                subject=f"Incident Reported: {title}",
+                template_name="incident_reported",
+                context=context,
+                actor_id=actor_id
+            )
+            
+            if success:
+                sent_count += 1
+                
+                # Create notification record
+                create_notification(
+                    recipient_id=recipient_id,
+                    type=Notification.TYPE_INCIDENT_REPORTED,
+                    title="Incident Reported",
+                    body=f"A new incident has been reported: {title}",
+                    channel=Notification.CHANNEL_EMAIL,
+                    related_entity_type="Incident",
+                    related_entity_id=incident_id,
+                    actor_id=actor_id
+                )
+                
+        except User.DoesNotExist:
+            continue
+            
+    return sent_count

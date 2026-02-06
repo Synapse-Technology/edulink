@@ -5,6 +5,7 @@ from edulink.apps.notifications.services import (
     send_student_profile_completed_notification,
     send_document_verified_notification,
     send_document_rejected_notification,
+    send_document_uploaded_notification,
 )
 from .models import Student, StudentInstitutionAffiliation, TRUST_EVENT_POINTS, TRUST_TIER_THRESHOLDS
 from uuid import UUID
@@ -172,6 +173,16 @@ def upload_student_document(*, student_id: str, document_type: str, file_name: s
             "file_name": file_name,
         },
     )
+
+    # Send notification
+    try:
+        send_document_uploaded_notification(
+            user_id=str(student.user_id),
+            document_type=document_type,
+            file_name=file_name
+        )
+    except Exception:
+        pass
 
 
 def log_internship_activity(*, student_id: str, activity_type: str, description: str) -> None:

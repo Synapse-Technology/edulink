@@ -7,6 +7,7 @@ import Contact from './pages/Contact';
 import Support from './pages/Support';
 import Search from './pages/Search';
 import Opportunities from './pages/Opportunities';
+import OpportunityDetails from './pages/OpportunityDetails';
 import WhyUs from './pages/WhyUs';
 import VerifyArtifact from './pages/VerifyArtifact';
 import Login from './pages/auth/Login';
@@ -23,6 +24,7 @@ import InstitutionStudents from './pages/admin/Institution/InstitutionStudents';
 import InstitutionStaff from './pages/admin/Institution/InstitutionStaff';
 import InstitutionInternships from './pages/admin/Institution/InstitutionInternships';
 import InstitutionApplications from './pages/admin/Institution/InstitutionApplications';
+import InstitutionCertifications from './pages/admin/Institution/InstitutionCertifications';
 import StudentVerification from './pages/admin/Institution/StudentVerification';
 import InstitutionSettings from './pages/admin/Institution/InstitutionSettings';
 import AcademicStructure from './components/admin/institution/AcademicStructure';
@@ -54,6 +56,7 @@ import PlatformStaffManagement from './pages/admin/SystemAdmin/PlatformStaffMana
 import StaffInviteForm from './pages/admin/SystemAdmin/StaffInviteForm';
 import AcceptInvite from './pages/admin/SystemAdmin/AcceptInvite';
 import SystemHealthDashboard from './pages/admin/SystemAdmin/SystemHealthDashboard';
+import AuditLog from './pages/admin/SystemAdmin/AuditLog';
 import RequestSubmission from './pages/admin/Employer/RequestSubmission';
 import RequestTracking from './pages/admin/Employer/RequestTracking';
 import ActivateAdmin from './pages/admin/Employer/ActivateAdmin';
@@ -99,6 +102,7 @@ function App() {
         
         <Route path="/support" element={<HybridLayout><Support /></HybridLayout>} />
         <Route path="/opportunities" element={<HybridLayout><Opportunities /></HybridLayout>} />
+        <Route path="/opportunities/:id" element={<HybridLayout><OpportunityDetails /></HybridLayout>} />
         
         {/* Auth routes without layout */}
         <Route path="/login" element={<Login />} />
@@ -158,6 +162,11 @@ function App() {
         <Route path="/admin/reports" element={
           <AdminAuthProvider>
             <SystemHealthDashboard />
+          </AdminAuthProvider>
+        } />
+        <Route path="/admin/logs" element={
+          <AdminAuthProvider>
+            <AuditLog />
           </AdminAuthProvider>
         } />
         <Route path="/admin/settings" element={
@@ -232,6 +241,7 @@ function App() {
         <Route path="/institution/dashboard/academic" element={<ProtectedRoute role={['institution', 'institution_admin']}><InstitutionLayout><AcademicStructure /></InstitutionLayout></ProtectedRoute>} />
         <Route path="/institution/dashboard/internships" element={<ProtectedRoute role={['institution', 'institution_admin']}><InstitutionLayout><InstitutionInternships /></InstitutionLayout></ProtectedRoute>} />
         <Route path="/institution/dashboard/applications" element={<ProtectedRoute role={['institution', 'institution_admin']}><InstitutionLayout><InstitutionApplications /></InstitutionLayout></ProtectedRoute>} />
+        <Route path="/institution/dashboard/certifications" element={<ProtectedRoute role={['institution', 'institution_admin']}><InstitutionLayout><InstitutionCertifications /></InstitutionLayout></ProtectedRoute>} />
         <Route path="/institution/dashboard/verification" element={<ProtectedRoute role={['institution', 'institution_admin']}><InstitutionLayout><StudentVerification /></InstitutionLayout></ProtectedRoute>} />
         <Route path="/institution/dashboard/settings" element={<ProtectedRoute role={['institution', 'institution_admin']}><InstitutionLayout><InstitutionSettings /></InstitutionLayout></ProtectedRoute>} />
         

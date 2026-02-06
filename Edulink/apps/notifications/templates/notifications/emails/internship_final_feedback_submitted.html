@@ -1,0 +1,23 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}Internship Final Feedback Received{% endblock %}
+
+{% block content %}
+    <h2>Final Feedback Received</h2>
+    
+    <p>Hello {{ student_name }},</p>
+    
+    <p>Congratulations! Your internship at <strong>{{ employer_name }}</strong> has concluded, and your supervisor has submitted their final feedback.</p>
+    
+    <div class="highlight-box">
+        {% if rating %}
+        <p><strong>Final Rating:</strong> {{ rating }} / 5</p>
+        {% endif %}
+        <p><strong>Feedback Summary:</strong></p>
+        <p style="font-style: italic;">"{{ feedback_preview }}..."</p>
+    </div>
+    
+    <p>You can view the full details of your evaluation on your dashboard.</p>
+    
+    <a href="{{ dashboard_url }}" class="email-button">View Final Evaluation</a>
+{% endblock %}

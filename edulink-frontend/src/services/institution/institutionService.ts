@@ -149,6 +149,16 @@ class InstitutionService {
     }
   }
 
+  async getTrustProgress(): Promise<any> {
+    try {
+      const response = await this.client.get<any>('/api/institutions/institutions/trust_progress/');
+      return response;
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new Error('Failed to fetch trust progress');
+    }
+  }
+
   async updateProfile(data: Partial<InstitutionProfile> | FormData): Promise<InstitutionProfile> {
     try {
       const response = await this.client.patch<InstitutionProfile>('/api/institutions/institutions/profile/', data);

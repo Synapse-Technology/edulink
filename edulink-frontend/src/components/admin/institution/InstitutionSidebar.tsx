@@ -10,7 +10,8 @@ import {
   School,
   X,
   ClipboardList,
-  GraduationCap
+  GraduationCap,
+  Award
 } from 'lucide-react';
 import { useAuthStore } from '../../../stores/authStore';
 
@@ -63,6 +64,7 @@ const InstitutionSidebar: React.FC<InstitutionSidebarProps> = ({
     { id: 'academic', label: 'Academic Structure', icon: School, path: '/institution/dashboard/academic' },
     { id: 'internships', label: 'Internships', icon: BookOpen, path: '/institution/dashboard/internships' },
     { id: 'applications', label: 'Applications', icon: ClipboardList, path: '/institution/dashboard/applications' },
+    { id: 'certifications', label: 'Certifications', icon: Award, path: '/institution/dashboard/certifications' },
     { id: 'verification', label: 'Student Verification', icon: FileText, path: '/institution/dashboard/verification' },
     { id: 'settings', label: 'Settings', icon: Settings, path: '/institution/dashboard/settings' },
   ];

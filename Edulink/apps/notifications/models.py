@@ -35,6 +35,13 @@ class Notification(BaseModel):
     TYPE_EMPLOYER_ONBOARDED = "employer_onboarded"
     TYPE_ADMIN_NEW_ONBOARDING_REQUEST = "admin_new_onboarding_request"
     TYPE_INSTITUTION_INTEREST_OUTREACH = "institution_interest_outreach"
+    TYPE_CERTIFICATE_GENERATED = "certificate_generated"
+    TYPE_PERFORMANCE_SUMMARY_GENERATED = "performance_summary_generated"
+    TYPE_LOGBOOK_REPORT_GENERATED = "logbook_report_generated"
+    TYPE_INTERNSHIP_FINAL_FEEDBACK_SUBMITTED = "internship_final_feedback_submitted"
+    TYPE_SUPERVISOR_ASSIGNED = "supervisor_assigned"
+    TYPE_INCIDENT_RESOLVED = "incident_resolved"
+    TYPE_INCIDENT_REPORTED = "incident_reported"
     
     TYPE_CHOICES = [
         (TYPE_EMAIL_VERIFICATION, "Email Verification"),
@@ -57,6 +64,13 @@ class Notification(BaseModel):
         (TYPE_EMPLOYER_ONBOARDED, "Employer Onboarded"),
         (TYPE_ADMIN_NEW_ONBOARDING_REQUEST, "Admin New Onboarding Request"),
         (TYPE_INSTITUTION_INTEREST_OUTREACH, "Institution Interest Outreach"),
+        (TYPE_CERTIFICATE_GENERATED, "Certificate Generated"),
+        (TYPE_PERFORMANCE_SUMMARY_GENERATED, "Performance Summary Generated"),
+        (TYPE_LOGBOOK_REPORT_GENERATED, "Logbook Report Generated"),
+        (TYPE_INTERNSHIP_FINAL_FEEDBACK_SUBMITTED, "Internship Final Feedback Submitted"),
+        (TYPE_SUPERVISOR_ASSIGNED, "Supervisor Assigned"),
+        (TYPE_INCIDENT_RESOLVED, "Incident Resolved"),
+        (TYPE_INCIDENT_REPORTED, "Incident Reported"),
     ]
     
     # Delivery channels

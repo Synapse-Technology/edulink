@@ -113,10 +113,15 @@ class InternshipViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=False, methods=['get'], url_path='incidents')
     def incidents(self, request):
         """
-        List all incidents for the current supervisor.
+        List all incidents for the current user (supervisor or student).
         """
-        from .queries import get_incidents_for_supervisor
-        incidents = get_incidents_for_supervisor(request.user)
+        if request.user.is_student:
+            from .queries import get_incidents_for_student
+            incidents = get_incidents_for_student(request.user)
+        else:
+            from .queries import get_incidents_for_supervisor
+            incidents = get_incidents_for_supervisor(request.user)
+            
         serializer = IncidentSerializer(incidents, many=True, context={'request': request})
         return Response(serializer.data)
 

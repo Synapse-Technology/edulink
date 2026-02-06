@@ -27,10 +27,7 @@ const HybridLayout: React.FC<HybridLayoutProps> = ({ children }) => {
     case 'institution_admin':
     case 'supervisor':
       return (
-        <InstitutionLayout 
-          activeTab="external" 
-          setActiveTab={() => {}}
-        >
+        <InstitutionLayout>
           {children}
         </InstitutionLayout>
       );

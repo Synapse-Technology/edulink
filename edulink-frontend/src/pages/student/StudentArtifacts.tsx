@@ -299,14 +299,15 @@ const StudentArtifacts: React.FC = () => {
                         <button 
                           className={`btn ${isDarkMode ? 'btn-success' : 'btn-success'} btn-sm py-2 fw-bold d-flex align-items-center justify-content-center gap-2`}
                           onClick={() => handleGenerate('CERTIFICATE')}
-                          disabled={!!generating}
+                          disabled={!!generating || internship?.status !== 'CERTIFIED'}
+                          title={internship?.status !== 'CERTIFIED' ? "Waiting for Institution Certification" : "Generate Certificate"}
                         >
                           {generating === 'CERTIFICATE' ? (
                             <span className="spinner-border spinner-border-sm" role="status"></span>
                           ) : (
                             <Award size={16} />
                           )}
-                          Generate Certificate
+                          {internship?.status !== 'CERTIFIED' ? "Pending Certification" : "Generate Certificate"}
                         </button>
                       )}
                     </div>

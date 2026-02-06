@@ -49,6 +49,14 @@ const SupervisorLogbooks: React.FC = () => {
   const handleReviewSubmit = async () => {
     if (!selectedEvidence || !reviewAction) return;
 
+    // Check if internship is completed
+    // Since we don't have the full internship object here, we might rely on the backend error or try to check if available.
+    // However, the selectedEvidence might not contain full internship status.
+    // Ideally, we should check this. 
+    // But since the list filters pending evidence, and completed internships shouldn't have pending evidence that needs review?
+    // Actually, pending evidence might exist even if internship is marked complete (edge case).
+    // Let's wrap in try-catch and handle the specific error from backend.
+    
     try {
       setSubmitting(true);
       await internshipService.reviewEvidence(
@@ -67,7 +75,12 @@ const SupervisorLogbooks: React.FC = () => {
       fetchEvidence(); // Refresh list
     } catch (err: any) {
       console.error("Failed to review evidence", err);
-      toast.error("Failed to submit review");
+      // Check for the specific permission error message from backend
+      if (err.response?.data?.detail?.includes("authorized")) {
+         toast.error("You cannot review this logbook (Internship might be completed).");
+      } else {
+         toast.error("Failed to submit review");
+      }
     } finally {
       setSubmitting(false);
     }

@@ -68,7 +68,11 @@ const SupervisorLogbooks: React.FC = () => {
       fetchEvidence(); // Refresh list
     } catch (err: any) {
       console.error("Failed to review evidence", err);
-      toast.error("Failed to submit review");
+      if (err.response?.data?.detail?.includes("authorized")) {
+         toast.error("You cannot review this logbook (Internship might be completed).");
+      } else {
+         toast.error("Failed to submit review");
+      }
     } finally {
       setSubmitting(false);
     }

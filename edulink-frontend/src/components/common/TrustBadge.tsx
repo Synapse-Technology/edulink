@@ -77,8 +77,10 @@ const TrustBadge: React.FC<TrustBadgeProps> = ({
 
     const Icon = icons[level] || Shield;
 
+    const entityLabels = labels[entityType] || labels.student;
+    
     return {
-      label: labels[entityType][level] || 'Unknown',
+      label: entityLabels[level] || 'Unknown',
       colorClass: colors[level] || 'bg-secondary',
       sizeClass: sizeClasses[size],
       iconSize: iconSizes[size],

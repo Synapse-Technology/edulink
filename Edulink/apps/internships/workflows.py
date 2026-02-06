@@ -98,6 +98,17 @@ class ApplicationWorkflow:
             # Enforce evidence requirement: Must have at least one ACCEPTED evidence
             if not application.evidence.filter(status=InternshipEvidence.STATUS_ACCEPTED).exists():
                  raise ValueError("Internship cannot be completed without accepted evidence.")
+                 
+            # Additional check: Pending reviews should be blocked.
+            # While complete_internship service checks this, doing it here in workflow enforces it globally.
+            pending_statuses = [
+                InternshipEvidence.STATUS_SUBMITTED,
+                InternshipEvidence.STATUS_REVIEWED,
+                InternshipEvidence.STATUS_REVISION_REQUIRED
+            ]
+            if application.evidence.filter(status__in=pending_statuses).exists():
+                 raise ValueError("Internship cannot be completed with pending evidence reviews.")
+
 
         # 4. Execute
         with transaction.atomic():

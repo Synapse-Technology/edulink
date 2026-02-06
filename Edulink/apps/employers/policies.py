@@ -1,6 +1,8 @@
 from typing import Optional
-from edulink.apps.accounts.models import User
+from django.contrib.auth import get_user_model
 from .models import Employer, Supervisor
+
+User = get_user_model()
 
 def get_employer_staff(user: User) -> Optional[Supervisor]:
     """

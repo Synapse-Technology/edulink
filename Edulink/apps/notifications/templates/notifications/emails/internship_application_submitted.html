@@ -1,0 +1,26 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block content %}
+<div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+    <h2 style="color: #2c5aa0;">Application Submitted</h2>
+    
+    <p>Dear {{ student_name }},</p>
+    
+    <p>Your application for <strong>{{ opportunity_title }}</strong> at <strong>{{ employer_name }}</strong> has been successfully submitted.</p>
+    
+    <p>The employer will review your application and you will be notified of any status updates.</p>
+    
+    <p style="text-align: center; margin: 25px 0;">
+        <a href="{{ dashboard_url }}" 
+           style="background-color: #2c5aa0; color: white; padding: 12px 24px; 
+                  text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
+            View Application
+        </a>
+    </p>
+    
+    <p style="margin-top: 30px; font-size: 14px; color: #666;">
+        Best regards,<br>
+        The {{ site_name }} Team
+    </p>
+</div>
+{% endblock %}

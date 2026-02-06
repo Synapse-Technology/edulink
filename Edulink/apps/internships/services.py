@@ -114,13 +114,28 @@ def apply_for_internship(actor, opportunity_id: UUID, cover_letter: str = "") ->
     if not student:
         raise ValueError("Student profile not found for user")
         
+    # Check for CV
+    if not student.cv:
+        raise ValueError("You must upload a CV to your profile before applying.")
+
     opportunity = InternshipOpportunity.objects.get(id=opportunity_id)
     if opportunity.status != OpportunityStatus.OPEN:
         raise ValueError("Internship opportunity is not open")
         
+    # Check application deadline
+    if opportunity.application_deadline and timezone.now() > opportunity.application_deadline:
+        raise ValueError("The application deadline for this opportunity has passed.")
+        
     # Check duplicate application
     if InternshipApplication.objects.filter(opportunity=opportunity, student_id=student.id).exists():
         raise ValueError("You have already applied to this internship.")
+
+    # Check for overlapping engagements (Double Booking Prevention)
+    if InternshipApplication.objects.filter(
+        student_id=student.id,
+        status__in=[ApplicationStatus.ACCEPTED, ApplicationStatus.ACTIVE]
+    ).exists():
+        raise ValueError("You already have an active or accepted internship.")
 
     # Check institution restriction
     if opportunity.is_institution_restricted:
@@ -166,6 +181,27 @@ def apply_for_internship(actor, opportunity_id: UUID, cover_letter: str = "") ->
             }
         )
         
+        # Send notification
+        from edulink.apps.notifications.services import send_internship_application_submitted_notification
+        
+        employer_name = "the employer"
+        if opportunity.employer_id:
+             from edulink.apps.employers.queries import get_employer_by_id
+             emp = get_employer_by_id(opportunity.employer_id)
+             if emp: employer_name = emp.name
+        elif opportunity.institution_id:
+             from edulink.apps.institutions.queries import get_institution_by_id
+             inst = get_institution_by_id(opportunity.institution_id)
+             if inst: employer_name = inst.name
+             
+        send_internship_application_submitted_notification(
+            application_id=str(application.id),
+            student_id=str(student.id),
+            opportunity_title=opportunity.title,
+            employer_name=employer_name,
+            actor_id=str(actor.id)
+        )
+        
     return application
 
 def submit_evidence(actor, application_id: UUID, title: str, file: any, description: str = "", evidence_type: str = InternshipEvidence.TYPE_OTHER, metadata: dict = None) -> InternshipEvidence:
@@ -196,6 +232,29 @@ def submit_evidence(actor, application_id: UUID, title: str, file: any, descript
         payload={"application_id": str(application.id), "title": title, "type": evidence_type}
     )
     
+    # Recalculate Student Trust Tier (Points for submission)
+    from edulink.apps.trust.services import compute_student_trust_tier
+    compute_student_trust_tier(student_id=str(application.student_id))
+    
+    # Send notification
+    supervisor_ids = []
+    if application.employer_supervisor_id:
+        supervisor_ids.append(str(application.employer_supervisor_id))
+    if application.institution_supervisor_id:
+        supervisor_ids.append(str(application.institution_supervisor_id))
+    
+    if supervisor_ids:
+        from edulink.apps.notifications.services import send_evidence_submitted_notification
+        student_name = actor.get_full_name() or actor.username
+        
+        send_evidence_submitted_notification(
+            evidence_id=str(evidence.id),
+            supervisor_ids=supervisor_ids,
+            student_name=student_name,
+            evidence_title=title,
+            actor_id=str(actor.id)
+        )
+    
     return evidence
 
 def create_incident(actor, application_id: UUID, title: str, description: str) -> Incident:
@@ -220,6 +279,26 @@ def create_incident(actor, application_id: UUID, title: str, description: str) -
         entity_type="incident",
         payload={"application_id": str(application.id), "title": title}
     )
+    
+    # Send notification to supervisors
+    recipient_ids = []
+    if application.employer_supervisor_id:
+        recipient_ids.append(str(application.employer_supervisor_id))
+    if application.institution_supervisor_id:
+        recipient_ids.append(str(application.institution_supervisor_id))
+        
+    if recipient_ids:
+        from edulink.apps.notifications.services import send_incident_reported_notification
+        reporter_name = actor.get_full_name() or actor.username
+        
+        send_incident_reported_notification(
+            incident_id=str(incident.id),
+            recipient_ids=recipient_ids,
+            title=title,
+            reporter_name=reporter_name,
+            actor_id=str(actor.id)
+        )
+        
     return incident
 
 def resolve_incident(actor, incident_id: UUID, status: str, notes: str) -> Incident:
@@ -243,6 +322,17 @@ def resolve_incident(actor, incident_id: UUID, status: str, notes: str) -> Incid
         entity_type="incident",
         payload={"application_id": str(incident.application.id), "status": status}
     )
+
+    # Send Notification
+    from edulink.apps.notifications.services import send_incident_resolved_notification
+    send_incident_resolved_notification(
+        incident_id=str(incident.id),
+        recipient_id=str(incident.reported_by),
+        incident_title=incident.title,
+        resolution_notes=notes,
+        actor_id=str(actor.id)
+    )
+
     return incident
 
 def submit_final_feedback(actor, application_id: UUID, feedback: str, rating: int = None) -> InternshipApplication:
@@ -271,6 +361,30 @@ def submit_final_feedback(actor, application_id: UUID, feedback: str, rating: in
             "feedback_length": len(feedback)
         }
     )
+
+    # Send notification
+    from edulink.apps.notifications.services import send_internship_final_feedback_submitted_notification
+    
+    employer_name = "the employer"
+    if application.opportunity.employer_id:
+            from edulink.apps.employers.queries import get_employer_by_id
+            emp = get_employer_by_id(application.opportunity.employer_id)
+            if emp: employer_name = emp.name
+    elif application.opportunity.institution_id:
+            from edulink.apps.institutions.queries import get_institution_by_id
+            inst = get_institution_by_id(application.opportunity.institution_id)
+            if inst: employer_name = inst.name
+
+    send_internship_final_feedback_submitted_notification(
+        application_id=str(application.id),
+        student_id=str(application.student_id),
+        opportunity_title=application.opportunity.title,
+        employer_name=employer_name,
+        feedback=feedback,
+        rating=rating,
+        actor_id=str(actor.id)
+    )
+
     return application
 
 def create_success_story(
@@ -317,6 +431,9 @@ def create_success_story(
 def assign_supervisors(actor, application_id: UUID, supervisor_id: UUID, type: str) -> InternshipApplication:
     application = InternshipApplication.objects.get(id=application_id)
     
+    if application.status in [ApplicationStatus.COMPLETED, ApplicationStatus.CERTIFIED, ApplicationStatus.TERMINATED]:
+        raise ValueError("Cannot assign supervisors to a completed or certified internship")
+        
     if not can_assign_supervisor(actor, application.opportunity):
          raise PermissionError("User not authorized to assign supervisors")
 
@@ -335,6 +452,31 @@ def assign_supervisors(actor, application_id: UUID, supervisor_id: UUID, type: s
         entity_type="internship_application",
         payload={"supervisor_id": str(supervisor_id), "type": type}
     )
+    
+    # Send Notification
+    from edulink.apps.notifications.services import send_supervisor_assigned_notification
+    from edulink.apps.students.queries import get_student_by_id
+    
+    student = get_student_by_id(application.student_id)
+    student_name = student.user.get_full_name() or student.user.username if student else "Student"
+    
+    employer_name = ""
+    if application.opportunity.employer_id:
+        from edulink.apps.employers.queries import get_employer_by_id
+        emp = get_employer_by_id(application.opportunity.employer_id)
+        if emp: employer_name = emp.name
+        
+    send_supervisor_assigned_notification(
+        supervisor_id=str(supervisor_id),
+        student_name=student_name,
+        opportunity_title=application.opportunity.title,
+        role_type=type,
+        assigned_by_name=actor.get_full_name() or actor.username,
+        employer_name=employer_name,
+        application_id=str(application.id),
+        actor_id=str(actor.id)
+    )
+    
     return application
 
 def bulk_assign_institution_supervisors(
@@ -401,6 +543,9 @@ def bulk_assign_institution_supervisors(
         raise ValueError(f"No supervisors found for department '{dept.name}'" + (f" and cohort '{cohort_name}'" if cohort_name else ""))
 
     # 6. Assign (Round-Robin)
+    from edulink.apps.notifications.services import send_supervisor_assigned_notification
+    from edulink.apps.students.queries import get_student_by_id
+    
     assigned_count = 0
     with transaction.atomic():
         for i, app in enumerate(applications):
@@ -417,6 +562,32 @@ def bulk_assign_institution_supervisors(
                 entity_type="internship_application",
                 payload={"supervisor_id": str(supervisor.id), "type": "institution", "bulk": True}
             )
+            
+            # Send Notification
+            student = get_student_by_id(app.student_id)
+            student_name = student.user.get_full_name() or student.user.username if student else "Student"
+            
+            employer_name = ""
+            if app.opportunity.employer_id:
+                from edulink.apps.employers.queries import get_employer_by_id
+                emp = get_employer_by_id(app.opportunity.employer_id)
+                if emp: employer_name = emp.name
+            
+            try:
+                send_supervisor_assigned_notification(
+                    supervisor_id=str(supervisor.id),
+                    student_name=student_name,
+                    opportunity_title=app.opportunity.title,
+                    role_type="institution",
+                    assigned_by_name=actor.get_full_name() or actor.username,
+                    employer_name=employer_name,
+                    application_id=str(app.id),
+                    actor_id=str(actor.id)
+                )
+            except Exception:
+                # Don't fail bulk assignment if notification fails
+                pass
+                
             assigned_count += 1
             
     return {
@@ -514,6 +685,26 @@ def review_evidence(actor, evidence_id: UUID, status: str, notes: str = "", priv
             "aggregate_status": evidence.status
         }
     )
+
+    # Recalculate Student Trust Tier
+    # The student gains points if the evidence is approved
+    if evidence.status == InternshipEvidence.STATUS_ACCEPTED:
+        from edulink.apps.trust.services import compute_student_trust_tier
+        compute_student_trust_tier(student_id=str(application.student_id))
+    
+    # Send notification if status changed to something final or revision required
+    if evidence.status in [InternshipEvidence.STATUS_ACCEPTED, InternshipEvidence.STATUS_REJECTED, InternshipEvidence.STATUS_REVISION_REQUIRED]:
+        from edulink.apps.notifications.services import send_evidence_reviewed_notification
+        reviewer_name = actor.get_full_name() or actor.username
+        
+        send_evidence_reviewed_notification(
+            evidence_id=str(evidence.id),
+            student_id=str(application.student_id),
+            evidence_title=evidence.title,
+            status=evidence.get_status_display(),
+            reviewer_name=reviewer_name,
+            actor_id=str(actor.id)
+        )
     
     return evidence
 
@@ -525,61 +716,146 @@ def process_application(actor, application_id: UUID, action: str) -> InternshipA
     application = InternshipApplication.objects.get(id=application_id)
     
     if action == "shortlist":
-        return application_workflow.transition(
+        app = application_workflow.transition(
             application=application,
             target_state=ApplicationStatus.SHORTLISTED,
             actor=actor
         )
+        status_label = "Shortlisted"
     elif action == "reject":
-        return application_workflow.transition(
+        app = application_workflow.transition(
             application=application,
             target_state=ApplicationStatus.REJECTED,
             actor=actor,
             payload={"reason": "Application Rejected"}
         )
+        status_label = "Rejected"
     else:
         raise ValueError(f"Invalid action: {action}")
+        
+    # Send notification
+    from edulink.apps.notifications.services import send_internship_application_status_update_notification
+    send_internship_application_status_update_notification(
+        application_id=str(app.id),
+        student_id=str(app.student_id),
+        opportunity_title=app.opportunity.title,
+        status=status_label,
+        actor_id=str(actor.id)
+    )
+    
+    return app
 
 def accept_offer(actor, application_id: UUID) -> InternshipApplication:
     """
     Transition SHORTLISTED -> ACCEPTED.
     """
     application = InternshipApplication.objects.get(id=application_id)
-    return application_workflow.transition(
+    opportunity = application.opportunity
+    
+    # Check Capacity
+    accepted_count = InternshipApplication.objects.filter(
+        opportunity=opportunity,
+        status__in=[ApplicationStatus.ACCEPTED, ApplicationStatus.ACTIVE, ApplicationStatus.COMPLETED]
+    ).count()
+    
+    if accepted_count >= opportunity.capacity:
+        raise ValueError(f"Opportunity capacity ({opportunity.capacity}) reached.")
+        
+    app = application_workflow.transition(
         application=application,
         target_state=ApplicationStatus.ACCEPTED,
         actor=actor
     )
+    
+    from edulink.apps.notifications.services import send_internship_application_status_update_notification
+    send_internship_application_status_update_notification(
+        application_id=str(app.id),
+        student_id=str(app.student_id),
+        opportunity_title=app.opportunity.title,
+        status="Accepted",
+        actor_id=str(actor.id)
+    )
+    return app
 
 def start_internship(actor, application_id: UUID) -> InternshipApplication:
     """
     Transition ACCEPTED -> ACTIVE.
     """
     application = InternshipApplication.objects.get(id=application_id)
-    return application_workflow.transition(
+    app = application_workflow.transition(
         application=application,
         target_state=ApplicationStatus.ACTIVE,
         actor=actor
     )
+    
+    from edulink.apps.notifications.services import send_internship_application_status_update_notification
+    send_internship_application_status_update_notification(
+        application_id=str(app.id),
+        student_id=str(app.student_id),
+        opportunity_title=app.opportunity.title,
+        status="Active (Started)",
+        actor_id=str(actor.id)
+    )
+    return app
 
 def complete_internship(actor, application_id: UUID) -> InternshipApplication:
     """
     Transition ACTIVE -> COMPLETED.
+    Prerequisites:
+    1. No pending evidence reviews (All must be ACCEPTED or REJECTED)
+    2. Final Feedback/Assessment must be submitted
     """
     application = InternshipApplication.objects.get(id=application_id)
-    return application_workflow.transition(
+    
+    # 1. Check for Pending Evidence
+    # Statuses that are considered "pending" or "in-progress"
+    pending_statuses = [
+        InternshipEvidence.STATUS_SUBMITTED,
+        InternshipEvidence.STATUS_REVIEWED, # Partially reviewed
+        InternshipEvidence.STATUS_REVISION_REQUIRED
+    ]
+    if application.evidence.filter(status__in=pending_statuses).exists():
+        raise ValueError("Cannot complete internship with pending evidence reviews. All logbooks must be approved or rejected.")
+        
+    # 2. Check for Final Feedback/Assessment
+    # We assume 'final_feedback' or 'final_rating' indicates assessment.
+    # Or strict check: if application.final_feedback is empty.
+    if not application.final_feedback:
+        raise ValueError("Final assessment/feedback is required before completing the internship.")
+
+    app = application_workflow.transition(
         application=application,
         target_state=ApplicationStatus.COMPLETED,
         actor=actor
     )
+    
+    from edulink.apps.notifications.services import send_internship_application_status_update_notification
+    send_internship_application_status_update_notification(
+        application_id=str(app.id),
+        student_id=str(app.student_id),
+        opportunity_title=app.opportunity.title,
+        status="Completed",
+        actor_id=str(actor.id)
+    )
+    return app
 
 def certify_internship(actor, application_id: UUID) -> InternshipApplication:
     """
     Transition COMPLETED -> CERTIFIED.
     """
     application = InternshipApplication.objects.get(id=application_id)
-    return application_workflow.transition(
+    app = application_workflow.transition(
         application=application,
         target_state=ApplicationStatus.CERTIFIED,
         actor=actor
     )
+    
+    from edulink.apps.notifications.services import send_internship_application_status_update_notification
+    send_internship_application_status_update_notification(
+        application_id=str(app.id),
+        student_id=str(app.student_id),
+        opportunity_title=app.opportunity.title,
+        status="Certified",
+        actor_id=str(actor.id)
+    )
+    return app

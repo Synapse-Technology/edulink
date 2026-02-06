@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
 import { EmployerLayout } from '../../../components/admin/employer';
 import { EmployerDashboardSkeleton } from '../../../components/admin/skeletons';
+import TrustProgressWidget from '../../../components/dashboard/TrustProgressWidget';
 import { internshipService } from '../../../services/internship/internshipService';
 import type { InternshipApplication, InternshipOpportunity } from '../../../services/internship/internshipService';
 import { employerService } from '../../../services/employer/employerService';
@@ -13,6 +14,7 @@ const EmployerDashboard: React.FC = () => {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [currentEmployer, setCurrentEmployer] = useState<Employer | null>(null);
+  const [trustStats, setTrustStats] = useState<any>(null);
   const [stats, setStats] = useState({
     activeInternships: 0,
     pendingApplications: 0,
@@ -32,6 +34,14 @@ const EmployerDashboard: React.FC = () => {
             setCurrentEmployer(employer);
         } catch (e) {
             console.warn("Could not fetch employer details", e);
+        }
+
+        // Fetch Trust Stats
+        try {
+            const trustData = await employerService.getTrustProgress();
+            setTrustStats(trustData);
+        } catch (e) {
+            console.warn("Failed to fetch trust stats", e);
         }
 
         // 2. Fetch Applications (Engagements)
@@ -305,7 +315,11 @@ const EmployerDashboard: React.FC = () => {
 
           {/* Quick Actions */}
           <div className="col-lg-4 mb-4">
-            <div className="card border-0 shadow-sm h-100">
+            <div className="mb-4">
+                <TrustProgressWidget data={trustStats} isLoading={isLoading} userType="employer" />
+            </div>
+
+            <div className="card border-0 shadow-sm">
               <div className="card-header bg-white py-3">
                 <h5 className="mb-0 fw-bold">Quick Actions</h5>
               </div>

@@ -150,6 +150,12 @@ const StudentLogbook: React.FC = () => {
     const isCurrent = isDateInCurrentWeek(dateStr);
     const isPast = isDateInPast(dateStr);
     
+    // Check if internship is completed
+    if (internship && ['COMPLETED', 'CERTIFIED', 'TERMINATED'].includes(internship.status)) {
+      toast.error("This internship is completed. You cannot edit logbook entries.");
+      return;
+    }
+    
     if (!isCurrent && !isPast) {
       toast.error("Future dates are locked.");
       return;
@@ -176,6 +182,12 @@ const StudentLogbook: React.FC = () => {
 
   const handleSubmitLogbook = () => {
     if (!internship) return;
+    
+    // Check if internship is completed
+    if (['COMPLETED', 'CERTIFIED', 'TERMINATED'].includes(internship.status)) {
+      toast.error("This internship is completed. No further logbook entries can be submitted.");
+      return;
+    }
     
     // Validate: At least one entry?
     if (Object.keys(logbookEntries).length === 0) {
@@ -539,14 +551,14 @@ const StudentLogbook: React.FC = () => {
                       <button 
                         className="btn btn-primary w-100 py-3 rounded-3 d-flex align-items-center justify-content-center gap-2 mb-3 btn-animate"
                         onClick={handleSubmitLogbook}
-                        disabled={submitting || submissionSuccess}
+                        disabled={submitting || submissionSuccess || (internship && ['COMPLETED', 'CERTIFIED', 'TERMINATED'].includes(internship.status))}
                       >
                         {submitting ? (
                           <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
                         ) : (
                           <>
                             <Send size={18} />
-                            <span>Submit Week for Review</span>
+                            <span>{internship && ['COMPLETED', 'CERTIFIED', 'TERMINATED'].includes(internship.status) ? 'Internship Completed' : 'Submit Week for Review'}</span>
                           </>
                         )}
                       </button>

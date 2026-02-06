@@ -157,6 +157,20 @@ class InstitutionViewSet(viewsets.ReadOnlyModelViewSet):
             return Response(self.get_serializer(institution).data)
 
     @action(detail=False, methods=["get"], permission_classes=[IsAuthenticated, IsInstitutionAdmin])
+    def trust_progress(self, request):
+        """
+        Get trust tier progress for the current institution.
+        """
+        from edulink.apps.trust.services import get_institution_trust_progress
+        
+        institution = get_institution_for_user(str(request.user.id))
+        if not institution:
+            return Response({"detail": "No institution found for this user."}, status=status.HTTP_404_NOT_FOUND)
+            
+        progress = get_institution_trust_progress(institution_id=institution.id)
+        return Response(progress)
+
+    @action(detail=False, methods=["get"], permission_classes=[IsAuthenticated, IsInstitutionAdmin])
     def students(self, request):
         """
         List all students affiliated with the current user's institution.
@@ -1317,16 +1331,16 @@ class InstitutionReportsViewSet(viewsets.ViewSet):
             
             student_name = student.user.get_full_name() if student and student.user else "Unknown"
             student_email = student.user.email if student and student.user else "Unknown"
-            employer_name = employer.company_name if employer else "Unknown"
+            employer_name = employer.name if employer else "Unknown"
             
             writer.writerow([
                 student_name,
                 student_email,
                 employer_name,
-                internship.title,
+                internship.opportunity.title,
                 internship.status,
-                internship.start_date or "",
-                internship.end_date or ""
+                internship.opportunity.start_date or "",
+                internship.opportunity.end_date or ""
             ])
             
         return response

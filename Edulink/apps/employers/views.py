@@ -192,6 +192,22 @@ class EmployerViewSet(viewsets.ReadOnlyModelViewSet):
             return Response(self.get_serializer(employer).data)
         return Response({"detail": "No employer found for this user."}, status=status.HTTP_404_NOT_FOUND)
 
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def trust_progress(self, request):
+        """
+        Get trust tier progress for the current employer.
+        """
+        from .queries import get_employer_for_user
+        from edulink.apps.trust.services import get_employer_trust_progress
+        
+        employer = get_employer_for_user(request.user.id)
+        if not employer:
+            return Response({"detail": "No employer found for this user."}, status=status.HTTP_404_NOT_FOUND)
+            
+        progress = get_employer_trust_progress(employer_id=employer.id)
+        return Response(progress)
+
+
 class EmployerSupervisorViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = SupervisorSerializer

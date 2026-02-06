@@ -21,6 +21,7 @@ import InstitutionManagement from '../pages/admin/SystemAdmin/InstitutionManagem
 import PlatformStaffManagement from '../pages/admin/SystemAdmin/PlatformStaffManagement';
 import StaffInviteForm from '../pages/admin/SystemAdmin/StaffInviteForm';
 import AcceptInvite from '../pages/admin/SystemAdmin/AcceptInvite';
+import AuditLog from '../pages/admin/SystemAdmin/AuditLog';
 import RequestSubmission from '../pages/admin/Employer/RequestSubmission';
 import RequestTracking from '../pages/admin/Employer/RequestTracking';
 import ActivateAdmin from '../pages/admin/Employer/ActivateAdmin';
@@ -165,6 +166,7 @@ export const ROUTES = {
   ADMIN_ANALYTICS: '/admin/analytics',
   ADMIN_REPORTS: '/admin/reports',
   ADMIN_SETTINGS: '/admin/settings',
+  ADMIN_LOGS: '/admin/logs',
 
   // Employer Public Onboarding
   EMPLOYER_ONBOARDING_REQUEST: '/employer/onboarding',
@@ -328,6 +330,17 @@ export const routeConfigs = [
       <AdminProtectedRoute>
         <AdminNavigation />
         <StaffInviteForm />
+      </AdminProtectedRoute>
+    ),
+    isPublic: false,
+    requiresLayout: false,
+  },
+  {
+    path: ROUTES.ADMIN_LOGS,
+    element: (
+      <AdminProtectedRoute>
+        <AdminNavigation />
+        <AuditLog />
       </AdminProtectedRoute>
     ),
     isPublic: false,

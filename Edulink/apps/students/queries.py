@@ -171,7 +171,7 @@ def get_students_by_trust_level(*, level: int):
     """
     Get students filtered by their cached trust level.
     """
-    return Student.objects.filter(trust_level=level).select_related('user')
+    return Student.objects.filter(trust_level=level)
 
 
 def get_verified_student_ids_by_affiliation(

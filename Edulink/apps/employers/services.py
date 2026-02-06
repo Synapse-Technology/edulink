@@ -18,8 +18,14 @@ from edulink.apps.notifications.services import (
 )
 from .models import Employer, Supervisor, EmployerRequest, EmployerInvite, EmployerStaffProfileRequest
 from .tracking_helpers import generate_tracking_code
-from edulink.apps.accounts.models import User as UserType
-from edulink.apps.accounts.services import update_user_profile
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from edulink.apps.accounts.models import User as UserType
+else:
+    UserType = Any
+
+from edulink.apps.accounts.services import update_user_profile, create_activated_user, get_user_by_id
+
 
 User = get_user_model()
 
@@ -322,7 +328,7 @@ def invite_supervisor(
     Uses secure token flow.
     """
     employer = Employer.objects.get(id=employer_id)
-    actor = User.objects.get(id=actor_id)
+    actor = get_user_by_id(user_id=actor_id)
     
     # Check if user is already a supervisor for this employer
     if Supervisor.objects.filter(employer=employer, user__email=email, is_active=True).exists():
@@ -411,16 +417,13 @@ def activate_supervisor_invite(
         if invite.role == "ADMIN":
             user_role = "employer_admin"
             
-        user = User.objects.create_user(
-            username=invite.email,
+        user = create_activated_user(
             email=invite.email,
             password=password,
             first_name=first_name,
             last_name=last_name,
             role=user_role,
             phone_number=phone_number,
-            is_active=True,
-            is_email_verified=True # Verified upon activation from invite
         )
         user_created = True
     

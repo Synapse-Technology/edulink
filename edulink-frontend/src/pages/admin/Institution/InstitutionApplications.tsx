@@ -78,7 +78,9 @@ const InstitutionApplications: React.FC = () => {
       (app.student_info?.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
       app.title.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesStatus = statusFilter === 'ALL' || app.status === statusFilter;
+    const matchesStatus = statusFilter === 'ALL' 
+      ? !['COMPLETED', 'CERTIFIED'].includes(app.status) 
+      : app.status === statusFilter;
     
     return matchesSearch && matchesStatus;
   });
@@ -118,7 +120,7 @@ const InstitutionApplications: React.FC = () => {
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="bg-light"
               >
-                <option value="ALL">All Statuses</option>
+                <option value="ALL">All Active Statuses</option>
                 <option value="APPLIED">Pending</option>
                 <option value="SHORTLISTED">Shortlisted</option>
                 <option value="ACCEPTED">Accepted</option>
@@ -312,27 +314,6 @@ const InstitutionApplications: React.FC = () => {
                     >
                       <CheckCircle size={18} className="me-2" />
                       Start Internship
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {selectedApp.status === 'COMPLETED' && (
-                <div className="mt-4 pt-3 border-top">
-                  <h6 className="mb-3">Certification</h6>
-                  <Alert variant="info" className="mb-3 small">
-                    <CheckCircle size={16} className="me-2" />
-                    This internship has been marked as completed. Review the evidence and certify the student to award credits.
-                  </Alert>
-                  <div className="d-flex gap-3">
-                    <Button 
-                      variant="primary" 
-                      className="flex-grow-1"
-                      onClick={() => handleProcessApplication('CERTIFY')}
-                      disabled={processing}
-                    >
-                      <CheckCircle size={18} className="me-2" />
-                      Issue Certification
                     </Button>
                   </div>
                 </div>

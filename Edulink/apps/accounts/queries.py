@@ -85,3 +85,22 @@ def list_recent_users(limit: int = 5):
     Follows Rule 2: Centralize filtering logic.
     """
     return User.objects.all().order_by('-date_joined')[:limit]
+
+
+def get_user_growth_stats(days: int = 30) -> dict:
+    """
+    Get user growth statistics for trend calculation.
+    """
+    from django.utils import timezone
+    from datetime import timedelta
+    
+    now = timezone.now()
+    cutoff = now - timedelta(days=days)
+    
+    current_count = User.objects.count()
+    previous_count = User.objects.filter(date_joined__lt=cutoff).count()
+    
+    return {
+        "current_count": current_count,
+        "previous_count": previous_count,
+    }

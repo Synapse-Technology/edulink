@@ -1,0 +1,20 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}Internship Certificate Available{% endblock %}
+
+{% block content %}
+    <h2>Congratulations, {{ student_name }}!</h2>
+    
+    <p>Your professional internship certificate for the <strong>{{ position }}</strong> position at <strong>{{ employer_name }}</strong> has been generated and is now available.</p>
+    
+    <div class="highlight-box">
+        <p><strong>Tracking Code:</strong> {{ tracking_code }}</p>
+        <p>This certificate is immutably recorded on our ledger and can be verified by any third party.</p>
+    </div>
+    
+    <p>You can view and download your certificate directly from your dashboard.</p>
+    
+    <a href="{{ dashboard_url }}" class="email-button">Go to Dashboard</a>
+    
+    <p>We wish you all the best in your future career!</p>
+{% endblock %}

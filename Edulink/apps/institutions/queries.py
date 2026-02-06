@@ -300,6 +300,25 @@ def get_institution_analytics() -> dict:
     }
 
 
+def get_institution_growth_stats(days: int = 30) -> dict:
+    """
+    Get institution growth statistics for trend calculation.
+    """
+    from django.utils import timezone
+    from datetime import timedelta
+    
+    now = timezone.now()
+    cutoff = now - timedelta(days=days)
+    
+    current_count = Institution.objects.count()
+    previous_count = Institution.objects.filter(created_at__lt=cutoff).count()
+    
+    return {
+        "current_count": current_count,
+        "previous_count": previous_count,
+    }
+
+
 def get_institution_interest_statistics():
     """
     Aggregate statistics for institutions students want to join.

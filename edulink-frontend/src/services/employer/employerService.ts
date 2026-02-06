@@ -162,6 +162,16 @@ class EmployerService {
     }
   }
 
+  async getTrustProgress(): Promise<any> {
+    try {
+      const response = await this.client.get<any>('/api/employers/employers/trust_progress/');
+      return response;
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new Error('Failed to fetch trust progress');
+    }
+  }
+
   async updateProfile(id: string, data: Partial<Employer> | FormData): Promise<Employer> {
     try {
       const response = await this.client.patch<Employer>(`/api/employers/employers/${id}/`, data);
