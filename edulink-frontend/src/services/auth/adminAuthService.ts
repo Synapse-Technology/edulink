@@ -62,6 +62,8 @@ interface AdminDashboardStats {
     entity_type: string;
     entity_id: string;
     timestamp: string;
+    severity?: 'info' | 'warning' | 'error' | 'success';
+    details?: string;
     payload?: any;
   }>;
 }
@@ -291,13 +293,9 @@ class AdminAuthService {
 
   async getSystemHealth(): Promise<{
     status: 'healthy' | 'warning' | 'error';
-    services: Array<{
-      name: string;
-      status: 'healthy' | 'warning' | 'error';
-      message: string;
-      lastCheck: string;
-    }>;
-    lastCheck: string;
+    services: Record<string, 'healthy' | 'warning' | 'error'>;
+    uptime: string;
+    last_check: string;
   }> {
     try {
       const response = await this.client.get('/api/admin/system/health/');
@@ -307,6 +305,52 @@ class AdminAuthService {
         throw error;
       }
       throw new AuthorizationError('Failed to fetch system health');
+    }
+  }
+
+  async getSystemStats(): Promise<{
+    total_users: number;
+    total_users_trend: number;
+    active_users: number;
+    total_institutions: number;
+    total_institutions_trend: number;
+    total_internships: number;
+    total_internships_trend: number;
+    total_applications: number;
+    total_applications_trend: number;
+    system_load: number;
+    response_time: number;
+    memory_usage: number;
+    disk_usage: number;
+    api_requests: number;
+  }> {
+    try {
+      const response = await this.client.get('/api/admin/system/stats/');
+      return response as any;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error;
+      }
+      throw new AuthorizationError('Failed to fetch system stats');
+    }
+  }
+
+  async getSystemActivity(): Promise<Array<{
+    id: string;
+    action: string;
+    actor: string;
+    timestamp: string;
+    details: string;
+    severity: 'info' | 'warning' | 'error';
+  }>> {
+    try {
+      const response = await this.client.get('/api/admin/system/activity/');
+      return response as any;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error;
+      }
+      throw new AuthorizationError('Failed to fetch system activity');
     }
   }
 

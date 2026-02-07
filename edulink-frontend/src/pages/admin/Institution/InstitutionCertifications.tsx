@@ -306,6 +306,15 @@ const InstitutionCertifications: React.FC = () => {
           )}
         </Modal.Body>
       </Modal>
+
+      <FeedbackModal
+        show={feedbackModal.show}
+        onHide={() => setFeedbackModal(prev => ({ ...prev, show: false }))}
+        title={feedbackModal.title}
+        message={feedbackModal.message}
+        variant={feedbackModal.variant}
+        details={feedbackModal.details}
+      />
     </div>
   );
 };

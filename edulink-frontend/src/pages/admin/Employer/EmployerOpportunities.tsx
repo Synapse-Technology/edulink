@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Plus, Search, MapPin, Calendar, Users, Briefcase } from 'lucide-react';
+import { toast } from 'react-hot-toast';
+import { FeedbackModal, type FeedbackVariant } from '../../../components/common';
+import { useFeedbackModal } from '../../../hooks/useFeedbackModal';
 import { EmployerLayout } from '../../../components/admin/employer';
 import { employerService } from '../../../services/employer/employerService';
 import { internshipService } from '../../../services/internship/internshipService';
@@ -17,6 +20,7 @@ const EmployerOpportunities: React.FC = () => {
   const [employerId, setEmployerId] = useState<string | undefined>(undefined);
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { feedbackProps, showError } = useFeedbackModal();
 
   useEffect(() => {
     if (id) {
@@ -67,9 +71,13 @@ const EmployerOpportunities: React.FC = () => {
       try {
           await internshipService.publishOpportunity(id);
           fetchOpportunities();
-      } catch (error) {
+      } catch (error: any) {
           console.error('Failed to publish:', error);
-          alert('Failed to publish opportunity');
+          showError(
+            'Publish Failed',
+            'We encountered an error while trying to publish this opportunity.',
+            error.response?.data?.error || error.message
+          );
       }
   };
 
@@ -266,6 +274,8 @@ const EmployerOpportunities: React.FC = () => {
         onHide={() => navigate('/employer/dashboard/opportunities')}
         internship={selectedInternship}
       />
+
+      <FeedbackModal {...feedbackProps} />
     </EmployerLayout>
   );
 };

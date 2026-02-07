@@ -4,7 +4,7 @@ import { AlertCircle } from 'lucide-react';
 import { studentService } from '../../services/student/studentService';
 import type { UpdateProfileData } from '../../services/student/studentService';
 import { config } from '../../config';
-import { fetchAndOpenDocument } from '../../utils/documentUtils';
+import { DocumentPreviewModal } from '../common';
 
 interface ProfileWizardProps {
   show: boolean;
@@ -46,6 +46,26 @@ const ProfileWizard: React.FC<ProfileWizardProps> = ({ show, onHide, studentId, 
   const [existingLetter, setExistingLetter] = useState<string | null>(null);
   const [existingId, setExistingId] = useState<string | null>(null);
 
+  // Preview Modal State
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewTitle, setPreviewTitle] = useState('');
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  // Determine initial step based on missing data
+  useEffect(() => {
+    if (show && initialData) {
+      if (!initialData.course_of_study || !initialData.current_year || !initialData.registration_number) {
+        setStep(0);
+      } else if (!initialData.skills || initialData.skills.length === 0) {
+        setStep(1);
+      } else if (!initialData.cv || !initialData.admission_letter || !initialData.id_document) {
+        setStep(3); // Skip institution step if docs are missing but basic info is there
+      } else {
+        setStep(0); // Default to start if everything is somehow there but wizard is opened
+      }
+    }
+  }, [show, initialData]);
+
   // Update state when initialData changes
   useEffect(() => {
     if (initialData) {
@@ -59,26 +79,11 @@ const ProfileWizard: React.FC<ProfileWizardProps> = ({ show, onHide, studentId, 
     }
   }, [initialData]);
 
-  const getDocumentUrl = (path: string | null) => {
-    if (!path) return '#';
-    if (path.startsWith('http')) return path;
-    
-    const baseUrl = config.api.baseURL.replace(/\/$/, '');
-    const cleanPath = path.startsWith('/') ? path.substring(1) : path;
-    
-    // If path is like "students/cvs/...", we need to prepend "media/"
-    // If it already has "media/", just prepend base URL
-    if (cleanPath.startsWith('media/')) {
-      return `${baseUrl}/${cleanPath}`;
-    }
-    
-    return `${baseUrl}/media/${cleanPath}`;
-  };
-
-  const handleViewDocument = (path: string | null) => {
+  const handleViewDocument = (path: string | null, title: string = 'Document') => {
     if (!path) return;
-    const url = getDocumentUrl(path);
-    fetchAndOpenDocument(url);
+    setPreviewTitle(title);
+    setPreviewUrl(path);
+    setPreviewOpen(true);
   };
 
   // Institution
@@ -315,7 +320,7 @@ const ProfileWizard: React.FC<ProfileWizardProps> = ({ show, onHide, studentId, 
                 <div className="d-flex align-items-center mb-2 p-2 border rounded bg-light">
                   <Badge bg="success" className="me-2">Current</Badge>
                   <span className="text-muted small me-auto">Document already uploaded</span>
-                  <button type="button" onClick={() => handleViewDocument(existingCv)} className="btn btn-sm btn-link p-0">View</button>
+                  <button type="button" onClick={() => handleViewDocument(existingCv, 'CV / Resume')} className="btn btn-sm btn-link p-0">Preview</button>
                 </div>
               )}
               <Form.Control type="file" onChange={(e: any) => setCvFile(e.target.files[0])} />
@@ -328,7 +333,7 @@ const ProfileWizard: React.FC<ProfileWizardProps> = ({ show, onHide, studentId, 
                 <div className="d-flex align-items-center mb-2 p-2 border rounded bg-light">
                   <Badge bg="success" className="me-2">Current</Badge>
                   <span className="text-muted small me-auto">Document already uploaded</span>
-                  <button type="button" onClick={() => handleViewDocument(existingLetter)} className="btn btn-sm btn-link p-0">View</button>
+                  <button type="button" onClick={() => handleViewDocument(existingLetter, 'Admission Letter')} className="btn btn-sm btn-link p-0">Preview</button>
                 </div>
               )}
               <Form.Control type="file" onChange={(e: any) => setLetterFile(e.target.files[0])} />
@@ -341,7 +346,7 @@ const ProfileWizard: React.FC<ProfileWizardProps> = ({ show, onHide, studentId, 
                 <div className="d-flex align-items-center mb-2 p-2 border rounded bg-light">
                   <Badge bg="success" className="me-2">Current</Badge>
                   <span className="text-muted small me-auto">Document already uploaded</span>
-                  <button type="button" onClick={() => handleViewDocument(existingId)} className="btn btn-sm btn-link p-0">View</button>
+                  <button type="button" onClick={() => handleViewDocument(existingId, 'School ID')} className="btn btn-sm btn-link p-0">Preview</button>
                 </div>
               )}
               <Form.Control type="file" onChange={(e: any) => setIdFile(e.target.files[0])} />
@@ -386,6 +391,13 @@ const ProfileWizard: React.FC<ProfileWizardProps> = ({ show, onHide, studentId, 
           {loading ? 'Saving...' : step === STEPS.length - 1 ? 'Finish' : 'Next'}
         </Button>
       </Modal.Footer>
+
+      <DocumentPreviewModal 
+        show={previewOpen}
+        onHide={() => setPreviewOpen(false)}
+        title={previewTitle}
+        url={previewUrl}
+      />
     </Modal>
   );
 };

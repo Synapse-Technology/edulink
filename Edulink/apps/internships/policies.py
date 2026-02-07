@@ -2,7 +2,7 @@ from uuid import UUID
 from typing import Optional, Union
 
 from edulink.apps.institutions.queries import get_institution_for_user, get_institution_staff_profile
-from edulink.apps.students.queries import get_student_for_user
+from edulink.apps.students.queries import get_student_for_user, get_student_approved_affiliation
 from edulink.apps.employers.policies import can_post_internship as employer_can_post
 from edulink.apps.employers.queries import get_employer_by_id, get_employer_for_user, get_employer_supervisor_by_user
 from .models import InternshipOpportunity, InternshipApplication, OpportunityStatus, ApplicationStatus
@@ -70,10 +70,17 @@ def can_view_application(actor, application: InternshipApplication) -> bool:
         
     # The owner of the opportunity
     opportunity = application.opportunity
-    if actor.is_institution_admin and opportunity.institution_id:
-        if get_actor_institution_id(actor) == opportunity.institution_id:
-            return True
-            
+    if actor.is_institution_admin:
+        if opportunity.institution_id:
+            if get_actor_institution_id(actor) == opportunity.institution_id:
+                return True
+        
+        # Also allow if the student belongs to the institution
+        affiliation = get_student_approved_affiliation(application.student_id)
+        if affiliation and affiliation.institution_id:
+             if can_create_internship(actor, institution_id=affiliation.institution_id):
+                 return True
+
     if actor.is_employer_admin and opportunity.employer_id:
         employer = get_employer_for_user(actor.id)
         if employer and employer.id == opportunity.employer_id:
@@ -108,6 +115,7 @@ def can_submit_evidence(actor, application: InternshipApplication) -> bool:
 def can_review_evidence(actor, application: InternshipApplication) -> bool:
     """
     Supervisors can review evidence.
+    Allowed only in ACTIVE state to prevent tampering after completion/certification.
     """
     if application.status != ApplicationStatus.ACTIVE:
         return False
@@ -129,6 +137,12 @@ def can_review_evidence(actor, application: InternshipApplication) -> bool:
     opportunity = application.opportunity
     if opportunity.institution_id and can_create_internship(actor, institution_id=opportunity.institution_id):
         return True
+        
+    # Also allow if the student belongs to the institution
+    affiliation = get_student_approved_affiliation(application.student_id)
+    if affiliation and affiliation.institution_id:
+            if can_create_internship(actor, institution_id=affiliation.institution_id):
+                return True
         
     # Employer Admins (if owner)
     if opportunity.employer_id and can_create_internship(actor, employer_id=opportunity.employer_id):
@@ -162,6 +176,12 @@ def can_flag_misconduct(actor, application: InternshipApplication) -> bool:
     # Institution Admins
     if opportunity.institution_id and can_create_internship(actor, institution_id=opportunity.institution_id):
         return True
+        
+    # Also allow if the student belongs to the institution
+    affiliation = get_student_approved_affiliation(application.student_id)
+    if affiliation and affiliation.institution_id:
+            if can_create_internship(actor, institution_id=affiliation.institution_id):
+                return True
         
     # Employer Admins
     if opportunity.employer_id and can_create_internship(actor, employer_id=opportunity.employer_id):
@@ -240,9 +260,16 @@ def can_transition_application(actor, application: InternshipApplication, target
 
     # COMPLETED -> CERTIFIED
     if current_state == ApplicationStatus.COMPLETED and target_state == ApplicationStatus.CERTIFIED:
-        # Only Institution Admin
+        # 1. If the opportunity belongs to an institution, that institution's admin can certify.
         if opportunity.institution_id and can_create_internship(actor, institution_id=opportunity.institution_id):
             return True
+            
+        # 2. If the opportunity is external (Employer), the student's institution admin can certify.
+        affiliation = get_student_approved_affiliation(application.student_id)
+        if affiliation and affiliation.institution_id:
+             if can_create_internship(actor, institution_id=affiliation.institution_id):
+                 return True
+                 
         return False
 
     # Rejection (APPLIED/SHORTLISTED -> REJECTED)
@@ -282,6 +309,13 @@ def can_submit_final_feedback(actor, application: InternshipApplication) -> bool
     opportunity = application.opportunity
     if opportunity.institution_id and can_create_internship(actor, institution_id=opportunity.institution_id):
         return True
+        
+    # Also allow if the student belongs to the institution
+    affiliation = get_student_approved_affiliation(application.student_id)
+    if affiliation and affiliation.institution_id:
+            if can_create_internship(actor, institution_id=affiliation.institution_id):
+                return True
+
     if opportunity.employer_id and can_create_internship(actor, employer_id=opportunity.employer_id):
         return True
 

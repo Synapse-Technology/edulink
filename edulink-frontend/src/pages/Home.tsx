@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { SEO } from '../components/common';
 
 const Home: React.FC = () => {
   useEffect(() => {
@@ -44,6 +45,11 @@ const Home: React.FC = () => {
 
   return (
     <div className="home-page">
+      <SEO 
+        title="Home"
+        description="EduLink KE is the leading platform for verified internships and graduate jobs in Kenya. Connecting students, institutions, and employers for a better career path."
+        keywords="internships kenya, graduate jobs, student placements, edulink home"
+      />
       {/* Hero Section */}
       <section id="hero" className="hero section dark-background">
         <img 
@@ -217,85 +223,58 @@ const Home: React.FC = () => {
         </div>
       </section>
 
-      {/* Featured Opportunities Section */}
-      <section id="featured-opportunities" className="section featured-opportunities">
+      {/* The EduLink Trust Journey Section */}
+      <section id="trust-journey" className="section trust-journey">
         <div className="container" data-aos="fade-up">
-          <div className="section-title text-center">
-            <h2>Featured Opportunities</h2>
-            <p>Get a glimpse of the internships available right now.</p>
+          <div className="section-title text-center mb-5">
+            <h2>The EduLink Trust Journey</h2>
+            <p>Your path to becoming a certified, high-tier professional.</p>
           </div>
-          <div className="row gy-4 mt-4">
-            {/* Opportunity Card 1 */}
-            <div className="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="100">
-              <div className="opportunity-card">
-                <div className="card-img">
-                  <img src="/assets/img/course-1.jpg" alt="Software Development" className="img-fluid w-100" />
+          
+          <div className="row gy-4">
+            <div className="col-lg-3 col-md-6" data-aos="zoom-in" data-aos-delay="100">
+              <div className="trust-card text-center p-4 h-100">
+                <div className="trust-icon mb-3">
+                  <i className="bi bi-file-earmark-check fs-1 text-primary"></i>
                 </div>
-                <div className="card-content">
-                  <div className="d-flex justify-content-between align-items-center mb-3">
-                    <span className="badge bg-success">Tech</span>
-                    <p className="price fw-bold mb-0">KES 40,000/mo</p>
-                  </div>
-                  <h3><Link to="#">Software Development Intern</Link></h3>
-                  <p className="company">Synapse Technologies</p>
-                  <div className="d-flex justify-content-between align-items-center">
-                    <div className="location d-flex align-items-center">
-                      <i className="bi bi-geo-alt"></i>
-                      <span>Nairobi, Kenya</span>
-                    </div>
-                    <Link to="#" className="btn btn-sm btn-primary">View Details</Link>
-                  </div>
-                </div>
+                <h4>Document Verified</h4>
+                <p className="small text-muted">Upload your CV and ID documents for initial platform verification.</p>
               </div>
             </div>
             
-            {/* Opportunity Card 2 */}
-            <div className="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="200">
-              <div className="opportunity-card">
-                <div className="card-img">
-                  <img src="/assets/img/course-2.jpg" alt="Marketing" className="img-fluid w-100" />
+            <div className="col-lg-3 col-md-6" data-aos="zoom-in" data-aos-delay="200">
+              <div className="trust-card text-center p-4 h-100">
+                <div className="trust-icon mb-3">
+                  <i className="bi bi-bank fs-1 text-primary"></i>
                 </div>
-                <div className="card-content">
-                  <div className="d-flex justify-content-between align-items-center mb-3">
-                    <span className="badge bg-info text-dark">Marketing</span>
-                    <p className="price fw-bold mb-0">KES 35,000/mo</p>
-                  </div>
-                  <h3><Link to="#">Digital Marketing Assistant</Link></h3>
-                  <p className="company">Creative Hub Inc.</p>
-                  <div className="d-flex justify-content-between align-items-center">
-                    <div className="location d-flex align-items-center">
-                      <i className="bi bi-geo-alt"></i>
-                      <span>Mombasa, Kenya</span>
-                    </div>
-                    <Link to="#" className="btn btn-sm btn-primary">View Details</Link>
-                  </div>
-                </div>
+                <h4>Institution Verified</h4>
+                <p className="small text-muted">Claim your institution and get verified by your campus admin.</p>
               </div>
             </div>
             
-            {/* Opportunity Card 3 */}
-            <div className="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="300">
-              <div className="opportunity-card">
-                <div className="card-img">
-                  <img src="/assets/img/course-3.jpg" alt="Finance" className="img-fluid w-100" />
+            <div className="col-lg-3 col-md-6" data-aos="zoom-in" data-aos-delay="300">
+              <div className="trust-card text-center p-4 h-100">
+                <div className="trust-icon mb-3">
+                  <i className="bi bi-briefcase fs-1 text-primary"></i>
                 </div>
-                <div className="card-content">
-                  <div className="d-flex justify-content-between align-items-center mb-3">
-                    <span className="badge bg-warning text-dark">Finance</span>
-                    <p className="price fw-bold mb-0">KES 38,000/mo</p>
-                  </div>
-                  <h3><Link to="#">Finance & Accounting Intern</Link></h3>
-                  <p className="company">Kenya Trust Bank</p>
-                  <div className="d-flex justify-content-between align-items-center">
-                    <div className="location d-flex align-items-center">
-                      <i className="bi bi-geo-alt"></i>
-                      <span>Kisumu, Kenya</span>
-                    </div>
-                    <Link to="#" className="btn btn-sm btn-primary">View Details</Link>
-                  </div>
-                </div>
+                <h4>Internship Completed</h4>
+                <p className="small text-muted">Successfully complete your first verified internship on the platform.</p>
               </div>
             </div>
+            
+            <div className="col-lg-3 col-md-6" data-aos="zoom-in" data-aos-delay="400">
+              <div className="trust-card text-center p-4 h-100">
+                <div className="trust-icon mb-3">
+                  <i className="bi bi-patch-check fs-1 text-primary"></i>
+                </div>
+                <h4>Certified Student</h4>
+                <p className="small text-muted">Earn your official completion certificate and top-tier talent status.</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="text-center mt-5">
+            <Link to="/register" className="btn btn-primary rounded-pill px-5 py-3 fw-bold shadow-sm">Start Your Journey</Link>
           </div>
         </div>
       </section>
@@ -569,70 +548,51 @@ const Home: React.FC = () => {
           border-color: rgb(9, 173, 179);
         }
 
-        /* Featured Opportunities */
-        .featured-opportunities .opportunity-card {
-          border: 1px solid #eef0ef;
-          background: #fff;
-          border-radius: 12px;
-          overflow: hidden;
-          transition: all 0.3s;
-          box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-          height: 100%;
+        /* Trust Journey Section */
+        .trust-journey {
+          background: #f0fdfa; /* Soft teal background */
+          padding: 80px 0;
+          position: relative;
         }
 
-        .featured-opportunities .opportunity-card:hover {
+        .trust-journey::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 100px;
+          background: linear-gradient(to bottom, #ffffff, rgba(240, 253, 250, 0));
+          pointer-events: none;
+        }
+
+        .trust-card {
+          background: #fff;
+          border-radius: 20px;
+          border: 1px solid #f0f0f0;
+          transition: all 0.3s ease;
+          box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+        }
+
+        .trust-card:hover {
           transform: translateY(-10px);
+          box-shadow: 0 15px 35px rgba(9, 173, 179, 0.1);
           border-color: rgb(9, 173, 179);
         }
 
-        .featured-opportunities .opportunity-card .card-img img {
-          height: 220px;
-          object-fit: cover;
-          width: 100%;
+        .trust-icon i {
+          display: inline-block;
+          padding: 15px;
+          background: rgba(9, 173, 179, 0.05);
+          border-radius: 15px;
+          line-height: 1;
         }
 
-        .featured-opportunities .opportunity-card .card-content {
-          padding: 20px;
-        }
-
-        .featured-opportunities .opportunity-card h3 {
+        .trust-card h4 {
           font-weight: 700;
-          font-size: 1.25rem;
-          margin-bottom: 0.5rem;
-        }
-
-        .featured-opportunities .opportunity-card h3 a {
           color: #37423b;
-          transition: 0.3s;
-          text-decoration: none;
-        }
-
-        .featured-opportunities .opportunity-card h3 a:hover {
-          color: rgb(9, 173, 179);
-        }
-
-        .featured-opportunities .opportunity-card .company {
-          font-size: 0.875rem;
-          color: #6c757d;
           margin-bottom: 15px;
-        }
-
-        .featured-opportunities .opportunity-card .location span {
-          font-size: 0.875rem;
-          color: #6c757d;
-          margin-left: 5px;
-        }
-
-        .featured-opportunities .opportunity-card .badge {
-          font-size: 0.75rem;
-          padding: 6px 10px;
-        }
-
-        .featured-opportunities .opportunity-card .price {
-          font-size: 1.125rem;
-          color: rgb(9, 173, 179);
-          font-weight: 700;
-          margin: 0;
+          font-size: 1.15rem;
         }
 
         /* Enhanced Responsive Design */

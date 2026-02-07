@@ -244,7 +244,10 @@ class EmployerService {
 
   async getEmployers(params?: { status?: string; search?: string; is_featured?: boolean }): Promise<Employer[]> {
     try {
-      const response = await this.client.get<Employer[]>('/api/employers/employers/', { params });
+      const response = await this.client.get<Employer[]>('/api/employers/employers/', { 
+        params,
+        headers: { 'skip-auth': 'true' }
+      });
       return response;
     } catch (error) {
       if (error instanceof ApiError) {

@@ -122,6 +122,12 @@ export const config = {
     hotjarId: import.meta.env.VITE_HOTJAR_ID,
   },
 
+  // Pusher Configuration
+  pusher: {
+    key: import.meta.env.VITE_PUSHER_KEY || 'f43311e71172349f71a2',
+    cluster: import.meta.env.VITE_PUSHER_CLUSTER || 'mt1',
+  },
+
   // Security Configuration
   security: {
     enableCSRF: true,

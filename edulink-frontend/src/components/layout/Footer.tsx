@@ -71,14 +71,13 @@ const Footer: React.FC<FooterProps> = ({ className = '' }) => {
 
           {/* Useful Links */}
           <div className="col-lg-2 col-md-3 footer-links">
-            <h4>Useful Links</h4>
+            <h4>Support</h4>
             <ul>
-              <li><Link to="/download">Download App</Link></li>
+              <li><Link to="/support">Support Center</Link></li>
+              <li><Link to="/support/history">Track Tickets</Link></li>
+              <li><Link to="/faq">FAQs</Link></li>
               <li><Link to="/policy">Privacy Policy</Link></li>
               <li><Link to="/terms">Terms of Service</Link></li>
-              <li><Link to="/faq">FAQs</Link></li>
-              <li><Link to="/help">Help</Link></li>
-              <li><Link to="/chat">Chat with Staff</Link></li>
             </ul>
           </div>
 

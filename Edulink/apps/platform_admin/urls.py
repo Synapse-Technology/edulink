@@ -5,7 +5,7 @@ Admin app URL configuration.
 from django.urls import path
 from . import views
 
-app_name = 'admin'
+app_name = 'platform_admin'
 
 urlpatterns = [
     # System management
@@ -33,6 +33,10 @@ urlpatterns = [
     path('institutions/<uuid:institution_id>/verify/', views.VerifyInstitutionView.as_view(), name='institution-verify'),
     path('institutions/pending/', views.PendingInstitutionsView.as_view(), name='pending-institutions'),
     path('institution-requests/<uuid:request_id>/review/', views.ReviewInstitutionRequestView.as_view(), name='review-institution-request'),
+    
+    # Contact submissions
+    path('contact-submissions/', views.ContactSubmissionListView.as_view(), name='contact-submission-list'),
+    path('contact-submissions/<uuid:submission_id>/', views.ContactSubmissionDetailView.as_view(), name='contact-submission-detail'),
     
     # System management
     path('system/stats/', views.SystemStatsView.as_view(), name='system-stats'),

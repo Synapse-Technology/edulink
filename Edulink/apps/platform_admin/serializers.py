@@ -389,11 +389,40 @@ class SystemHealthSerializer(serializers.Serializer):
 class RecentActivitySerializer(serializers.Serializer):
     """Serializer for recent system activity."""
     id = serializers.CharField(read_only=True)
-    action = serializers.CharField(read_only=True)
-    actor = serializers.CharField(read_only=True)
-    timestamp = serializers.DateTimeField(read_only=True)
-    details = serializers.CharField(read_only=True)
-    severity = serializers.CharField(read_only=True)
+    event_type = serializers.CharField(read_only=True)
+    entity_type = serializers.CharField(read_only=True)
+    entity_id = serializers.CharField(read_only=True)
+    action = serializers.CharField(source='event_type', read_only=True)
+    actor = serializers.CharField(source='actor_id', read_only=True)
+    timestamp = serializers.DateTimeField(source='occurred_at', read_only=True)
+    details = serializers.SerializerMethodField()
+    severity = serializers.SerializerMethodField()
+
+    def get_details(self, obj):
+        if isinstance(obj, dict):
+            return obj.get('details', str(obj.get('payload', '')))
+        
+        # For LedgerEvent objects, create a friendly summary if payload is complex
+        if hasattr(obj, 'entity_type') and hasattr(obj, 'entity_id'):
+            entity_name = str(obj.entity_type).replace('_', ' ').title()
+            entity_id_short = str(obj.entity_id)[:8]
+            return f"{entity_name} ({entity_id_short}) updated"
+            
+        return str(getattr(obj, 'payload', ''))
+
+    def get_severity(self, obj):
+        event_type = ''
+        if isinstance(obj, dict):
+            event_type = obj.get('action', obj.get('event_type', ''))
+        else:
+            event_type = getattr(obj, 'event_type', '')
+            
+        event_type = str(event_type).upper()
+        if 'FAILED' in event_type or 'ERROR' in event_type:
+            return 'error'
+        if 'WARNING' in event_type:
+            return 'warning'
+        return 'info'
 
 
 class BulkActionSerializer(serializers.Serializer):
@@ -476,6 +505,19 @@ class ReviewInstitutionRequestSerializer(serializers.Serializer):
         return data
 
 
+class ContactSubmissionSerializer(serializers.Serializer):
+    """Serializer for contact submissions in admin panel."""
+    id = serializers.UUIDField(read_only=True)
+    name = serializers.CharField(read_only=True)
+    email = serializers.EmailField(read_only=True)
+    subject = serializers.CharField(read_only=True)
+    message = serializers.CharField(read_only=True)
+    is_processed = serializers.BooleanField(read_only=True)
+    processed_at = serializers.DateTimeField(read_only=True)
+    internal_notes = serializers.CharField(required=False, allow_blank=True)
+    created_at = serializers.DateTimeField(read_only=True)
+
+
 class LedgerEventSerializer(serializers.Serializer):
     """Serializer for ledger events (Audit Trail)."""
     id = serializers.UUIDField(read_only=True)
@@ -483,8 +525,28 @@ class LedgerEventSerializer(serializers.Serializer):
     entity_type = serializers.CharField(read_only=True)
     entity_id = serializers.UUIDField(read_only=True)
     actor_id = serializers.UUIDField(read_only=True)
-    timestamp = serializers.DateTimeField(read_only=True)
+    actor_name = serializers.SerializerMethodField()
+    actor_email = serializers.SerializerMethodField()
+    timestamp = serializers.DateTimeField(source='occurred_at', read_only=True)
     payload = serializers.JSONField(read_only=True)
+
+    def get_actor_name(self, obj):
+        if not obj.actor_id:
+            return "System"
+        try:
+            user = User.objects.get(id=obj.actor_id)
+            return user.get_full_name() or user.username
+        except User.DoesNotExist:
+            return "Unknown"
+
+    def get_actor_email(self, obj):
+        if not obj.actor_id:
+            return None
+        try:
+            user = User.objects.get(id=obj.actor_id)
+            return user.email
+        except User.DoesNotExist:
+            return None
 
 
 class InstitutionInterestStatsSerializer(serializers.Serializer):

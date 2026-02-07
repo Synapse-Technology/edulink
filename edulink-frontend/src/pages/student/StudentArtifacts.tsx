@@ -12,13 +12,14 @@ import {
 import { Link } from 'react-router-dom';
 import StudentSidebar from '../../components/dashboard/StudentSidebar';
 import StudentHeader from '../../components/dashboard/StudentHeader';
+import { useTheme } from '../../contexts/ThemeContext';
 import { artifactService, type Artifact } from '../../services/reports/artifactService';
 import { studentService } from '../../services/student/studentService';
 import { toast } from 'react-hot-toast';
 import StudentDashboardSkeleton from '../../components/student/skeletons/StudentDashboardSkeleton';
 
 const StudentArtifacts: React.FC = () => {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const { isDarkMode, toggleDarkMode } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [artifacts, setArtifacts] = useState<Artifact[]>([]);
   const [internship, setInternship] = useState<any | null>(null);
@@ -75,7 +76,6 @@ const StudentArtifacts: React.FC = () => {
     }
   };
 
-  const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
 
   const getArtifactIcon = (type: string) => {
@@ -85,6 +85,21 @@ const StudentArtifacts: React.FC = () => {
       case 'PERFORMANCE_SUMMARY': return <RefreshCw size={24} className="text-info" />;
       default: return <FileDown size={24} className="text-info" />;
     }
+  };
+
+  // Generation Limit Logic
+  const ARTIFACT_LIMITS = {
+    'CERTIFICATE': 2,
+    'LOGBOOK_REPORT': 5,
+    'PERFORMANCE_SUMMARY': 5
+  };
+
+  const getGenerationCount = (type: string) => {
+     return artifacts.filter(a => a.artifact_type === type).length;
+   };
+
+  const isLimitReached = (type: keyof typeof ARTIFACT_LIMITS) => {
+    return getGenerationCount(type) >= ARTIFACT_LIMITS[type];
   };
 
   return (
@@ -117,34 +132,20 @@ const StudentArtifacts: React.FC = () => {
               max-width: calc(100vw - 280px) !important;
             }
           }
-          .card {
-            background-color: ${isDarkMode ? '#1e293b' : 'white'};
-            border: 1px solid ${isDarkMode ? '#334155' : '#e2e8f0'};
-            transition: all 0.3s ease;
-          }
-          .card:hover {
-            border-color: ${isDarkMode ? '#475569' : '#cbd5e1'};
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, ${isDarkMode ? '0.3' : '0.1'});
-          }
-          .text-muted {
-            color: ${isDarkMode ? '#94a3b8' : '#6c757d'} !important;
-          }
-          .artifact-row:hover {
-            background-color: ${isDarkMode ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)'};
-          }
           .artifacts-table-container {
-            max-height: 500px;
+            max-height: 600px;
             overflow-y: auto;
+            scrollbar-width: thin;
           }
           .artifacts-table-container::-webkit-scrollbar {
             width: 6px;
           }
-          .artifacts-table-container::-webkit-scrollbar-track {
-            background: transparent;
-          }
           .artifacts-table-container::-webkit-scrollbar-thumb {
-            background: ${isDarkMode ? '#475569' : '#e5e7eb'};
+            background-color: rgba(0,0,0,0.1);
             border-radius: 10px;
+          }
+          .dark .artifacts-table-container::-webkit-scrollbar-thumb {
+            background-color: rgba(255,255,255,0.1);
           }
         `}</style>
         
@@ -152,8 +153,6 @@ const StudentArtifacts: React.FC = () => {
           <StudentHeader
             onMobileMenuClick={toggleMobileMenu}
             isMobileMenuOpen={isMobileMenuOpen}
-            isDarkMode={isDarkMode}
-            onToggleDarkMode={toggleDarkMode}
           />
         </div>
 
@@ -269,46 +268,61 @@ const StudentArtifacts: React.FC = () => {
                     </p>
                     
                     <div className="d-grid gap-2">
-                      <button 
-                        className={`btn ${isDarkMode ? 'btn-primary' : 'btn-light text-primary'} btn-sm py-2 fw-bold d-flex align-items-center justify-content-center gap-2 mb-2`}
-                        onClick={() => handleGenerate('LOGBOOK_REPORT')}
-                        disabled={!internship || !!generating}
-                      >
-                        {generating === 'LOGBOOK_REPORT' ? (
-                          <span className="spinner-border spinner-border-sm" role="status"></span>
-                        ) : (
-                          <RefreshCw size={16} />
-                        )}
-                        Regenerate Logbook Report
-                      </button>
-
-                      <button 
-                        className={`btn ${isDarkMode ? 'btn-info' : 'btn-info text-white'} btn-sm py-2 fw-bold d-flex align-items-center justify-content-center gap-2`}
-                        onClick={() => handleGenerate('PERFORMANCE_SUMMARY')}
-                        disabled={!internship || !!generating}
-                      >
-                        {generating === 'PERFORMANCE_SUMMARY' ? (
-                          <span className="spinner-border spinner-border-sm" role="status"></span>
-                        ) : (
-                          <FileText size={16} />
-                        )}
-                        Generate Performance Summary
-                      </button>
-                      
-                      {['COMPLETED', 'CERTIFIED'].includes(internship?.status) && (
+                      <div className="mb-2">
                         <button 
-                          className={`btn ${isDarkMode ? 'btn-success' : 'btn-success'} btn-sm py-2 fw-bold d-flex align-items-center justify-content-center gap-2`}
-                          onClick={() => handleGenerate('CERTIFICATE')}
-                          disabled={!!generating || internship?.status !== 'CERTIFIED'}
-                          title={internship?.status !== 'CERTIFIED' ? "Waiting for Institution Certification" : "Generate Certificate"}
+                          className={`btn ${isDarkMode ? 'btn-primary' : 'btn-light text-primary'} btn-sm py-2 fw-bold d-flex align-items-center justify-content-center gap-2 w-100`}
+                          onClick={() => handleGenerate('LOGBOOK_REPORT')}
+                          disabled={!internship || !!generating || isLimitReached('LOGBOOK_REPORT')}
                         >
-                          {generating === 'CERTIFICATE' ? (
+                          {generating === 'LOGBOOK_REPORT' ? (
                             <span className="spinner-border spinner-border-sm" role="status"></span>
                           ) : (
-                            <Award size={16} />
+                            <RefreshCw size={16} />
                           )}
-                          {internship?.status !== 'CERTIFIED' ? "Pending Certification" : "Generate Certificate"}
+                          {isLimitReached('LOGBOOK_REPORT') ? 'Report Limit Reached' : 'Regenerate Logbook Report'}
                         </button>
+                        <div className="extra-small text-center mt-1 opacity-75">
+                          {getGenerationCount('LOGBOOK_REPORT')} / {ARTIFACT_LIMITS.LOGBOOK_REPORT} generations used
+                        </div>
+                      </div>
+
+                      <div className="mb-2">
+                        <button 
+                          className={`btn ${isDarkMode ? 'btn-info' : 'btn-info text-white'} btn-sm py-2 fw-bold d-flex align-items-center justify-content-center gap-2 w-100`}
+                          onClick={() => handleGenerate('PERFORMANCE_SUMMARY')}
+                          disabled={!internship || !!generating || isLimitReached('PERFORMANCE_SUMMARY')}
+                        >
+                          {generating === 'PERFORMANCE_SUMMARY' ? (
+                            <span className="spinner-border spinner-border-sm" role="status"></span>
+                          ) : (
+                            <FileText size={16} />
+                          )}
+                          {isLimitReached('PERFORMANCE_SUMMARY') ? 'Summary Limit Reached' : 'Generate Performance Summary'}
+                        </button>
+                        <div className="extra-small text-center mt-1 opacity-75">
+                          {getGenerationCount('PERFORMANCE_SUMMARY')} / {ARTIFACT_LIMITS.PERFORMANCE_SUMMARY} generations used
+                        </div>
+                      </div>
+                      
+                      {['COMPLETED', 'CERTIFIED'].includes(internship?.status) && (
+                        <div>
+                          <button 
+                            className={`btn ${isDarkMode ? 'btn-success' : 'btn-success'} btn-sm py-2 fw-bold d-flex align-items-center justify-content-center gap-2 w-100`}
+                            onClick={() => handleGenerate('CERTIFICATE')}
+                            disabled={!!generating || internship?.status !== 'CERTIFIED' || isLimitReached('CERTIFICATE')}
+                            title={internship?.status !== 'CERTIFIED' ? "Waiting for Institution Certification" : isLimitReached('CERTIFICATE') ? "Maximum generations reached" : "Generate Certificate"}
+                          >
+                            {generating === 'CERTIFICATE' ? (
+                              <span className="spinner-border spinner-border-sm" role="status"></span>
+                            ) : (
+                              <Award size={16} />
+                            )}
+                            {internship?.status !== 'CERTIFIED' ? "Pending Certification" : isLimitReached('CERTIFICATE') ? "Certificate Limit Reached" : "Generate Certificate"}
+                          </button>
+                          <div className="extra-small text-center mt-1 opacity-75">
+                            {getGenerationCount('CERTIFICATE')} / {ARTIFACT_LIMITS.CERTIFICATE} generations used
+                          </div>
+                        </div>
                       )}
                     </div>
                   </div>

@@ -1,0 +1,20 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}New Contact Form Submission{% endblock %}
+
+{% block content %}
+<h2>New Contact Form Submission</h2>
+<p>Hello Team,</p>
+<p>A new message has been submitted via the contact form on the website.</p>
+
+<div class="highlight-box">
+    <p><strong>From:</strong> {{ name }} ({{ email }})</p>
+    <p><strong>Subject:</strong> {{ subject }}</p>
+    <p><strong>Message:</strong></p>
+    <p style="margin-top: 12px; font-style: italic; border-left: 2px solid #1ab8aa; padding-left: 12px;">{{ message|linebreaksbr }}</p>
+</div>
+
+<p>Please review this inquiry and respond to the user accordingly.</p>
+
+<p>Best regards,<br>System Notification</p>
+{% endblock %}

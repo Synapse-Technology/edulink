@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle, XCircle, Calendar, MapPin, Briefcase, Users, FileText, Download } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, Calendar, MapPin, Briefcase, Users, FileText } from 'lucide-react';
 import { EmployerLayout } from '../../../components/admin/employer';
 import { internshipService } from '../../../services/internship/internshipService';
 import type { InternshipApplication } from '../../../services/internship/internshipService';
-import { fetchAndOpenDocument } from '../../../utils/documentUtils';
+import { DocumentPreviewModal, FeedbackModal } from '../../../components/common';
+import { useFeedbackModal } from '../../../hooks/useFeedbackModal';
 import { config } from '../../../config';
+import { toast } from 'react-hot-toast';
 
 const EmployerApplicationDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -15,6 +17,12 @@ const EmployerApplicationDetail: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const { feedbackProps, showError, showSuccess } = useFeedbackModal();
+
+  // Preview Modal State
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewTitle, setPreviewTitle] = useState('');
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -51,43 +59,25 @@ const EmployerApplicationDetail: React.FC = () => {
       await internshipService.processApplication(id, backendAction as any, action === 'REJECT' ? rejectionReason : undefined);
       await fetchApplication(id);
       setShowRejectModal(false);
-    } catch (error) {
+      
+      const actionLabel = action === 'SHORTLIST' ? 'shortlisted' : 
+                         action === 'ACCEPT' ? 'accepted' : 
+                         action === 'REJECT' ? 'rejected' : 'started';
+      
+      showSuccess('Success', `Application has been ${actionLabel} successfully.`);
+    } catch (error: any) {
        console.error('Failed to update status:', error);
-       alert('Failed to update application status');
+       showError('Error', error.response?.data?.detail || error.message || 'Failed to update application status');
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const getDocumentUrl = (path: string | null | undefined) => {
-    if (!path) return '#';
-    if (path.startsWith('http')) return path;
-    
-    // Extract origin to ensure we don't append /media to /api
-    let baseUrl = config.api.baseURL;
-    try {
-      if (baseUrl.startsWith('http')) {
-        baseUrl = new URL(baseUrl).origin;
-      } else {
-        baseUrl = baseUrl.replace(/\/$/, '');
-      }
-    } catch (e) {
-      baseUrl = baseUrl.replace(/\/$/, '');
-    }
-    
-    const cleanPath = path.startsWith('/') ? path.substring(1) : path;
-    
-    if (cleanPath.startsWith('media/')) {
-      return `${baseUrl}/${cleanPath}`;
-    }
-    
-    return `${baseUrl}/media/${cleanPath}`;
-  };
-
-  const handleViewDocument = (path: string | null | undefined) => {
+  const handleViewDocument = (path: string | null | undefined, title: string = 'Document') => {
     if (!path) return;
-    const url = getDocumentUrl(path);
-    fetchAndOpenDocument(url);
+    setPreviewTitle(title);
+    setPreviewUrl(path);
+    setPreviewOpen(true);
   };
 
   if (isLoading) {
@@ -336,10 +326,10 @@ const EmployerApplicationDetail: React.FC = () => {
                         </div>
                         <button 
                           className="btn btn-outline-primary btn-sm"
-                          onClick={() => handleViewDocument(studentCV)}
+                          onClick={() => handleViewDocument(studentCV, 'Curriculum Vitae')}
                         >
-                          <Download size={16} className="me-2" />
-                          Download
+                          <FileText size={16} className="me-2" />
+                          Preview
                         </button>
                       </div>
                     </div>
@@ -425,6 +415,15 @@ const EmployerApplicationDetail: React.FC = () => {
           </div>
         </div>
       )}
+      
+      <FeedbackModal {...feedbackProps} />
+      
+      <DocumentPreviewModal 
+        show={previewOpen}
+        onHide={() => setPreviewOpen(false)}
+        title={previewTitle}
+        url={previewUrl}
+      />
     </EmployerLayout>
   );
 };

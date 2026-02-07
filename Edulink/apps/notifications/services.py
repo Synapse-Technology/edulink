@@ -10,11 +10,17 @@ from django.utils.html import strip_tags
 from django.conf import settings
 from django.utils import timezone
 from django.core.exceptions import ValidationError
+from django.db import transaction
+from django_q.tasks import async_task
 import logging
 from typing import Optional, Dict, Any, List
 import uuid
+import time
+import ssl
+from smtplib import SMTPDataError, SMTPException
 
 from edulink.apps.ledger.services import record_event
+from edulink.shared.pusher_utils import trigger_pusher_event
 from .models import Notification, EmailVerificationToken, PasswordResetToken
 
 logger = logging.getLogger(__name__)
@@ -97,6 +103,22 @@ def create_notification(
     )
     
     logger.info(f"Notification created: {notification.id} for user {recipient_id}")
+    
+    # Trigger real-time notification via Pusher
+    trigger_pusher_event(
+        channel=f"user-{recipient_id}",
+        event_name="notification-received",
+        data={
+            "id": str(notification.id),
+            "type": type,
+            "title": title,
+            "body": body,
+            "related_entity_type": related_entity_type,
+            "related_entity_id": related_entity_id,
+            "created_at": notification.created_at.isoformat()
+        }
+    )
+    
     return notification
 
 
@@ -497,7 +519,7 @@ def send_student_affiliation_approved_notification(*, user_id: str, institution_
     context = {
         "student_name": user.get_full_name() or user.username,
         "institution_name": institution_name,
-        "dashboard_url": f"{settings.FRONTEND_URL}/dashboard",
+        "dashboard_url": f"{settings.FRONTEND_URL}/dashboard/student",
         "site_name": "Edulink",
         "support_email": settings.DEFAULT_FROM_EMAIL
     }
@@ -1632,88 +1654,289 @@ def get_unread_notification_count(*, user_id: str) -> int:
 
 def send_email_notification(*, recipient_email: str, subject: str, template_name: str, context: dict, actor_id: Optional[str] = None) -> bool:
     """
-    Send an email notification using Django's email backend.
-    Records EMAIL_SENT event in ledger.
-    
-    Args:
-        recipient_email: Email address of the recipient
-        subject: Email subject
-        template_name: Template name without extension (assumes .html and .txt)
-        context: Context dictionary for template rendering
-        actor_id: Optional ID of the actor triggering the notification
-    
-    Returns:
-        bool: True if email was sent successfully, False otherwise
+    Asynchronously send an email notification using Django Q.
+    Ensures the task is only enqueued after the current transaction commits.
     """
-    try:
-        # Render HTML and plain text versions
-        html_message = render_to_string(f"notifications/emails/{template_name}.html", context)
-        plain_message = strip_tags(html_message)
-        
-        # Send email
-        send_mail(
+    def enqueue():
+        async_task(
+            'edulink.apps.notifications.services._send_email_notification_sync',
+            recipient_email=recipient_email,
             subject=subject,
-            message=plain_message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[recipient_email],
-            html_message=html_message,
-            fail_silently=False,
+            template_name=template_name,
+            context=context,
+            actor_id=actor_id
         )
-        
-        # Determine entity_id (must be UUID)
-        entity_id = context.get("user_id")
-        if not entity_id:
-            # Generate deterministic UUID from email if no user_id is provided
-            entity_id = uuid.uuid5(uuid.NAMESPACE_URL, f"mailto:{recipient_email}")
-        
-        # Determine actor_id for ledger event
-        ledger_actor_id = uuid.UUID(actor_id) if actor_id else None
+    
+    transaction.on_commit(enqueue)
+    return True
 
-        # Record successful email event
-        record_event(
-            event_type="EMAIL_SENT",
-            actor_id=ledger_actor_id,
-            entity_type="User",
-            entity_id=entity_id,
-            payload={
-                "recipient_email": recipient_email,
-                "subject": subject,
-                "template": template_name,
-                "sent_at": timezone.now().isoformat(),
-                "success": True
-            }
-        )
-        
-        logger.info(f"Email sent successfully to {recipient_email}")
-        return True
-        
-    except Exception as e:
-        # Determine entity_id (must be UUID)
-        entity_id = context.get("user_id")
-        if not entity_id:
-            # Generate deterministic UUID from email if no user_id is provided
-            entity_id = uuid.uuid5(uuid.NAMESPACE_URL, f"mailto:{recipient_email}")
 
-        # Determine actor_id for ledger event
-        ledger_actor_id = uuid.UUID(actor_id) if actor_id else None
+def _send_email_notification_sync(*, recipient_email: str, subject: str, template_name: str, context: dict, actor_id: Optional[str] = None) -> bool:
+    """
+    The actual synchronous logic for sending email. 
+    Should only be called via send_email_notification (background task).
+    Includes retry logic for rate limits and handles SSL certificate issues.
+    """
+    max_retries = 3
+    retry_delay = 2  # seconds
 
-        # Record failed email event
-        record_event(
-            event_type="EMAIL_FAILED",
-            actor_id=ledger_actor_id,
-            entity_type="User", 
-            entity_id=entity_id,
-            payload={
-                "recipient_email": recipient_email,
-                "subject": subject,
-                "template": template_name,
-                "error": str(e),
-                "failed_at": timezone.now().isoformat()
-            }
-        )
-        
-        logger.error(f"Failed to send email to {recipient_email}: {str(e)}")
-        return False
+    for attempt in range(max_retries):
+        try:
+            # Render HTML and plain text versions
+            html_message = render_to_string(f"notifications/emails/{template_name}.html", context)
+            plain_message = strip_tags(html_message)
+            
+            # Send email
+            from django.core.mail import get_connection
+            
+            # For development with Mailtrap port 2525, we sometimes need to force 
+            # an insecure connection if the system's SSL library is being too aggressive.
+            connection = None
+            if settings.DEBUG and settings.EMAIL_PORT == '2525' and not settings.EMAIL_USE_TLS:
+                try:
+                    ssl_ctx = ssl._create_unverified_context()
+                    connection = get_connection(
+                        backend=settings.EMAIL_BACKEND,
+                        fail_silently=False,
+                        ssl_context=ssl_ctx
+                    )
+                except Exception as ssl_err:
+                    logger.warning(f"Failed to create unverified SSL context: {ssl_err}")
+
+            send_mail(
+                subject=subject,
+                message=plain_message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[recipient_email],
+                html_message=html_message,
+                fail_silently=False,
+                connection=connection
+            )
+            
+            # Determine entity_id (must be UUID)
+            entity_id = context.get("user_id")
+            if not entity_id:
+                # Generate deterministic UUID from email if no user_id is provided
+                entity_id = uuid.uuid5(uuid.NAMESPACE_URL, f"mailto:{recipient_email}")
+            
+            # Determine actor_id for ledger event
+            ledger_actor_id = uuid.UUID(actor_id) if actor_id else None
+
+            # Record successful email event
+            record_event(
+                event_type="EMAIL_SENT",
+                actor_id=ledger_actor_id,
+                entity_type="User",
+                entity_id=entity_id,
+                payload={
+                    "recipient_email": recipient_email,
+                    "subject": subject,
+                    "template": template_name,
+                    "sent_at": timezone.now().isoformat(),
+                    "success": True
+                }
+            )
+            
+            logger.info(f"Email sent successfully to {recipient_email}")
+            return True
+            
+        except (SMTPDataError, SMTPException, ssl.SSLError) as e:
+            # Check if it's a rate limit error (Mailtrap code 550 with specific message)
+            error_msg = str(e)
+            
+            # Handle SSL certificate verification failure specifically for dev
+            if "CERTIFICATE_VERIFY_FAILED" in error_msg:
+                logger.error(f"SSL Certificate verification failed for {recipient_email}. This is common in some dev environments. Ensure EMAIL_USE_TLS is False in .env if using Mailtrap port 2525.")
+                break # Don't retry SSL errors immediately without config change
+                
+            if "550" in error_msg and "Too many emails per second" in error_msg and attempt < max_retries - 1:
+                logger.warning(f"Rate limit hit for {recipient_email}, retrying in {retry_delay}s... (Attempt {attempt + 1})")
+                time.sleep(retry_delay)
+                continue
+            
+            # For other errors or if we've exhausted retries, log and record failure
+            entity_id = context.get("user_id")
+            if not entity_id:
+                entity_id = uuid.uuid5(uuid.NAMESPACE_URL, f"mailto:{recipient_email}")
+
+            ledger_actor_id = uuid.UUID(actor_id) if actor_id else None
+
+            record_event(
+                event_type="EMAIL_FAILED",
+                actor_id=ledger_actor_id,
+                entity_type="User", 
+                entity_id=entity_id,
+                payload={
+                    "recipient_email": recipient_email,
+                    "subject": subject,
+                    "template": template_name,
+                    "error": error_msg,
+                    "failed_at": timezone.now().isoformat()
+                }
+            )
+            
+            logger.error(f"Failed to send email to {recipient_email}: {error_msg}")
+            return False
+        except Exception as e:
+            # Catch-all for other non-SMTP exceptions
+            error_msg = str(e)
+            entity_id = context.get("user_id")
+            if not entity_id:
+                entity_id = uuid.uuid5(uuid.NAMESPACE_URL, f"mailto:{recipient_email}")
+
+            ledger_actor_id = uuid.UUID(actor_id) if actor_id else None
+
+            record_event(
+                event_type="EMAIL_FAILED",
+                actor_id=ledger_actor_id,
+                entity_type="User", 
+                entity_id=entity_id,
+                payload={
+                    "recipient_email": recipient_email,
+                    "subject": subject,
+                    "template": template_name,
+                    "error": error_msg,
+                    "failed_at": timezone.now().isoformat()
+                }
+            )
+            
+            logger.error(f"Failed to send email to {recipient_email}: {error_msg}")
+            return False
+
+def send_support_ticket_confirmation(*, ticket, actor_id: Optional[str] = None) -> bool:
+    """Send confirmation email to user when a support ticket is created."""
+    context = {
+        "name": ticket.name,
+        "tracking_code": ticket.tracking_code,
+        "subject": ticket.subject,
+        "category": ticket.get_category_display() if hasattr(ticket, 'get_category_display') else ticket.category,
+        "priority": ticket.get_priority_display() if hasattr(ticket, 'get_priority_display') else ticket.priority,
+        "message": ticket.message,
+        "site_name": "Edulink",
+        "support_email": settings.SUPPORT_EMAIL or settings.DEFAULT_FROM_EMAIL,
+        "created_at": ticket.created_at.strftime("%B %d, %Y at %I:%M %p") if ticket.created_at else "",
+    }
+    return send_email_notification(
+        recipient_email=ticket.email,
+        subject=f"Support Ticket Received - {ticket.tracking_code}",
+        template_name="support_ticket_confirmation",
+        context=context,
+        actor_id=actor_id
+    )
+
+def send_support_ticket_reply_notification(*, ticket, communication, actor_id: Optional[str] = None) -> bool:
+    """Send notification when a reply is added to a support ticket."""
+    from edulink.apps.platform_admin.queries import get_staff_profile_by_user_id
+    is_staff_reply = False
+    if communication.sender:
+        is_staff_reply = get_staff_profile_by_user_id(str(communication.sender.id)) is not None
+
+    if is_staff_reply:
+        recipient_email = ticket.email
+        recipient_name = ticket.name
+        subject = f"Re: Support Ticket {ticket.tracking_code} - New Message"
+        template = "support_ticket_reply_user"
+        sender_name = communication.sender.get_full_name() or communication.sender.email
+    else:
+        recipient_email = settings.SUPPORT_EMAIL or settings.DEFAULT_FROM_EMAIL
+        if ticket.assigned_to:
+            recipient_email = ticket.assigned_to.user.email
+            
+        recipient_name = "Support Team"
+        subject = f"New Reply to Support Ticket {ticket.tracking_code}"
+        template = "support_ticket_reply_admin"
+        sender_name = ticket.name
+
+    context = {
+        "recipient_name": recipient_name,
+        "tracking_code": ticket.tracking_code,
+        "ticket_subject": ticket.subject,
+        "message": communication.message,
+        "sender_name": sender_name,
+        "site_name": "Edulink",
+        "support_email": settings.SUPPORT_EMAIL or settings.DEFAULT_FROM_EMAIL,
+        "view_url": f"{settings.FRONTEND_URL}/support/tickets/{ticket.tracking_code}" if is_staff_reply else f"{settings.FRONTEND_URL}/admin/support/tickets/{ticket.tracking_code}"
+    }
+    return send_email_notification(
+        recipient_email=recipient_email,
+        subject=subject,
+        template_name=template,
+        context=context,
+        actor_id=actor_id
+    )
+
+def send_support_ticket_resolved_notification(*, ticket, actor_id: Optional[str] = None) -> bool:
+    """Send notification to user when a support ticket is resolved."""
+    context = {
+        "name": ticket.name,
+        "tracking_code": ticket.tracking_code,
+        "subject": ticket.subject,
+        "resolution_notes": ticket.resolution_notes,
+        "site_name": "Edulink",
+        "support_email": settings.SUPPORT_EMAIL or settings.DEFAULT_FROM_EMAIL,
+    }
+    return send_email_notification(
+        recipient_email=ticket.email,
+        subject=f"Support Ticket Resolved - {ticket.tracking_code}",
+        template_name="support_ticket_resolved",
+        context=context,
+        actor_id=actor_id
+    )
+
+def send_support_ticket_assigned_notification(*, ticket, staff_profile, actor_id: Optional[str] = None) -> bool:
+    """Send notification to staff member when a ticket is assigned to them."""
+    context = {
+        "staff_name": staff_profile.user.get_full_name() or staff_profile.user.email,
+        "tracking_code": ticket.tracking_code,
+        "subject": ticket.subject,
+        "priority": ticket.get_priority_display(),
+        "category": ticket.get_category_display(),
+        "site_name": "Edulink",
+        "admin_url": f"{settings.FRONTEND_URL}/admin/support/tickets/{ticket.tracking_code}"
+    }
+    return send_email_notification(
+        recipient_email=staff_profile.user.email,
+        subject=f"Assigned Support Ticket: {ticket.tracking_code}",
+        template_name="support_ticket_assigned",
+        context=context,
+        actor_id=actor_id
+    )
+
+
+def send_contact_submission_confirmation(*, submission, actor_id: Optional[str] = None) -> bool:
+    """Send an automated confirmation/thank you email to the user who submitted the contact form."""
+    context = {
+        "name": submission.name,
+        "subject": submission.subject,
+        "message": submission.message,
+        "site_name": "Edulink",
+        "support_email": settings.SUPPORT_EMAIL or settings.DEFAULT_FROM_EMAIL,
+    }
+    return send_email_notification(
+        recipient_email=submission.email,
+        subject=f"We've received your message: {submission.subject}",
+        template_name="contact_submission_confirmation",
+        context=context,
+        actor_id=actor_id
+    )
+
+
+def send_contact_submission_admin_notification(*, submission, actor_id: Optional[str] = None) -> bool:
+    """Notify the admin team about a new contact form submission."""
+    context = {
+        "name": submission.name,
+        "email": submission.email,
+        "subject": submission.subject,
+        "message": submission.message,
+        "site_name": "Edulink",
+    }
+    return send_email_notification(
+        recipient_email=settings.SUPPORT_EMAIL or settings.DEFAULT_FROM_EMAIL,
+        subject=f"New Contact Form Submission: {submission.subject}",
+        template_name="contact_submission_admin",
+        context=context,
+        actor_id=actor_id
+    )
 
 
 def send_email_verification_notification(*, user_id: str, email: str, verification_token: str, verification_url: str) -> bool:
@@ -1867,12 +2090,12 @@ def create_email_verification_token(*, user_id: str, email: str) -> str:
         raise ValueError("User not found")
     
     # Delete any existing token
-    EmailVerificationToken.objects.filter(user=user).delete()
+    EmailVerificationToken.objects.filter(user_id=user_id).delete()
     
     # Create new token
     expires_at = timezone.now() + timezone.timedelta(hours=24)  # 24 hours
     token_obj = EmailVerificationToken.objects.create(
-        user=user,
+        user_id=uuid.UUID(user_id),
         expires_at=expires_at
     )
     
@@ -1923,7 +2146,11 @@ def verify_email_token(*, token: str) -> bool:
     token_obj.save()
     
     # Update user email verification status
-    user = token_obj.user
+    from edulink.apps.accounts.services import get_user_by_id
+    user = get_user_by_id(user_id=str(token_obj.user_id))
+    if not user:
+        return False
+        
     user.is_email_verified = True
     user.save()
     
@@ -1976,7 +2203,7 @@ def create_password_reset_token(*, email: str) -> str:
     # Create new token
     expires_at = timezone.now() + timezone.timedelta(hours=1)  # 1 hour
     token_obj = PasswordResetToken.objects.create(
-        user=user,
+        user_id=user.id,
         expires_at=expires_at
     )
     
@@ -2034,7 +2261,10 @@ def use_password_reset_token(*, token: str, new_password: str) -> bool:
     except PasswordResetToken.DoesNotExist:
         return False
     
-    user = token_obj.user
+    from edulink.apps.accounts.services import get_user_by_id
+    user = get_user_by_id(user_id=str(token_obj.user_id))
+    if not user:
+        return False
     
     # Validate new password
     from django.contrib.auth.password_validation import validate_password
@@ -2091,7 +2321,7 @@ def send_student_profile_updated_notification(*, user_id: str, updated_fields: l
         "user_name": user.get_full_name() or user.username,
         "updated_fields": updated_fields,
         "site_name": "Edulink",
-        "dashboard_url": f"{settings.FRONTEND_URL}/dashboard/profile",
+        "dashboard_url": f"{settings.FRONTEND_URL}/dashboard/student/profile",
         "support_email": settings.DEFAULT_FROM_EMAIL
     }
     
@@ -2125,7 +2355,7 @@ def send_student_profile_completed_notification(*, user_id: str) -> bool:
     context = {
         "user_name": user.get_full_name() or user.username,
         "site_name": "Edulink",
-        "dashboard_url": f"{settings.FRONTEND_URL}/dashboard",
+        "dashboard_url": f"{settings.FRONTEND_URL}/dashboard/student",
         "opportunities_url": f"{settings.FRONTEND_URL}/internships"
     }
     
@@ -2155,7 +2385,7 @@ def send_document_uploaded_notification(*, user_id: str, document_type: str, fil
         "document_type": document_type.replace('_', ' ').title(),
         "file_name": file_name,
         "site_name": "Edulink",
-        "dashboard_url": f"{settings.FRONTEND_URL}/dashboard/documents"
+        "dashboard_url": f"{settings.FRONTEND_URL}/dashboard/student/artifacts"
     }
     
     success = send_email_notification(
@@ -2204,7 +2434,7 @@ def send_document_verified_notification(*, user_id: str, document_type: str) -> 
         "user_name": user.get_full_name() or user.username,
         "document_type": document_type.replace('_', ' ').title(),
         "site_name": "Edulink",
-        "dashboard_url": f"{settings.FRONTEND_URL}/dashboard/documents"
+        "dashboard_url": f"{settings.FRONTEND_URL}/dashboard/student/artifacts"
     }
     
     return send_email_notification(
@@ -2240,7 +2470,7 @@ def send_document_rejected_notification(*, user_id: str, document_type: str, rea
         "document_type": document_type.replace('_', ' ').title(),
         "reason": reason,
         "site_name": "Edulink",
-        "dashboard_url": f"{settings.FRONTEND_URL}/dashboard/documents"
+        "dashboard_url": f"{settings.FRONTEND_URL}/dashboard/student/artifacts"
     }
     
     return send_email_notification(
@@ -2457,7 +2687,7 @@ def send_internship_application_submitted_notification(*, application_id: str, s
         "student_name": student.user.get_full_name() or student.user.username,
         "opportunity_title": opportunity_title,
         "employer_name": employer_name,
-        "dashboard_url": f"{settings.FRONTEND_URL}/internships/applications",
+        "dashboard_url": f"{settings.FRONTEND_URL}/dashboard/student/applications",
         "site_name": "Edulink"
     }
     
@@ -2498,7 +2728,7 @@ def send_internship_application_status_update_notification(*, application_id: st
         "student_name": student.user.get_full_name() or student.user.username,
         "opportunity_title": opportunity_title,
         "status": status,
-        "dashboard_url": f"{settings.FRONTEND_URL}/internships/applications",
+        "dashboard_url": f"{settings.FRONTEND_URL}/dashboard/student/applications",
         "site_name": "Edulink"
     }
     
@@ -2632,7 +2862,15 @@ def send_trust_tier_changed_notification(*, entity_id: str, entity_type: str, ol
     except User.DoesNotExist:
         return False
         
-    dashboard_url = f"{settings.FRONTEND_URL}/dashboard"
+    # Determine correct dashboard based on entity type (simplified)
+    if entity_type == 'Student':
+        dashboard_url = f"{settings.FRONTEND_URL}/dashboard/student"
+    elif entity_type == 'Employer':
+        dashboard_url = f"{settings.FRONTEND_URL}/employer/dashboard"
+    elif entity_type == 'Institution':
+        dashboard_url = f"{settings.FRONTEND_URL}/institution/dashboard"
+    else:
+        dashboard_url = f"{settings.FRONTEND_URL}/dashboard"
     
     context = {
         "entity_name": user.get_full_name() or user.username, # Or institution/employer name if passed
@@ -2713,6 +2951,7 @@ def send_evidence_submitted_notification(*, evidence_id: str, supervisor_ids: Li
                 )
                 
         except User.DoesNotExist:
+            logger.warning(f"Supervisor {supervisor_id} not found for evidence submitted notification")
             continue
             
     return sent_count

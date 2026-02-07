@@ -5,6 +5,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { EmployerLayout } from '../../../components/admin/employer';
 import { EmployerDashboardSkeleton } from '../../../components/admin/skeletons';
 import TrustProgressWidget from '../../../components/dashboard/TrustProgressWidget';
+import { SEO } from '../../../components/common';
 import { internshipService } from '../../../services/internship/internshipService';
 import type { InternshipApplication, InternshipOpportunity } from '../../../services/internship/internshipService';
 import { employerService } from '../../../services/employer/employerService';
@@ -112,6 +113,10 @@ const EmployerDashboard: React.FC = () => {
 
   return (
     <EmployerLayout>
+      <SEO 
+        title="Employer Dashboard"
+        description="Manage your internship opportunities, review applications, and track intern performance on EduLink KE."
+      />
       <div className="container-fluid p-0">
         <div className="row mb-4">
           <div className="col-12">

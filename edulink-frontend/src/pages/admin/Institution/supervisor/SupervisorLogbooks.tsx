@@ -4,6 +4,7 @@ import { CheckCircle, XCircle, FileText, Clock, RotateCcw, MessageSquare, Lock, 
 import { internshipService } from '../../../../services/internship/internshipService';
 import type { InternshipEvidence } from '../../../../services/internship/internshipService';
 import { toast } from 'react-hot-toast';
+import { DocumentPreviewModal } from '../../../../components/common';
 import SupervisorTableSkeleton from '../../../../components/admin/skeletons/SupervisorTableSkeleton';
 
 const SupervisorLogbooks: React.FC = () => {
@@ -18,6 +19,11 @@ const SupervisorLogbooks: React.FC = () => {
   const [privateNotes, setPrivateNotes] = useState('');
   const [reviewAction, setReviewAction] = useState<'ACCEPTED' | 'REJECTED' | 'REVISION_REQUIRED' | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Preview Modal State
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewTitle, setPreviewTitle] = useState('');
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
     fetchEvidence();
@@ -246,10 +252,18 @@ const SupervisorLogbooks: React.FC = () => {
               <h6 className="fw-bold text-muted text-uppercase small mb-0">Daily Entries</h6>
               <div className="d-flex gap-2">
                   {selectedEvidence?.file && (
-                    <a href={selectedEvidence.file} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-outline-primary d-inline-flex align-items-center rounded-pill px-3">
+                    <button 
+                      type="button"
+                      className="btn btn-sm btn-outline-primary d-inline-flex align-items-center rounded-pill px-3"
+                      onClick={() => {
+                        setPreviewTitle('Attachment');
+                        setPreviewUrl(selectedEvidence.file);
+                        setPreviewOpen(true);
+                      }}
+                    >
                       <FileText size={14} className="me-2" />
                       View Attachment
-                    </a>
+                    </button>
                   )}
                   <Badge bg="primary" className="bg-opacity-10 text-primary border border-primary-subtle rounded-pill px-3 py-2">
                   {selectedEvidence?.metadata?.weekStartDate ? `Week of ${selectedEvidence.metadata.weekStartDate}` : 'Weekly Submission'}
@@ -380,6 +394,13 @@ const SupervisorLogbooks: React.FC = () => {
           </div>
         </Modal.Footer>
       </Modal>
+
+      <DocumentPreviewModal 
+        show={previewOpen}
+        onHide={() => setPreviewOpen(false)}
+        title={previewTitle}
+        url={previewUrl}
+      />
     </div>
   );
 };

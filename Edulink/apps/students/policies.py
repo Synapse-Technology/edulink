@@ -90,6 +90,21 @@ def can_supervisor_approve_activity(*, supervisor_id: str, student_id: str) -> b
     )
 
 
+def can_manage_affiliation(*, user, affiliation) -> bool:
+    """
+    Check if a user can manage a specific affiliation.
+    """
+    if user.is_system_admin:
+        return True
+        
+    if user.is_institution_admin:
+        from .queries import get_institution_id_for_user
+        institution_id = get_institution_id_for_user(user)
+        return str(affiliation.institution_id) == institution_id
+        
+    return False
+
+
 def can_institution_certify_completion(*, institution_id: str, student_id: str) -> bool:
     """
     Check if an institution can certify a student's internship completion.

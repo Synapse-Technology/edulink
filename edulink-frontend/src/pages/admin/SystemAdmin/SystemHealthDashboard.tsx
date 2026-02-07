@@ -19,9 +19,10 @@ import {
   ArrowUpRight,
   ArrowDownRight
 } from 'lucide-react';
-import axios from 'axios';
 import AdminLayout from '../../../components/admin/AdminLayout';
 import AdminDashboardSkeleton from '../../../components/admin/skeletons/AdminDashboardSkeleton';
+import { adminAuthService } from '../../../services/auth/adminAuthService';
+import { ApiError } from '../../../services/errors';
 
 interface SystemHealth {
   status: 'healthy' | 'degraded' | 'critical';
@@ -81,28 +82,19 @@ const SystemHealthDashboard: React.FC = () => {
 
   const fetchSystemData = async () => {
     try {
-      const token = localStorage.getItem('adminToken');
-      if (!token) throw new Error('No authentication token');
-
-      const [healthResponse, statsResponse, activityResponse] = await Promise.all([
-        axios.get('/api/admin/system/health/', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }),
-        axios.get('/api/admin/system/stats/', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }),
-        axios.get('/api/admin/system/activity/', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
+      const [healthData, statsData, activityData] = await Promise.all([
+        adminAuthService.getSystemHealth(),
+        adminAuthService.getSystemStats(),
+        adminAuthService.getSystemActivity()
       ]);
 
-      setSystemHealth(healthResponse.data);
-      setSystemStats(statsResponse.data);
-      setRecentActivity(activityResponse.data);
+      setSystemHealth(healthData as any);
+      setSystemStats(statsData);
+      setRecentActivity(activityData);
       setError('');
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.error || 'Failed to load system data');
+      if (err instanceof ApiError) {
+        setError(err.message || 'Failed to load system data');
       } else {
         setError('An unexpected error occurred');
       }
@@ -183,7 +175,7 @@ const SystemHealthDashboard: React.FC = () => {
               <Icon size={20} className={color.text} />
             </div>
             <div>
-              <h6 className="mb-0 text-capitalize">{service.replace('_', ' ')}</h6>
+              <h6 className="mb-0 text-capitalize">{(service || 'service').replace('_', ' ')}</h6>
               <small className="text-muted">Core Service</small>
             </div>
           </div>

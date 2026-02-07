@@ -4,7 +4,8 @@ import { internshipService, type InternshipOpportunity, type SuccessStory, type 
 import { employerService, type Employer } from '../services/employer/employerService';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'react-hot-toast';
-import { Building2, Code, Megaphone, LineChart, Stethoscope, Wrench, Briefcase } from 'lucide-react';
+import { Building2, Code, Megaphone, LineChart, Stethoscope, Wrench, Briefcase, MapPin } from 'lucide-react';
+import { SEO } from '../components/common';
 
 interface FilterState {
   locationType: string;
@@ -146,22 +147,22 @@ const Opportunities: React.FC = () => {
 
   const getCategoryColor = (dept: string = '') => {
     const category = dept.toLowerCase();
-    if (category.includes('tech') || category.includes('software')) return 'bg-blue-100 text-blue-800';
-    if (category.includes('marketing')) return 'bg-yellow-100 text-yellow-800';
-    if (category.includes('finance')) return 'bg-indigo-100 text-indigo-800';
-    if (category.includes('health')) return 'bg-green-100 text-green-800';
-    if (category.includes('engineer')) return 'bg-purple-100 text-purple-800';
-    return 'bg-gray-100 text-gray-800';
+    if (category.includes('tech') || category.includes('software')) return 'bg-primary bg-opacity-10 text-primary';
+    if (category.includes('marketing')) return 'bg-warning bg-opacity-10 text-warning';
+    if (category.includes('finance')) return 'bg-info bg-opacity-10 text-info';
+    if (category.includes('health')) return 'bg-success bg-opacity-10 text-success';
+    if (category.includes('engineer')) return 'bg-danger bg-opacity-10 text-danger';
+    return 'bg-secondary bg-opacity-10 text-secondary';
   };
 
-  const getCategoryIcon = (dept: string = '') => {
+  const getCategoryIcon = (dept: string = '', size = 48) => {
     const category = dept.toLowerCase();
-    if (category.includes('tech') || category.includes('software')) return <Code size={48} className="text-primary" />;
-    if (category.includes('marketing')) return <Megaphone size={48} className="text-warning" />;
-    if (category.includes('finance')) return <LineChart size={48} className="text-info" />;
-    if (category.includes('health')) return <Stethoscope size={48} className="text-success" />;
-    if (category.includes('engineer')) return <Wrench size={48} className="text-purple" />;
-    return <Briefcase size={48} className="text-secondary" />;
+    if (category.includes('tech') || category.includes('software')) return <Code size={size} className="text-primary" />;
+    if (category.includes('marketing')) return <Megaphone size={size} className="text-warning" />;
+    if (category.includes('finance')) return <LineChart size={size} className="text-info" />;
+    if (category.includes('health')) return <Stethoscope size={size} className="text-success" />;
+    if (category.includes('engineer')) return <Wrench size={size} className="text-danger" />;
+    return <Briefcase size={size} className="text-secondary" />;
   };
 
   const getCategoryBgColor = (dept: string = '') => {
@@ -176,6 +177,11 @@ const Opportunities: React.FC = () => {
 
   return (
     <>
+      <SEO 
+        title="Find Opportunities"
+        description="Browse and apply for verified internship and graduate job opportunities across Kenya. Filter by category, location, and employer type."
+        keywords="find internships, jobs kenya, student opportunities, verified jobs"
+      />
       <main className="main">
         {/* Marketplace Hero */}
         <section className="marketplace-hero text-center" data-aos="fade-in">
@@ -313,56 +319,92 @@ const Opportunities: React.FC = () => {
               ) : opportunities.length > 0 ? (
                 <div className="row g-4">
                   {opportunities.map((opportunity) => (
-                    <div key={opportunity.id} className="col-md-6 col-xl-4">
-                      <div className="opportunity-card h-100">
-                        <div className="card-img d-flex align-items-center justify-content-center" style={{height: '200px', backgroundColor: getCategoryBgColor(opportunity.department || '')}}>
-                          {getCategoryIcon(opportunity.department || '')}
-                        </div>
-                        <div className="card-content">
-                          <div className="d-flex align-items-center mb-2">
-                            <div className="company-avatar d-flex align-items-center justify-content-center">
-                              {opportunity.employer_details?.logo ? (
-                                <img src={opportunity.employer_details.logo} alt={opportunity.employer_details?.name || 'Company'} />
-                              ) : (
-                                <Building2 size={20} className="text-muted" />
-                              )}
+                    <div key={opportunity.id} className="col-12">
+                      <div className="opportunity-card horizontal-card">
+                        <div className="row g-0">
+                          {/* Card Icon/Image */}
+                          <div className="col-md-3 col-lg-2">
+                            <div 
+                              className="card-img-horizontal h-100 d-flex align-items-center justify-content-center" 
+                              style={{backgroundColor: getCategoryBgColor(opportunity.department || '')}}
+                            >
+                              {getCategoryIcon(opportunity.department || '', 40)}
                             </div>
-                            <span className={`badge ${getCategoryColor(opportunity.department)}`}>
-                              {opportunity.department || 'General'}
-                            </span>
-                            {opportunity.employer_details?.is_featured && (
-                              <span className="badge featured ms-2">Featured</span>
-                            )}
                           </div>
-                          <h3 className="fw-bold mb-1 fs-5">{opportunity.title}</h3>
-                          <div className="location small text-muted">
-                            <i className="bi bi-geo-alt me-1"></i> {opportunity.location} ({opportunity.location_type})
-                          </div>
-                          <div className="salary text-primary small fw-semibold mb-2 mt-1">
-                            {opportunity.capacity} Openings
-                          </div>
-                          <div className="tags mb-3">
-                            {opportunity.skills?.slice(0, 2).map(tag => (
-                              <span key={tag} className="tag">{tag}</span>
-                            ))}
-                            {opportunity.skills && opportunity.skills.length > 2 && (
-                              <span className="tag">+{opportunity.skills.length - 2}</span>
-                            )}
-                          </div>
-                          <div className="actions mt-auto d-flex gap-2">
-                            <button 
-                              className="btn btn-outline-primary flex-grow-1"
-                              onClick={() => navigate(`/opportunities/${opportunity.id}`)}
-                            >
-                              View Details
-                            </button>
-                            <button 
-                              className={`btn flex-grow-1 ${opportunity.student_has_applied ? 'btn-success' : 'btn-primary'}`}
-                              onClick={() => initiateApply(opportunity)}
-                              disabled={opportunity.student_has_applied}
-                            >
-                              {opportunity.student_has_applied ? 'Applied' : 'Apply'}
-                            </button>
+                          
+                          {/* Card Content */}
+                          <div className="col-md-9 col-lg-10">
+                            <div className="card-content p-4">
+                              <div className="d-flex justify-content-between align-items-start mb-3">
+                                <div className="flex-grow-1">
+                                  <div className="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                                    <span className={`badge rounded-pill ${getCategoryColor(opportunity.department)}`}>
+                                      {opportunity.department || 'General'}
+                                    </span>
+                                    {opportunity.employer_details?.is_featured && (
+                                      <span className="badge featured rounded-pill">Featured</span>
+                                    )}
+                                    <span className="text-muted small d-flex align-items-center">
+                                      <i className="bi bi-calendar-event me-1"></i>
+                                      Posted {opportunity.created_at ? new Date(opportunity.created_at).toLocaleDateString() : 'N/A'}
+                                    </span>
+                                  </div>
+                                  <h4 className="fw-bold mb-1">{opportunity.title}</h4>
+                                  <div className="d-flex align-items-center gap-2 text-muted">
+                                    {opportunity.employer_details?.logo ? (
+                                      <img 
+                                        src={opportunity.employer_details.logo} 
+                                        alt={opportunity.employer_details.name}
+                                        style={{ width: '20px', height: '20px', objectFit: 'contain' }}
+                                      />
+                                    ) : <Building2 size={16} />}
+                                    <span className="fw-medium">{opportunity.employer_details?.name}</span>
+                                  </div>
+                                </div>
+                                
+                                <div className="text-end d-none d-md-block ms-3">
+                                  <div className="h4 fw-bold text-primary mb-0">{opportunity.capacity}</div>
+                                  <div className="text-muted extra-small text-uppercase fw-bold">Openings</div>
+                                </div>
+                              </div>
+
+                              <div className="row g-3 mb-3">
+                                <div className="col-md-4">
+                                  <div className="d-flex align-items-center gap-2 text-muted small">
+                                    <MapPin size={16} className="text-primary" />
+                                    <span>{opportunity.location} ({opportunity.location_type})</span>
+                                  </div>
+                                </div>
+                                <div className="col-md-8">
+                                  <div className="d-flex flex-wrap gap-2">
+                                    {opportunity.skills?.map(tag => (
+                                      <span key={tag} className="tag-pill">{tag}</span>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+                                <div className="d-md-none">
+                                  <span className="fw-bold text-primary">{opportunity.capacity} Openings</span>
+                                </div>
+                                <div className="d-flex gap-2 ms-auto">
+                                  <button 
+                                    className="btn btn-outline-primary btn-sm px-4 rounded-pill"
+                                    onClick={() => navigate(`/opportunities/${opportunity.id}`)}
+                                  >
+                                    View Details
+                                  </button>
+                                  <button 
+                                    className={`btn btn-sm px-4 rounded-pill ${opportunity.student_has_applied ? 'btn-success' : 'btn-primary'}`}
+                                    onClick={() => initiateApply(opportunity)}
+                                    disabled={opportunity.student_has_applied}
+                                  >
+                                    {opportunity.student_has_applied ? 'Applied' : 'Apply Now'}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -555,68 +597,23 @@ const Opportunities: React.FC = () => {
           box-shadow: 0 4px 16px rgba(0,0,0,0.06);
           overflow: hidden;
           transition: transform 0.2s, box-shadow 0.2s;
-          display: flex;
-          flex-direction: column;
           border: 1px solid #f0f0f0;
         }
 
         .opportunity-card:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 8px 24px rgba(0,153,153,0.1);
+          transform: translateY(-3px);
+          box-shadow: 0 12px 30px rgba(0,153,153,0.12);
           border-color: #e0f7f7;
         }
 
-        .opportunity-card .card-img {
-          width: 100%;
-          height: 160px;
-          overflow: hidden;
-          background: #e0f7f7;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+        .horizontal-card {
+          height: auto;
         }
 
-        .opportunity-card .card-img img {
-          width: 100%;
+        .card-img-horizontal {
+          min-height: 120px;
           height: 100%;
-          object-fit: cover;
           transition: transform 0.3s;
-        }
-
-        .opportunity-card:hover .card-img img {
-          transform: scale(1.05);
-        }
-
-        .opportunity-card .card-content {
-          padding: 20px;
-          flex: 1 1 auto;
-          display: flex;
-          flex-direction: column;
-        }
-
-        .opportunity-card .company-avatar {
-          width: 36px;
-          height: 36px;
-          border-radius: 50%;
-          overflow: hidden;
-          border: 1px solid #e0f7f7;
-          margin-right: 10px;
-          background: #fff;
-        }
-
-        .opportunity-card .company-avatar img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-
-        .opportunity-card .badge {
-          font-size: 0.85em;
-          padding: 5px 10px;
-          border-radius: 6px;
-          background: #e0f7f7;
-          color: var(--accent-color);
-          font-weight: 600;
         }
 
         .opportunity-card .badge.featured {
@@ -624,15 +621,26 @@ const Opportunities: React.FC = () => {
           color: #fff;
         }
 
-        .opportunity-card .tag {
+        .tag-pill {
           display: inline-block;
-          background: #f8fafc;
-          color: #64748b;
+          background: #f1f5f9;
+          color: #475569;
+          border-radius: 100px;
+          font-size: 0.75rem;
+          padding: 4px 12px;
+          font-weight: 500;
           border: 1px solid #e2e8f0;
-          border-radius: 4px;
-          font-size: 0.8em;
-          padding: 2px 8px;
-          margin-right: 5px;
+        }
+
+        .extra-small {
+          font-size: 0.65rem;
+        }
+
+        @media (max-width: 767.98px) {
+          .card-img-horizontal {
+            min-height: 80px;
+            height: 100px;
+          }
         }
 
         /* Featured Employers */

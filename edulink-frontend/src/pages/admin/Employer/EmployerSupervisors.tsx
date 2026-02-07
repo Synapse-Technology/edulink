@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Mail, Trash2, Shield, Users } from 'lucide-react';
+import { toast } from 'react-hot-toast';
+import { FeedbackModal } from '../../../components/common';
+import { useFeedbackModal } from '../../../hooks/useFeedbackModal';
 import { EmployerLayout } from '../../../components/admin/employer';
 import { useAuth } from '../../../contexts/AuthContext';
 // import TableSkeleton from '../../../components/admin/skeletons/TableSkeleton';
@@ -16,6 +19,8 @@ const EmployerSupervisors: React.FC = () => {
     email: '',
     role: 'SUPERVISOR'
   });
+
+  const { feedbackProps, showError, showConfirm } = useFeedbackModal();
 
   useEffect(() => {
     fetchSupervisors();
@@ -42,30 +47,40 @@ const EmployerSupervisors: React.FC = () => {
         role: inviteData.role
       });
       // Show success message or toast
-      alert('Supervisor invited successfully');
+      toast.success('Supervisor invited successfully');
       setShowInviteModal(false);
       setInviteData({ email: '', role: 'SUPERVISOR' });
       // Refresh the list
       fetchSupervisors();
     } catch (error) {
       console.error('Failed to invite supervisor:', error);
-      alert('Failed to invite supervisor');
+      toast.error('Failed to invite supervisor');
     } finally {
       setIsInviting(false);
     }
   };
 
   const handleRemoveSupervisor = async (id: string) => {
-    if (!window.confirm('Are you sure you want to remove this supervisor? They will no longer have access.')) {
-      return;
-    }
-    try {
-      await employerService.removeSupervisor(id);
-      fetchSupervisors();
-    } catch (error) {
-      console.error('Failed to remove supervisor:', error);
-      alert('Failed to remove supervisor');
-    }
+    showConfirm({
+      title: 'Remove Supervisor',
+      message: 'Are you sure you want to remove this supervisor? They will no longer have access to the employer portal.',
+      variant: 'error',
+      confirmLabel: 'Remove',
+      onConfirm: async () => {
+        try {
+          await employerService.removeSupervisor(id);
+          toast.success('Supervisor removed successfully');
+          fetchSupervisors();
+        } catch (error: any) {
+          console.error('Failed to remove supervisor:', error);
+          showError(
+            'Removal Failed',
+            'We encountered an error while trying to remove this supervisor.',
+            error.response?.data?.error || error.message
+          );
+        }
+      }
+    });
   };
 
   return (
@@ -219,6 +234,8 @@ const EmployerSupervisors: React.FC = () => {
           </div>
         </div>
       )}
+      
+      <FeedbackModal {...feedbackProps} />
     </EmployerLayout>
   );
 };

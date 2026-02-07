@@ -49,6 +49,13 @@ class ApiClient {
     // Request interceptor
     this.client.interceptors.request.use(
       (config) => {
+        // Handle FormData - Remove Content-Type to let browser/axios set it with boundary
+        if (config.data instanceof FormData) {
+          if (config.headers) {
+            delete config.headers['Content-Type'];
+          }
+        }
+
         const token = this.getToken();
         // Skip auth for login/register endpoints and when explicitly skipped
         const isAuthEndpoint = config.url?.includes('/login/') || config.url?.includes('/register/');
@@ -399,7 +406,6 @@ class ApiClient {
       ...config,
       headers: {
         ...config?.headers,
-        'Content-Type': 'multipart/form-data',
       },
     });
 

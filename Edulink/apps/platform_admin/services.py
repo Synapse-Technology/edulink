@@ -279,7 +279,7 @@ def revoke_staff_authority(*, staff_user: User, revoked_by: User, reason: str = 
 
 
 @transaction.atomic
-def verify_institution(*, institution_id: int, verified_by: User, reason: str = "") -> None:
+def verify_institution(*, institution_id: uuid.UUID, verified_by: User, reason: str = "") -> None:
     """
     Verify an institution by platform admin.
     Uses the institutions app's service layer to maintain proper boundaries.
@@ -329,7 +329,7 @@ def verify_institution(*, institution_id: int, verified_by: User, reason: str = 
 
 
 @transaction.atomic
-def suspend_user(*, user_id: int, suspended_by: User, reason: str = "") -> None:
+def suspend_user(*, user_id: uuid.UUID, suspended_by: User, reason: str = "") -> None:
     """
     Suspend a user.
     Platform admins can suspend users.
@@ -379,7 +379,7 @@ def suspend_user(*, user_id: int, suspended_by: User, reason: str = "") -> None:
 
 
 @transaction.atomic
-def reactivate_user(*, user_id: int, reactivated_by: User, reason: str = "") -> None:
+def reactivate_user(*, user_id: uuid.UUID, reactivated_by: User, reason: str = "") -> None:
     """
     Reactivate a suspended user.
     Platform admins can reactivate users.

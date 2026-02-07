@@ -17,6 +17,7 @@ import { internshipService } from '../../../services/internship/internshipServic
 import type { InternshipEvidence, InternshipApplication } from '../../../services/internship/internshipService';
 import { useAuthStore } from '../../../stores/authStore';
 import { toast } from 'react-hot-toast';
+import { DocumentPreviewModal } from '../../../components/common';
 import SupervisorTableSkeleton from '../../../components/admin/skeletons/SupervisorTableSkeleton';
 
 const StudentLogbookHistory: React.FC = () => {
@@ -37,9 +38,17 @@ const StudentLogbookHistory: React.FC = () => {
   const [reviewAction, setReviewAction] = useState<'ACCEPTED' | 'REJECTED' | 'REVISION_REQUIRED' | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  // Preview Modal State
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewTitle, setPreviewTitle] = useState('');
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
   // Determine user role for private notes
-  const isEmployerSupervisor = user?.id === application?.employer_supervisor_id;
-  const isInstitutionSupervisor = user?.id === application?.institution_supervisor_id;
+  const isEmployerSupervisor = (user?.id === application?.employer_supervisor_details?.user_id) || (user?.id === application?.employer_supervisor_id) || user?.role === 'employer_admin' || user?.role === 'employer';
+  const isInstitutionSupervisor = (user?.id === application?.institution_supervisor_details?.user_id) || (user?.id === application?.institution_supervisor_id) || user?.role === 'institution_admin' || user?.role === 'institution';
+  
+  // Read-only mode if application is COMPLETED or CERTIFIED
+  const isReadOnly = application?.status === 'COMPLETED' || application?.status === 'CERTIFIED' || application?.status === 'TERMINATED';
 
   useEffect(() => {
     if (applicationId) {
@@ -235,7 +244,7 @@ const StudentLogbookHistory: React.FC = () => {
                             className="border text-primary hover-lift d-flex align-items-center ms-auto"
                             onClick={() => handleReviewClick(evidence, 'ACCEPTED')}
                           >
-                            <FileText size={14} className="me-1" /> View & Review
+                            <FileText size={14} className="me-1" /> {isReadOnly ? 'View Details' : 'View & Review'}
                           </Button>
                         </td>
                       </tr>
@@ -271,10 +280,18 @@ const StudentLogbookHistory: React.FC = () => {
               <h6 className="fw-bold text-muted text-uppercase small mb-0">Daily Entries</h6>
               <div className="d-flex gap-2">
                   {selectedEvidence?.file && (
-                    <a href={selectedEvidence.file} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-outline-primary d-inline-flex align-items-center rounded-pill px-3">
+                    <button 
+                      type="button"
+                      className="btn btn-sm btn-outline-primary d-inline-flex align-items-center rounded-pill px-3"
+                      onClick={() => {
+                        setPreviewTitle('Attachment');
+                        setPreviewUrl(selectedEvidence.file);
+                        setPreviewOpen(true);
+                      }}
+                    >
                       <FileText size={14} className="me-2" />
                       View Attachment
-                    </a>
+                    </button>
                   )}
                   <Badge bg="primary" className="bg-opacity-10 text-primary border border-primary-subtle rounded-pill px-3 py-2">
                   {selectedEvidence?.metadata?.weekStartDate || selectedEvidence?.metadata?.week_start_date ? 
@@ -343,7 +360,7 @@ const StudentLogbookHistory: React.FC = () => {
 
           <div className={`p-3 rounded-3 mb-4 border ${isEmployerSupervisor ? 'bg-primary bg-opacity-10 border-primary-subtle' : 'bg-warning bg-opacity-10 border-warning-subtle'}`}>
               <h6 className={`fw-bold small text-uppercase mb-2 d-flex align-items-center gap-2 ${isEmployerSupervisor ? 'text-primary' : 'text-warning-emphasis'}`}>
-                  <MessageSquare size={14} /> Your Review (As {isEmployerSupervisor ? 'Employer' : 'Institution'} Supervisor)
+                  <MessageSquare size={14} /> Your Review (As {isEmployerSupervisor ? 'Employer' : 'Institution'} Supervisor) {isReadOnly && '(Read Only)'}
               </h6>
               <div className="row g-3">
                 <div className="col-md-6">
@@ -356,6 +373,7 @@ const StudentLogbookHistory: React.FC = () => {
                         value={reviewNotes}
                         onChange={(e) => setReviewNotes(e.target.value)}
                         placeholder="Feedback visible to the student..."
+                        disabled={isReadOnly || submitting}
                     />
                     </Form.Group>
                 </div>
@@ -369,6 +387,7 @@ const StudentLogbookHistory: React.FC = () => {
                         value={privateNotes}
                         onChange={(e) => setPrivateNotes(e.target.value)}
                         placeholder="Notes visible only to you..."
+                        disabled={isReadOnly || submitting}
                     />
                     </Form.Group>
                 </div>
@@ -377,8 +396,9 @@ const StudentLogbookHistory: React.FC = () => {
         </Modal.Body>
         <Modal.Footer className="border-0 pt-0 d-flex justify-content-between">
           <Button variant="light" onClick={() => setShowReviewModal(false)} className="px-4 rounded-3 small border">
-            Cancel
+            {isReadOnly ? 'Close' : 'Cancel'}
           </Button>
+          {!isReadOnly && (
           <div className="d-flex gap-2">
             <Button 
               variant="outline-danger" 
@@ -405,8 +425,16 @@ const StudentLogbookHistory: React.FC = () => {
               {submitting ? <Spinner animation="border" size="sm" /> : <><CheckCircle size={16} /> Update Review</>}
             </Button>
           </div>
+          )}
         </Modal.Footer>
       </Modal>
+
+      <DocumentPreviewModal 
+        show={previewOpen}
+        onHide={() => setPreviewOpen(false)}
+        title={previewTitle}
+        url={previewUrl}
+      />
     </div>
   );
 };

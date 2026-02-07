@@ -41,6 +41,11 @@ class InternshipViewSet(viewsets.ReadOnlyModelViewSet):
             return [AllowAny()]
         return [IsAuthenticated()]
     
+    def get_authenticators(self):
+        if self.action in ['list', 'retrieve', 'success_stories']:
+            return []
+        return super().get_authenticators()
+    
     def get_queryset(self):
         return get_opportunities_for_user(self.request.user)
 

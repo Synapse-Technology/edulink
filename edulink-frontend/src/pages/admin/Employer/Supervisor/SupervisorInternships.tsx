@@ -7,11 +7,14 @@ import { Link } from 'react-router-dom';
 import { SupervisorLayout } from '../../../../components/admin/employer';
 import SupervisorTableSkeleton from '../../../../components/admin/skeletons/SupervisorTableSkeleton';
 import { toast } from 'react-hot-toast';
+import { FeedbackModal } from '../../../../components/common';
+import { useFeedbackModal } from '../../../../hooks/useFeedbackModal';
 
 const SupervisorInternships: React.FC = () => {
   const [internships, setInternships] = useState<InternshipApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { feedbackProps, showError, showSuccess, showConfirm } = useFeedbackModal();
 
   useEffect(() => {
     fetchInternships();
@@ -31,18 +34,20 @@ const SupervisorInternships: React.FC = () => {
   };
 
   const handleComplete = async (id: string) => {
-    if (!window.confirm("Are you sure you want to mark this internship as completed? This will allow the student to generate their certificate.")) {
-      return;
-    }
-
-    try {
-      await internshipService.processApplication(id, 'COMPLETE');
-      toast.success("Internship marked as completed successfully!");
-      fetchInternships(); // Refresh list
-    } catch (err: any) {
-      const message = err.response?.data?.detail || "Failed to complete internship. Ensure there is at least one accepted logbook.";
-      toast.error(message);
-    }
+    showConfirm({
+      title: 'Complete Internship',
+      message: 'Are you sure you want to mark this internship as completed? This will allow the student to generate their certificate and is irreversible.',
+      onConfirm: async () => {
+        try {
+          await internshipService.processApplication(id, 'COMPLETE');
+          showSuccess('Internship Completed', "The internship has been marked as completed successfully!");
+          fetchInternships(); // Refresh list
+        } catch (err: any) {
+          const message = err.response?.data?.detail || "Failed to complete internship. Ensure there is at least one accepted logbook.";
+          showError('Completion Failed', "We could not mark the internship as completed.", message);
+        }
+      }
+    });
   };
 
   const getStatusBadge = (status: string) => {
@@ -194,6 +199,7 @@ const SupervisorInternships: React.FC = () => {
           </div>
         </div>
       </div>
+      <FeedbackModal {...feedbackProps} />
       
       <style>{`
         .hover-lift {

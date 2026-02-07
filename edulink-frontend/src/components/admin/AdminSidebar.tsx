@@ -12,7 +12,9 @@ import {
   FileText,
   Database,
   Briefcase,
-  History
+  History,
+  LifeBuoy,
+  Mail
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -90,6 +92,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
           <NavItem to="/admin/institutions" icon={Building2} label="Institutions" />
           <NavItem to="/admin/employers/requests" icon={Briefcase} label="Employer Management" />
           <NavItem to="/admin/staff" icon={ShieldCheck} label="Platform Staff" />
+          <NavItem to="/admin/support" icon={LifeBuoy} label="Support & Care" />
+          <NavItem to="/admin/contact" icon={Mail} label="Contact Inquiries" />
         </nav>
 
         <small className="text-uppercase text-white-50 fw-bold mb-2 d-block px-3" style={{fontSize: '0.75rem'}}>

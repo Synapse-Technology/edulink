@@ -94,22 +94,6 @@ def compute_institution_trust_tier(*, institution_id: UUID) -> dict:
             }
         )
         
-        # Send Notification
-        from edulink.apps.notifications.services import send_trust_tier_changed_notification
-        # Get user ID for institution admin (This is a simplification, ideally we notify all admins)
-        # For now we assume we can't easily get a single user ID without a query, 
-        # so we might need to skip notification or implement a bulk notify.
-        # But wait, the prompt asked to implement it.
-        # Let's see if we can get a user.
-        # Institutions have users.
-        from edulink.apps.accounts.models import User
-        # This is risky without a direct link. 
-        # Ideally, we should notify the primary contact.
-        # Let's skip institution/employer notification for now if it's too complex to find the user, 
-        # or just try to find one.
-        
-        # Actually, let's look at `compute_student_trust_tier` first, as students have a direct 1:1 user mapping.
-        
         # Update return value
         institution["trust_level"] = current_level
         # Note: trust_label won't be updated here but that's acceptable for now or we could refetch/map it

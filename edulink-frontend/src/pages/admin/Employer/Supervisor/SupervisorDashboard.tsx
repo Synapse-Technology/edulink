@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../../../contexts/AuthContext';
 import { Users, FileText, AlertTriangle, LayoutGrid, ChevronRight, Clock, Calendar, User, ArrowUpRight } from 'lucide-react';
 import { internshipService } from '../../../../services/internship/internshipService';
@@ -7,48 +7,49 @@ import { Link } from 'react-router-dom';
 import { Badge } from 'react-bootstrap';
 import { SupervisorLayout } from '../../../../components/admin/employer';
 import SupervisorDashboardSkeleton from '../../../../components/admin/skeletons/SupervisorDashboardSkeleton';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { usePusher } from '../../../../hooks/usePusher';
 
 const SupervisorDashboard: React.FC = () => {
   const { user } = useAuth();
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   
-  const [stats, setStats] = useState({
-    interns: 0,
-    pendingLogbooks: 0,
-    openIncidents: 0,
-    reviewedLogbooks: 0
-  });
-  
-  const [recentLogbooks, setRecentLogbooks] = useState<InternshipEvidence[]>([]);
-
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
-  const fetchDashboardData = async () => {
-    try {
-      setLoading(true);
-      
+  // Fetch stats using TanStack Query
+  const { data: dashboardData, isLoading: loading } = useQuery({
+    queryKey: ['supervisor-dashboard-data'],
+    queryFn: async () => {
       const [applications, pendingEvidence, incidents] = await Promise.all([
         internshipService.getApplications(),
         internshipService.getPendingEvidence(),
         internshipService.getIncidents()
       ]);
       
-      setStats({
+      return {
         interns: applications.length,
         pendingLogbooks: pendingEvidence.length,
         openIncidents: incidents.filter((i: Incident) => i.status === 'OPEN').length,
-        reviewedLogbooks: 0
-      });
-      
-      setRecentLogbooks(pendingEvidence.slice(0, 5));
-      
-    } catch (err) {
-      console.error("Failed to fetch dashboard data", err);
-    } finally {
-      setLoading(false);
-    }
+        recentLogbooks: pendingEvidence.slice(0, 5)
+      };
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+
+  const handleRealtimeUpdate = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['supervisor-dashboard-data'] });
+  }, [queryClient]);
+
+  // Subscribe to real-time updates for the supervisor
+  usePusher(
+    user ? `user-${user.id}` : undefined,
+    'notification-received', // Generic refresh trigger
+    handleRealtimeUpdate
+  );
+
+  const stats = dashboardData || {
+    interns: 0,
+    pendingLogbooks: 0,
+    openIncidents: 0,
+    recentLogbooks: []
   };
 
   const statCards = [
@@ -191,8 +192,8 @@ const SupervisorDashboard: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {recentLogbooks.length > 0 ? (
-                        recentLogbooks.map(evidence => (
+                      {stats.recentLogbooks.length > 0 ? (
+                        stats.recentLogbooks.map(evidence => (
                           <tr key={evidence.id} className="border-top">
                             <td className="ps-4 py-3">
                               <div className="d-flex align-items-center">

@@ -6,6 +6,8 @@ from edulink.apps.institutions.queries import get_institution_for_user, get_depa
 from edulink.apps.accounts.queries import get_users_map_by_ids, get_user_by_id
 
 
+from django.db.models import QuerySet
+
 def get_institution_id_for_user(user) -> Optional[str]:
     """
     Get the institution ID that the user is associated with.
@@ -298,3 +300,73 @@ def get_student_dashboard_stats(*, student_id: str) -> dict:
     combined = dict(internship_stats)
     combined["profile"] = profile_stats
     return combined
+
+
+def get_student_queryset(user) -> QuerySet:
+    """
+    Restrict access to student profiles based on user role.
+    """
+    if not user.is_authenticated:
+        return Student.objects.none()
+        
+    # 1. System Admins see all
+    if user.is_system_admin:
+        return Student.objects.all()
+        
+    # 2. Students see only themselves
+    if user.is_student:
+        return Student.objects.filter(user_id=user.id)
+        
+    # 3. Institution Admins see students affiliated with their institution
+    if user.is_institution_admin:
+        institution_id = get_institution_id_for_user(user)
+        if institution_id:
+            student_ids = StudentInstitutionAffiliation.objects.filter(
+                institution_id=institution_id,
+                status=StudentInstitutionAffiliation.STATUS_APPROVED
+            ).values_list('student_id', flat=True)
+            
+            return Student.objects.filter(id__in=student_ids)
+            
+    return Student.objects.none()
+
+
+def get_student_affiliation_queryset(user) -> QuerySet:
+    """
+    Restrict access to student affiliations based on user role.
+    """
+    if not user.is_authenticated:
+        return StudentInstitutionAffiliation.objects.none()
+        
+    if user.is_system_admin:
+        return StudentInstitutionAffiliation.objects.all()
+        
+    if user.is_institution_admin:
+        institution_id = get_institution_id_for_user(user)
+        if institution_id:
+            return StudentInstitutionAffiliation.objects.filter(institution_id=institution_id)
+            
+    if user.is_student:
+        student = get_student_for_user(str(user.id))
+        if student:
+            return StudentInstitutionAffiliation.objects.filter(student_id=student.id)
+        
+    return StudentInstitutionAffiliation.objects.none()
+
+
+def get_institution_students_queryset(
+    *, institution_id: str, department_id: str = None, cohort_id: str = None
+) -> QuerySet:
+    """
+    Get student affiliations for an institution with optional filtering.
+    """
+    affiliations = StudentInstitutionAffiliation.objects.filter(
+        institution_id=institution_id
+    )
+    
+    if department_id:
+        affiliations = affiliations.filter(department_id=department_id)
+    if cohort_id:
+        affiliations = affiliations.filter(cohort_id=cohort_id)
+        
+    return affiliations

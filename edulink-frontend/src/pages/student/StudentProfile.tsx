@@ -12,7 +12,9 @@ import StudentHeader from '../../components/dashboard/StudentHeader';
 import StudentSidebar from '../../components/dashboard/StudentSidebar';
 import ProfileWizard from '../../components/student/ProfileWizard';
 import TrustBadge, { type TrustLevel } from '../../components/common/TrustBadge';
+import { DocumentPreviewModal } from '../../components/common';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { studentService } from '../../services/student/studentService';
 import type { StudentProfile as IStudentProfile } from '../../services/student/studentService';
 import { config } from '../../config';
@@ -22,15 +24,18 @@ import defaultProfile from '../../assets/images/default_profile.jpg';
 
 const StudentProfile: React.FC = () => {
   const { user } = useAuth();
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    return localStorage.getItem('theme') === 'dark';
-  });
+  const { isDarkMode, toggleDarkMode } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [profile, setProfile] = useState<IStudentProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [showWizard, setShowWizard] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Preview Modal State
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewTitle, setPreviewTitle] = useState('');
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -70,36 +75,11 @@ const StudentProfile: React.FC = () => {
     }
   };
 
-
-  useEffect(() => {
-    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
-    if (isDarkMode) {
-      document.body.classList.add('dark-mode');
-    } else {
-      document.body.classList.remove('dark-mode');
-    }
-  }, [isDarkMode]);
-
-  const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
-
-  const getDocumentUrl = (path: string | null | undefined) => {
-    if (!path) return '#';
-    if (path.startsWith('http')) return path;
-    
-    const baseUrl = config.api.baseURL.replace(/\/$/, '');
-    const cleanPath = path.startsWith('/') ? path.substring(1) : path;
-    
-    if (cleanPath.startsWith('media/')) {
-      return `${baseUrl}/${cleanPath}`;
-    }
-    
-    return `${baseUrl}/media/${cleanPath}`;
-  };
-
-  const handleViewDocument = (path: string | null | undefined) => {
+  const handleViewDocument = (path: string | null | undefined, title: string = 'Document') => {
     if (!path) return;
-    const url = getDocumentUrl(path);
-    fetchAndOpenDocument(url);
+    setPreviewTitle(title);
+    setPreviewUrl(path);
+    setPreviewOpen(true);
   };
 
   const DocumentCard: React.FC<{
@@ -121,11 +101,11 @@ const StudentProfile: React.FC = () => {
       </div>
       {path && (
         <button 
-          onClick={() => handleViewDocument(path)}
+          onClick={() => handleViewDocument(path, title)}
           className="btn btn-sm btn-outline-primary d-flex align-items-center gap-2"
         >
           <FileText size={14} />
-          View
+          Preview
         </button>
       )}
     </div>
@@ -163,32 +143,12 @@ const StudentProfile: React.FC = () => {
               max-width: calc(100vw - 280px) !important;
             }
           }
-          .card {
-            background-color: ${isDarkMode ? '#1e293b' : 'white'} !important;
-            border: 1px solid ${isDarkMode ? '#334155' : '#e2e8f0'} !important;
-            transition: all 0.3s ease;
-          }
-          .card:hover {
-            border-color: ${isDarkMode ? '#475569' : '#cbd5e1'} !important;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, ${isDarkMode ? '0.3' : '0.1'}) !important;
-          }
-          .text-muted {
-            color: ${isDarkMode ? '#94a3b8' : '#6c757d'} !important;
-          }
-          .bg-light {
-            background-color: ${isDarkMode ? '#1e293b' : '#f8f9fa'} !important;
-          }
-          .border-bottom {
-            border-bottom-color: ${isDarkMode ? '#334155' : '#dee2e6'} !important;
-          }
         `}</style>
         
         <div className="px-4 px-lg-5 pt-4">
           <StudentHeader
             onMobileMenuClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             isMobileMenuOpen={isMobileMenuOpen}
-            isDarkMode={isDarkMode}
-            onToggleDarkMode={toggleDarkMode}
           />
         </div>
 
@@ -374,6 +334,13 @@ const StudentProfile: React.FC = () => {
             }}
           />
         )}
+
+        <DocumentPreviewModal 
+          show={previewOpen}
+          onHide={() => setPreviewOpen(false)}
+          title={previewTitle}
+          url={previewUrl}
+        />
       </div>
     </div>
   );

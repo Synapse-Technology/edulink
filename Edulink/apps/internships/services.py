@@ -1,8 +1,13 @@
+import logging
 from uuid import UUID
 from django.db import transaction
 from django.conf import settings
 from django.utils import timezone
+
+logger = logging.getLogger(__name__)
+
 from edulink.apps.students.queries import get_student_for_user
+from edulink.shared.pusher_utils import trigger_pusher_event
 from .models import InternshipOpportunity, InternshipApplication, OpportunityStatus, ApplicationStatus, InternshipEvidence, Incident
 from .workflows import opportunity_workflow, application_workflow
 from .policies import (
@@ -16,22 +21,57 @@ from .policies import (
 )
 
 @transaction.atomic
+def _trigger_application_update_pusher(application: InternshipApplication, status_label: str):
+    """Trigger real-time notification for student application update."""
+    try:
+        from edulink.apps.students.queries import get_student_by_id
+        student = get_student_by_id(str(application.student_id))
+        if not student:
+             return
+        
+        trigger_pusher_event(
+            channel=f"user-{student.user_id}",
+            event_name="application-status-updated",
+            data={
+                "application_id": str(application.id),
+                "opportunity_title": application.opportunity.title,
+                "status": status_label,
+                "status_code": application.status
+            }
+        )
+    except Exception as e:
+        logger.error(f"Failed to trigger Pusher for application update: {e}")
+
 def propagate_student_institution_to_applications(*, student_id: UUID, institution_id: UUID) -> int:
     """
     Update all active internship applications for a student with their institution.
     Called when a student's institution affiliation is approved.
     """
-    updated_count = InternshipApplication.objects.filter(
+    # Filter applications that might need updating (active ones)
+    # Note: We can't filter by snapshot content easily in all DBs, so we fetch and check
+    applications = InternshipApplication.objects.filter(
         student_id=student_id,
-        institution_id__isnull=True,
         status__in=[
             ApplicationStatus.APPLIED,
             ApplicationStatus.SHORTLISTED,
             ApplicationStatus.ACCEPTED,
             ApplicationStatus.ACTIVE
         ]
-    ).update(institution_id=institution_id)
+    )
     
+    updated_count = 0
+    for app in applications:
+        # Check if institution_id is already set in snapshot
+        snapshot = app.application_snapshot or {}
+        # Only update if missing or different (though usually it's missing if we are here)
+        current_inst_id = snapshot.get('institution_id')
+        
+        if not current_inst_id or str(current_inst_id) != str(institution_id):
+            snapshot['institution_id'] = str(institution_id)
+            app.application_snapshot = snapshot
+            app.save(update_fields=['application_snapshot'])
+            updated_count += 1
+            
     return updated_count
 
 
@@ -112,7 +152,11 @@ def apply_for_internship(actor, opportunity_id: UUID, cover_letter: str = "") ->
     
     student = get_student_for_user(str(actor.id))
     if not student:
-        raise ValueError("Student profile not found for user")
+        from edulink.apps.students.services import preregister_student
+        student = preregister_student(user_id=actor.id, email=actor.email)
+    
+    if not student:
+        raise ValueError("Student profile could not be initialized")
         
     # Check for CV
     if not student.cv:
@@ -499,7 +543,8 @@ def bulk_assign_institution_supervisors(
     
     try:
         dept = get_department_by_id(department_id=department_id)
-    except Exception:
+    except Exception as e:
+        logger.error(f"Failed to get department {department_id}: {e}")
         raise ValueError("Department not found")
         
     cohort_name = ""
@@ -507,7 +552,8 @@ def bulk_assign_institution_supervisors(
         try:
             coh = get_cohort_by_id(cohort_id=cohort_id)
             cohort_name = coh.name
-        except Exception:
+        except Exception as e:
+            logger.error(f"Failed to get cohort {cohort_id}: {e}")
             raise ValueError("Cohort not found")
         
     # 3. Get students in this affiliation
@@ -586,6 +632,9 @@ def bulk_assign_institution_supervisors(
                 )
             except Exception:
                 # Don't fail bulk assignment if notification fails
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Failed to send supervisor assignment notification to supervisor {supervisor.id} for application {app.id}", exc_info=True)
                 pass
                 
             assigned_count += 1
@@ -743,6 +792,9 @@ def process_application(actor, application_id: UUID, action: str) -> InternshipA
         actor_id=str(actor.id)
     )
     
+    # Trigger Real-time Pusher event
+    _trigger_application_update_pusher(app, status_label)
+    
     return app
 
 def accept_offer(actor, application_id: UUID) -> InternshipApplication:
@@ -775,6 +827,10 @@ def accept_offer(actor, application_id: UUID) -> InternshipApplication:
         status="Accepted",
         actor_id=str(actor.id)
     )
+    
+    # Trigger Real-time Pusher event
+    _trigger_application_update_pusher(app, "Accepted")
+    
     return app
 
 def start_internship(actor, application_id: UUID) -> InternshipApplication:
@@ -796,6 +852,10 @@ def start_internship(actor, application_id: UUID) -> InternshipApplication:
         status="Active (Started)",
         actor_id=str(actor.id)
     )
+    
+    # Trigger Real-time Pusher event
+    _trigger_application_update_pusher(app, "Active (Started)")
+    
     return app
 
 def complete_internship(actor, application_id: UUID) -> InternshipApplication:
@@ -837,6 +897,10 @@ def complete_internship(actor, application_id: UUID) -> InternshipApplication:
         status="Completed",
         actor_id=str(actor.id)
     )
+    
+    # Trigger Real-time Pusher event
+    _trigger_application_update_pusher(app, "Completed")
+    
     return app
 
 def certify_internship(actor, application_id: UUID) -> InternshipApplication:
@@ -858,4 +922,8 @@ def certify_internship(actor, application_id: UUID) -> InternshipApplication:
         status="Certified",
         actor_id=str(actor.id)
     )
+    
+    # Trigger Real-time Pusher event
+    _trigger_application_update_pusher(app, "Certified")
+    
     return app

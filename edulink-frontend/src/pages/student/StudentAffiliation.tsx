@@ -9,13 +9,14 @@ import {
 import StudentHeader from '../../components/dashboard/StudentHeader';
 import StudentSidebar from '../../components/dashboard/StudentSidebar';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { studentService } from '../../services/student/studentService';
 import type { Affiliation, Institution } from '../../services/student/studentService';
 import StudentAffiliationSkeleton from '../../components/student/skeletons/StudentAffiliationSkeleton';
 
 const StudentAffiliation: React.FC = () => {
   const { user } = useAuth();
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const { isDarkMode, toggleDarkMode } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [affiliations, setAffiliations] = useState<Affiliation[]>([]);
@@ -283,34 +284,12 @@ const StudentAffiliation: React.FC = () => {
               max-width: calc(100vw - 280px) !important;
             }
           }
-          .card {
-            background-color: ${isDarkMode ? '#1e293b' : 'white'} !important;
-            border: 1px solid ${isDarkMode ? '#334155' : '#e2e8f0'} !important;
-            transition: all 0.3s ease;
-          }
-          .card:hover {
-            border-color: ${isDarkMode ? '#475569' : '#cbd5e1'} !important;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, ${isDarkMode ? '0.3' : '0.1'}) !important;
-          }
-          .text-muted {
-            color: ${isDarkMode ? '#94a3b8' : '#6c757d'} !important;
-          }
-          .bg-light {
-            background-color: ${isDarkMode ? '#1e293b' : '#f8f9fa'} !important;
-          }
-          .list-group-item {
-            background-color: ${isDarkMode ? '#1e293b' : 'white'} !important;
-            border-color: ${isDarkMode ? '#334155' : '#dee2e6'} !important;
-            color: ${isDarkMode ? '#f8fafc' : 'inherit'} !important;
-          }
         `}</style>
         
         <div className="px-4 px-lg-5 pt-4">
           <StudentHeader
             onMobileMenuClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             isMobileMenuOpen={isMobileMenuOpen}
-            isDarkMode={isDarkMode}
-            onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
           />
         </div>
 

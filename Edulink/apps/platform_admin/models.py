@@ -87,14 +87,6 @@ class PlatformStaffProfile(models.Model):
     def __str__(self):
         return f"{self.user.email} ({self.get_role_display()})"
     
-    def clean(self):
-        """Validate that super admins are created properly."""
-        if self.role == self.ROLE_SUPER_ADMIN and self.created_by is not None:
-            raise ValidationError("Super admins must be created manually (genesis creation)")
-        
-        if self.revoked_at and self.is_active:
-            raise ValidationError("Cannot be active if authority is revoked")
-    
     @property
     def has_authority(self):
         """Check if this staff member currently has platform authority."""
@@ -146,9 +138,7 @@ class AdminActionLog(models.Model):
         related_name='targeted_by_admin_actions'
     )
     
-    target_institution = models.ForeignKey(
-        'institutions.Institution',
-        on_delete=models.CASCADE,
+    target_institution_id = models.UUIDField(
         null=True,
         blank=True
     )

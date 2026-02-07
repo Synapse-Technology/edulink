@@ -117,7 +117,7 @@ const AuditLog: React.FC = () => {
   };
 
   const formatEventType = (type: string) => {
-    return type.replace(/_/g, ' ');
+    return (type || 'UNKNOWN_EVENT').replace(/_/g, ' ');
   };
 
   return (
@@ -231,10 +231,10 @@ const AuditLog: React.FC = () => {
                           <div>
                             <div className="fw-semibold">{formatEventType(event.event_type)}</div>
                             <div className="small text-muted d-flex align-items-center" style={{ fontSize: '11px' }}>
-                                ID: {event.id.substring(0, 8)}...
+                                ID: {event.id?.substring(0, 8) || 'N/A'}...
                                 <button 
                                     className="btn btn-link p-0 ms-1 text-muted" 
-                                    onClick={(e) => { e.stopPropagation(); copyToClipboard(event.id, `ID-${event.id}`); }}
+                                    onClick={(e) => { e.stopPropagation(); copyToClipboard(event.id || '', `ID-${event.id}`); }}
                                     title="Copy ID"
                                 >
                                     {copyStatus === `ID-${event.id}` ? (
@@ -259,12 +259,12 @@ const AuditLog: React.FC = () => {
                          <div className="d-flex align-items-center">
                             <Database size={14} className="me-2 text-muted" />
                             <div>
-                                <div>{event.entity_type}</div>
+                                <div>{event.entity_type || 'Unknown'}</div>
                                 <div className="small text-muted d-flex align-items-center" style={{ fontSize: '11px' }}>
-                                    {event.entity_id.substring(0, 8)}...
+                                    {event.entity_id?.substring(0, 8) || 'N/A'}...
                                     <button 
                                         className="btn btn-link p-0 ms-1 text-muted" 
-                                        onClick={(e) => { e.stopPropagation(); copyToClipboard(event.entity_id, `Entity-${event.id}`); }}
+                                        onClick={(e) => { e.stopPropagation(); copyToClipboard(event.entity_id || '', `Entity-${event.id}`); }}
                                         title="Copy Entity ID"
                                     >
                                         {copyStatus === `Entity-${event.id}` ? (

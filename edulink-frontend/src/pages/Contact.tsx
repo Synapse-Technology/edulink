@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { contactService } from '../services/contact/contactService';
+import toast from 'react-hot-toast';
 
 const Contact: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -20,15 +22,25 @@ const Contact: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
+    if (isSubmitting) return;
     
     try {
-      // TODO: Implement contact form API submission
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate API call
+      setIsSubmitting(true);
+      
+      await contactService.submitContactForm({
+        name: formData.name,
+        email: formData.email,
+        subject: formData.subject,
+        message: formData.message
+      });
+      
       setMessage('Your message has been sent. Thank you!');
+      toast.success('Message sent successfully!');
       setFormData({ name: '', email: '', subject: '', message: '' });
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Contact form error:', error);
       setMessage('There was an error sending your message. Please try again.');
+      toast.error(error.message || 'Failed to send message.');
     } finally {
       setIsSubmitting(false);
       setTimeout(() => setMessage(''), 5000);
@@ -318,7 +330,7 @@ const Contact: React.FC = () => {
         }
 
         .contact .error-message {
-          display: none;
+          display: block;
           color: #ffffff;
           background: #ed3c0d;
           text-align: center;
@@ -328,7 +340,7 @@ const Contact: React.FC = () => {
         }
 
         .contact .sent-message {
-          display: none;
+          display: block;
           color: #ffffff;
           background: #059652;
           text-align: center;

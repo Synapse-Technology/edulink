@@ -1,0 +1,23 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}Ticket Resolved - {{ tracking_code }}{% endblock %}
+
+{% block content %}
+<h2>Support Ticket Resolved</h2>
+<p>Dear {{ name }},</p>
+<p>Your support ticket <strong>#{{ tracking_code }}</strong> has been marked as resolved.</p>
+
+<div class="highlight-box">
+    <p><strong>Subject:</strong> {{ subject }}</p>
+    {% if resolution_notes %}
+    <p style="margin-top: 12px;"><strong>Resolution Notes:</strong></p>
+    <p>{{ resolution_notes|linebreaksbr }}</p>
+    {% endif %}
+</div>
+
+<p>We hope we were able to assist you effectively. If you feel this issue is not fully resolved, you can reply to the ticket or open a new one at any time.</p>
+
+<p>Thank you for using Edulink!</p>
+
+<p>Best regards,<br>The Edulink Support Team</p>
+{% endblock %}

@@ -30,7 +30,9 @@ const VerifyArtifact: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await apiClient.get<VerificationResult>(`/api/reports/artifacts/verify/${id}/`);
+      const response = await apiClient.get<VerificationResult>(`/api/reports/artifacts/verify/${id}/`, {
+        headers: { 'skip-auth': 'true' }
+      });
       setResult(response);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to verify artifact. It may not exist or the ID is incorrect.');

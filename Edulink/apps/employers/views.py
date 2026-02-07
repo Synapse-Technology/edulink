@@ -83,6 +83,11 @@ class EmployerRequestViewSet(viewsets.ModelViewSet):
             return [AllowAny()]
         return [IsAuthenticated()]
 
+    def get_authenticators(self):
+        if self.action in ["create", "track"]:
+            return []
+        return super().get_authenticators()
+
     def get_queryset(self):
         queryset = super().get_queryset()
         status_param = self.request.query_params.get('status')
@@ -161,11 +166,34 @@ class EmployerViewSet(viewsets.ReadOnlyModelViewSet):
             return [AllowAny()]
         return [IsAuthenticated()]
 
+    def get_authenticators(self):
+        if self.action in ['list', 'retrieve']:
+            return []
+        return super().get_authenticators()
+
     def get_queryset(self):
-        # TODO: Enforce strict permissions via policies
-        # For now, allow viewing all employers if authenticated (simplification)
-        # Ideally, only admins or system staff should see full list
-        return super().get_queryset()
+        queryset = super().get_queryset()
+        user = self.request.user
+        
+        # Unauthenticated users: Only active
+        if not user.is_authenticated:
+             return queryset.filter(status='ACTIVE')
+
+        # System Admins: All
+        if user.is_system_admin or user.is_superuser:
+            return queryset
+            
+        # Employer Staff: See their own + Active others
+        from django.db.models import Q
+        q = Q(status='ACTIVE')
+        
+        if user.is_employer_admin or user.is_supervisor:
+            from .queries import get_employer_for_user
+            employer = get_employer_for_user(user.id)
+            if employer:
+                q |= Q(id=employer.id)
+                
+        return queryset.filter(q)
 
     def update(self, request, pk=None):
         employer = self.get_object()

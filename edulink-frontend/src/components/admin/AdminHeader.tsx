@@ -1,6 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Bell, LogOut, Settings, Key, AlertTriangle, Menu } from 'lucide-react';
+import NotificationBell from '../common/NotificationBell';
+import { useAdminAuth } from '../../contexts/AdminAuthContext';
 
 interface AdminHeaderProps {
   notificationCount?: number;
@@ -19,6 +21,7 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({
   onLogout,
   onToggleSidebar
 }) => {
+  const { admin } = useAdminAuth();
   const handleLogout = () => {
     localStorage.removeItem('adminToken');
     localStorage.removeItem('adminUser');
@@ -41,48 +44,7 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({
         
         <div className="d-flex align-items-center ms-auto gap-3">
           {/* Notifications */}
-          <div className="dropdown">
-            <button 
-              className="btn btn-light rounded-circle position-relative p-2"
-              type="button"
-              data-bs-toggle="dropdown"
-              aria-expanded="false"
-            >
-              <Bell size={20} className="text-secondary" />
-              {notificationCount > 0 && (
-                <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-white">
-                  {notificationCount}
-                  <span className="visually-hidden">unread messages</span>
-                </span>
-              )}
-            </button>
-            <div className="dropdown-menu dropdown-menu-end shadow border-0" style={{minWidth: '320px'}}>
-              <div className="d-flex justify-content-between align-items-center px-3 py-2 border-bottom bg-light rounded-top">
-                <span className="fw-semibold small text-uppercase text-muted">Notifications</span>
-                <span className="badge bg-primary rounded-pill">{notificationCount} New</span>
-              </div>
-              <div className="list-group list-group-flush">
-                {[1, 2, 3].map((i) => (
-                  <a key={i} href="#" className="list-group-item list-group-item-action border-bottom-0 px-3 py-3">
-                    <div className="d-flex">
-                      <div className="flex-shrink-0">
-                        <div className="rounded-circle bg-warning bg-opacity-10 p-2">
-                          <AlertTriangle size={16} className="text-warning" />
-                        </div>
-                      </div>
-                      <div className="flex-grow-1 ms-3">
-                        <p className="mb-1 small fw-medium">New institution request pending approval</p>
-                        <small className="text-muted d-block" style={{fontSize: '0.75rem'}}>2 minutes ago</small>
-                      </div>
-                    </div>
-                  </a>
-                ))}
-              </div>
-              <div className="p-2 text-center border-top">
-                <a href="#" className="small text-decoration-none fw-semibold">View All Notifications</a>
-              </div>
-            </div>
-          </div>
+          <NotificationBell userId={admin?.id} linkTo="/admin/logs" />
 
           <div className="vr h-50 my-auto text-muted opacity-25"></div>
 

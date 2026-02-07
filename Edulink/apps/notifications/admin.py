@@ -67,19 +67,26 @@ class EmailVerificationTokenAdmin(admin.ModelAdmin):
     """
     
     list_display = [
-        'id', 'user', 'token_short', 'is_used', 'is_expired_colored',
+        'id', 'user_id', 'user_email', 'token_short', 'is_used', 'is_expired_colored',
         'expires_at', 'created_at'
     ]
     list_filter = [
         'is_used', 'created_at', 'expires_at'
     ]
     search_fields = [
-        'user__email', 'user__username', 'token'
+        'user_id', 'token'
     ]
     readonly_fields = [
         'id', 'token', 'created_at', 'updated_at'
     ]
     ordering = ['-created_at']
+    
+    def user_email(self, obj):
+        """Fetch and display user email via query layer."""
+        from edulink.apps.accounts.queries import get_user_by_id
+        user = get_user_by_id(str(obj.user_id))
+        return user.email if user else "Unknown User"
+    user_email.short_description = 'User Email'
     
     def token_short(self, obj):
         """Display shortened token for better readability."""
@@ -105,19 +112,26 @@ class PasswordResetTokenAdmin(admin.ModelAdmin):
     """
     
     list_display = [
-        'id', 'user', 'token_short', 'is_used', 'is_expired_colored',
+        'id', 'user_id', 'user_email', 'token_short', 'is_used', 'is_expired_colored',
         'expires_at', 'created_at'
     ]
     list_filter = [
         'is_used', 'created_at', 'expires_at'
     ]
     search_fields = [
-        'user__email', 'user__username', 'token'
+        'user_id', 'token'
     ]
     readonly_fields = [
         'id', 'token', 'created_at', 'updated_at'
     ]
     ordering = ['-created_at']
+    
+    def user_email(self, obj):
+        """Fetch and display user email via query layer."""
+        from edulink.apps.accounts.queries import get_user_by_id
+        user = get_user_by_id(str(obj.user_id))
+        return user.email if user else "Unknown User"
+    user_email.short_description = 'User Email'
     
     def token_short(self, obj):
         """Display shortened token for better readability."""

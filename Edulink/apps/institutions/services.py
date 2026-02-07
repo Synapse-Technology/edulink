@@ -1758,3 +1758,102 @@ def delete_cohort(
         },
     )
 
+
+def process_bulk_verification_csv(*, institution_id: str, file) -> dict:
+    """
+    Process a CSV file for bulk verification preview.
+    """
+    import csv
+    import io
+    from edulink.apps.students.services import process_bulk_verification_preview
+
+    try:
+        decoded_file = file.read().decode('utf-8')
+        io_string = io.StringIO(decoded_file)
+        reader = csv.DictReader(io_string)
+        rows = [row for row in reader]
+        
+        return process_bulk_verification_preview(
+            institution_id=institution_id,
+            rows=rows
+        )
+    except Exception as e:
+        raise ValueError(f"Failed to process CSV file: {str(e)}")
+
+
+@transaction.atomic
+def process_bulk_verification_confirm(
+    *,
+    institution_id: str,
+    entries: list,
+    department_id: str = None,
+    cohort_id: str = None,
+    actor_id: str,
+) -> int:
+    """
+    Confirm bulk verification and pre-registration.
+    """
+    from edulink.apps.students.services import bulk_verify_students, bulk_pre_register_students
+    
+    existing_entries = [e for e in entries if e.get('student_id')]
+    new_entries = [e for e in entries if not e.get('student_id') and e.get('email')]
+    
+    total_processed = 0
+    
+    if existing_entries:
+        verified = bulk_verify_students(
+            student_entries=existing_entries,
+            institution_id=institution_id,
+            department_id=department_id,
+            cohort_id=cohort_id,
+            actor_id=actor_id
+        )
+        total_processed += len(verified)
+        
+    if new_entries:
+        pre_registered = bulk_pre_register_students(
+            entries=new_entries,
+            institution_id=institution_id,
+            department_id=department_id,
+            cohort_id=cohort_id,
+            actor_id=actor_id
+        )
+        total_processed += len(pre_registered)
+        
+    return total_processed
+
+
+def get_institution_placement_export_data(*, institution_id: str):
+    """
+    Get placement data for export.
+    """
+    from edulink.apps.internships.queries import get_export_data
+    from edulink.apps.students.queries import get_students_by_ids
+    from edulink.apps.employers.queries import get_employers_by_ids
+    
+    qs = get_export_data(institution_id)
+    
+    # Prefetch related data manually due to UUID fields
+    student_ids = list(set([str(i.student_id) for i in qs if i.student_id]))
+    employer_ids = list(set([str(i.opportunity.employer_id) for i in qs if i.opportunity and i.opportunity.employer_id]))
+    
+    students_map = get_students_by_ids(student_ids)
+    employers_map = get_employers_by_ids(employer_ids)
+    
+    export_rows = []
+    for internship in qs:
+        student = students_map.get(str(internship.student_id))
+        employer = employers_map.get(str(internship.opportunity.employer_id) if internship.opportunity else None)
+        
+        export_rows.append({
+            'student_name': student.user.get_full_name() if student and student.user else "Unknown",
+            'student_email': student.user.email if student and student.user else "Unknown",
+            'employer_name': employer.name if employer else "Unknown",
+            'role': internship.opportunity.title if internship.opportunity else "N/A",
+            'status': internship.status,
+            'start_date': internship.opportunity.start_date if internship.opportunity else "",
+            'end_date': internship.opportunity.end_date if internship.opportunity else "",
+        })
+        
+    return export_rows
+

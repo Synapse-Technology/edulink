@@ -16,7 +16,8 @@ from .services import (
     create_institution_affiliation_claim,
     verify_student_affiliation, reject_student_affiliation,
     update_student_profile,
-    get_pending_affiliations_for_institution, get_student_affiliations
+    get_pending_affiliations_for_institution, get_student_affiliations,
+    preregister_student
 )
 from .queries import (
     get_institution_id_for_user, 
@@ -72,45 +73,8 @@ class StudentLoginView(APIView):
 
 class StudentViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
-        """
-        Restrict access to student profiles based on user role.
-        """
-        user = self.request.user
-        if not user.is_authenticated:
-            return Student.objects.none()
-            
-        # 1. System Admins see all
-        if user.is_system_admin:
-            return Student.objects.all()
-            
-        # 2. Students see only themselves
-        if user.is_student:
-            return Student.objects.filter(user_id=user.id)
-            
-        # 3. Institution Admins see students affiliated with their institution
-        if user.is_institution_admin:
-            institution_id = get_institution_id_for_user(user)
-            if institution_id:
-                # Get students who have an approved affiliation with this institution
-                # Since we use UUIDs, we can't do joins directly
-                student_ids = StudentInstitutionAffiliation.objects.filter(
-                    institution_id=institution_id,
-                    status=StudentInstitutionAffiliation.STATUS_APPROVED
-                ).values_list('student_id', flat=True)
-                
-                return Student.objects.filter(id__in=student_ids)
-                
-        # 4. Employers/Supervisors see students who have applied to them
-        if user.is_employer or user.is_supervisor:
-            # This is complex; employers should typically access students via Applications, not the Student list directly.
-            # However, if they need to fetch student details, we can allow it if there is an active application.
-            # For now, we'll return None to force them to use the Application endpoints which are secure.
-            # Or we can allow specific lookup by ID if they have a relationship.
-            # Let's return empty for list, but allow object retrieval in get_object if we implement permission class.
-            # Since get_queryset is used for both list and retrieve, returning none blocks everything.
-            pass
-
-        return Student.objects.none()
+        from .queries import get_student_queryset
+        return get_student_queryset(self.request.user)
 
     queryset = Student.objects.none() # Default to safe
     serializer_class = StudentSerializer
@@ -120,16 +84,15 @@ class StudentViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def current(self, request):
-        """Get current student profile for logged-in user"""
-        from .queries import get_student_for_user
-        if not request.user.is_authenticated:
-             return Response({"detail": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
-             
-        student = get_student_for_user(str(request.user.id))
-        if not student:
-            return Response({"detail": "Student profile not found"}, status=status.HTTP_404_NOT_FOUND)
-            
-        return Response(StudentSerializer(student, context={'request': request}).data)
+        """
+        Get the current user's student profile.
+        Creates one lazily if it doesn't exist.
+        """
+        from .services import get_or_create_student_profile
+        
+        student = get_or_create_student_profile(user=request.user)
+        serializer = self.get_serializer(student)
+        return Response(serializer.data)
 
     @action(detail=True, methods=['post'], parser_classes=[MultiPartParser, FormParser, JSONParser])
     def update_profile(self, request, pk=None):
@@ -372,27 +335,8 @@ class StudentViewSet(viewsets.ModelViewSet):
 
 class StudentInstitutionAffiliationViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
-        user = self.request.user
-        if not user.is_authenticated:
-            return StudentInstitutionAffiliation.objects.none()
-            
-        if user.is_system_admin:
-            return StudentInstitutionAffiliation.objects.all()
-            
-        if user.is_institution_admin:
-            institution_id = get_institution_id_for_user(user)
-            if institution_id:
-                return StudentInstitutionAffiliation.objects.filter(institution_id=institution_id)
-                
-        if user.is_student:
-            try:
-                # Resolve student_id from user_id since there is no FK
-                student = Student.objects.get(user_id=user.id)
-                return StudentInstitutionAffiliation.objects.filter(student_id=student.id)
-            except Student.DoesNotExist:
-                return StudentInstitutionAffiliation.objects.none()
-            
-        return StudentInstitutionAffiliation.objects.none()
+        from .queries import get_student_affiliation_queryset
+        return get_student_affiliation_queryset(self.request.user)
 
     queryset = StudentInstitutionAffiliation.objects.none()
     serializer_class = StudentInstitutionAffiliationSerializer
@@ -426,76 +370,56 @@ class StudentInstitutionAffiliationViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['post'])
     def approve(self, request, pk=None):
-        """Approve a pending affiliation"""
+        """
+        Approve a pending student affiliation request.
+        """
+        from .policies import can_manage_affiliation
+        from .services import verify_student_affiliation
+        
         affiliation = self.get_object()
-        
-        # Security Check: Ensure user is authorized to approve for this institution
-        admin_institution_id = get_institution_id_for_user(request.user)
-        
-        # Allow if user is admin of the specific institution OR system admin
-        is_authorized = (
-            (admin_institution_id and admin_institution_id == str(affiliation.institution_id)) or 
-            request.user.is_system_admin
-        )
-        
-        if not is_authorized:
+        if not can_manage_affiliation(user=request.user, affiliation=affiliation):
             return Response(
-                {'error': 'Not authorized to approve affiliations for this institution'},
+                {"detail": "You do not have permission to approve this affiliation."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
-        if affiliation.status != StudentInstitutionAffiliation.STATUS_PENDING:
-            return Response(
-                {'error': 'Only pending affiliations can be approved'},
-                status=status.HTTP_400_BAD_REQUEST
+            
+        try:
+            updated_affiliation = verify_student_affiliation(
+                affiliation_id=str(affiliation.id),
+                actor_id=str(request.user.id),
+                review_notes=request.data.get('review_notes', ''),
+                department_id=request.data.get('department_id'),
+                cohort_id=request.data.get('cohort_id')
             )
-        
-        approved_affiliation = verify_student_affiliation(
-            affiliation_id=str(affiliation.id),
-            actor_id=str(request.user.id),
-            review_notes=request.data.get('review_notes', '')
-        )
-        
-        serializer = self.get_serializer(approved_affiliation)
-        return Response({
-            'message': 'Affiliation approved successfully',
-            'affiliation': serializer.data
-        })
-    
+            return Response(self.get_serializer(updated_affiliation).data)
+        except ValueError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
     @action(detail=True, methods=['post'])
     def reject(self, request, pk=None):
-        """Reject a pending affiliation"""
+        """
+        Reject a pending student affiliation request.
+        """
+        from .policies import can_manage_affiliation
+        from .services import reject_student_affiliation
+        
         affiliation = self.get_object()
-        
-        # Security Check: Ensure user is authorized to reject for this institution
-        admin_institution_id = get_institution_id_for_user(request.user)
-        
-        # Allow if user is admin of the specific institution OR system admin
-        is_authorized = (
-            (admin_institution_id and admin_institution_id == str(affiliation.institution_id)) or 
-            request.user.is_system_admin
-        )
-        
-        if not is_authorized:
+        if not can_manage_affiliation(user=request.user, affiliation=affiliation):
             return Response(
-                {'error': 'Not authorized to reject affiliations for this institution'},
+                {"detail": "You do not have permission to reject this affiliation."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
-        if affiliation.status != StudentInstitutionAffiliation.STATUS_PENDING:
-            return Response(
-                {'error': 'Only pending affiliations can be rejected'},
-                status=status.HTTP_400_BAD_REQUEST
+            
+        reason = request.data.get('reason')
+        if not reason:
+            return Response({"detail": "Reason for rejection is required."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        try:
+            updated_affiliation = reject_student_affiliation(
+                affiliation_id=str(affiliation.id),
+                reason=reason,
+                actor_id=str(request.user.id)
             )
-        
-        rejected_affiliation = reject_student_affiliation(
-            affiliation_id=str(affiliation.id),
-            actor_id=str(request.user.id),
-            reason=request.data.get('review_notes', '')
-        )
-        
-        serializer = self.get_serializer(rejected_affiliation)
-        return Response({
-            'message': 'Affiliation rejected',
-            'affiliation': serializer.data
-        })
+            return Response(self.get_serializer(updated_affiliation).data)
+        except ValueError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)

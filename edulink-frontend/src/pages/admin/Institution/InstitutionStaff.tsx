@@ -5,6 +5,8 @@ import { institutionService } from '../../../services/institution/institutionSer
 import { internshipService } from '../../../services/internship/internshipService';
 import { useAuth } from '../../../contexts/AuthContext';
 import { toast } from 'react-hot-toast';
+import { FeedbackModal } from '../../../components/common';
+import { useFeedbackModal } from '../../../hooks/useFeedbackModal';
 import type {
   InstitutionStaffMember,
   InviteSupervisorData,
@@ -57,6 +59,8 @@ const InstitutionStaff: React.FC = () => {
   const [bulkDeptId, setBulkDeptId] = useState('');
   const [bulkCohortId, setBulkCohortId] = useState('');
   const [isBulkAssigning, setIsBulkAssigning] = useState(false);
+
+  const { feedbackProps, showError, showSuccess, showConfirm } = useFeedbackModal();
 
   const fetchDepartments = async () => {
     try {
@@ -194,8 +198,17 @@ const InstitutionStaff: React.FC = () => {
       });
       await fetchProfileRequests();
       await fetchStaff();
+      
+      showSuccess(
+        action === 'approve' ? 'Request Approved' : 'Request Rejected',
+        `The profile update request has been ${action}d successfully.`
+      );
     } catch (err: any) {
-      alert(err.message || 'Failed to process profile update request');
+      showError(
+        'Action Failed',
+        'Failed to process profile update request',
+        err.message
+      );
     } finally {
       setProfileRequestsProcessing(false);
     }
@@ -214,7 +227,7 @@ const InstitutionStaff: React.FC = () => {
       
       await institutionService.inviteSupervisor(formData);
       
-      setInviteSuccess('Invitation sent successfully');
+      showSuccess('Invitation Sent', 'The invitation has been sent successfully to the staff member.');
       setFormData({
         email: '',
         department_id: '',
@@ -234,20 +247,28 @@ const InstitutionStaff: React.FC = () => {
     try {
         // Optimistic UI update or notification could go here
         await institutionService.resendInvite(inviteId);
-        alert("Invite resent successfully");
+        showSuccess('Invite Resent', 'The invitation has been resent successfully.');
     } catch (err: any) {
-        alert(err.message || "Failed to resend invite");
+        showError('Resend Failed', "Failed to resend invite", err.message);
     }
   };
 
   const handleRemoveStaff = async (staffId: string) => {
-    if (!window.confirm("Are you sure you want to remove this staff member?")) return;
-    try {
-        await institutionService.removeStaff(staffId);
-        fetchStaff();
-    } catch (err: any) {
-        alert(err.message || "Failed to remove staff");
-    }
+    showConfirm({
+      title: 'Remove Staff Member',
+      message: 'Are you sure you want to remove this staff member? This will revoke their access to the institution portal.',
+      variant: 'error',
+      confirmLabel: 'Remove',
+      onConfirm: async () => {
+        try {
+            await institutionService.removeStaff(staffId);
+            toast.success('Staff member removed successfully');
+            fetchStaff();
+        } catch (err: any) {
+            showError('Removal Failed', "Failed to remove staff member", err.message);
+        }
+      }
+    });
   };
 
   const handleBulkAssign = async () => {
@@ -260,11 +281,11 @@ const InstitutionStaff: React.FC = () => {
         bulkDeptId,
         bulkCohortId || undefined
       );
-      toast.success(result.message);
+      showSuccess('Auto-Assignment Complete', result.message);
       setBulkDeptId('');
       setBulkCohortId('');
     } catch (err: any) {
-      toast.error(err.message || 'Failed to assign supervisors');
+      showError('Assignment Failed', 'Failed to assign supervisors', err.message);
     } finally {
       setIsBulkAssigning(false);
     }
@@ -697,6 +718,8 @@ const InstitutionStaff: React.FC = () => {
             </Modal.Footer>
         </Form>
       </Modal>
+
+      <FeedbackModal {...feedbackProps} />
     </div>
   );
 };

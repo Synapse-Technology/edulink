@@ -3,6 +3,8 @@ import { Card, Button, Table, Badge, Form, Tab, Tabs, Modal, Alert } from 'react
 import { institutionService, type Department, type Cohort, type PendingVerification, type BulkPreviewResult } from '../../../services/institution/institutionService';
 import { toast } from 'react-hot-toast';
 import TrustBadge, { type TrustLevel } from '../../../components/common/TrustBadge';
+import FeedbackModal, { type FeedbackVariant } from '../../../components/common/FeedbackModal';
+import { useFeedbackModal } from '../../../hooks/useFeedbackModal';
 import { Info } from 'lucide-react';
 import InstitutionTableSkeleton from '../../../components/admin/skeletons/InstitutionTableSkeleton';
 
@@ -35,6 +37,8 @@ const StudentVerification: React.FC = () => {
   const [isConfirmingBulk, setIsConfirmingBulk] = useState(false);
   const [bulkDepartmentId, setBulkDepartmentId] = useState('');
   const [bulkCohortId, setBulkCohortId] = useState('');
+
+  const { feedbackProps, showFeedback, showError, showSuccess, showConfirm } = useFeedbackModal();
 
   useEffect(() => {
     fetchReferenceData();
@@ -119,9 +123,10 @@ const StudentVerification: React.FC = () => {
       toast.success('Student verified successfully');
       setVerifyModal({ show: false, student: null, departmentId: '', cohortId: '' });
       fetchPendingVerifications();
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      toast.error('Failed to verify student');
+      const message = error.response?.data?.error || error.response?.data?.detail || error.message || 'Failed to verify student';
+      toast.error(message);
     } finally {
       setIsSubmittingVerify(false);
     }
@@ -179,27 +184,39 @@ const StudentVerification: React.FC = () => {
       return;
     }
 
-    if (!window.confirm(`Are you sure you want to verify/pre-register ${readyEntries.length} students?`)) {
-      return;
-    }
+    showConfirm({
+      title: 'Bulk Verification',
+      message: `Are you sure you want to verify/pre-register ${readyEntries.length} students? This action will create user accounts and send credentials.`,
+      onConfirm: async () => {
+        try {
+          setIsConfirmingBulk(true);
+          const response = await institutionService.bulkConfirm(
+            readyEntries, 
+            bulkDepartmentId || undefined, 
+            bulkCohortId || undefined
+          );
+          
+          showSuccess(
+            'Bulk Processing Complete',
+            response.message || 'Students have been processed successfully.'
+          );
 
-    try {
-      setIsConfirmingBulk(true);
-      const response = await institutionService.bulkConfirm(
-        readyEntries, 
-        bulkDepartmentId || undefined, 
-        bulkCohortId || undefined
-      );
-      toast.success(response.message);
-      setBulkFile(null);
-      setBulkPreview([]);
-      setActiveTab('queue'); 
-    } catch (error) {
-      console.error(error);
-      toast.error('Failed to confirm bulk verification');
-    } finally {
-      setIsConfirmingBulk(false);
-    }
+          setBulkFile(null);
+          setBulkPreview([]);
+          setActiveTab('queue'); 
+        } catch (error: any) {
+          console.error(error);
+          const message = error.response?.data?.error || error.response?.data?.detail || error.message;
+          showError(
+            'Bulk Verification Failed',
+            'An error occurred while processing the bulk verification file.',
+            message
+          );
+        } finally {
+          setIsConfirmingBulk(false);
+        }
+      }
+    });
   };
 
   const getStatusBadge = (status: string) => {
@@ -534,6 +551,9 @@ const StudentVerification: React.FC = () => {
           </Button>
         </Modal.Footer>
       </Modal>
+
+      {/* Shared Feedback Modal */}
+      <FeedbackModal {...feedbackProps} />
     </div>
   );
 };

@@ -16,8 +16,16 @@ import {
 } from 'lucide-react';
 import StudentHeader from '../../components/dashboard/StudentHeader';
 import StudentSidebar from '../../components/dashboard/StudentSidebar';
+import { SEO } from '../../components/common';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import ProfileWizard from '../../components/student/ProfileWizard';
+import ProgressRing from '../../components/student/dashboard/ProgressRing';
+import StatCard from '../../components/student/dashboard/StatCard';
+import ActionStep from '../../components/student/dashboard/ActionStep';
+import UpcomingEvent from '../../components/student/dashboard/UpcomingEvent';
+import TrustJourneyRoadmap from '../../components/student/dashboard/TrustJourneyRoadmap';
+import ProfileNudge from '../../components/student/dashboard/ProfileNudge';
 import { studentService } from '../../services/student/studentService';
 import type { StudentProfile } from '../../services/student/studentService';
 import { internshipService } from '../../services/internship/internshipService';
@@ -31,204 +39,9 @@ interface EventItem {
   type: 'interview' | 'deadline' | 'meeting';
 }
 
-// Progress Ring Component
-const ProgressRing: React.FC<{ progress: number; size: number; strokeWidth: number; isDarkMode?: boolean }> = ({ 
-  progress, 
-  size, 
-  strokeWidth,
-  isDarkMode = false 
-}) => {
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (progress / 100) * circumference;
-
-  return (
-    <div className="position-relative d-inline-block">
-      <svg 
-        width={size} 
-        height={size} 
-        viewBox={`0 0 ${size} ${size}`}
-        className="transform-90"
-        style={{ maxWidth: '100%', height: 'auto' }}
-      >
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke={isDarkMode ? "#374151" : "#e9ecef"}
-          strokeWidth={strokeWidth}
-          fill="none"
-        />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke={isDarkMode ? "#20c997" : "#0d6efd"}
-          strokeWidth={strokeWidth}
-          fill="none"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          strokeLinecap="round"
-          className="transition-all duration-500"
-        />
-      </svg>
-      <div className="position-absolute top-50 start-50 translate-middle text-center">
-        <span className={`h6 fw-bold ${isDarkMode ? 'text-info' : 'text-primary'}`} style={isDarkMode ? { textShadow: '0 0 6px rgba(32, 201, 151, 0.3)' } : {}}>{Math.round(progress)}%</span>
-      </div>
-    </div>
-  );
-};
-
-// Stat Card Component
-const StatCard: React.FC<{
-  title: string;
-  value: string | number;
-  icon: React.ReactNode;
-  description?: string;
-  trend?: { value: number; isPositive: boolean };
-  isDarkMode?: boolean;
-  link?: string;
-}> = ({ title, value, icon, description, trend, isDarkMode = false, link }) => {
-  const CardContent = () => (
-    <div className={`card h-100 hover-shadow transition-all ${isDarkMode ? 'bg-dark border-secondary' : 'bg-white'}`} style={{ borderRadius: '16px', border: isDarkMode ? '1px solid #374151' : '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' }}>
-      <div className="card-body d-flex flex-column justify-content-between">
-        <div className="d-flex align-items-center justify-content-between mb-3">
-          <div>
-            <p className={`small mb-1 ${isDarkMode ? 'text-info opacity-75' : 'text-muted'}`}>{title}</p>
-            <h4 className={`fw-bold mb-0 ${isDarkMode ? 'text-info' : 'text-primary'}`} style={isDarkMode ? { textShadow: '0 0 10px rgba(32, 201, 151, 0.5)' } : {}}>{value}</h4>
-          </div>
-          <div className="bg-primary bg-opacity-10 rounded-circle p-3">
-            {icon}
-          </div>
-        </div>
-        {description && (
-          <p className={`small mb-2 ${isDarkMode ? 'text-light opacity-75' : 'text-muted'}`}>{description}</p>
-        )}
-        {trend && (
-          <div className="d-flex align-items-center gap-1">
-            <TrendingUp 
-              size={14} 
-              className={trend.isPositive ? (isDarkMode ? 'text-success' : 'text-success') : (isDarkMode ? 'text-danger' : 'text-danger')} 
-            />
-            <small className={trend.isPositive ? (isDarkMode ? 'text-success' : 'text-success') : (isDarkMode ? 'text-danger' : 'text-danger')} style={isDarkMode ? { textShadow: '0 0 8px rgba(255, 255, 255, 0.3)' } : {}}>
-              {trend.isPositive ? '+' : '-'}{trend.value}%
-            </small>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  return link ? (
-    <Link to={link} className="text-decoration-none text-inherit h-100 d-block">
-      <CardContent />
-    </Link>
-  ) : (
-    <CardContent />
-  );
-};
-
-// Action Step Component
-const ActionStep: React.FC<{
-  number: number;
-  title: string;
-  description: string;
-  status: 'completed' | 'current' | 'pending';
-  actionText?: string;
-  actionLink?: string;
-  isDarkMode?: boolean;
-}> = ({ number, title, description, status, actionText, actionLink, isDarkMode = false }) => {
-  const getStatusStyles = () => {
-    switch (status) {
-      case 'completed':
-        return {
-          bg: 'bg-success bg-opacity-10 border-success',
-          numberBg: 'bg-success text-white',
-          text: 'text-success'
-        };
-      case 'current':
-        return {
-          bg: 'bg-primary bg-opacity-10 border-primary',
-          numberBg: 'bg-primary text-white',
-          text: 'text-primary'
-        };
-      default:
-        return {
-          bg: 'bg-light border-light',
-          numberBg: 'bg-secondary text-white',
-          text: 'text-muted'
-        };
-    }
-  };
-
-  const styles = getStatusStyles();
-
-  return (
-    <div className={`card mb-3 ${isDarkMode ? 'bg-dark border-secondary' : 'bg-white'}`} style={{ borderRadius: '16px', border: isDarkMode ? '1px solid #374151' : '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' }}>
-      <div className="card-body">
-        <div className="d-flex align-items-center justify-content-between">
-          <div className="d-flex align-items-center gap-3">
-            <div className={`rounded-circle d-flex align-items-center justify-content-center fw-bold ${styles.numberBg}`} 
-                 style={{ width: '40px', height: '40px' }}>
-              {status === 'completed' ? <CheckCircle size={20} /> : number}
-            </div>
-            <div>
-              <h6 className={`fw-semibold mb-1 ${isDarkMode ? 'text-info' : styles.text}`} style={isDarkMode ? { textShadow: '0 0 8px rgba(32, 201, 151, 0.3)' } : {}}>{title}</h6>
-              <p className={`small mb-0 ${isDarkMode ? 'text-light opacity-75' : 'text-muted'}`}>{description}</p>
-            </div>
-          </div>
-          {actionText && actionLink && status === 'current' && (
-            <Link to={actionLink} className="btn btn-primary btn-sm">
-              {actionText}
-            </Link>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Upcoming Event Component
-const UpcomingEvent: React.FC<{
-  title: string;
-  date: string;
-  time: string;
-  type: 'interview' | 'deadline' | 'meeting';
-  isDarkMode?: boolean;
-}> = ({ title, date, time, type, isDarkMode = false }) => {
-  const getTypeIcon = () => {
-    switch (type) {
-      case 'interview':
-        return <Users className={isDarkMode ? 'text-info' : 'text-info'} size={16} />;
-      case 'deadline':
-        return <Clock className={isDarkMode ? 'text-warning' : 'text-warning'} size={16} />;
-      default:
-        return <Calendar className={isDarkMode ? 'text-info' : 'text-primary'} size={16} />;
-    }
-  };
-
-  return (
-    <div className="d-flex align-items-center gap-3 p-3 border-bottom border-light">
-      <div className={`rounded-circle p-2 ${isDarkMode ? 'bg-secondary' : 'bg-light'}`}>
-        {getTypeIcon()}
-      </div>
-      <div className="flex-grow-1">
-        <h6 className={`fw-semibold mb-1 ${isDarkMode ? 'text-info' : ''}`} style={isDarkMode ? { textShadow: '0 0 6px rgba(32, 201, 151, 0.3)' } : {}}>{title}</h6>
-        <p className={`small mb-0 ${isDarkMode ? 'text-light opacity-75' : 'text-muted'}`}>{date} at {time}</p>
-      </div>
-      <ChevronRight size={16} className={isDarkMode ? 'text-light opacity-75' : 'text-muted'} />
-    </div>
-  );
-};
-
 const StudentDashboard: React.FC = () => {
   const { user } = useAuth();
-  // Initialize theme from localStorage to persist user preference
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    const savedTheme = localStorage.getItem('theme');
-    // Default to light theme if no preference is saved, or if saved is 'light'
-    return savedTheme === 'dark';
-  });
+  const { isDarkMode, toggleDarkMode } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showProfileWizard, setShowProfileWizard] = useState(false);
   const [studentId, setStudentId] = useState('');
@@ -240,6 +53,8 @@ const StudentDashboard: React.FC = () => {
   const [upcomingEvents, setUpcomingEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [dashboardStats, setDashboardStats] = useState<any | null>(null);
+  const [missingItems, setMissingItems] = useState<string[]>([]);
+  const [trustLevel, setTrustLevel] = useState(0);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -258,6 +73,18 @@ const StudentDashboard: React.FC = () => {
         setApplications(apps);
         setActiveInternship(active);
         setDashboardStats(stats);
+        
+        // Calculate dynamic trust level based on profile and applications
+        let calculatedLevel = Math.floor(profileData.trust_level || 0);
+        const hasCompleted = apps.some((a: any) => a.status === 'COMPLETED');
+        const hasCertified = apps.some((a: any) => a.status === 'CERTIFIED');
+        
+        if (hasCertified) {
+          calculatedLevel = Math.max(calculatedLevel, 4);
+        } else if (hasCompleted) {
+          calculatedLevel = Math.max(calculatedLevel, 3);
+        }
+        setTrustLevel(calculatedLevel);
         
         // Derive upcoming events from applications
         const events: EventItem[] = [];
@@ -280,6 +107,15 @@ const StudentDashboard: React.FC = () => {
           setReadinessScore(stats.profile.score);
         }
 
+        // Calculate missing items for nudge
+        const missing: string[] = [];
+        if (!profileData.cv) missing.push('CV / Resume');
+        if (!profileData.admission_letter) missing.push('Admission Letter');
+        if (!profileData.id_document) missing.push('School ID');
+        if (!profileData.skills || profileData.skills.length === 0) missing.push('Skills');
+        if (!profileData.course_of_study) missing.push('Academic Info');
+        setMissingItems(missing);
+
         // Check if profile is incomplete
         const isProfileIncomplete = !profileData.course_of_study || 
                                    !profileData.skills || 
@@ -301,19 +137,6 @@ const StudentDashboard: React.FC = () => {
       fetchDashboardData();
     }
   }, [user]);
-
-  useEffect(() => {
-    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
-    if (isDarkMode) {
-      document.body.classList.add('dark-mode');
-    } else {
-      document.body.classList.remove('dark-mode');
-    }
-  }, [isDarkMode]);
-
-  const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
-  };
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -428,6 +251,10 @@ const StudentDashboard: React.FC = () => {
 
   return (
     <div className={`min-vh-100 ${isDarkMode ? 'text-white' : 'bg-light'}`} style={{ backgroundColor: isDarkMode ? '#0f172a' : undefined }}>
+      <SEO 
+        title="Student Dashboard"
+        description="Manage your internship applications, track progress, and update your professional profile on EduLink KE."
+      />
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
         <div 
@@ -461,24 +288,6 @@ const StudentDashboard: React.FC = () => {
               max-width: calc(100vw - 280px) !important;
             }
           }
-          .card {
-            background-color: ${isDarkMode ? '#1e293b' : 'white'} !important;
-            border: 1px solid ${isDarkMode ? '#334155' : '#e2e8f0'} !important;
-            transition: all 0.3s ease;
-          }
-          .card:hover {
-            border-color: ${isDarkMode ? '#475569' : '#cbd5e1'} !important;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, ${isDarkMode ? '0.3' : '0.1'}) !important;
-          }
-          .text-muted {
-            color: ${isDarkMode ? '#94a3b8' : '#6c757d'} !important;
-          }
-          .bg-light {
-            background-color: ${isDarkMode ? '#1e293b' : '#f8f9fa'} !important;
-          }
-          .border-bottom {
-            border-bottom-color: ${isDarkMode ? '#334155' : '#dee2e6'} !important;
-          }
           .hover-lift:hover {
             transform: translateY(-4px);
           }
@@ -501,13 +310,11 @@ const StudentDashboard: React.FC = () => {
         <div className="w-100" style={{ maxWidth: '100%', overflowX: 'hidden' }}>
           {/* Header */}
           <div className="px-4 px-lg-5 pt-4">
-            <StudentHeader
-              onMobileMenuClick={toggleMobileMenu}
-              isMobileMenuOpen={isMobileMenuOpen}
-              isDarkMode={isDarkMode}
-              onToggleDarkMode={toggleDarkMode}
-            />
-          </div>
+          <StudentHeader
+            onMobileMenuClick={toggleMobileMenu}
+            isMobileMenuOpen={isMobileMenuOpen}
+          />
+        </div>
 
           {/* Dashboard Content */}
           {loading ? (
@@ -529,7 +336,7 @@ const StudentDashboard: React.FC = () => {
                   <div className={`text-uppercase fw-semibold small mb-2 ${isDarkMode ? 'text-info opacity-75' : 'text-muted'}`}>
                     Profile Readiness
                   </div>
-                  <ProgressRing progress={readinessScore} size={80} strokeWidth={8} isDarkMode={isDarkMode} />
+                  <ProgressRing progress={readinessScore} size={80} strokeWidth={8} />
                 </div>
               </div>
             </div>
@@ -538,7 +345,7 @@ const StudentDashboard: React.FC = () => {
             <div className="row g-4 mb-5">
               {quickStats.map((stat, index) => (
             <div key={index} className="col-sm-6 col-lg-3">
-              <StatCard {...stat} isDarkMode={isDarkMode} />
+              <StatCard {...stat} />
             </div>
           ))}
             </div>
@@ -547,6 +354,9 @@ const StudentDashboard: React.FC = () => {
             <div className="row g-4">
               {/* Left Column */}
               <div className="col-lg-8">
+                {/* Profile Completion Nudge */}
+                <ProfileNudge score={readinessScore} missingItems={missingItems} />
+
                 {/* Action Steps */}
                 <div className={`card mb-4 ${isDarkMode ? 'bg-dark border-secondary' : 'bg-white'}`} style={{ borderRadius: '16px', border: isDarkMode ? '1px solid #374151' : '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' }}>
                   <div className="card-body p-4">
@@ -555,7 +365,7 @@ const StudentDashboard: React.FC = () => {
                       Next Steps
                     </h5>
                     {actionSteps.map((step) => (
-                      <ActionStep key={step.number} {...step} isDarkMode={isDarkMode} />
+                      <ActionStep key={step.number} {...step} />
                     ))}
                   </div>
                 </div>
@@ -601,6 +411,11 @@ const StudentDashboard: React.FC = () => {
 
               {/* Right Column */}
               <div className="col-lg-4">
+                {/* Trust Journey Roadmap */}
+                <div className="mb-4">
+                  <TrustJourneyRoadmap currentLevel={trustLevel} />
+                </div>
+
                 {/* Upcoming Events */}
                 <div className={`card mb-4 ${isDarkMode ? 'bg-dark border-secondary' : 'bg-white'}`} style={{ borderRadius: '16px', border: isDarkMode ? '1px solid #374151' : '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' }}>
                   <div className="card-body p-4">
@@ -616,7 +431,7 @@ const StudentDashboard: React.FC = () => {
                     </div>
                     <div>
                       {upcomingEvents.map((event: EventItem, index: number) => (
-                        <UpcomingEvent key={index} {...event} isDarkMode={isDarkMode} />
+                        <UpcomingEvent key={index} {...event} />
                       ))}
                     </div>
                   </div>

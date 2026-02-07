@@ -485,6 +485,61 @@ class PendingInstitutionsView(APIView):
         return Response(serializer.data)
 
 
+class ContactSubmissionListView(APIView):
+    """List all contact submissions for platform staff."""
+    permission_classes = [PlatformStaffPermission]
+    
+    def get(self, request):
+        if not policies.can_manage_contact_submissions(actor=request.user):
+            return Response(
+                {"error": "Access denied"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        submissions = queries.get_contact_submissions()
+        serializer = serializers.ContactSubmissionSerializer(submissions, many=True)
+        return Response(serializer.data)
+
+
+class ContactSubmissionDetailView(APIView):
+    """Get detail and process contact submission."""
+    permission_classes = [PlatformStaffPermission]
+    
+    def get(self, request, submission_id):
+        if not policies.can_manage_contact_submissions(actor=request.user):
+            return Response(
+                {"error": "Access denied"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        from edulink.apps.contact.models import ContactSubmission
+        submission = get_object_or_404(ContactSubmission, id=submission_id)
+        serializer = serializers.ContactSubmissionSerializer(submission)
+        return Response(serializer.data)
+    
+    def post(self, request, submission_id):
+        """Mark a submission as processed."""
+        if not policies.can_manage_contact_submissions(actor=request.user):
+            return Response(
+                {"error": "Access denied"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        from edulink.apps.contact import services as contact_services
+        internal_notes = request.data.get('internal_notes', '')
+        
+        try:
+            submission = contact_services.process_contact_submission(
+                submission_id=submission_id,
+                processed_by_id=str(request.user.id),
+                internal_notes=internal_notes
+            )
+            serializer = serializers.ContactSubmissionSerializer(submission)
+            return Response(serializer.data)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
 class DashboardStatsView(APIView):
     """Get dashboard statistics for admin dashboard."""
     permission_classes = [PlatformStaffPermission]
@@ -502,6 +557,10 @@ class DashboardStatsView(APIView):
         
         # Get pending invites count (not accepted and not expired)
         pending_invites = queries.get_pending_invites_count()
+
+        # Get recent ledger events
+        from edulink.apps.ledger.queries import get_recent_ledger_events
+        recent_actions = get_recent_ledger_events(limit=10)
         
         # Get system health (simplified version)
         health_data = {
@@ -510,12 +569,15 @@ class DashboardStatsView(APIView):
             'lastCheck': timezone.now().isoformat()
         }
         
+        # Serialize recent actions
+        recent_actions_data = serializers.RecentActivitySerializer(recent_actions, many=True).data
+
         # Combine data in format expected by frontend
         dashboard_data = {
             'system_stats': stats,
             'pendingInvites': pending_invites,
             'systemHealth': health_data,
-            'recentActions': []  # TODO: Implement recent actions if needed
+            'recentActions': recent_actions_data
         }
         
         return Response(dashboard_data)

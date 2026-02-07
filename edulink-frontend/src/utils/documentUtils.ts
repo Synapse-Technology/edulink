@@ -2,6 +2,51 @@ import { apiClient } from '../services/api/client';
 import { toast } from 'react-hot-toast';
 
 /**
+ * Normalizes a document URL to ensure it has the correct media prefix
+ * and points to the right backend location.
+ */
+export const normalizeDocumentUrl = (url: string): string => {
+  if (!url) return '';
+  if (url.startsWith('http') || url.startsWith('blob:') || url.startsWith('data:')) return url;
+
+  // Remove leading slash if present for consistent processing
+  const cleanPath = url.startsWith('/') ? url.substring(1) : url;
+  
+  // If it doesn't already have media/ prefix, add it
+  if (!cleanPath.startsWith('media/')) {
+    return `/media/${cleanPath}`;
+  }
+  
+  return `/${cleanPath}`;
+};
+
+/**
+ * Fetches a document from the backend as a blob and returns its object URL and type.
+ * 
+ * @param url The relative or absolute URL of the document
+ */
+export const fetchDocumentBlob = async (url: string): Promise<{ blobUrl: string; contentType: string }> => {
+  if (!url) throw new Error('URL is required');
+
+  const normalizedUrl = normalizeDocumentUrl(url);
+
+  try {
+    const response = await apiClient.getClient().get(normalizedUrl, {
+      responseType: 'blob',
+    });
+
+    const contentType = response.headers['content-type'] || 'application/pdf';
+    const blob = new Blob([response.data], { type: contentType });
+    const blobUrl = window.URL.createObjectURL(blob);
+    
+    return { blobUrl, contentType };
+  } catch (error: any) {
+    console.error('Failed to fetch document blob:', error);
+    throw error;
+  }
+};
+
+/**
  * Fetches a document from the backend as a blob and opens it in a new tab.
  * This prevents exposing the direct backend URL to the user.
  * 
@@ -10,26 +55,19 @@ import { toast } from 'react-hot-toast';
 export const fetchAndOpenDocument = async (url: string) => {
   if (!url) return;
 
+  const normalizedUrl = normalizeDocumentUrl(url);
   const toastId = toast.loading('Opening document...');
 
   try {
     // If it's already a blob URL, just open it
-    if (url.startsWith('blob:')) {
-      window.open(url, '_blank');
+    if (normalizedUrl.startsWith('blob:')) {
+      window.open(normalizedUrl, '_blank');
       toast.dismiss(toastId);
       return;
     }
 
-    // Clean up the URL to ensure it's relative to API base if needed
-    // If it's a full URL, we need to extract the path relative to the API base URL
-    // to ensure the apiClient uses the correct base and headers.
-    // However, apiClient handles full URLs by checking if they start with http.
-    // But for our "hide URL" purpose, we want to fetch it via our proxy/client.
-    
-    // Actually, apiClient.get() expects a path or full URL. 
-    // If we pass a full URL that is on a different domain/port, axios handles it.
-    
-    const response = await apiClient.getClient().get(url, {
+    // Use normalized URL for fetching
+    const response = await apiClient.getClient().get(normalizedUrl, {
       responseType: 'blob',
     });
 

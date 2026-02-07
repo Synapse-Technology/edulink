@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Table, Badge, Button, Modal, Form, InputGroup } from 'react-bootstrap';
 import { AlertTriangle, Flag, FileText, Search, RefreshCw, Users, Activity } from 'lucide-react';
+import { toast } from 'react-hot-toast';
+import { FeedbackModal } from '../../common';
+import { useFeedbackModal } from '../../../hooks/useFeedbackModal';
 import { institutionService } from '../../../services/institution/institutionService';
 import { internshipService } from '../../../services/internship/internshipService';
 import PlacementEvidenceModal from './PlacementEvidenceModal';
@@ -30,6 +33,7 @@ const PlacementMonitoringWidget: React.FC = () => {
   const [incidentTitle, setIncidentTitle] = useState('');
   const [incidentDescription, setIncidentDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const { feedbackProps, showError, showSuccess } = useFeedbackModal();
 
   // Evidence Modal State
   const [showEvidenceModal, setShowEvidenceModal] = useState(false);
@@ -74,11 +78,15 @@ const PlacementMonitoringWidget: React.FC = () => {
         incidentDescription
       );
       setShowFlagModal(false);
-      alert('Incident reported successfully');
+      showSuccess('Incident Reported', 'The incident has been reported successfully and recorded in the ledger.');
       // Refresh list if needed, though incident reporting doesn't change placement status usually unless severe
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to report incident', error);
-      alert('Failed to report incident');
+      showError(
+        'Submission Failed',
+        'We could not report the incident at this time.',
+        error.response?.data?.error || error.message
+      );
     } finally {
       setSubmitting(false);
     }
@@ -298,6 +306,7 @@ const PlacementMonitoringWidget: React.FC = () => {
           onHide={() => setShowEvidenceModal(false)}
         />
       )}
+      <FeedbackModal {...feedbackProps} />
     </Card>
   );
 };

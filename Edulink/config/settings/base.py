@@ -36,6 +36,7 @@ THIRD_PARTY_APPS = [
     "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
     "django_filters",
+    "django_q",
 ]
 
 LOCAL_APPS = [
@@ -50,6 +51,8 @@ LOCAL_APPS = [
     "edulink.apps.notifications.apps.NotificationsConfig",
     "edulink.apps.reports.apps.ReportsConfig",
     "edulink.apps.trust.apps.TrustConfig",
+    "edulink.apps.support.apps.SupportConfig",
+    "edulink.apps.contact.apps.ContactConfig",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -149,7 +152,36 @@ REST_FRAMEWORK = {
     "DEFAULT_FILTER_BACKENDS": [
         "django_filters.rest_framework.DjangoFilterBackend",
     ],
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "100/day",
+        "user": "1000/day",
+    },
 }
+
+# Django Q2 Configuration (Background Tasks)
+Q_CLUSTER = {
+    'name': 'edulink_q',
+    'workers': 4,
+    'recycle': 500,
+    'timeout': 60,
+    'compress': True,
+    'save_limit': 250,
+    'queue_limit': 500,
+    'label': 'Django Q',
+    'orm': 'default',  # Use the default database as a broker
+    'sync': os.getenv('DJANGO_Q_SYNC', str(DEBUG)).lower() == 'true',
+}
+
+# Pusher Configuration (Managed Real-time)
+PUSHER_APP_ID = os.getenv("PUSHER_APP_ID", "123456")
+PUSHER_KEY = os.getenv("PUSHER_KEY", "edulink_dev_key")
+PUSHER_SECRET = os.getenv("PUSHER_SECRET", "edulink_dev_secret")
+PUSHER_CLUSTER = os.getenv("PUSHER_CLUSTER", "mt1")
+PUSHER_SSL = True
 
 # JWT Configuration
 SIMPLE_JWT = {
@@ -173,15 +205,15 @@ SIMPLE_JWT = {
 }
 
 # Email Configuration
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"  # Default to console for development
-DEFAULT_FROM_EMAIL = "Edulink <noreply@edulink.com>"
-EMAIL_HOST = 'sandbox.smtp.mailtrap.io'
-EMAIL_HOST_USER = 'aa2977f9d7728c'
-EMAIL_HOST_PASSWORD = 'eecc839cd12242'
-EMAIL_PORT = '2525'
-EMAIL_USE_TLS = True
-EMAIL_USE_SSL = False
-EMAIL_TIMEOUT = 30
+EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "Edulink <noreply@edulink.com>")
+EMAIL_HOST = os.getenv("EMAIL_HOST", "sandbox.smtp.mailtrap.io")
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "91ab20b75900d4")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "e21d4d58c66dfe")
+EMAIL_PORT = os.getenv("EMAIL_PORT", "2525")
+EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "False").lower() == "true"
+EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", "False").lower() == "true"
+EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "30"))
 
 # Site Configuration
 SITE_NAME = "Edulink"

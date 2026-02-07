@@ -19,9 +19,12 @@ import StudentHeader from '../../components/dashboard/StudentHeader';
 import { studentService } from '../../services/student/studentService';
 import { artifactService } from '../../services/reports/artifactService';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { toast } from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 import { Badge } from 'react-bootstrap';
+import { FeedbackModal } from '../../components/common';
+import { useFeedbackModal } from '../../hooks/useFeedbackModal';
 import { generateLogbookPDF } from '../../utils/pdfGenerator';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -33,6 +36,7 @@ import StudentInternshipSkeleton from '../../components/student/skeletons/Studen
 
 const StudentLogbook: React.FC = () => {
   const { user } = useAuth();
+  const { isDarkMode, toggleDarkMode } = useTheme();
   const [internship, setInternship] = useState<any | null>(null);
   const [submissionHistory, setSubmissionHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,9 +48,9 @@ const StudentLogbook: React.FC = () => {
     void error;
     void setError;
   }, [user, error]);
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [generatingReport, setGeneratingReport] = useState(false);
+  const [viewMode, setViewMode] = useState<'calendar' | 'list'>(window.innerWidth < 768 ? 'list' : 'calendar');
 
   // Logbook State
   const [currentWeekStart] = useState<Date>(getMonday(new Date()));
@@ -65,8 +69,9 @@ const StudentLogbook: React.FC = () => {
   const [submitModalOpen, setSubmitModalOpen] = useState(false);
 
   // Feedback Modal State
-  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
-  const [activeFeedback, setActiveFeedback] = useState<any>(null);
+  const { feedbackProps, showError, showSuccess, showConfirm } = useFeedbackModal();
+  const [supervisorFeedbackOpen, setSupervisorFeedbackOpen] = useState(false);
+  const [activeSupervisorFeedback, setActiveSupervisorFeedback] = useState<any>(null);
 
   function getMonday(d: Date) {
     const date = new Date(d);
@@ -149,10 +154,16 @@ const StudentLogbook: React.FC = () => {
     const dateStr = arg.dateStr;
     const isCurrent = isDateInCurrentWeek(dateStr);
     const isPast = isDateInPast(dateStr);
+    const isInternshipCompleted = internship && ['COMPLETED', 'CERTIFIED', 'TERMINATED'].includes(internship.status);
     
     // Check if internship is completed
-    if (internship && ['COMPLETED', 'CERTIFIED', 'TERMINATED'].includes(internship.status)) {
-      toast.error("This internship is completed. You cannot edit logbook entries.");
+    if (isInternshipCompleted) {
+      // Allow viewing but not editing
+      setSelectedDate(dateStr);
+      setCurrentEntry(logbookEntries[dateStr] || '');
+      setIsReadOnly(true);
+      setEntryError(null);
+      setModalOpen(true);
       return;
     }
     
@@ -252,10 +263,17 @@ const StudentLogbook: React.FC = () => {
         entries: logbookEntries
       });
       
-      toast.success("PDF report generated successfully!");
-    } catch (err) {
+      showSuccess(
+        'PDF Generated',
+        'Your logbook PDF has been generated and downloaded successfully.'
+      );
+    } catch (err: any) {
       console.error(err);
-      toast.error("Failed to generate PDF. Please try again.");
+      showError(
+        'Generation Failed',
+        'Failed to generate PDF. Please try again.',
+        err.message
+      );
     }
   };
 
@@ -269,17 +287,47 @@ const StudentLogbook: React.FC = () => {
       const artifact = await artifactService.generateArtifact(internship.id, 'LOGBOOK_REPORT');
       await artifactService.downloadArtifact(artifact);
       
-      toast.success('Full report downloaded successfully!', { id: 'report-gen' });
-    } catch (err) {
+      toast.dismiss('report-gen');
+      showSuccess(
+        'Report Downloaded',
+        'Full internship report downloaded successfully!'
+      );
+    } catch (err: any) {
       console.error(err);
-      toast.error('Failed to generate report. Ensure you have accepted logbook entries.', { id: 'report-gen' });
+      toast.dismiss('report-gen');
+      showError(
+        'Download Failed',
+        'Failed to generate report. Ensure you have accepted logbook entries.',
+        err.message
+      );
     } finally {
       setGeneratingReport(false);
     }
   };
 
-  const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
+
+  const handleQuickAddToday = () => {
+    const today = new Date().toISOString().split('T')[0];
+    const isCurrent = isDateInCurrentWeek(today);
+    
+    // Check if internship is completed
+    if (internship && ['COMPLETED', 'CERTIFIED', 'TERMINATED'].includes(internship.status)) {
+      toast.error("This internship is completed. You cannot edit logbook entries.");
+      return;
+    }
+
+    if (!isCurrent) {
+      toast.error("Today's date is not in the current logbook week. Please check your logbook period.");
+      return;
+    }
+
+    setSelectedDate(today);
+    setCurrentEntry(logbookEntries[today] || '');
+    setIsReadOnly(false);
+    setEntryError(null);
+    setModalOpen(true);
+  };
 
   // Generate calendar events from entries
   const calendarEvents = Object.entries(logbookEntries).map(([date, _]) => ({
@@ -395,16 +443,6 @@ const StudentLogbook: React.FC = () => {
           .fc-event:hover {
             transform: scale(1.02);
           }
-          .logbook-card {
-            transition: all 0.3s ease;
-            border: 1px solid ${isDarkMode ? '#334155' : '#f3f4f6'};
-            background-color: ${isDarkMode ? '#1e293b' : 'white'} !important;
-            color: ${isDarkMode ? '#f8fafc' : 'inherit'} !important;
-          }
-          .logbook-card:hover {
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
-            border-color: ${isDarkMode ? '#475569' : '#e2e8f0'};
-          }
           .btn-animate {
             transition: all 0.2s ease;
           }
@@ -435,14 +473,28 @@ const StudentLogbook: React.FC = () => {
             --bs-table-bg: #1e293b;
             --bs-table-border-color: #334155;
           }
-          .modal-content {
-            background-color: ${isDarkMode ? '#1e293b' : 'white'};
-            color: ${isDarkMode ? '#f8fafc' : 'inherit'};
-            border: 1px solid ${isDarkMode ? '#334155' : 'rgba(0,0,0,0.2)'};
-          }
           .form-control:disabled {
             background-color: ${isDarkMode ? '#0f172a' : '#e9ecef'};
             color: ${isDarkMode ? '#94a3b8' : 'inherit'};
+          }
+          
+          /* Mobile Bottom Sheet Style Modal */
+          @media (max-width: 576px) {
+            .modal-dialog-bottom {
+              margin: 0;
+              position: fixed;
+              bottom: 0;
+              width: 100%;
+              max-width: 100%;
+            }
+            .modal-content-bottom {
+              border-radius: 1.5rem 1.5rem 0 0 !important;
+              max-height: 90vh;
+              overflow-y: auto;
+            }
+            .modal.show .modal-dialog-bottom {
+              transform: translateY(0);
+            }
           }
         `}</style>
         
@@ -450,8 +502,6 @@ const StudentLogbook: React.FC = () => {
           <StudentHeader
             onMobileMenuClick={toggleMobileMenu}
             isMobileMenuOpen={isMobileMenuOpen}
-            isDarkMode={isDarkMode}
-            onToggleDarkMode={toggleDarkMode}
           />
         </div>
 
@@ -468,7 +518,7 @@ const StudentLogbook: React.FC = () => {
         ) : (
           <div className="flex-grow-1 px-3 px-lg-5 pb-5">
             {/* Header & Title */}
-            <div className="row align-items-end mb-4 g-3">
+            <div className="row align-items-center mb-4 g-3">
               <div className="col-md-7">
                 <div className="d-flex align-items-center gap-3 mb-2">
                   <div className={`p-2 rounded-3 ${isDarkMode ? 'bg-primary bg-opacity-20' : 'bg-primary bg-opacity-10'}`}>
@@ -480,14 +530,21 @@ const StudentLogbook: React.FC = () => {
                   Document your professional journey and learning progress.
                 </p>
               </div>
-              <div className="col-md-5 text-md-end">
+              <div className="col-md-5 d-flex flex-column flex-sm-row justify-content-md-end gap-3 align-items-sm-center">
+                <button 
+                  className="btn btn-primary rounded-pill px-4 py-2 d-flex align-items-center gap-2 shadow-sm btn-animate order-1 order-sm-0"
+                  onClick={handleQuickAddToday}
+                  disabled={internship && ['COMPLETED', 'CERTIFIED', 'TERMINATED'].includes(internship.status)}
+                >
+                  <Plus size={18} />
+                  <span>{internship && ['COMPLETED', 'CERTIFIED', 'TERMINATED'].includes(internship.status) ? 'Logbook Locked' : 'Log Today'}</span>
+                </button>
                 <div className={`d-inline-flex align-items-center gap-2 px-3 py-2 rounded-pill ${isDarkMode ? 'bg-secondary bg-opacity-25' : 'bg-white shadow-sm'}`}>
                   <div className="position-relative">
                     <div className="rounded-circle bg-success" style={{ width: '8px', height: '8px' }}></div>
                     <div className="position-absolute top-0 start-0 rounded-circle bg-success animate-ping" style={{ width: '8px', height: '8px', opacity: 0.5 }}></div>
                   </div>
                   <span className={`small fw-semibold ${isDarkMode ? 'text-light' : 'text-dark'}`}>{internship.title}</span>
-                  <span className="text-muted small">@{internship.employer_name}</span>
                 </div>
               </div>
             </div>
@@ -496,45 +553,90 @@ const StudentLogbook: React.FC = () => {
               {/* Main Calendar Card */}
               <div className="col-lg-8">
                 <div className={`card logbook-card shadow-sm h-100 ${isDarkMode ? 'bg-dark border-secondary' : 'bg-white border-0'}`}>
-                  <div className="card-header bg-transparent border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
-                    <h5 className="fw-bold mb-0">Activities Calendar</h5>
-                    <div className="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill border border-primary border-opacity-25">
-                      Daily Entry Mode
+                  <div className="card-header bg-transparent border-0 pt-4 px-4 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3">
+                    <h5 className="fw-bold mb-0">Weekly Activities</h5>
+                    <div className="d-flex bg-light rounded-pill p-1" style={{ width: 'fit-content' }}>
+                      <button 
+                        className={`btn btn-sm rounded-pill px-3 py-1 border-0 transition-all ${viewMode === 'calendar' ? 'bg-primary text-white shadow-sm' : 'text-muted'}`}
+                        onClick={() => setViewMode('calendar')}
+                      >
+                        Calendar
+                      </button>
+                      <button 
+                        className={`btn btn-sm rounded-pill px-3 py-1 border-0 transition-all ${viewMode === 'list' ? 'bg-primary text-white shadow-sm' : 'text-muted'}`}
+                        onClick={() => setViewMode('list')}
+                      >
+                        List View
+                      </button>
                     </div>
                   </div>
                   <div className="card-body p-4">
-                     <FullCalendar
-                       plugins={[ dayGridPlugin, interactionPlugin, bootstrap5Plugin ]}
-                       initialView="dayGridMonth"
-                       headerToolbar={{
-                         left: 'prev,next today',
-                         center: 'title',
-                         right: 'dayGridMonth,dayGridWeek'
-                       }}
-                       height="auto"
-                       events={calendarEvents}
-                       dateClick={handleDateClick}
-                       dayCellClassNames={(arg) => {
-                         if (isDateInFuture(arg.date)) return 'fc-day-future-locked';
-                         if (isDateInPast(arg.date.toISOString().split('T')[0]) && !isDateInCurrentWeek(arg.date.toISOString().split('T')[0])) return 'fc-day-past-week';
-                         return '';
-                       }}
-                       dayCellContent={(arg) => {
-                         return (
-                           <div className="position-relative h-100 w-100">
-                             <span>{arg.dayNumberText}</span>
-                             {isDateInFuture(arg.date) && (
-                               <div className="lock-icon-container">
-                                 <Lock size={20} />
+                     {viewMode === 'calendar' ? (
+                       <FullCalendar
+                         plugins={[ dayGridPlugin, interactionPlugin, bootstrap5Plugin ]}
+                         initialView="dayGridMonth"
+                         headerToolbar={{
+                           left: 'prev,next today',
+                           center: 'title',
+                           right: 'dayGridMonth,dayGridWeek'
+                         }}
+                         height="auto"
+                         events={calendarEvents}
+                         dateClick={handleDateClick}
+                         dayCellClassNames={(arg) => {
+                           if (isDateInFuture(arg.date)) return 'fc-day-future-locked';
+                           if (isDateInPast(arg.date.toISOString().split('T')[0]) && !isDateInCurrentWeek(arg.date.toISOString().split('T')[0])) return 'fc-day-past-week';
+                           return '';
+                         }}
+                         dayCellContent={(arg) => {
+                           return (
+                             <div className="position-relative h-100 w-100">
+                               <span>{arg.dayNumberText}</span>
+                               {isDateInFuture(arg.date) && (
+                                 <div className="lock-icon-container">
+                                   <Lock size={20} />
+                                 </div>
+                               )}
+                             </div>
+                           );
+                         }}
+                         editable={true}
+                         selectable={true}
+                         themeSystem="bootstrap5"
+                       />
+                     ) : (
+                       <div className="d-flex flex-column gap-3">
+                         {[0, 1, 2, 3, 4].map(dayOffset => {
+                           const date = new Date(currentWeekStart);
+                           date.setDate(date.getDate() + dayOffset);
+                           const dateStr = date.toISOString().split('T')[0];
+                           const entry = logbookEntries[dateStr];
+                           const isInternshipCompleted = internship && ['COMPLETED', 'CERTIFIED', 'TERMINATED'].includes(internship.status);
+                           
+                           return (
+                             <div 
+                               key={dateStr}
+                               className={`p-3 rounded-4 border transition-all ${isDarkMode ? 'bg-secondary bg-opacity-10 border-secondary' : 'bg-light border-light'} hover-lift cursor-pointer`}
+                               onClick={() => handleDateClick({ dateStr })}
+                             >
+                               <div className="d-flex justify-content-between align-items-center mb-2">
+                                 <div className="d-flex align-items-center gap-2">
+                                   <div className={`p-2 rounded-circle ${entry ? 'bg-success bg-opacity-10 text-success' : 'bg-primary bg-opacity-10 text-primary'}`}>
+                                     {entry ? <CheckCircle size={16} /> : (isInternshipCompleted ? <Lock size={16} className="text-muted" /> : <Plus size={16} />)}
+                                   </div>
+                                   <span className="fw-bold">{date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</span>
+                                 </div>
+                                 {entry && <Badge bg="primary" className="rounded-pill px-2 py-1 extra-small">Entry Saved</Badge>}
+                                 {isInternshipCompleted && !entry && <Badge bg="secondary" className="rounded-pill px-2 py-1 extra-small">Locked</Badge>}
                                </div>
-                             )}
-                           </div>
-                         );
-                       }}
-                       editable={true}
-                       selectable={true}
-                       themeSystem="bootstrap5"
-                     />
+                               <p className={`mb-0 small ${entry ? '' : 'text-muted italic'}`}>
+                                 {entry || (isInternshipCompleted ? "No entry recorded. This logbook is locked." : "No activity recorded for this day. Click to add your logs.")}
+                               </p>
+                             </div>
+                           );
+                         })}
+                       </div>
+                     )}
                   </div>
                 </div>
               </div>
@@ -686,8 +788,8 @@ const StudentLogbook: React.FC = () => {
                                       <button 
                                         className="btn btn-sm btn-outline-primary d-flex align-items-center gap-1 px-2 py-1"
                                         onClick={() => {
-                                          setActiveFeedback(sub);
-                                          setFeedbackModalOpen(true);
+                                          setActiveSupervisorFeedback(sub);
+                                          setSupervisorFeedbackOpen(true);
                                         }}
                                       >
                                         <MessageSquare size={14} />
@@ -714,10 +816,14 @@ const StudentLogbook: React.FC = () => {
                                         <button 
                                           className="btn btn-sm btn-primary py-2 px-3 fw-bold d-flex align-items-center gap-2 transition-all hover-lift"
                                           onClick={() => {
-                                            if (window.confirm("Load this week's logs into the calendar for revision? This will overwrite current drafts.")) {
-                                              setLogbookEntries(sub.metadata.entries);
-                                              toast.success("Logs loaded into calendar. You can now edit and resubmit.");
-                                            }
+                                            showConfirm({
+                                              title: 'Load Revision Data',
+                                              message: "Are you sure you want to load this week's logs into the calendar for revision? This will overwrite your current drafts for this week.",
+                                              onConfirm: () => {
+                                                setLogbookEntries(sub.metadata.entries);
+                                                toast.success("Logs loaded into calendar. You can now edit and resubmit.");
+                                              }
+                                            });
                                           }}
                                         >
                                           <Plus size={14} />
@@ -751,8 +857,8 @@ const StudentLogbook: React.FC = () => {
             {/* Entry Modal */}
             {modalOpen && (
               <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1060 }}>
-                <div className="modal-dialog modal-dialog-centered">
-                  <div className={`modal-content shadow-lg border-0 ${isDarkMode ? 'bg-dark text-white' : 'bg-white'}`} style={{ borderRadius: '1.25rem' }}>
+                <div className="modal-dialog modal-dialog-centered modal-dialog-bottom">
+                  <div className={`modal-content shadow-lg border-0 modal-content-bottom ${isDarkMode ? 'bg-dark text-white' : 'bg-white'}`} style={{ borderRadius: '1.25rem' }}>
                     <div className="modal-header border-0 pt-4 px-4 pb-0">
                       <div>
                         <h5 className="modal-title fw-bold">Daily Log Entry</h5>
@@ -784,7 +890,13 @@ const StudentLogbook: React.FC = () => {
                         <div className="d-flex justify-content-between mt-2">
                           <span className="small text-muted">{currentEntry.length} characters</span>
                           {!isReadOnly && !entryError && <span className="small text-muted">Auto-saving draft...</span>}
-                          {isReadOnly && <span className="small text-info fw-bold">Read-only (Past Entry)</span>}
+                          {isReadOnly && (
+                            <span className="small text-info fw-bold">
+                              {internship && ['COMPLETED', 'CERTIFIED', 'TERMINATED'].includes(internship.status) 
+                                ? 'Read-only (Internship Completed)' 
+                                : 'Read-only (Past Entry)'}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -808,16 +920,16 @@ const StudentLogbook: React.FC = () => {
             )}
 
             {/* Feedback Modal */}
-            {feedbackModalOpen && activeFeedback && (
+            {supervisorFeedbackOpen && activeSupervisorFeedback && (
               <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1060 }}>
                 <div className="modal-dialog modal-dialog-centered modal-lg">
                   <div className={`modal-content shadow-lg border-0 ${isDarkMode ? 'bg-dark text-white' : 'bg-white'}`} style={{ borderRadius: '1.25rem' }}>
                     <div className="modal-header border-0 pt-4 px-4 pb-0">
                       <div>
                         <h5 className="modal-title fw-bold">Supervisor Feedback</h5>
-                        <p className="small text-muted mb-0">{activeFeedback.title} - Week of {activeFeedback.metadata?.week_start_date}</p>
+                        <p className="small text-muted mb-0">{activeSupervisorFeedback.title} - Week of {activeSupervisorFeedback.metadata?.week_start_date}</p>
                       </div>
-                      <button type="button" className={`btn-close ${isDarkMode ? 'btn-close-white' : ''}`} onClick={() => setFeedbackModalOpen(false)}></button>
+                      <button type="button" className={`btn-close ${isDarkMode ? 'btn-close-white' : ''}`} onClick={() => setSupervisorFeedbackOpen(false)}></button>
                     </div>
                     <div className="modal-body px-4 py-4">
                       <div className="row g-4">
@@ -827,8 +939,8 @@ const StudentLogbook: React.FC = () => {
                               <Briefcase size={20} className="text-info" />
                               <h6 className="fw-bold mb-0 text-info text-uppercase small">Employer Supervisor</h6>
                             </div>
-                            <p className={`mb-0 ${activeFeedback.employer_review_notes ? '' : 'text-muted italic small'}`}>
-                              {activeFeedback.employer_review_notes || "No feedback provided by the employer supervisor yet."}
+                            <p className={`mb-0 ${activeSupervisorFeedback.employer_review_notes ? '' : 'text-muted italic small'}`}>
+                              {activeSupervisorFeedback.employer_review_notes || "No feedback provided by the employer supervisor yet."}
                             </p>
                           </div>
                         </div>
@@ -838,15 +950,15 @@ const StudentLogbook: React.FC = () => {
                               <Clock size={20} className="text-warning" />
                               <h6 className="fw-bold mb-0 text-warning text-uppercase small">Institution Supervisor</h6>
                             </div>
-                            <p className={`mb-0 ${activeFeedback.institution_review_notes ? '' : 'text-muted italic small'}`}>
-                              {activeFeedback.institution_review_notes || "No feedback provided by the institution supervisor yet."}
+                            <p className={`mb-0 ${activeSupervisorFeedback.institution_review_notes ? '' : 'text-muted italic small'}`}>
+                              {activeSupervisorFeedback.institution_review_notes || "No feedback provided by the institution supervisor yet."}
                             </p>
                           </div>
                         </div>
                       </div>
                     </div>
                     <div className="modal-footer border-0 px-4 pb-4 pt-0">
-                      <button type="button" className="btn btn-primary px-4 py-2 fw-semibold" onClick={() => setFeedbackModalOpen(false)} style={{ borderRadius: '0.75rem' }}>Close</button>
+                      <button type="button" className="btn btn-primary px-4 py-2 fw-semibold" onClick={() => setSupervisorFeedbackOpen(false)} style={{ borderRadius: '0.75rem' }}>Close</button>
                     </div>
                   </div>
                 </div>
@@ -916,6 +1028,8 @@ const StudentLogbook: React.FC = () => {
                 </div>
               </div>
             )}
+            {/* Feedback Modal (App Level) */}
+            <FeedbackModal {...feedbackProps} />
           </div>
         )}
       </div>

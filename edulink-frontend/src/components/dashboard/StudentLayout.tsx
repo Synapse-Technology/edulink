@@ -1,31 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import StudentSidebar from './StudentSidebar';
 import StudentHeader from './StudentHeader';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface StudentLayoutProps {
   children: React.ReactNode;
 }
 
 const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    const saved = localStorage.getItem('darkMode');
-    return saved ? JSON.parse(saved) : false;
-  });
+  const { isDarkMode, toggleDarkMode } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  const toggleDarkMode = () => {
-    const newMode = !isDarkMode;
-    setIsDarkMode(newMode);
-    localStorage.setItem('darkMode', JSON.stringify(newMode));
-  };
-
-  useEffect(() => {
-    if (isDarkMode) {
-      document.body.classList.add('dark-mode');
-    } else {
-      document.body.classList.remove('dark-mode');
-    }
-  }, [isDarkMode]);
 
   return (
     <div className={`min-vh-100 d-flex ${isDarkMode ? 'bg-dark text-white' : 'bg-light'}`}>

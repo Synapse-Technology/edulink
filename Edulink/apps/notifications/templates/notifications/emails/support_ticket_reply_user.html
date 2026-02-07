@@ -1,0 +1,23 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}New Message - Support Ticket {{ tracking_code }}{% endblock %}
+
+{% block content %}
+<h2>New Message from Support</h2>
+<p>Dear {{ recipient_name }},</p>
+<p>A member of our support team has replied to your ticket <strong>#{{ tracking_code }}</strong> ({{ ticket_subject }}).</p>
+
+<div class="highlight-box">
+    <p><strong>Message from {{ sender_name }}:</strong></p>
+    <p style="margin-top: 12px; font-style: italic; border-left: 2px solid #1ab8aa; padding-left: 12px;">{{ message|linebreaksbr }}</p>
+</div>
+
+<div style="text-align: center;">
+    <a href="{{ view_url }}" class="email-button">View Ticket & Reply</a>
+</div>
+
+<p>If the button above doesn't work, you can copy and paste the following link into your browser:</p>
+<p><small>{{ view_url }}</small></p>
+
+<p>Best regards,<br>The Edulink Support Team</p>
+{% endblock %}

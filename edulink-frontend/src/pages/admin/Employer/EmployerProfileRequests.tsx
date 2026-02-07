@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Check, X, User, Calendar } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { FeedbackModal } from '../../../components/common';
+import { useFeedbackModal } from '../../../hooks/useFeedbackModal';
 import { EmployerLayout } from '../../../components/admin/employer';
 import { employerService, type EmployerStaffProfileRequest } from '../../../services/employer/employerService';
 
@@ -8,6 +10,7 @@ const EmployerProfileRequests: React.FC = () => {
   const [requests, setRequests] = useState<EmployerStaffProfileRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const { feedbackProps, showError, showSuccess } = useFeedbackModal();
 
   useEffect(() => {
     fetchRequests();
@@ -42,12 +45,20 @@ const EmployerProfileRequests: React.FC = () => {
         admin_feedback: feedback
       });
       
-      toast.success(`Request ${action}d successfully`);
+      showSuccess(
+        action === 'approve' ? 'Request Approved' : 'Request Rejected',
+        `The profile update request has been ${action}d successfully.`
+      );
+      
       // Remove from list
       setRequests(prev => prev.filter(req => req.id !== requestId));
     } catch (error: any) {
       console.error(`Failed to ${action} request:`, error);
-      toast.error(error.message || `Failed to ${action} request`);
+      showError(
+        'Action Failed',
+        `Failed to ${action} the request.`,
+        error.message || 'Unknown error occurred'
+      );
     } finally {
       setProcessingId(null);
     }
@@ -156,6 +167,7 @@ const EmployerProfileRequests: React.FC = () => {
           </div>
         </div>
       </div>
+      <FeedbackModal {...feedbackProps} />
     </EmployerLayout>
   );
 };

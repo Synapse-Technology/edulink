@@ -40,6 +40,11 @@ class ArtifactViewSet(viewsets.ReadOnlyModelViewSet):
             
         return Artifact.objects.none()
 
+    def get_authenticators(self):
+        if self.action == 'verify':
+            return []
+        return super().get_authenticators()
+
     @action(detail=False, methods=['post'], url_path='generate')
     def generate_artifact(self, request):
         """
@@ -62,6 +67,26 @@ class ArtifactViewSet(viewsets.ReadOnlyModelViewSet):
         # Policy Check
         if not can_generate_artifact(request.user, application_id):
             return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
+
+        # Rate Limiting / Generation Limit
+        existing_count = Artifact.objects.filter(
+            application_id=application_id, 
+            artifact_type=artifact_type
+        ).count()
+        
+        # Limit CERTIFICATE to 2 generations, others to 5 (as a safeguard)
+        MAX_GENERATIONS = {
+            ArtifactType.CERTIFICATE: 2,
+            ArtifactType.LOGBOOK_REPORT: 5,
+            ArtifactType.PERFORMANCE_SUMMARY: 5
+        }
+        
+        limit = MAX_GENERATIONS.get(artifact_type, 3)
+        if existing_count >= limit:
+            return Response(
+                {"error": f"You have reached the maximum generation limit ({limit}) for this document type. Please download your previous version."}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         try:
             if artifact_type == ArtifactType.CERTIFICATE:

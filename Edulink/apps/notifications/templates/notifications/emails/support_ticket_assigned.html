@@ -1,0 +1,22 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}Ticket Assigned - {{ tracking_code }}{% endblock %}
+
+{% block content %}
+<h2>New Support Ticket Assigned</h2>
+<p>Hello {{ staff_name }},</p>
+<p>A new support ticket has been assigned to you for resolution.</p>
+
+<div class="highlight-box">
+    <p><strong>Tracking Code:</strong> {{ tracking_code }}</p>
+    <p><strong>Subject:</strong> {{ subject }}</p>
+    <p><strong>Category:</strong> {{ category }}</p>
+    <p><strong>Priority:</strong> {{ priority }}</p>
+</div>
+
+<div style="text-align: center;">
+    <a href="{{ admin_url }}" class="email-button">Open in Admin Panel</a>
+</div>
+
+<p>Best regards,<br>System Notification</p>
+{% endblock %}

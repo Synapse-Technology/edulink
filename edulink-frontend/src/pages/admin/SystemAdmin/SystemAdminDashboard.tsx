@@ -15,12 +15,14 @@ import {
   Key,
   Eye,
   RefreshCw,
-  Briefcase
+  Briefcase,
+  LifeBuoy
 } from 'lucide-react';
 import { adminAuthService, type AdminDashboardStats } from '../../../services/auth/adminAuthService';
 import { useAdminAuth } from '../../../contexts/AdminAuthContext';
 import AdminLayout from '../../../components/admin/AdminLayout';
 import AdminDashboardSkeleton from '../../../components/admin/skeletons/AdminDashboardSkeleton';
+import { SEO } from '../../../components/common';
 
 const SystemAdminDashboard: React.FC = () => {
   const { admin } = useAdminAuth();
@@ -99,6 +101,16 @@ const SystemAdminDashboard: React.FC = () => {
     );
   };
 
+  const getSeverityColor = (severity?: string) => {
+    switch (severity) {
+      case 'error': return 'danger';
+      case 'warning': return 'warning';
+      case 'info': return 'primary';
+      case 'success': return 'success';
+      default: return 'primary';
+    }
+  };
+
   if (isLoading) {
     return (
       <AdminLayout>
@@ -125,6 +137,10 @@ const SystemAdminDashboard: React.FC = () => {
 
   return (
     <AdminLayout>
+      <SEO 
+        title="Admin Dashboard"
+        description="Platform administration and monitoring for EduLink KE. Manage users, institutions, and system health."
+      />
       {/* Dashboard Header */}
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -274,19 +290,25 @@ const SystemAdminDashboard: React.FC = () => {
                         <tr key={action.id}>
                           <td className="px-4 border-0">
                             <div className="d-flex align-items-center">
-                              <div className="rounded-circle bg-primary bg-opacity-10 p-2 me-3">
-                                <Activity size={14} className="text-primary" />
+                              <div className={`rounded-circle bg-${getSeverityColor(action.severity)} bg-opacity-10 p-2 me-3`}>
+                                <Activity size={14} className={`text-${getSeverityColor(action.severity)}`} />
                               </div>
                               <div>
-                                <div className="fw-semibold small">{action.event_type.replace(/_/g, ' ')}</div>
-                                <div className="text-muted" style={{ fontSize: '11px' }}>ID: {action.entity_id.substring(0, 8)}...</div>
+                                <div className="fw-semibold small">
+                                  {(action.event_type || 'Unknown Event').replace(/_/g, ' ')}
+                                </div>
+                                <div className="text-muted" style={{ fontSize: '11px' }}>
+                                  {action.details || `ID: ${action.entity_id?.substring(0, 8) || 'N/A'}...`}
+                                </div>
                               </div>
                             </div>
                           </td>
                           <td className="px-4 border-0">
-                            <span className="badge bg-light text-dark fw-normal border">{action.entity_type}</span>
+                            <span className="badge bg-light text-dark fw-normal border text-capitalize">
+                              {(action.entity_type || 'System').replace(/_/g, ' ')}
+                            </span>
                           </td>
-                          <td className="px-4 border-0">
+                          <td className="px-4 border-0 text-nowrap">
                             <div className="small text-muted d-flex align-items-center">
                               <Clock size={12} className="me-1" />
                               {new Date(action.timestamp).toLocaleString()}
@@ -506,6 +528,33 @@ const SystemAdminDashboard: React.FC = () => {
                         <div className="flex-grow-1">
                           <div className="fw-semibold">Employer Requests</div>
                           <small className="text-muted">Review and approve applications</small>
+                        </div>
+                        <ChevronRight size={16} className="text-muted" />
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {admin?.role !== 'AUDITOR' && (
+              <div className="col-md-6">
+                <div className="card border-0 shadow-sm h-100">
+                  <div className="card-header bg-white border-0 pt-3">
+                    <h5 className="card-title mb-0 d-flex align-items-center">
+                      <LifeBuoy size={18} className="me-2 text-danger" />
+                      Support & Care
+                    </h5>
+                  </div>
+                  <div className="card-body">
+                    <div className="list-group list-group-flush">
+                      <Link to="/admin/support" className="list-group-item list-group-item-action d-flex align-items-center border-0 py-3">
+                        <div className="rounded-circle bg-danger bg-opacity-10 p-2 me-3">
+                          <LifeBuoy size={16} className="text-danger" />
+                        </div>
+                        <div className="flex-grow-1">
+                          <div className="fw-semibold">Manage Support Tickets</div>
+                          <small className="text-muted">Handle user requests and resolution</small>
                         </div>
                         <ChevronRight size={16} className="text-muted" />
                       </Link>

@@ -21,6 +21,7 @@ import {
   MapPinned
 } from 'lucide-react';
 import { Badge, Button, Modal, Form, Alert, OverlayTrigger, Tooltip } from 'react-bootstrap';
+import { toast } from 'react-hot-toast';
 import { employerService } from '../../../services/employer/employerService';
 import type { Employer, EmployerRequest, ReviewRequestData } from '../../../services/employer/employerService';
 import AdminLayout from '../../../components/admin/AdminLayout';
@@ -117,7 +118,7 @@ const EmployerRequestReview: React.FC = () => {
     if (!selectedRequest) return;
 
     if (action === 'REJECT' && !rejectionReason.trim()) {
-      alert('Please provide a rejection reason');
+      toast.error('Please provide a rejection reason');
       return;
     }
 
@@ -140,7 +141,7 @@ const EmployerRequestReview: React.FC = () => {
       setShowViewRequestModal(false); // Close view modal if open
       
     } catch (err: any) {
-      alert(err.errorMessage || err.message || 'Failed to submit review');
+      toast.error(err.errorMessage || err.message || 'Failed to submit review');
     } finally {
       setSubmittingReview(false);
     }

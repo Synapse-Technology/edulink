@@ -1,5 +1,7 @@
 from typing import Any, Dict
 from uuid import UUID
+from django.db import transaction
+from django_q.tasks import async_task
 from .models import LedgerEvent
 
 def record_event(
@@ -10,9 +12,37 @@ def record_event(
     actor_id: Any = None,
     actor_role: str = None,
     payload: Dict[str, Any] = None
+) -> None:
+    """
+    Asynchronously records an immutable event in the ledger using Django Q.
+    Ensures the task is only enqueued after the current transaction commits.
+    """
+    # Create a wrapper to capture arguments
+    def enqueue():
+        async_task(
+            'edulink.apps.ledger.services._record_event_sync',
+            event_type=event_type,
+            entity_id=entity_id,
+            entity_type=entity_type,
+            actor_id=actor_id,
+            actor_role=actor_role,
+            payload=payload
+        )
+    
+    transaction.on_commit(enqueue)
+
+def _record_event_sync(
+    *,
+    event_type: str,
+    entity_id: UUID,
+    entity_type: str,
+    actor_id: Any = None,
+    actor_role: str = None,
+    payload: Dict[str, Any] = None
 ) -> LedgerEvent:
     """
-    Records an immutable event in the ledger.
+    The actual synchronous logic for recording an event.
+    Should only be called via record_event (background task).
     """
     if payload is None:
         payload = {}

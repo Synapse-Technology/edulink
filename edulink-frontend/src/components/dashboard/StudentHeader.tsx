@@ -2,8 +2,10 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Menu, X, Sun, Moon, ChevronDown, User, LifeBuoy, LogOut } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { studentService } from '../../services/student/studentService';
 import TrustBadge, { type TrustLevel } from '../common/TrustBadge';
+import NotificationBell from '../common/NotificationBell';
 import defaultProfile from '../../assets/images/default_profile.jpg';
 
 interface StudentHeaderProps {
@@ -16,10 +18,9 @@ interface StudentHeaderProps {
 const StudentHeader: React.FC<StudentHeaderProps> = ({
   onMobileMenuClick,
   isMobileMenuOpen = false,
-  isDarkMode = false,
-  onToggleDarkMode,
 }) => {
   const { user, logout } = useAuth();
+  const { isDarkMode, toggleDarkMode } = useTheme();
   const navigate = useNavigate();
   const [profilePic, setProfilePic] = useState<string>(defaultProfile);
   const [trustLevel, setTrustLevel] = useState<number>(0);
@@ -43,12 +44,6 @@ const StudentHeader: React.FC<StudentHeaderProps> = ({
     };
     fetchProfile();
   }, [user]);
-
-  const handleDarkModeClick = useCallback(() => {
-    if (onToggleDarkMode) {
-      onToggleDarkMode();
-    }
-  }, [onToggleDarkMode]);
 
   const handleMobileMenuClick = useCallback(() => {
     if (onMobileMenuClick) {
@@ -103,9 +98,12 @@ const StudentHeader: React.FC<StudentHeaderProps> = ({
 
           {/* Right Side Controls */}
           <div className="d-flex align-items-center gap-3 gap-sm-4 ms-auto">
+            {/* Notifications */}
+            <NotificationBell isDarkMode={isDarkMode} userId={user?.id} />
+
             {/* Dark Mode Toggle */}
             <button 
-              onClick={handleDarkModeClick}
+              onClick={toggleDarkMode}
               className={`btn btn-outline-${isDarkMode ? 'light' : 'dark'} rounded-circle p-2`}
               title="Toggle dark mode"
               aria-pressed={isDarkMode}

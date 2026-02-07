@@ -11,6 +11,21 @@ from .models import Student, StudentInstitutionAffiliation, TRUST_EVENT_POINTS, 
 from uuid import UUID
 
 
+def get_or_create_student_profile(*, user) -> Student:
+    """
+    Get existing student profile or create a new one lazily.
+    """
+    from .queries import get_student_for_user
+    
+    student = get_student_for_user(str(user.id))
+    if not student:
+        student = preregister_student(
+            user_id=user.id,
+            email=user.email
+        )
+    return student
+
+
 def update_student_profile(*, student_id: str, data: dict) -> Student:
     """
     Update student profile information (course, year, skills).
@@ -305,8 +320,8 @@ def verify_student_affiliation(*, affiliation_id: str, actor_id: str, review_not
             institution_name=institution.name,
             actor_id=actor_id
         )
-    except Exception:
-        pass
+    except Exception as e:
+        logger.error(f"Failed to send affiliation approved notification for {student.user_id}: {e}")
             
     return affiliation
 
@@ -916,8 +931,8 @@ def verify_student_document(*, student_id: str, document_type: str, actor_id: st
             user_id=str(student.user_id),
             document_type=document_type
         )
-    except Exception:
-        pass
+    except Exception as e:
+        logger.error(f"Failed to send document verified notification for {student.user_id}: {e}")
 
 
 def reject_student_document(*, student_id: str, document_type: str, reason: str, actor_id: str) -> None:

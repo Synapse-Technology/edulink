@@ -73,7 +73,7 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ stats }) => {
                 Student Participation
             </h5>
             <div style={{ width: '100%', height: 300, minWidth: 0 }}>
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                 <PieChart>
                   <Pie
                     data={participationData}
@@ -123,7 +123,7 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ stats }) => {
                 Placement Status
             </h5>
             <div style={{ width: '100%', height: 300, minWidth: 0 }}>
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                 <PieChart>
                   <Pie
                     data={pieData}

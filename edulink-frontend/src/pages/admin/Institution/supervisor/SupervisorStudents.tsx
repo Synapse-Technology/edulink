@@ -5,31 +5,45 @@ import { useOutletContext, Link } from 'react-router-dom';
 import { internshipService, type InternshipApplication } from '../../../../services/internship/internshipService';
 import { useAuthStore } from '../../../../stores/authStore';
 import { toast } from 'react-hot-toast';
+import { FeedbackModal } from '../../../../components/common';
+import { useFeedbackModal } from '../../../../hooks/useFeedbackModal';
 import type { SupervisorDashboardContext } from './SupervisorDashboard';
 
 const SupervisorStudents: React.FC = () => {
   const { internships } = useOutletContext<SupervisorDashboardContext>();
   const { user } = useAuthStore();
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const { feedbackProps, showError, showSuccess, showConfirm } = useFeedbackModal();
 
   const handleComplete = async (internship: InternshipApplication) => {
     const isInstitutionPosted = !internship.employer_id;
     const actionText = isInstitutionPosted ? "Recommend for Verification" : "Complete Internship";
     
-    if (!confirm(`Are you sure you want to ${actionText}?`)) return;
-
-    try {
-      setProcessingId(internship.id);
-      await internshipService.processApplication(internship.id, 'COMPLETE');
-      toast.success(`${actionText} successful.`);
-      // Ideally trigger a refresh here, for now reload to see changes
-      window.location.reload();
-    } catch (err: any) {
-      console.error("Failed to complete internship", err);
-      toast.error(err.message || "Failed to complete action");
-    } finally {
-      setProcessingId(null);
-    }
+    showConfirm({
+      title: actionText,
+      message: `Are you sure you want to ${actionText.toLowerCase()} for this student? This action is irreversible.`,
+      onConfirm: async () => {
+        try {
+          setProcessingId(internship.id);
+          await internshipService.processApplication(internship.id, 'COMPLETE');
+          showSuccess(
+            'Action Successful',
+            `${actionText} successful.`
+          );
+          // Ideally trigger a refresh here, for now reload to see changes
+          setTimeout(() => window.location.reload(), 1500);
+        } catch (err: any) {
+          console.error("Failed to complete internship", err);
+          showError(
+            'Action Failed',
+            `We encountered an error while trying to ${actionText.toLowerCase()}.`,
+            err.message
+          );
+        } finally {
+          setProcessingId(null);
+        }
+      }
+    });
   };
 
   const getStatusBadge = (status: string) => {
@@ -171,6 +185,7 @@ const SupervisorStudents: React.FC = () => {
            </div>
         </Card.Body>
       </Card>
+      <FeedbackModal {...feedbackProps} />
     </div>
   );
 };

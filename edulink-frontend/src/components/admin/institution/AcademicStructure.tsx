@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Table, Badge, Modal, Form, Alert, Card, Row, Col } from 'react-bootstrap';
 import { Plus, Edit2, Trash2, School, Users, EyeOff } from 'lucide-react';
+import { toast } from 'react-hot-toast';
+import { FeedbackModal } from '../../common';
+import { useFeedbackModal } from '../../../hooks/useFeedbackModal';
 import { institutionService, type Department, type Cohort } from '../../../services/institution/institutionService';
 import AcademicStructureSkeleton, { CohortTableSkeleton } from '../skeletons/AcademicStructureSkeleton';
 
@@ -25,6 +28,7 @@ const AcademicStructure: React.FC = () => {
   // Cohorts Data Cache (map departmentId to cohorts)
   const [cohortsMap, setCohortsMap] = useState<Record<string, Cohort[]>>({});
   const [loadingCohorts, setLoadingCohorts] = useState<Record<string, boolean>>({});
+  const { feedbackProps, showError, showSuccess, showConfirm } = useFeedbackModal();
 
   useEffect(() => {
     fetchDepartments();
@@ -98,10 +102,14 @@ const AcademicStructure: React.FC = () => {
       } else {
         await institutionService.createDepartment(payload);
       }
+      showSuccess(
+        'Department Saved',
+        `The department has been ${editingDept ? 'updated' : 'created'} successfully.`
+      );
       fetchDepartments();
       setShowDeptModal(false);
     } catch (err: any) {
-      alert(err.message || 'Failed to save department');
+      showError('Save Failed', 'We could not save the department.', err.message);
     } finally {
       setDeptSubmitting(false);
     }
@@ -145,33 +153,53 @@ const AcademicStructure: React.FC = () => {
       } else {
         await institutionService.createCohort(payload);
       }
+      showSuccess(
+        'Cohort Saved',
+        `The cohort has been ${editingCohort ? 'updated' : 'created'} successfully.`
+      );
       fetchCohorts(selectedDeptForCohort);
       setShowCohortModal(false);
     } catch (err: any) {
-      alert(err.message || 'Failed to save cohort');
+      showError('Save Failed', 'We could not save the cohort.', err.message);
     } finally {
       setCohortSubmitting(false);
     }
   };
 
   const handleDeleteDept = async (id: string) => {
-    if (!window.confirm('Are you sure? This will delete all associated cohorts and student affiliations.')) return;
-    try {
-      await institutionService.deleteDepartment(id);
-      fetchDepartments();
-    } catch (err: any) {
-      alert(err.message || 'Failed to delete department');
-    }
+    showConfirm({
+      title: 'Delete Department',
+      message: 'Are you sure? This will delete all associated cohorts and student affiliations. This action cannot be undone.',
+      variant: 'error',
+      confirmLabel: 'Delete',
+      onConfirm: async () => {
+        try {
+          await institutionService.deleteDepartment(id);
+          toast.success('Department deleted successfully');
+          fetchDepartments();
+        } catch (err: any) {
+          showError('Delete Failed', 'Failed to delete department', err.message);
+        }
+      }
+    });
   };
 
   const handleDeleteCohort = async (id: string, deptId: string) => {
-    if (!window.confirm('Are you sure?')) return;
-    try {
-      await institutionService.deleteCohort(id);
-      fetchCohorts(deptId);
-    } catch (err: any) {
-      alert(err.message || 'Failed to delete cohort');
-    }
+    showConfirm({
+      title: 'Delete Cohort',
+      message: 'Are you sure you want to delete this cohort? This will affect students assigned to it.',
+      variant: 'error',
+      confirmLabel: 'Delete',
+      onConfirm: async () => {
+        try {
+          await institutionService.deleteCohort(id);
+          toast.success('Cohort deleted successfully');
+          fetchCohorts(deptId);
+        } catch (err: any) {
+          showError('Delete Failed', 'Failed to delete cohort', err.message);
+        }
+      }
+    });
   };
 
   if (loading) return <AcademicStructureSkeleton />;
@@ -409,6 +437,7 @@ const AcademicStructure: React.FC = () => {
           </Modal.Footer>
         </Form>
       </Modal>
+      <FeedbackModal {...feedbackProps} />
     </div>
   );
 };

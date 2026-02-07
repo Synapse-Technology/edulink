@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Briefcase, 
@@ -12,10 +12,13 @@ import {
   ArrowLeft,
   Building
 } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { usePusher } from '../../hooks/usePusher';
 import StudentSidebar from '../../components/dashboard/StudentSidebar';
 import StudentHeader from '../../components/dashboard/StudentHeader';
 import { studentService } from '../../services/student/studentService';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import StudentApplicationsSkeleton from '../../components/student/skeletons/StudentApplicationsSkeleton';
 
 const ApplicationStatusBadge = ({ status }: { status: string }) => {
@@ -49,47 +52,30 @@ const ApplicationStatusBadge = ({ status }: { status: string }) => {
 
 const StudentApplications: React.FC = () => {
   const { user } = useAuth();
-  
-  // Suppress unused warning
-  void user;
-  const [applications, setApplications] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    const savedTheme = localStorage.getItem('theme');
-    return savedTheme === 'dark';
+  const { isDarkMode, toggleDarkMode } = useTheme();
+  const queryClient = useQueryClient();
+
+  // Fetch applications using TanStack Query
+  const { data: applications, isLoading: loading, isError } = useQuery({
+    queryKey: ['applications'],
+    queryFn: () => studentService.getApplications(),
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  useEffect(() => {
-    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
-    if (isDarkMode) {
-      document.body.classList.add('dark-mode');
-    } else {
-      document.body.classList.remove('dark-mode');
-    }
-  }, [isDarkMode]);
+  // Handle real-time updates via Pusher
+  const handleStatusUpdate = useCallback((data: any) => {
+    console.log('Real-time application update:', data);
+    queryClient.invalidateQueries({ queryKey: ['applications'] });
+  }, [queryClient]);
+
+  usePusher(
+    user ? `user-${user.id}` : undefined,
+    'application-status-updated',
+    handleStatusUpdate
+  );
+
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  useEffect(() => {
-    const fetchApplications = async () => {
-      try {
-        const data = await studentService.getApplications();
-        // Filter out drafts or closed opportunities if needed, but 'getApplications' fetches all internships
-        // We probably only want engagements (where student_id is set).
-        // Since get_internships_for_user returns user's internships, they are engagements.
-        setApplications(data);
-      } catch (err) {
-        console.error(err);
-        setError('Failed to load applications');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchApplications();
-  }, []);
-
-  const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
 
   return (
@@ -122,29 +108,12 @@ const StudentApplications: React.FC = () => {
               max-width: calc(100vw - 280px) !important;
             }
           }
-          .card {
-            background-color: ${isDarkMode ? '#1e293b' : 'white'} !important;
-            border: 1px solid ${isDarkMode ? '#334155' : '#e2e8f0'} !important;
-            transition: all 0.3s ease;
-          }
-          .card:hover {
-            border-color: ${isDarkMode ? '#475569' : '#cbd5e1'} !important;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, ${isDarkMode ? '0.3' : '0.1'}) !important;
-          }
-          .text-muted {
-            color: ${isDarkMode ? '#94a3b8' : '#6c757d'} !important;
-          }
-          .bg-light {
-            background-color: ${isDarkMode ? '#1e293b' : '#f8f9fa'} !important;
-          }
         `}</style>
         
         <div className="px-3 px-lg-5 pt-4">
           <StudentHeader
             onMobileMenuClick={toggleMobileMenu}
             isMobileMenuOpen={isMobileMenuOpen}
-            isDarkMode={isDarkMode}
-            onToggleDarkMode={toggleDarkMode}
           />
         </div>
 
@@ -158,9 +127,9 @@ const StudentApplications: React.FC = () => {
 
           {loading ? (
             <StudentApplicationsSkeleton isDarkMode={isDarkMode} />
-          ) : error ? (
-            <div className="alert alert-danger">{error}</div>
-          ) : applications.length === 0 ? (
+          ) : isError ? (
+            <div className="alert alert-danger">Failed to load applications. Please try again later.</div>
+          ) : applications?.length === 0 ? (
             <div className="card text-center p-5">
               <div className="card-body">
                 <Briefcase size={48} className="mb-3 text-muted" />
@@ -173,7 +142,7 @@ const StudentApplications: React.FC = () => {
             </div>
           ) : (
             <div className="row g-4">
-              {applications.map((app) => (
+              {applications?.map((app) => (
                 <div key={app.id} className="col-12">
                   <div className="card border-0 shadow-sm rounded-4">
                     <div className="card-body p-4">

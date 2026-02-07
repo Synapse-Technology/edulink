@@ -1,15 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { supportService } from '../services/support/supportService';
+import type { TicketCategory, TicketPriority } from '../services/support/supportService';
+import { useFeedbackModal } from '../hooks/useFeedbackModal';
+import { FeedbackModal } from '../components/common';
+import { useAuth } from '../contexts/AuthContext';
 
 const Support: React.FC = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { feedbackProps, showError, showSuccess } = useFeedbackModal();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     subject: '',
-    message: ''
+    message: '',
+    category: 'OTHER' as TicketCategory,
+    priority: 'LOW' as TicketPriority
   });
-  const [feedback, setFeedback] = useState('');
 
-  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  useEffect(() => {
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        name: `${user.firstName} ${user.lastName}`.trim(),
+        email: user.email
+      }));
+    }
+  }, [user]);
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const [feedback, setFeedback] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -17,25 +41,74 @@ const Support: React.FC = () => {
     }));
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setAttachments(Array.from(e.target.files));
+    }
+  };
+
   const handleFeedbackChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setFeedback(e.target.value);
   };
 
-  const handleSupportSubmit = (e: React.FormEvent) => {
+  const handleSupportSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement support form submission
-    console.log('Support form submitted:', formData);
-    alert('Support request sent successfully!');
-    setFormData({ name: '', email: '', subject: '', message: '' });
+    if (isSubmitting) return;
+
+    try {
+      setIsSubmitting(true);
+      const ticket = await supportService.createTicket({
+        ...formData,
+        attachments
+      });
+      
+      showSuccess(
+        'Ticket Created Successfully', 
+        `Your ticket has been logged with tracking code: ${ticket.tracking_code}. You can track its status in your history.`
+      );
+      
+      setFormData({ 
+        name: user ? `${user.firstName} ${user.lastName}`.trim() : '', 
+        email: user ? user.email : '', 
+        subject: '', 
+        message: '', 
+        category: 'OTHER', 
+        priority: 'LOW' 
+      });
+      setAttachments([]);
+      
+      // Optionally redirect to history
+      setTimeout(() => navigate('/support/history'), 3000);
+      
+    } catch (error: any) {
+      console.error('Support submission error:', error);
+      showError('Submission Failed', 'Failed to send support request. Please try again.', error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleFeedbackSubmit = (e: React.FormEvent) => {
+  const handleFeedbackSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement feedback submission
-    console.log('Feedback submitted:', feedback);
-    alert('Feedback submitted successfully!');
-    setFeedback('');
+    if (!feedback.trim()) {
+        toast.error('Please enter your feedback first.');
+        return;
+    }
+    if (isSubmitting) return;
+
+    try {
+      setIsSubmitting(true);
+      await supportService.submitFeedback({ message: feedback });
+      toast.success('Feedback submitted successfully!');
+      setFeedback('');
+    } catch (error: any) {
+      console.error('Feedback submission error:', error);
+      toast.error(error.message || 'Failed to submit feedback. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
 
   return (
     <>
@@ -165,16 +238,12 @@ const Support: React.FC = () => {
                     >
                       Give Feedback
                     </button>
-                    <button 
-                      className="nav-link" 
-                      id="nav-community-tab"
-                      data-bs-toggle="tab"
-                      data-bs-target="#nav-community"
-                      type="button"
-                      role="tab"
+                    <Link 
+                      to="/support/history" 
+                      className="nav-link text-primary fw-bold"
                     >
-                      Community
-                    </button>
+                      <i className="bi bi-clock-history me-1"></i> Ticket History
+                    </Link>
                   </div>
                 </nav>
                 <div className="tab-content bg-white p-4 border border-top-0" id="nav-tabContent" style={{borderRadius: '0 0 12px 12px'}}>
@@ -183,51 +252,98 @@ const Support: React.FC = () => {
                     <form onSubmit={handleSupportSubmit} className="php-email-form">
                       <div className="row gy-4">
                         <div className="col-md-6">
+                          <label className="form-label small fw-bold">Your Name</label>
                           <input 
                             type="text" 
                             name="name" 
                             className="form-control" 
-                            placeholder="Your Name" 
+                            placeholder="John Doe" 
                             value={formData.name}
                             onChange={handleFormChange}
                             required 
                           />
                         </div>
                         <div className="col-md-6">
+                          <label className="form-label small fw-bold">Email Address</label>
                           <input 
                             type="email" 
                             name="email" 
                             className="form-control" 
-                            placeholder="Your Email" 
+                            placeholder="john@example.com" 
                             value={formData.email}
                             onChange={handleFormChange}
                             required 
                           />
                         </div>
+                        <div className="col-md-6">
+                          <label className="form-label small fw-bold">Category</label>
+                          <select 
+                            name="category" 
+                            className="form-select" 
+                            value={formData.category}
+                            onChange={handleFormChange}
+                            required
+                          >
+                            <option value="TECHNICAL">Technical Issue</option>
+                            <option value="AFFILIATION">Affiliation Query</option>
+                            <option value="INTERNSHIP">Internship Assistance</option>
+                            <option value="ACCOUNT">Account Management</option>
+                            <option value="OTHER">General Inquiry</option>
+                          </select>
+                        </div>
+                        <div className="col-md-6">
+                          <label className="form-label small fw-bold">Priority</label>
+                          <select 
+                            name="priority" 
+                            className="form-select" 
+                            value={formData.priority}
+                            onChange={handleFormChange}
+                            required
+                          >
+                            <option value="LOW">Low</option>
+                            <option value="MEDIUM">Medium</option>
+                            <option value="HIGH">High</option>
+                            <option value="URGENT">Urgent</option>
+                          </select>
+                        </div>
                         <div className="col-md-12">
+                          <label className="form-label small fw-bold">Subject</label>
                           <input 
                             type="text" 
                             name="subject" 
                             className="form-control" 
-                            placeholder="Subject" 
+                            placeholder="Brief summary of your issue" 
                             value={formData.subject}
                             onChange={handleFormChange}
                             required 
                           />
                         </div>
                         <div className="col-md-12">
+                          <label className="form-label small fw-bold">Description</label>
                           <textarea 
                             name="message" 
                             className="form-control" 
                             rows={5} 
-                            placeholder="How can we help?" 
+                            placeholder="Please provide detailed information about your request..." 
                             value={formData.message}
                             onChange={handleFormChange}
                             required 
                           />
                         </div>
+                        <div className="col-md-12">
+                          <label className="form-label small fw-bold">Attachments (Optional)</label>
+                          <input 
+                            type="file" 
+                            className="form-control" 
+                            multiple 
+                            onChange={handleFileChange}
+                          />
+                          <div className="form-text small">You can upload screenshots or documents (Max 5MB per file)</div>
+                        </div>
                         <div className="col-md-12 text-center">
-                          <button type="submit" className="btn">Send Request</button>
+                          <button type="submit" className="btn" disabled={isSubmitting}>
+                            {isSubmitting ? 'Sending...' : 'Submit Support Ticket'}
+                          </button>
                         </div>
                       </div>
                     </form>
@@ -264,6 +380,7 @@ const Support: React.FC = () => {
           </div>
         </section>
       </main>
+      <FeedbackModal {...feedbackProps} />
 
       <style>{`
         /* Page Title */

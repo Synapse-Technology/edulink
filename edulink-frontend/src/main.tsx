@@ -6,11 +6,30 @@ import './index.css'
 import 'bootstrap/dist/js/bootstrap.bundle.min.js'
 import App from './App.tsx'
 import { AuthProvider } from './contexts/AuthContext.tsx'
+import { PusherProvider } from './contexts/PusherContext.tsx'
+import { Toaster } from 'react-hot-toast'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      gcTime: 1000 * 60 * 30, // 30 minutes
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+})
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <AuthProvider>
-      <App />
-    </AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <PusherProvider>
+          <Toaster position="top-right" />
+          <App />
+        </PusherProvider>
+      </AuthProvider>
+    </QueryClientProvider>
   </StrictMode>,
 )

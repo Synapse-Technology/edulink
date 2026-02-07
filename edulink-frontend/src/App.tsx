@@ -4,8 +4,10 @@ import { Layout, HybridLayout } from './components';
 import Home from './pages/Home';
 import About from './pages/About';
 import Contact from './pages/Contact';
-import Support from './pages/Support';
 import Search from './pages/Search';
+import Support from './pages/Support';
+import TicketHistory from './pages/TicketHistory';
+import TicketDetail from './pages/TicketDetail';
 import Opportunities from './pages/Opportunities';
 import OpportunityDetails from './pages/OpportunityDetails';
 import WhyUs from './pages/WhyUs';
@@ -79,7 +81,11 @@ import EmployerSupervisorMilestones from './pages/admin/Employer/Supervisor/Supe
 import EmployerSupervisorProfile from './pages/admin/Employer/Supervisor/SupervisorProfile';
 
 import EmployerRequestReview from './pages/admin/SystemAdmin/EmployerRequestReview';
+import SupportManagement from './pages/admin/SystemAdmin/SupportManagement';
+import AdminSupportTicketDetail from './pages/admin/SystemAdmin/AdminSupportTicketDetail';
+import ContactManagement from './pages/admin/SystemAdmin/ContactManagement';
 import { AdminAuthProvider } from './contexts/AdminAuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import NotFound from './pages/NotFound';
 import './App.css';
 import './styles/admin-dashboard.css';
@@ -101,6 +107,8 @@ function App() {
         <Route path="/verify/:artifactId" element={<VerifyArtifact />} />
         
         <Route path="/support" element={<HybridLayout><Support /></HybridLayout>} />
+        <Route path="/support/history" element={<ProtectedRoute><HybridLayout><TicketHistory /></HybridLayout></ProtectedRoute>} />
+        <Route path="/support/tickets/:trackingCode" element={<ProtectedRoute><HybridLayout><TicketDetail /></HybridLayout></ProtectedRoute>} />
         <Route path="/opportunities" element={<HybridLayout><Opportunities /></HybridLayout>} />
         <Route path="/opportunities/:id" element={<HybridLayout><OpportunityDetails /></HybridLayout>} />
         
@@ -176,55 +184,61 @@ function App() {
         } />
         
         {/* Student dashboard routes without layout */}
-        <Route path="/dashboard/student" element={
-          <ProtectedRoute>
-            <StudentDashboard />
-          </ProtectedRoute>
-        } />
-        <Route path="/dashboard/student/applications" element={
-          <ProtectedRoute>
-            <StudentApplications />
-          </ProtectedRoute>
-        } />
-        <Route path="/dashboard/student/applications/:id" element={
-          <ProtectedRoute>
-            <StudentApplicationDetail />
-          </ProtectedRoute>
-        } />
-        <Route path="/dashboard/student/internship" element={
-          <ProtectedRoute>
-            <StudentInternship />
-          </ProtectedRoute>
-        } />
-        <Route path="/dashboard/student/logbook" element={
-          <ProtectedRoute>
-            <StudentLogbook />
-          </ProtectedRoute>
-        } />
-        <Route path="/dashboard/student/logbook/:evidenceId" element={
-          <ProtectedRoute>
-            <StudentLogbookDetail />
-          </ProtectedRoute>
-        } />
-        <Route path="/dashboard/student/artifacts" element={
-          <ProtectedRoute>
-            <StudentArtifacts />
-          </ProtectedRoute>
-        } />
-        <Route path="/dashboard/student/notifications" element={
-          <ProtectedRoute>
-            <StudentNotifications />
-          </ProtectedRoute>
-        } />
-        <Route path="/dashboard/student/profile" element={
-          <ProtectedRoute>
-            <StudentProfile />
-          </ProtectedRoute>
-        } />
-        <Route path="/dashboard/student/affiliation" element={
-          <ProtectedRoute>
-            <StudentAffiliation />
-          </ProtectedRoute>
+        <Route path="/dashboard/student/*" element={
+          <ThemeProvider>
+            <Routes>
+              <Route index element={
+                <ProtectedRoute>
+                  <StudentDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="applications" element={
+                <ProtectedRoute>
+                  <StudentApplications />
+                </ProtectedRoute>
+              } />
+              <Route path="applications/:id" element={
+                <ProtectedRoute>
+                  <StudentApplicationDetail />
+                </ProtectedRoute>
+              } />
+              <Route path="internship" element={
+                <ProtectedRoute>
+                  <StudentInternship />
+                </ProtectedRoute>
+              } />
+              <Route path="logbook" element={
+                <ProtectedRoute>
+                  <StudentLogbook />
+                </ProtectedRoute>
+              } />
+              <Route path="logbook/:evidenceId" element={
+                <ProtectedRoute>
+                  <StudentLogbookDetail />
+                </ProtectedRoute>
+              } />
+              <Route path="artifacts" element={
+                <ProtectedRoute>
+                  <StudentArtifacts />
+                </ProtectedRoute>
+              } />
+              <Route path="notifications" element={
+                <ProtectedRoute>
+                  <StudentNotifications />
+                </ProtectedRoute>
+              } />
+              <Route path="profile" element={
+                <ProtectedRoute>
+                  <StudentProfile />
+                </ProtectedRoute>
+              } />
+              <Route path="affiliation" element={
+                <ProtectedRoute>
+                  <StudentAffiliation />
+                </ProtectedRoute>
+              } />
+            </Routes>
+          </ThemeProvider>
         } />
         
         {/* Institution onboarding request */}
@@ -286,6 +300,24 @@ function App() {
         <Route path="/admin/employers/requests" element={
           <AdminAuthProvider>
             <EmployerRequestReview />
+          </AdminAuthProvider>
+        } />
+
+        <Route path="/admin/support" element={
+          <AdminAuthProvider>
+            <SupportManagement />
+          </AdminAuthProvider>
+        } />
+
+        <Route path="/admin/support/tickets/:trackingCode" element={
+          <AdminAuthProvider>
+            <AdminSupportTicketDetail />
+          </AdminAuthProvider>
+        } />
+
+        <Route path="/admin/contact" element={
+          <AdminAuthProvider>
+            <ContactManagement />
           </AdminAuthProvider>
         } />
         

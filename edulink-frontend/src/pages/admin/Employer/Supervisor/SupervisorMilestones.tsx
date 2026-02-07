@@ -57,12 +57,24 @@ const SupervisorMilestones: React.FC = () => {
         reviewNotes
       );
       
-      toast.success(`Milestone ${reviewAction === 'ACCEPTED' ? 'approved' : 'rejected'} successfully`);
+      setFeedbackModal({
+        show: true,
+        title: 'Review Submitted',
+        message: `Milestone ${reviewAction === 'ACCEPTED' ? 'approved' : 'rejected'} successfully.`,
+        variant: 'success'
+      });
+      
       setShowReviewModal(false);
       fetchEvidence(); // Refresh list
     } catch (err: any) {
       console.error("Failed to review milestone", err);
-      toast.error("Failed to submit review");
+      setFeedbackModal({
+        show: true,
+        title: 'Review Failed',
+        message: 'Failed to submit review for milestone.',
+        variant: 'error',
+        details: err.message || 'Unknown error occurred'
+      });
     } finally {
       setSubmitting(false);
     }

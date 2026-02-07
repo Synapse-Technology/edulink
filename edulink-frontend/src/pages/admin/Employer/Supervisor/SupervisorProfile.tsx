@@ -162,6 +162,15 @@ const SupervisorProfile: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <FeedbackModal
+        show={feedbackModal.show}
+        onHide={() => setFeedbackModal(prev => ({ ...prev, show: false }))}
+        title={feedbackModal.title}
+        message={feedbackModal.message}
+        variant={feedbackModal.variant}
+        details={feedbackModal.details}
+      />
     </SupervisorLayout>
   );
 };

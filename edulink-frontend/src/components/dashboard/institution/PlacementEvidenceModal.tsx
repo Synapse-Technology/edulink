@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Button, Table, Badge, Spinner, Alert, Form } from 'react-bootstrap';
 import { FileText, ExternalLink, Award } from 'lucide-react';
+import { toast } from 'react-hot-toast';
+import { FeedbackModal } from '../../common';
+import { useFeedbackModal } from '../../../hooks/useFeedbackModal';
 import { internshipService } from '../../../services/internship/internshipService';
 import type { InternshipEvidence } from '../../../services/internship/internshipService';
 
@@ -29,6 +32,7 @@ const PlacementEvidenceModal: React.FC<PlacementEvidenceModalProps> = ({ show, o
   const [reviewingId, setReviewingId] = useState<string | null>(null);
   const [reviewNotes, setReviewNotes] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+  const { feedbackProps, showError, showConfirm } = useFeedbackModal();
 
   useEffect(() => {
     if (show && placement.id) {
@@ -66,29 +70,39 @@ const PlacementEvidenceModal: React.FC<PlacementEvidenceModalProps> = ({ show, o
       setReviewNotes('');
     } catch (err: any) {
       console.error("Failed to review evidence", err);
-      alert("Failed to submit review");
+      showError(
+        "Review Failed",
+        "We could not submit your review at this time.",
+        err.response?.data?.error || err.message
+      );
     } finally {
       setActionLoading(false);
     }
   };
 
   const handleCertify = async () => {
-    if (!window.confirm("Are you sure you want to certify this internship? This action is irreversible.")) {
-      return;
-    }
-
-    try {
-      setActionLoading(true);
-      await internshipService.certifyInternship(placement.id);
-      onHide();
-      // Ideally trigger a refresh of the parent list
-      window.location.reload(); // Simple reload for now to reflect status change
-    } catch (err: any) {
-      console.error("Failed to certify internship", err);
-      alert("Failed to certify internship");
-    } finally {
-      setActionLoading(false);
-    }
+    showConfirm({
+      title: 'Certify Internship',
+      message: 'Are you sure you want to certify this internship? This action is irreversible and will issue the certificate.',
+      onConfirm: async () => {
+        try {
+          setActionLoading(true);
+          await internshipService.certifyInternship(placement.id);
+          onHide();
+          // Ideally trigger a refresh of the parent list
+          window.location.reload(); // Simple reload for now to reflect status change
+        } catch (err: any) {
+          console.error("Failed to certify internship", err);
+          showError(
+            "Certification Failed",
+            "An error occurred while trying to certify the internship.",
+            err.response?.data?.error || err.message
+          );
+        } finally {
+          setActionLoading(false);
+        }
+      }
+    });
   };
 
   const getStatusBadge = (status: string) => {
@@ -247,6 +261,7 @@ const PlacementEvidenceModal: React.FC<PlacementEvidenceModalProps> = ({ show, o
           </>
         )}
       </Modal.Body>
+      <FeedbackModal {...feedbackProps} />
     </Modal>
   );
 };

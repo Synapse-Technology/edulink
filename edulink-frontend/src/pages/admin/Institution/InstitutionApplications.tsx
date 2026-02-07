@@ -4,6 +4,7 @@ import { Search, FileText, CheckCircle, XCircle, User } from 'lucide-react';
 import { internshipService } from '../../../services/internship/internshipService';
 import type { InternshipApplication } from '../../../services/internship/internshipService';
 import { toast } from 'react-hot-toast';
+import { FeedbackModal, type FeedbackVariant } from '../../../components/common';
 import TrustBadge, { type TrustLevel } from '../../../components/common/TrustBadge';
 import InstitutionTableSkeleton from '../../../components/admin/skeletons/InstitutionTableSkeleton';
 

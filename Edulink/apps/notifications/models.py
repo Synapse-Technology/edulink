@@ -145,7 +145,7 @@ class EmailVerificationToken(BaseModel):
     Token for email verification.
     Stores verification tokens and their expiration status.
     """
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='email_verification_token')
+    user_id = models.UUIDField(unique=True, null=True, blank=True)
     token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     is_used = models.BooleanField(default=False)
     expires_at = models.DateTimeField()
@@ -157,7 +157,7 @@ class EmailVerificationToken(BaseModel):
         verbose_name_plural = "Email Verification Tokens"
     
     def __str__(self):
-        return f"Email verification token for {self.user.email}"
+        return f"Email verification token for user {self.user_id}"
     
     @property
     def is_expired(self):
@@ -171,7 +171,7 @@ class PasswordResetToken(BaseModel):
     Token for password reset.
     Stores reset tokens and their expiration status.
     """
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='password_reset_tokens')
+    user_id = models.UUIDField(null=True, blank=True)
     token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     is_used = models.BooleanField(default=False)
     expires_at = models.DateTimeField()
@@ -181,9 +181,12 @@ class PasswordResetToken(BaseModel):
         db_table = "notifications_password_reset_token"
         verbose_name = "Password Reset Token"
         verbose_name_plural = "Password Reset Tokens"
+        indexes = [
+            models.Index(fields=["user_id"]),
+        ]
     
     def __str__(self):
-        return f"Password reset token for {self.user.email}"
+        return f"Password reset token for user {self.user_id}"
     
     @property
     def is_expired(self):

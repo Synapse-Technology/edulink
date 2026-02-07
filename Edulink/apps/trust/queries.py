@@ -23,5 +23,6 @@ def calculate_student_trust_state(*, student_id: str) -> dict:
         "student_id": student_id,
         "score": score,
         "tier_level": tier["level"],
-        "tier_name": tier["name"]
+        "tier_name": tier["name"],
+        "tier_label": tier["name"]
     }

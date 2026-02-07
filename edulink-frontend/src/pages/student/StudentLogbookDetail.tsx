@@ -14,6 +14,7 @@ import StudentSidebar from '../../components/dashboard/StudentSidebar';
 import StudentHeader from '../../components/dashboard/StudentHeader';
 import { studentService } from '../../services/student/studentService';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import LogbookDetailSkeleton from '../../components/student/skeletons/LogbookDetailSkeleton';
 import { Badge, Card, Button } from 'react-bootstrap';
 import { generateLogbookPDF } from '../../utils/pdfGenerator';
@@ -27,7 +28,7 @@ const StudentLogbookDetail: React.FC = () => {
   const [evidence, setEvidence] = useState<any | null>(null);
   const [internship, setInternship] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const { isDarkMode, toggleDarkMode } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -56,7 +57,6 @@ const StudentLogbookDetail: React.FC = () => {
     fetchData();
   }, [evidenceId]);
 
-  const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
 
   const sharedStyles = (
@@ -70,15 +70,6 @@ const StudentLogbookDetail: React.FC = () => {
           margin-left: 280px !important;
           width: calc(100% - 280px) !important;
         }
-      }
-      .log-detail-card {
-          transition: all 0.3s ease;
-          border: 1px solid ${isDarkMode ? '#334155' : '#f3f4f6'};
-          background-color: ${isDarkMode ? '#1e293b' : 'white'} !important;
-      }
-      .log-detail-card:hover {
-          border-color: ${isDarkMode ? '#475569' : '#e2e8f0'};
-          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3) !important;
       }
       .entry-item {
           position: relative;
@@ -159,8 +150,6 @@ const StudentLogbookDetail: React.FC = () => {
               <StudentHeader
                 onMobileMenuClick={toggleMobileMenu}
                 isMobileMenuOpen={isMobileMenuOpen}
-                isDarkMode={isDarkMode}
-                onToggleDarkMode={toggleDarkMode}
               />
             </div>
             <div className="px-3 px-lg-5 py-4">
@@ -201,8 +190,6 @@ const StudentLogbookDetail: React.FC = () => {
           <StudentHeader
             onMobileMenuClick={toggleMobileMenu}
             isMobileMenuOpen={isMobileMenuOpen}
-            isDarkMode={isDarkMode}
-            onToggleDarkMode={toggleDarkMode}
           />
         </div>
 
@@ -261,7 +248,7 @@ const StudentLogbookDetail: React.FC = () => {
                                 {date}
                             </Badge>
                           </div>
-                          <div className={`lh-lg ${isDarkMode ? 'text-light opacity-90' : 'text-dark'}`} style={{ whiteSpace: 'pre-wrap' }}>
+                          <div className={`lh-lg ${isDarkMode ? 'text-light opacity-90' : 'text-dark opacity-90'}`} style={{ whiteSpace: 'pre-wrap' }}>
                             {entries[date]}
                           </div>
                         </div>
@@ -317,7 +304,7 @@ const StudentLogbookDetail: React.FC = () => {
                             <User size={16} className="text-info" />
                             <span className="fw-bold small text-info text-uppercase">Employer Review</span>
                         </div>
-                        <p className="small mb-0 text-dark opacity-90">
+                        <p className={`small mb-0 ${isDarkMode ? 'text-light opacity-90' : 'text-dark opacity-90'}`}>
                             {evidence.employer_review_notes || "No feedback yet from the employer supervisor."}
                         </p>
                     </div>
@@ -328,7 +315,7 @@ const StudentLogbookDetail: React.FC = () => {
                             <User size={16} className="text-warning" />
                             <span className="fw-bold small text-warning text-uppercase">Institution Review</span>
                         </div>
-                        <p className="small mb-0 text-dark opacity-90">
+                        <p className={`small mb-0 ${isDarkMode ? 'text-light opacity-90' : 'text-dark opacity-90'}`}>
                             {evidence.institution_review_notes || "No feedback yet from the institution supervisor."}
                         </p>
                     </div>

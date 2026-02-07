@@ -220,6 +220,13 @@ def can_respond_to_support_tickets(*, actor: User) -> bool:
     ).exists()
 
 
+def can_manage_contact_submissions(*, actor: User) -> bool:
+    """
+    Moderators and above can manage contact submissions.
+    """
+    return can_respond_to_support_tickets(actor=actor)
+
+
 def can_flag_suspicious_behavior(*, actor: User) -> bool:
     """
     All platform staff can flag suspicious behavior.

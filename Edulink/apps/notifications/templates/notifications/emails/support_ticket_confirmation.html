@@ -1,0 +1,20 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}Support Ticket Received - {{ tracking_code }}{% endblock %}
+
+{% block content %}
+<h2>Support Ticket Received</h2>
+<p>Dear {{ name }},</p>
+<p>Thank you for contacting Edulink Support. We have received your request and our team will review it shortly.</p>
+
+<div class="highlight-box">
+    <p><strong>Tracking Code:</strong> {{ tracking_code }}</p>
+    <p><strong>Subject:</strong> {{ subject }}</p>
+    <p><strong>Category:</strong> {{ category }}</p>
+    <p><strong>Submitted On:</strong> {{ created_at }}</p>
+</div>
+
+<p>You can use the tracking code above to reference your request in any future communications. We typically respond to all inquiries within 24-48 business hours.</p>
+
+<p>Best regards,<br>The Edulink Support Team</p>
+{% endblock %}

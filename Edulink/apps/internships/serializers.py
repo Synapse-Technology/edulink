@@ -159,6 +159,7 @@ class InternshipApplicationSerializer(serializers.ModelSerializer):
         if supervisor:
             return {
                 "id": str(supervisor.id),
+                "user_id": str(supervisor.user_id),
                 "name": f"{supervisor.user.first_name} {supervisor.user.last_name}",
                 "email": supervisor.user.email
             }
@@ -172,6 +173,7 @@ class InternshipApplicationSerializer(serializers.ModelSerializer):
         if supervisor:
             return {
                 "id": str(supervisor.id),
+                "user_id": str(supervisor.user_id),
                 "name": f"{supervisor.user.first_name} {supervisor.user.last_name}",
                 "email": supervisor.user.email
             }

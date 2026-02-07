@@ -308,28 +308,10 @@ def get_system_health_status():
 def get_system_activity_logs(limit: int = 50):
     """
     Get authoritative system activity logs from the ledger.
+    Returns raw ledger events to be formatted by serializers.
     """
     from edulink.apps.ledger import queries as ledger_queries
-    events = ledger_queries.get_recent_ledger_events(limit=limit)
-    
-    activity = []
-    for event in events:
-        # Debugging the object to see available attributes
-        # Choices from error: actor_id, actor_role, created_at, entity_id, entity_type, 
-        # event_type, hash, id, occurred_at, payload, previous_hash, updated_at
-        
-        # Use occurred_at which is confirmed to be in choices
-        event_time = getattr(event, 'occurred_at', getattr(event, 'created_at', None))
-        
-        activity.append({
-            'id': str(event.id),
-            'action': str(event.event_type).replace('_', ' ').title(),
-            'actor': f"User {str(event.actor_id)[:8]}",
-            'timestamp': event_time.isoformat() if event_time else None,
-            'details': f"{event.entity_type} {str(event.entity_id)[:8]} updated",
-            'severity': 'error' if 'FAILURE' in str(event.event_type) else 'info'
-        })
-    return activity
+    return ledger_queries.get_recent_ledger_events(limit=limit)
 
 
 def get_institution_management_stats():
@@ -428,6 +410,12 @@ def get_pending_institution_requests():
     from edulink.apps.institutions import queries as institution_queries
     
     return institution_queries.list_pending_institution_requests()
+
+
+def get_contact_submissions():
+    """Get all contact submissions for staff review."""
+    from edulink.apps.contact import queries as contact_queries
+    return contact_queries.get_all_submissions()
 
 
 def get_institution_requests_by_status(status: str = None):

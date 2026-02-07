@@ -15,6 +15,8 @@ from .models import (
 )
 
 
+from django.db.models import QuerySet
+
 def get_institution_staff_by_id(*, staff_id: UUID) -> Optional[InstitutionStaff]:
     """
     Get an institution staff member by their UUID.
@@ -348,3 +350,15 @@ def get_institution_interest_statistics():
         "recent_requests": list(recent_requests),
         "total_requests": InstitutionInterest.objects.count()
     }
+
+
+def get_institution_request_queryset(*, status_filter: str = None) -> QuerySet:
+    """
+    Get queryset for institution requests with optional filtering.
+    """
+    if status_filter == "pending":
+        return list_pending_institution_requests()
+    elif status_filter == "reviewed":
+        return list_reviewed_institution_requests()
+    else:
+        return InstitutionRequest.objects.all().order_by("-created_at")

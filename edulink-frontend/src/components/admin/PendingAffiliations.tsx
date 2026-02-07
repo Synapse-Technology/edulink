@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { toast } from 'react-hot-toast';
+import { FeedbackModal } from '../common';
+import { useFeedbackModal } from '../../hooks/useFeedbackModal';
 
 interface StudentInstitutionAffiliation {
   id: string;
@@ -23,6 +26,7 @@ const PendingAffiliations: React.FC<PendingAffiliationsProps> = ({ institutionId
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const { feedbackProps, showError, showSuccess } = useFeedbackModal();
 
   const fetchPendingAffiliations = async () => {
     try {
@@ -77,9 +81,9 @@ const PendingAffiliations: React.FC<PendingAffiliationsProps> = ({ institutionId
       setAffiliations(prev => prev.filter(affiliation => affiliation.id !== affiliationId));
       
       // Show success message
-      alert('Affiliation approved successfully!');
-    } catch (err) {
-      alert(`Error: ${err instanceof Error ? err.message : 'Failed to approve affiliation'}`);
+      showSuccess('Affiliation Approved', 'The student affiliation has been approved successfully.');
+    } catch (err: any) {
+      showError('Approval Failed', 'We could not approve the affiliation.', err.message);
     } finally {
       setProcessingId(null);
     }
@@ -106,9 +110,9 @@ const PendingAffiliations: React.FC<PendingAffiliationsProps> = ({ institutionId
       setAffiliations(prev => prev.filter(affiliation => affiliation.id !== affiliationId));
       
       // Show success message
-      alert('Affiliation rejected successfully!');
-    } catch (err) {
-      alert(`Error: ${err instanceof Error ? err.message : 'Failed to reject affiliation'}`);
+      showSuccess('Affiliation Rejected', 'The student affiliation has been rejected successfully.');
+    } catch (err: any) {
+      showError('Rejection Failed', 'We could not reject the affiliation.', err.message);
     } finally {
       setProcessingId(null);
     }
@@ -258,6 +262,7 @@ const PendingAffiliations: React.FC<PendingAffiliationsProps> = ({ institutionId
           </div>
         ))}
       </div>
+      <FeedbackModal {...feedbackProps} />
     </div>
   );
 };

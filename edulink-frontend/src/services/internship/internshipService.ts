@@ -73,6 +73,7 @@ export interface InternshipApplication {
   employer_supervisor_id?: string;
   employer_supervisor_details?: {
     id: string;
+    user_id?: string;
     name: string;
     email: string;
   };
@@ -80,6 +81,7 @@ export interface InternshipApplication {
   institution_supervisor_id?: string;
   institution_supervisor_details?: {
     id: string;
+    user_id?: string;
     name: string;
     email: string;
   };
@@ -206,7 +208,10 @@ class InternshipService {
         });
       }
       
-      const response = await this.client.get<InternshipOpportunity[]>('/api/internships/', { params: cleanParams });
+      const response = await this.client.get<InternshipOpportunity[]>('/api/internships/', { 
+        params: cleanParams,
+        headers: { 'skip-auth': 'true' }
+      });
       return response;
     } catch (error) {
       if (error instanceof ApiError) throw error;
@@ -216,7 +221,9 @@ class InternshipService {
 
   async getInternship(id: string): Promise<InternshipOpportunity> {
     try {
-      const response = await this.client.get<InternshipOpportunity>(`/api/internships/${id}/`);
+      const response = await this.client.get<InternshipOpportunity>(`/api/internships/${id}/`, {
+        headers: { 'skip-auth': 'true' }
+      });
       return response;
     } catch (error) {
       if (error instanceof ApiError) throw error;
@@ -446,7 +453,9 @@ class InternshipService {
 
   async getSuccessStories(): Promise<SuccessStory[]> {
     try {
-      const response = await this.client.get<SuccessStory[]>('/api/internships/success-stories/');
+      const response = await this.client.get<SuccessStory[]>('/api/internships/success-stories/', {
+        headers: { 'skip-auth': 'true' }
+      });
       return response;
     } catch (error) {
       if (error instanceof ApiError) throw error;

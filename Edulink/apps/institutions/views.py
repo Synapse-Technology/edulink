@@ -175,26 +175,20 @@ class InstitutionViewSet(viewsets.ReadOnlyModelViewSet):
         """
         List all students affiliated with the current user's institution.
         """
-        from edulink.apps.students.queries import get_all_affiliations_for_institution
+        from edulink.apps.students.queries import get_institution_students_queryset, get_students_by_ids
         from edulink.apps.students.serializers import StudentInstitutionAffiliationSerializer
         
         institution = get_institution_for_user(str(request.user.id))
         if not institution:
             return Response({"detail": "No institution found for this user."}, status=status.HTTP_404_NOT_FOUND)
             
-        affiliations = get_all_affiliations_for_institution(str(institution.id))
-        
-        # Support filtering by department/cohort if needed
-        dept_id = request.query_params.get('department_id')
-        cohort_id = request.query_params.get('cohort_id')
-        
-        if dept_id:
-            affiliations = affiliations.filter(department_id=dept_id)
-        if cohort_id:
-            affiliations = affiliations.filter(cohort_id=cohort_id)
+        affiliations = get_institution_students_queryset(
+            institution_id=str(institution.id),
+            department_id=request.query_params.get('department_id'),
+            cohort_id=request.query_params.get('cohort_id')
+        )
             
         # Batch fetch students to avoid N+1 in serializer
-        from edulink.apps.students.queries import get_students_by_ids
         student_ids = [str(a.student_id) for a in affiliations]
         students_map = get_students_by_ids(student_ids)
             
@@ -454,14 +448,9 @@ class InstitutionRequestViewSet(viewsets.ModelViewSet):
     serializer_class = InstitutionRequestSerializer
 
     def get_queryset(self):
+        from .queries import get_institution_request_queryset
         status_filter = self.request.query_params.get("status", None)
-        if status_filter == "pending":
-            return list_pending_institution_requests()
-        elif status_filter == "reviewed":
-            return list_reviewed_institution_requests()
-        else:
-            # Default to all requests for admins
-            return InstitutionRequest.objects.all().order_by("-created_at")
+        return get_institution_request_queryset(status_filter=status_filter)
 
     def get_permissions(self):
         if self.action == "create":
@@ -1132,31 +1121,20 @@ class InstitutionStudentVerificationViewSet(viewsets.ViewSet):
             
     @action(detail=False, methods=['post'], url_path='bulk-preview')
     def bulk_preview(self, request):
-        from edulink.apps.students.services import process_bulk_verification_preview
-        from edulink.apps.institutions.queries import get_institution_for_user
-        import csv
-        import io
-
+        from edulink.apps.institutions.services import process_bulk_verification_csv
+        
         file = request.FILES.get('file')
         if not file:
             return Response({'error': 'No file provided'}, status=status.HTTP_400_BAD_REQUEST)
             
+        inst = get_institution_for_user(str(request.user.id))
+        if not inst:
+             return Response({'error': 'Institution not found'}, status=status.HTTP_403_FORBIDDEN)
+
         try:
-            # Read file safely
-            decoded_file = file.read().decode('utf-8')
-            io_string = io.StringIO(decoded_file)
-            reader = csv.DictReader(io_string)
-            
-            # Simple list of dicts
-            rows = [row for row in reader]
-            
-            inst = get_institution_for_user(str(request.user.id))
-            if not inst:
-                 return Response({'error': 'Institution not found'}, status=status.HTTP_403_FORBIDDEN)
-                 
-            results = process_bulk_verification_preview(
+            results = process_bulk_verification_csv(
                 institution_id=str(inst.id),
-                rows=rows
+                file=file
             )
             return Response(results)
         except Exception as e:
@@ -1164,8 +1142,7 @@ class InstitutionStudentVerificationViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=['post'], url_path='bulk-confirm')
     def bulk_confirm(self, request):
-        from edulink.apps.students.services import bulk_verify_students, bulk_pre_register_students
-        from edulink.apps.institutions.queries import get_institution_for_user
+        from edulink.apps.institutions.services import process_bulk_verification_confirm
         
         entries = request.data.get('entries', [])
         if not entries:
@@ -1175,37 +1152,14 @@ class InstitutionStudentVerificationViewSet(viewsets.ViewSet):
         if not inst:
              return Response({'error': 'Institution not found'}, status=status.HTTP_403_FORBIDDEN)
              
-        dept_id = request.data.get('department_id')
-        cohort_id = request.data.get('cohort_id')
-        
-        # Split entries into existing and new
-        existing_entries = [e for e in entries if e.get('student_id')]
-        new_entries = [e for e in entries if not e.get('student_id') and e.get('email')]
-        
         try:
-            total_processed = 0
-            
-            # 1. Process existing students
-            if existing_entries:
-                verified = bulk_verify_students(
-                    student_entries=existing_entries,
-                    institution_id=str(inst.id),
-                    department_id=dept_id,
-                    cohort_id=cohort_id,
-                    actor_id=str(request.user.id)
-                )
-                total_processed += len(verified)
-                
-            # 2. Process new students (Pre-registration)
-            if new_entries:
-                pre_registered = bulk_pre_register_students(
-                    entries=new_entries,
-                    institution_id=str(inst.id),
-                    department_id=dept_id,
-                    cohort_id=cohort_id,
-                    actor_id=str(request.user.id)
-                )
-                total_processed += len(pre_registered)
+            total_processed = process_bulk_verification_confirm(
+                institution_id=str(inst.id),
+                entries=entries,
+                department_id=request.data.get('department_id'),
+                cohort_id=request.data.get('cohort_id'),
+                actor_id=str(request.user.id)
+            )
                 
             return Response({
                 'message': f'Successfully processed {total_processed} students', 
@@ -1222,7 +1176,6 @@ class PlacementMonitoringViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated, IsInstitutionAdmin]
 
     def list(self, request):
-        from edulink.apps.institutions.queries import get_institution_for_user
         from edulink.apps.internships.queries import get_active_placements_for_institution
         from edulink.apps.students.queries import get_students_by_ids
         from edulink.apps.employers.queries import get_employers_by_ids
@@ -1231,11 +1184,11 @@ class PlacementMonitoringViewSet(viewsets.ViewSet):
         if not inst:
             return Response({"detail": "No institution found."}, status=status.HTTP_404_NOT_FOUND)
             
-        placements = get_active_placements_for_institution(str(inst.id)).select_related('opportunity')
+        placements = get_active_placements_for_institution(institution_id=str(inst.id))
         
         # Collect IDs for batch fetching
         student_ids = [str(p.student_id) for p in placements if p.student_id]
-        employer_ids = [str(p.opportunity.employer_id) for p in placements if p.opportunity.employer_id]
+        employer_ids = [str(p.opportunity.employer_id) for p in placements if p.opportunity and p.opportunity.employer_id]
         
         students_map = get_students_by_ids(student_ids)
         employers_map = get_employers_by_ids(employer_ids)
@@ -1243,16 +1196,16 @@ class PlacementMonitoringViewSet(viewsets.ViewSet):
         data = []
         for p in placements:
             student = students_map.get(str(p.student_id))
-            employer = employers_map.get(str(p.opportunity.employer_id))
+            employer = employers_map.get(str(p.opportunity.employer_id) if p.opportunity else None)
             
             data.append({
                 "id": p.id,
-                "title": p.opportunity.title,
-                "department": p.opportunity.department,
+                "title": p.opportunity.title if p.opportunity else "N/A",
+                "department": p.opportunity.department if p.opportunity else "N/A",
                 "status": p.status,
-                "start_date": p.opportunity.start_date,
-                "end_date": p.opportunity.end_date,
-                "employer_id": p.opportunity.employer_id,
+                "start_date": p.opportunity.start_date if p.opportunity else None,
+                "end_date": p.opportunity.end_date if p.opportunity else None,
+                "employer_id": p.opportunity.employer_id if p.opportunity else None,
                 "employer_name": employer.name if employer else "Unknown Employer",
                 "student_info": {
                     "id": str(student.id),
@@ -1272,7 +1225,6 @@ class InstitutionReportsViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=['get'], url_path='placement-success')
     def placement_success(self, request):
-        from edulink.apps.institutions.queries import get_institution_for_user
         from edulink.apps.internships.queries import get_institution_placement_stats
         
         inst = get_institution_for_user(str(request.user.id))
@@ -1284,7 +1236,6 @@ class InstitutionReportsViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=['get'], url_path='time-to-placement')
     def time_to_placement(self, request):
-        from edulink.apps.institutions.queries import get_institution_for_user
         from edulink.apps.internships.queries import get_time_to_placement_stats
         
         inst = get_institution_for_user(str(request.user.id))
@@ -1299,10 +1250,7 @@ class InstitutionReportsViewSet(viewsets.ViewSet):
         """
         Export placement data as CSV.
         """
-        from edulink.apps.institutions.queries import get_institution_for_user
-        from edulink.apps.internships.queries import get_export_data
-        from edulink.apps.students.queries import get_students_by_ids
-        from edulink.apps.employers.queries import get_employers_by_ids
+        from edulink.apps.institutions.services import get_institution_placement_export_data
         import csv
         from django.http import HttpResponse
         
@@ -1310,14 +1258,7 @@ class InstitutionReportsViewSet(viewsets.ViewSet):
         if not inst:
             return Response({"detail": "No institution found."}, status=status.HTTP_404_NOT_FOUND)
             
-        qs = get_export_data(str(inst.id))
-        
-        # Prefetch related data manually due to UUID fields
-        student_ids = list(set([str(i.student_id) for i in qs if i.student_id]))
-        employer_ids = list(set([str(i.opportunity.employer_id) for i in qs if i.opportunity and i.opportunity.employer_id]))
-        
-        students_map = get_students_by_ids(student_ids)
-        employers_map = get_employers_by_ids(employer_ids)
+        export_rows = get_institution_placement_export_data(institution_id=str(inst.id))
         
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = f'attachment; filename="placement_report_{inst.id}.csv"'
@@ -1325,22 +1266,15 @@ class InstitutionReportsViewSet(viewsets.ViewSet):
         writer = csv.writer(response)
         writer.writerow(['Student Name', 'Student Email', 'Employer', 'Role', 'Status', 'Start Date', 'End Date'])
         
-        for internship in qs:
-            student = students_map.get(str(internship.student_id))
-            employer = employers_map.get(str(internship.opportunity.employer_id) if internship.opportunity else None)
-            
-            student_name = student.user.get_full_name() if student and student.user else "Unknown"
-            student_email = student.user.email if student and student.user else "Unknown"
-            employer_name = employer.name if employer else "Unknown"
-            
+        for row in export_rows:
             writer.writerow([
-                student_name,
-                student_email,
-                employer_name,
-                internship.opportunity.title,
-                internship.status,
-                internship.opportunity.start_date or "",
-                internship.opportunity.end_date or ""
+                row['student_name'],
+                row['student_email'],
+                row['employer_name'],
+                row['role'],
+                row['status'],
+                row['start_date'],
+                row['end_date']
             ])
             
         return response

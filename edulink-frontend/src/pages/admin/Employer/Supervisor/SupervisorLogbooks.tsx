@@ -4,6 +4,8 @@ import { CheckCircle, XCircle, FileText, Clock, RotateCcw, MessageSquare, Lock, 
 import { internshipService } from '../../../../services/internship/internshipService';
 import type { InternshipEvidence } from '../../../../services/internship/internshipService';
 import { toast } from 'react-hot-toast';
+import { FeedbackModal, DocumentPreviewModal } from '../../../../components/common';
+import { useFeedbackModal } from '../../../../hooks/useFeedbackModal';
 import { SupervisorLayout } from '../../../../components/admin/employer';
 import SupervisorTableSkeleton from '../../../../components/admin/skeletons/SupervisorTableSkeleton';
 
@@ -19,6 +21,12 @@ const SupervisorLogbooks: React.FC = () => {
   const [privateNotes, setPrivateNotes] = useState('');
   const [reviewAction, setReviewAction] = useState<'ACCEPTED' | 'REJECTED' | 'REVISION_REQUIRED' | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const { feedbackProps, showError, showSuccess } = useFeedbackModal();
+
+  // Preview Modal State
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewTitle, setPreviewTitle] = useState('');
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
     fetchEvidence();
@@ -39,9 +47,14 @@ const SupervisorLogbooks: React.FC = () => {
     }
   };
 
+  // No need to dynamically determine role here as this page is exclusively for Employer Supervisors
+  // However, we might want to check for read-only status if we reuse this component
+  const isReadOnly = false; // Supervisors usually can review unless completed, handled by backend error
+
   const handleReviewClick = (evidence: InternshipEvidence, action: 'ACCEPTED' | 'REJECTED' | 'REVISION_REQUIRED') => {
     setSelectedEvidence(evidence);
     setReviewAction(action);
+    // Assuming this component is ONLY for employer supervisors
     setReviewNotes(evidence.employer_review_notes || '');
     setPrivateNotes(evidence.employer_private_notes || '');
     setShowReviewModal(true);
@@ -63,15 +76,22 @@ const SupervisorLogbooks: React.FC = () => {
       const actionLabel = reviewAction === 'ACCEPTED' ? 'approved' : 
                          reviewAction === 'REVISION_REQUIRED' ? 'sent for revision' : 'rejected';
       
-      toast.success(`Logbook ${actionLabel} successfully`);
+      showSuccess(
+        'Review Complete',
+        `The logbook has been ${actionLabel} successfully.`
+      );
       setShowReviewModal(false);
       fetchEvidence(); // Refresh list
     } catch (err: any) {
       console.error("Failed to review evidence", err);
       if (err.response?.data?.detail?.includes("authorized")) {
-         toast.error("You cannot review this logbook (Internship might be completed).");
+         showError("Unauthorized", "You cannot review this logbook (Internship might be completed).");
       } else {
-         toast.error("Failed to submit review");
+         showError(
+           "Review Failed",
+           "We encountered an error while trying to submit your review.",
+           err.response?.data?.error || err.message
+         );
       }
     } finally {
       setSubmitting(false);
@@ -236,10 +256,18 @@ const SupervisorLogbooks: React.FC = () => {
                 <h6 className="fw-bold text-muted text-uppercase small mb-0">Daily Entries</h6>
                 <div className="d-flex gap-2">
                     {selectedEvidence?.file && (
-                      <a href={selectedEvidence.file} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-outline-primary d-inline-flex align-items-center rounded-pill px-3">
+                      <button 
+                        type="button"
+                        className="btn btn-sm btn-outline-primary d-inline-flex align-items-center rounded-pill px-3"
+                        onClick={() => {
+                          setPreviewTitle('Attachment');
+                          setPreviewUrl(selectedEvidence.file);
+                          setPreviewOpen(true);
+                        }}
+                      >
                         <FileText size={14} className="me-2" />
                         View Attachment
-                      </a>
+                      </button>
                     )}
                     <Badge bg="primary" className="bg-opacity-10 text-primary border border-primary-subtle rounded-pill px-3 py-2">
                     {selectedEvidence?.metadata?.weekStartDate ? `Week of ${selectedEvidence.metadata.weekStartDate}` : 'Weekly Submission'}
@@ -304,11 +332,11 @@ const SupervisorLogbooks: React.FC = () => {
 
             <hr className="my-4 opacity-10" />
 
-            <div className="bg-primary bg-opacity-10 p-3 rounded-3 mb-4 border border-primary-subtle">
-                <h6 className="fw-bold text-primary small text-uppercase mb-2 d-flex align-items-center gap-2">
-                    <MessageSquare size={14} /> Your Review (As Employer Supervisor)
-                </h6>
-                <div className="row g-3">
+          <div className={`p-3 rounded-3 mb-4 border bg-primary bg-opacity-10 border-primary-subtle`}>
+              <h6 className={`fw-bold small text-uppercase mb-2 d-flex align-items-center gap-2 text-primary`}>
+                  <MessageSquare size={14} /> Your Review (As Employer Supervisor)
+              </h6>
+              <div className="row g-3">
                 <div className="col-md-6">
                     <Form.Group>
                     <Form.Label className="fw-bold small text-muted">Student Feedback (Public)</Form.Label>
@@ -370,6 +398,14 @@ const SupervisorLogbooks: React.FC = () => {
             </div>
           </Modal.Footer>
         </Modal>
+        <FeedbackModal {...feedbackProps} />
+
+        <DocumentPreviewModal 
+          show={previewOpen}
+          onHide={() => setPreviewOpen(false)}
+          title={previewTitle}
+          url={previewUrl}
+        />
 
         <style>{`
           .hover-lift {

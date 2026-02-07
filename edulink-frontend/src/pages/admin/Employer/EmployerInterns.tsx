@@ -8,6 +8,8 @@ import { internshipService } from '../../../services/internship/internshipServic
 import type { InternshipApplication } from '../../../services/internship/internshipService';
 import TrustBadge, { type TrustLevel } from '../../../components/common/TrustBadge';
 import { toast } from 'react-hot-toast';
+import { FeedbackModal } from '../../../components/common';
+import { useFeedbackModal } from '../../../hooks/useFeedbackModal';
 
 const EmployerInterns: React.FC = () => {
   const navigate = useNavigate();
@@ -21,6 +23,7 @@ const EmployerInterns: React.FC = () => {
   const [supervisors, setSupervisors] = useState<any[]>([]);
   const [selectedSupervisor, setSelectedSupervisor] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+  const { feedbackProps, showError, showSuccess, showConfirm } = useFeedbackModal();
 
   useEffect(() => {
     fetchApplications();
@@ -70,20 +73,27 @@ const EmployerInterns: React.FC = () => {
     if (!selectedApp || !selectedSupervisor) return;
     
     if (selectedApp.employer_supervisor_id && selectedApp.employer_supervisor_id !== selectedSupervisor) {
-      if (!window.confirm('This student already has a supervisor assigned. Are you sure you want to change them?')) {
-        return;
-      }
+      showConfirm({
+        title: 'Change Mentor',
+        message: 'This student already has a mentor assigned. Are you sure you want to change them?',
+        onConfirm: executeAssignment
+      });
+    } else {
+      executeAssignment();
     }
+  };
 
+  const executeAssignment = async () => {
+    if (!selectedApp || !selectedSupervisor) return;
     try {
       setActionLoading(true);
       await internshipService.assignSupervisor(selectedApp.id, selectedSupervisor, 'employer');
-      toast.success('Supervisor assigned successfully');
+      showSuccess('Mentor Assigned', 'The mentor has been assigned successfully.');
       setShowAssignModal(false);
       fetchApplications();
     } catch (error: any) {
       console.error('Failed to assign supervisor:', error);
-      toast.error(error.message || 'Failed to assign supervisor');
+      showError('Assignment Failed', 'We could not assign the mentor at this time.', error.message);
     } finally {
       setActionLoading(false);
     }
@@ -293,6 +303,7 @@ const EmployerInterns: React.FC = () => {
           </div>
         )}
       </div>
+      <FeedbackModal {...feedbackProps} />
     </EmployerLayout>
   );
 };

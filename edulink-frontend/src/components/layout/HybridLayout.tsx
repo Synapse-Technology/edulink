@@ -4,6 +4,7 @@ import Layout from './Layout';
 import StudentLayout from '../dashboard/StudentLayout';
 import EmployerLayout from '../admin/employer/EmployerLayout';
 import InstitutionLayout from '../admin/institution/InstitutionLayout';
+import { ThemeProvider } from '../../contexts/ThemeContext';
 
 interface HybridLayoutProps {
   children: React.ReactNode;
@@ -19,7 +20,11 @@ const HybridLayout: React.FC<HybridLayoutProps> = ({ children }) => {
   // Determine role-based layout
   switch (user.role) {
     case 'student':
-      return <StudentLayout>{children}</StudentLayout>;
+      return (
+        <ThemeProvider>
+          <StudentLayout>{children}</StudentLayout>
+        </ThemeProvider>
+      );
     case 'employer':
     case 'employer_admin':
       return <EmployerLayout>{children}</EmployerLayout>;

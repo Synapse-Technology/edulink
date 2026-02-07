@@ -18,6 +18,8 @@ urlpatterns = [
     path("api/ledger/", include("edulink.apps.ledger.urls")),
     path("api/reports/", include("edulink.apps.reports.urls")),
     path("api/notifications/", include("edulink.apps.notifications.urls")),
+    path("api/support/", include("edulink.apps.support.urls")),
+    path("api/contact/", include("edulink.apps.contact.urls")),
 ]
 
 if settings.DEBUG:

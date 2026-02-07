@@ -6,6 +6,7 @@ import InstitutionLayout from '../../../components/admin/institution/Institution
 import DashboardCharts from '../../../components/dashboard/institution/DashboardCharts';
 import InstitutionDashboardSkeleton from '../../../components/admin/skeletons/InstitutionDashboardSkeleton';
 import TrustProgressWidget from '../../../components/dashboard/TrustProgressWidget';
+import { SEO } from '../../../components/common';
 import { institutionService } from '../../../services/institution/institutionService';
 import type { PlacementStats } from '../../../services/institution/institutionService';
 
@@ -66,6 +67,10 @@ const InstitutionDashboard: React.FC = () => {
 
   return (
     <InstitutionLayout>
+      <SEO 
+        title="Institution Dashboard"
+        description="Monitor student placements, verify logbooks, and manage your institution's profile on EduLink KE."
+      />
       <style>{`
         .hover-lift {
           transition: transform 0.2s ease, box-shadow 0.2s ease;

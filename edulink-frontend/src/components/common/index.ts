@@ -4,3 +4,7 @@ export { default as FormInput } from './FormInput';
 export type { FormInputProps } from './FormInput';
 export { default as ErrorHero } from './ErrorHero';
 export { default as ErrorCard } from './ErrorCard';
+export { default as FeedbackModal } from './FeedbackModal';
+export type { FeedbackVariant } from './FeedbackModal';
+export { default as SEO } from './SEO';
+export { default as DocumentPreviewModal } from './DocumentPreviewModal';

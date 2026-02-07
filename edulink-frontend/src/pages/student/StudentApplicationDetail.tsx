@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MapPin, Briefcase, Calendar, Building2, CheckCircle, Clock, XCircle, FileText } from 'lucide-react';
+import { ArrowLeft, MapPin, Briefcase, Calendar, Building2, CheckCircle, Clock, XCircle, FileText, Maximize2 } from 'lucide-react';
 import StudentHeader from '../../components/dashboard/StudentHeader';
 import StudentSidebar from '../../components/dashboard/StudentSidebar';
+import { DocumentPreviewModal } from '../../components/common';
 import { internshipService } from '../../services/internship/internshipService';
 import type { InternshipApplication } from '../../services/internship/internshipService';
-import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 
 const StudentApplicationDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -13,27 +14,20 @@ const StudentApplicationDetail: React.FC = () => {
   const [application, setApplication] = useState<InternshipApplication | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Theme state
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    const savedTheme = localStorage.getItem('theme');
-    return savedTheme === 'dark';
-  });
+  // Theme state from context
+  const { isDarkMode } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Preview Modal State
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewTitle, setPreviewTitle] = useState('');
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) {
       fetchApplication(id);
     }
   }, [id]);
-
-  useEffect(() => {
-    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
-    if (isDarkMode) {
-      document.body.classList.add('dark-mode');
-    } else {
-      document.body.classList.remove('dark-mode');
-    }
-  }, [isDarkMode]);
 
   const fetchApplication = async (appId: string) => {
     try {
@@ -47,7 +41,6 @@ const StudentApplicationDetail: React.FC = () => {
     }
   };
 
-  const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
@@ -95,7 +88,7 @@ const StudentApplicationDetail: React.FC = () => {
          // but since 'REJECTED' isn't a step in the linear happy path, we just stop progress.
          
          if (index === 0) { // Applied is always done
-            stepClass = 'text-dark fw-bold';
+            stepClass = isDarkMode ? 'text-light fw-bold' : 'text-dark fw-bold';
             iconClass = 'bg-success text-white';
             // The line AFTER applied should be red to indicate stoppage
          } else {
@@ -103,7 +96,7 @@ const StudentApplicationDetail: React.FC = () => {
             iconClass = 'bg-secondary bg-opacity-10 text-secondary';
          }
       } else if (index <= currentIndex) {
-        stepClass = 'text-dark fw-bold';
+        stepClass = isDarkMode ? 'text-light fw-bold' : 'text-dark fw-bold';
         iconClass = 'bg-success text-white';
       }
 
@@ -126,7 +119,7 @@ const StudentApplicationDetail: React.FC = () => {
               }}
             ></div>
           )}
-          <div className={`rounded-circle d-flex align-items-center justify-content-center mb-2 position-relative ${iconClass}`} style={{ width: '30px', height: '30px', zIndex: 1, border: '4px solid white' }}>
+          <div className={`rounded-circle d-flex align-items-center justify-content-center mb-2 position-relative ${iconClass}`} style={{ width: '30px', height: '30px', zIndex: 1, border: `4px solid ${isDarkMode ? '#1e293b' : 'white'}` }}>
             {/* If rejected and we want to show an X somewhere, we could do it here. 
                 But currently we just show 'Applied' as checked, and the rest empty. 
             */}
@@ -135,7 +128,7 @@ const StudentApplicationDetail: React.FC = () => {
               <div style={{width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'currentColor'}}></div>
             )}
           </div>
-          <small className={`text-center ${stepClass} ${isDarkMode ? 'text-light' : ''}`}>{step.label}</small>
+          <small className={`text-center ${stepClass}`}>{step.label}</small>
           {step.date && <small className="text-muted text-center" style={{fontSize: '0.7rem'}}>{new Date(step.date).toLocaleDateString()}</small>}
         </div>
       );
@@ -202,24 +195,6 @@ const StudentApplicationDetail: React.FC = () => {
               max-width: calc(100vw - 280px) !important;
             }
           }
-          .card {
-            background-color: ${isDarkMode ? '#1e293b' : 'white'} !important;
-            border: 1px solid ${isDarkMode ? '#334155' : '#e2e8f0'} !important;
-            transition: all 0.3s ease;
-          }
-          .card:hover {
-            border-color: ${isDarkMode ? '#475569' : '#cbd5e1'} !important;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, ${isDarkMode ? '0.3' : '0.1'}) !important;
-          }
-          .text-muted {
-            color: ${isDarkMode ? '#94a3b8' : '#6c757d'} !important;
-          }
-          .bg-light {
-            background-color: ${isDarkMode ? '#1e293b' : '#f8f9fa'} !important;
-          }
-          .border-bottom {
-            border-bottom-color: ${isDarkMode ? '#334155' : '#dee2e6'} !important;
-          }
           .step-icon {
             background-color: ${isDarkMode ? '#334155' : 'rgba(0,0,0,0.05)'} !important;
           }
@@ -232,8 +207,6 @@ const StudentApplicationDetail: React.FC = () => {
           <StudentHeader
             onMobileMenuClick={toggleMobileMenu}
             isMobileMenuOpen={isMobileMenuOpen}
-            isDarkMode={isDarkMode}
-            onToggleDarkMode={toggleDarkMode}
           />
         </div>
 
@@ -322,9 +295,19 @@ const StudentApplicationDetail: React.FC = () => {
                     <small className={`d-block mb-1 ${isDarkMode ? 'text-light opacity-50' : 'text-muted'}`}>Submitted Documents</small>
                     <div className="d-flex flex-column gap-2 mt-2">
                        {application.application_snapshot?.cv && (
-                         <div className={`d-flex align-items-center p-2 rounded ${isDarkMode ? 'bg-dark' : 'bg-light'}`}>
-                           <FileText size={16} className="me-2 text-danger" />
-                           <span className="small">CV / Resume</span>
+                         <div 
+                           className={`d-flex align-items-center justify-content-between p-2 rounded cursor-pointer transition-all hover-lift ${isDarkMode ? 'bg-dark border border-secondary' : 'bg-light'}`}
+                           onClick={() => {
+                             setPreviewTitle('CV / Resume');
+                             setPreviewUrl(application.application_snapshot.cv);
+                             setPreviewOpen(true);
+                           }}
+                         >
+                           <div className="d-flex align-items-center">
+                             <FileText size={16} className="me-2 text-danger" />
+                             <span className="small">CV / Resume</span>
+                           </div>
+                           <Maximize2 size={14} className="text-muted" />
                          </div>
                        )}
                     </div>
@@ -347,6 +330,13 @@ const StudentApplicationDetail: React.FC = () => {
             </div>
           </div>
         </div>
+
+        <DocumentPreviewModal 
+          show={previewOpen}
+          onHide={() => setPreviewOpen(false)}
+          title={previewTitle}
+          url={previewUrl}
+        />
       </div>
     </div>
   );

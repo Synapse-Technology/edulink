@@ -259,12 +259,12 @@ def calculate_trend(current_count: int, previous_count: int) -> float:
 
 def get_supervisor_for_student(student_id: UUID) -> Optional[dict]:
     """
-    Returns the assigned institution supervisor for a student's active internship.
+    Returns the assigned institution supervisor for a student's active or recent internship.
     """
     app = InternshipApplication.objects.filter(
         student_id=student_id,
-        status=ApplicationStatus.ACTIVE
-    ).first()
+        status__in=[ApplicationStatus.ACTIVE, ApplicationStatus.COMPLETED, ApplicationStatus.CERTIFIED]
+    ).order_by('-updated_at').first()
     
     if app and app.institution_supervisor_id:
         from edulink.apps.institutions.queries import get_institution_staff_by_id

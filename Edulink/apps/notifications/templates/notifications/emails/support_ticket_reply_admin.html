@@ -1,0 +1,21 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}User Reply - Ticket {{ tracking_code }}{% endblock %}
+
+{% block content %}
+<h2>New Reply from User</h2>
+<p>Hello Support Team,</p>
+<p>The user <strong>{{ sender_name }}</strong> has replied to support ticket <strong>#{{ tracking_code }}</strong>.</p>
+
+<div class="highlight-box">
+    <p><strong>Ticket Subject:</strong> {{ ticket_subject }}</p>
+    <p><strong>Message:</strong></p>
+    <p style="margin-top: 12px; font-style: italic; border-left: 2px solid #1ab8aa; padding-left: 12px;">{{ message|linebreaksbr }}</p>
+</div>
+
+<div style="text-align: center;">
+    <a href="{{ view_url }}" class="email-button">View in Admin Panel</a>
+</div>
+
+<p>Best regards,<br>System Notification</p>
+{% endblock %}

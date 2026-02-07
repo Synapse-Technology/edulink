@@ -4,6 +4,8 @@ import { Lock, ShieldAlert, Save, Eye, EyeOff } from 'lucide-react';
 import { EmployerLayout } from '../../../components/admin/employer';
 import { authService } from '../../../services/auth/authService';
 import { toast } from 'react-hot-toast';
+import { FeedbackModal } from '../../../components/common';
+import { useFeedbackModal } from '../../../hooks/useFeedbackModal';
 import { useNavigate } from 'react-router-dom';
 
 const EmployerSettings: React.FC = () => {
@@ -15,6 +17,7 @@ const EmployerSettings: React.FC = () => {
   const [deactivateReason, setDeactivateReason] = useState('');
   
   const navigate = useNavigate();
+  const { feedbackProps, showError, showConfirm } = useFeedbackModal();
 
   const { 
     register: registerPassword, 
@@ -36,29 +39,41 @@ const EmployerSettings: React.FC = () => {
       resetPassword();
     } catch (error: any) {
       console.error('Failed to change password:', error);
-      toast.error(error.message || 'Failed to change password');
+      showError(
+        'Password Change Failed',
+        'We could not update your password.',
+        error.message
+      );
     } finally {
       setIsChangingPassword(false);
     }
   };
 
   const onDeactivateAccount = async () => {
-    if (!window.confirm('Are you sure you want to deactivate your account? This action cannot be undone immediately.')) {
-      return;
-    }
-
-    try {
-      setIsDeactivating(true);
-      await authService.deactivateAccount(deactivateReason);
-      toast.success('Account deactivated successfully');
-      authService.logout(); // Logout after deactivation
-      navigate('/employer/login');
-    } catch (error: any) {
-      console.error('Failed to deactivate account:', error);
-      toast.error(error.message || 'Failed to deactivate account');
-    } finally {
-      setIsDeactivating(false);
-    }
+    showConfirm({
+      title: 'Deactivate Account',
+      message: 'Are you sure you want to deactivate your account? This action cannot be undone immediately.',
+      variant: 'error',
+      confirmLabel: 'Deactivate',
+      onConfirm: async () => {
+        try {
+          setIsDeactivating(true);
+          await authService.deactivateAccount(deactivateReason);
+          toast.success('Account deactivated successfully');
+          authService.logout(); // Logout after deactivation
+          navigate('/employer/login');
+        } catch (error: any) {
+          console.error('Failed to deactivate account:', error);
+          showError(
+            'Deactivation Failed',
+            'An error occurred while trying to deactivate your account.',
+            error.message
+          );
+        } finally {
+          setIsDeactivating(false);
+        }
+      }
+    });
   };
 
   return (
@@ -255,6 +270,8 @@ const EmployerSettings: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <FeedbackModal {...feedbackProps} />
     </EmployerLayout>
   );
 };
