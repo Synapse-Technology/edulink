@@ -1,6 +1,6 @@
 # Multi-stage Dockerfile for Full-Stack Edulink Application
 # Stage 1: Build Backend
-FROM python:3.11-slim as backend-builder
+FROM python:3.11-slim AS backend-builder
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -20,11 +20,11 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app/backend
 
 # Copy requirements and install Python dependencies
-COPY edulink/requirements.txt .
+COPY Edulink/requirements.txt .
 RUN pip install --user --no-cache-dir -r requirements.txt
 
 # Stage 2: Production stage
-FROM python:3.11-slim as production
+FROM python:3.11-slim AS production
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -53,7 +53,7 @@ RUN mkdir -p /app/backend /app/frontend /app/staticfiles /app/mediafiles /app/lo
 COPY --from=backend-builder /root/.local /root/.local
 
 # Copy backend application
-COPY edulink/ /app/backend/
+COPY Edulink/ /app/backend/
 WORKDIR /app/backend
 
 # Copy frontend files
