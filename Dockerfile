@@ -145,7 +145,9 @@ EOF
 RUN chown -R edulink:edulink /app/backend /app/frontend
 
 # Collect static files
-RUN python manage.py collectstatic --noinput || true
+RUN SECRET_KEY=dummy DB_NAME=dummy DB_USER=dummy DB_PASSWORD=dummy DB_HOST=dummy \
+    EMAIL_HOST=dummy EMAIL_HOST_USER=dummy EMAIL_HOST_PASSWORD=dummy \
+    python manage.py collectstatic --noinput
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
