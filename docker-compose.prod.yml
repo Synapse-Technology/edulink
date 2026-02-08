@@ -26,19 +26,7 @@ services:
       - db
       - redis
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  frontend:
-    image: ${FRONTEND_IMAGE:-edulink-frontend:latest}
-    container_name: edulink-frontend
-    restart: unless-stopped
-    networks:
-      - edulink-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80/"]
+      test: ["CMD", "curl", "-f", "http://localhost/health/"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -59,7 +47,6 @@ services:
       - edulink-network
     depends_on:
       - backend
-      - frontend
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost/health/"]
       interval: 30s

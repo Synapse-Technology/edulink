@@ -20,7 +20,7 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app/backend
 
 # Copy requirements and install Python dependencies
-COPY Edulink/requirements.txt .
+COPY edulink/requirements.txt .
 RUN pip install --user --no-cache-dir -r requirements.txt
 
 # Stage 2: Production stage
@@ -53,7 +53,7 @@ RUN mkdir -p /app/backend /app/frontend /app/staticfiles /app/mediafiles /app/lo
 COPY --from=backend-builder /root/.local /root/.local
 
 # Copy backend application
-COPY Edulink/ /app/backend/
+COPY edulink/ /app/backend/
 WORKDIR /app/backend
 
 # Copy frontend files
@@ -124,7 +124,7 @@ nodaemon=true
 user=root
 
 [program:django]
-command=python manage.py runserver 0.0.0.0:8000
+command=gunicorn --bind 0.0.0.0:8000 --workers 3 Edulink.wsgi:application
 directory=/app/backend
 user=edulink
 autostart=true
