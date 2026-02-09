@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { contactService, ContactSubmission } from '../../../services/contact/contactService';
+import { contactService } from '../../../services/contact/contactService';
+import type { ContactSubmission } from '../../../services/contact/contactService';
 import { useFeedbackModal } from '../../../hooks/useFeedbackModal';
 import { FeedbackModal } from '../../../components/common';
 import { format } from 'date-fns';
@@ -36,12 +37,12 @@ const ContactManagement: React.FC = () => {
   const handleProcess = async (id: string) => {
     try {
       await contactService.processSubmission(id, internalNotes);
-      showSuccess('Submission marked as processed successfully');
+      showSuccess('Processing Complete', 'Submission marked as processed successfully');
       queryClient.invalidateQueries({ queryKey: ['admin-contact-submissions'] });
       setProcessingId(null);
       setInternalNotes('');
     } catch (err: any) {
-      showError(err.message || 'Failed to process submission');
+      showError('Processing Failed', err.message || 'Failed to process submission');
     }
   };
 
@@ -143,7 +144,7 @@ const ContactManagement: React.FC = () => {
                           <button 
                             className="btn btn-sm btn-outline-secondary"
                             onClick={() => {
-                                showError(`Processed on ${format(new Date(sub.processed_at!), 'MMM d')}. Notes: ${sub.internal_notes || 'None'}`);
+                                showSuccess('Processing Details', `Processed on ${format(new Date(sub.processed_at!), 'MMM d')}. Notes: ${sub.internal_notes || 'None'}`);
                             }}
                           >
                             View Details

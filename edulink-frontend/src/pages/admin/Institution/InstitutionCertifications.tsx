@@ -7,8 +7,11 @@ import type { InternshipApplication } from '../../../services/internship/interns
 import { toast } from 'react-hot-toast';
 import TrustBadge, { type TrustLevel } from '../../../components/common/TrustBadge';
 import InstitutionTableSkeleton from '../../../components/admin/skeletons/InstitutionTableSkeleton';
+import { useFeedbackModal } from '../../../hooks/useFeedbackModal';
+import { FeedbackModal } from '../../../components/common';
 
 const InstitutionCertifications: React.FC = () => {
+  const { feedbackProps, showSuccess, showError } = useFeedbackModal();
   const [applications, setApplications] = useState<InternshipApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -307,14 +310,7 @@ const InstitutionCertifications: React.FC = () => {
         </Modal.Body>
       </Modal>
 
-      <FeedbackModal
-        show={feedbackModal.show}
-        onHide={() => setFeedbackModal(prev => ({ ...prev, show: false }))}
-        title={feedbackModal.title}
-        message={feedbackModal.message}
-        variant={feedbackModal.variant}
-        details={feedbackModal.details}
-      />
+      <FeedbackModal {...feedbackProps} />
     </div>
   );
 };

@@ -23,15 +23,13 @@ const EmployerReviews: React.FC = () => {
       setLoading(true);
       
       // Parallel fetching for performance
-      const [profileRequests, allInternships] = await Promise.all([
+      const [profileRequests, allApplications] = await Promise.all([
         employerService.getProfileUpdateRequests('pending'),
-        internshipService.getInternships()
+        internshipService.getApplications()
       ]);
 
       // Filter applications (APPLIED status)
-      // Note: 'status' field in Internship model usually holds 'APPLIED', 'INTERVIEW', etc. for applications
-      // Adjust filter logic based on actual backend status constants if different.
-      const pendingApps = allInternships.filter(i => i.student_id && (i.status === 'APPLIED' || i.status === 'PENDING'));
+      const pendingApps = allApplications.filter(i => i.student_id && (i.status === 'APPLIED' || i.status === 'PENDING'));
 
       setStats({
         profileRequests: profileRequests.length,

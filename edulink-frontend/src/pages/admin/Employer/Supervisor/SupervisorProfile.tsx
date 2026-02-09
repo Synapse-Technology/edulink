@@ -5,9 +5,12 @@ import { toast } from 'react-hot-toast';
 import SupervisorLayout from '../../../../components/admin/employer/supervisor/SupervisorLayout';
 import { useAuth } from '../../../../contexts/AuthContext';
 import { employerService, type EmployerStaffProfileRequestCreate } from '../../../../services/employer/employerService';
+import { useFeedbackModal } from '../../../../hooks/useFeedbackModal';
+import { FeedbackModal } from '../../../../components/common';
 
 const SupervisorProfile: React.FC = () => {
   const { user } = useAuth();
+  const { feedbackProps, showSuccess, showError } = useFeedbackModal();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { register, handleSubmit, formState: { errors } } = useForm<EmployerStaffProfileRequestCreate>({
@@ -163,14 +166,7 @@ const SupervisorProfile: React.FC = () => {
         </div>
       </div>
 
-      <FeedbackModal
-        show={feedbackModal.show}
-        onHide={() => setFeedbackModal(prev => ({ ...prev, show: false }))}
-        title={feedbackModal.title}
-        message={feedbackModal.message}
-        variant={feedbackModal.variant}
-        details={feedbackModal.details}
-      />
+      <FeedbackModal {...feedbackProps} />
     </SupervisorLayout>
   );
 };

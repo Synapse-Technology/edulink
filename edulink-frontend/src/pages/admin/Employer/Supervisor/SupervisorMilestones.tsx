@@ -6,8 +6,11 @@ import type { InternshipEvidence } from '../../../../services/internship/interns
 import { toast } from 'react-hot-toast';
 import { SupervisorLayout } from '../../../../components/admin/employer';
 import SupervisorTableSkeleton from '../../../../components/admin/skeletons/SupervisorTableSkeleton';
+import { useFeedbackModal } from '../../../../hooks/useFeedbackModal';
+import { FeedbackModal } from '../../../../components/common';
 
 const SupervisorMilestones: React.FC = () => {
+  const { feedbackProps, showSuccess, showError } = useFeedbackModal();
   const [evidenceList, setEvidenceList] = useState<InternshipEvidence[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,30 +54,19 @@ const SupervisorMilestones: React.FC = () => {
     try {
       setSubmitting(true);
       await internshipService.reviewEvidence(
-        selectedEvidence.internship,
+        selectedEvidence.application,
         selectedEvidence.id,
         reviewAction,
         reviewNotes
       );
       
-      setFeedbackModal({
-        show: true,
-        title: 'Review Submitted',
-        message: `Milestone ${reviewAction === 'ACCEPTED' ? 'approved' : 'rejected'} successfully.`,
-        variant: 'success'
-      });
+      showSuccess('Review Submitted', `Milestone ${reviewAction === 'ACCEPTED' ? 'approved' : 'rejected'} successfully.`);
       
       setShowReviewModal(false);
       fetchEvidence(); // Refresh list
     } catch (err: any) {
       console.error("Failed to review milestone", err);
-      setFeedbackModal({
-        show: true,
-        title: 'Review Failed',
-        message: 'Failed to submit review for milestone.',
-        variant: 'error',
-        details: err.message || 'Unknown error occurred'
-      });
+      showError('Review Failed', err.message || 'Failed to submit review for milestone.');
     } finally {
       setSubmitting(false);
     }
@@ -262,6 +254,7 @@ const SupervisorMilestones: React.FC = () => {
             </Button>
           </Modal.Footer>
         </Modal>
+        <FeedbackModal {...feedbackProps} />
       </div>
     </SupervisorLayout>
   );
