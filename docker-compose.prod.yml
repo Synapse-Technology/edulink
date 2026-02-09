@@ -6,17 +6,13 @@ services:
     container_name: edulink-backend
     restart: unless-stopped
     environment:
-      - DJANGO_SETTINGS_MODULE=Edulink.settings.production
+      - DJANGO_SETTINGS_MODULE=edulink.config.settings.prod
       - DATABASE_URL=${DATABASE_URL}
-      - REDIS_URL=${REDIS_URL}
       - SECRET_KEY=${SECRET_KEY}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS}
       - EMAIL_HOST=${EMAIL_HOST}
       - EMAIL_HOST_USER=${EMAIL_HOST_USER}
       - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD}
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - AWS_STORAGE_BUCKET_NAME=${AWS_STORAGE_BUCKET_NAME}
     volumes:
       - static_volume:/app/staticfiles
       - media_volume:/app/media
@@ -24,7 +20,6 @@ services:
       - edulink-network
     depends_on:
       - db
-      - redis
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
       interval: 30s
@@ -85,30 +80,14 @@ services:
       timeout: 10s
       retries: 3
 
-  redis:
-    image: redis:7-alpine
-    container_name: edulink-redis
-    restart: unless-stopped
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
-    volumes:
-      - redis_data:/data
-    networks:
-      - edulink-network
-    healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  celery:
+  qcluster:
     image: ${BACKEND_IMAGE:-edulink-backend:latest}
-    container_name: edulink-celery
+    container_name: edulink-qcluster
     restart: unless-stopped
-    command: celery -A Edulink worker -l info
+    command: python edulink/manage.py qcluster
     environment:
-      - DJANGO_SETTINGS_MODULE=Edulink.settings.production
+      - DJANGO_SETTINGS_MODULE=edulink.config.settings.prod
       - DATABASE_URL=${DATABASE_URL}
-      - REDIS_URL=${REDIS_URL}
       - SECRET_KEY=${SECRET_KEY}
     volumes:
       - media_volume:/app/media
@@ -116,27 +95,9 @@ services:
       - edulink-network
     depends_on:
       - db
-      - redis
-
-  celery-beat:
-    image: ${BACKEND_IMAGE:-edulink-backend:latest}
-    container_name: edulink-celery-beat
-    restart: unless-stopped
-    command: celery -A Edulink beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
-    environment:
-      - DJANGO_SETTINGS_MODULE=Edulink.settings.production
-      - DATABASE_URL=${DATABASE_URL}
-      - REDIS_URL=${REDIS_URL}
-      - SECRET_KEY=${SECRET_KEY}
-    networks:
-      - edulink-network
-    depends_on:
-      - db
-      - redis
 
 volumes:
   postgres_data:
-  redis_data:
   static_volume:
   media_volume:
 

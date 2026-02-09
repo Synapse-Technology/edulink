@@ -30,7 +30,6 @@ interface SystemHealth {
   last_check: string;
   services: {
     database: 'healthy' | 'degraded' | 'critical';
-    redis: 'healthy' | 'degraded' | 'critical';
     email_service: 'healthy' | 'degraded' | 'critical';
     file_storage: 'healthy' | 'degraded' | 'critical';
   };
@@ -155,7 +154,6 @@ const SystemHealthDashboard: React.FC = () => {
 
   const getServiceStatus = (service: string, status: string) => {
     const Icon = service === 'database' ? Database :
-                 service === 'redis' ? Server :
                  service === 'email_service' ? Mail :
                  service === 'file_storage' ? Globe : Activity;
     

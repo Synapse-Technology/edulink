@@ -4,19 +4,19 @@ on:
   push:
     branches:
       - main
-
-  # schedule:
-  #   - cron: '0 0 0 * *' # Uncomment to schedule the workflow
+      - staging
 
   pull_request:
     branches:
       - main
+      - staging
     types:
       - closed
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
 
     steps:
       - name: Checkout code
@@ -31,14 +31,36 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build and push Unified Docker image
+      - name: Set Environment Tag
+        id: vars
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "::set-output name=tag::latest"
+            echo "::set-output name=env::production"
+          else
+            echo "::set-output name=tag::staging"
+            echo "::set-output name=env::staging"
+          fi
+
+      - name: Build and push Backend image
         uses: docker/build-push-action@v5
         with:
           context: ./
+          file: ./backend.Dockerfile
           push: true
           tags: |
-            ${{ secrets.DOCKER_USERNAME }}/edulink:${{ github.sha }}
-            ${{ secrets.DOCKER_USERNAME }}/edulink:latest
+            ${{ secrets.DOCKER_USERNAME }}/edulink-backend:${{ github.sha }}
+            ${{ secrets.DOCKER_USERNAME }}/edulink-backend:${{ steps.vars.outputs.tag }}
+
+      - name: Build and push Frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./
+          file: ./frontend.Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/edulink-frontend:${{ github.sha }}
+            ${{ secrets.DOCKER_USERNAME }}/edulink-frontend:${{ steps.vars.outputs.tag }}
 
       - name: Set up SSH
         run: |
@@ -47,6 +69,6 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
 
-      - name: Deploy to production server
+      - name: Deploy to server
         run: |
-          ssh ${{ secrets.SERVER_BOT }}@${{ secrets.SERVER_IP }} "~/deploy.sh ${{ secrets.DOCKER_USERNAME }}/edulink:${{ github.sha }}"
+          ssh ${{ secrets.SERVER_BOT }}@${{ secrets.SERVER_IP }} "~/deploy.sh ${{ secrets.DOCKER_USERNAME }}/edulink-backend:${{ github.sha }} ${{ secrets.DOCKER_USERNAME }}/edulink-frontend:${{ github.sha }}"

@@ -281,7 +281,6 @@ def get_system_health_status():
         'last_check': timezone.now().isoformat(),
         'services': {
             'database': 'healthy',
-            'redis': 'healthy',
             'email_service': 'healthy',
             'file_storage': 'healthy',
         }

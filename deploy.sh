@@ -55,9 +55,11 @@ fi
 
 # Load environment variables
 source .env
+export BACKEND_IMAGE
+export FRONTEND_IMAGE
 
 # Set Django settings module
-export DJANGO_SETTINGS_MODULE=Edulink.settings.prod
+export DJANGO_SETTINGS_MODULE=edulink.config.settings.prod
 
 # Backup current database
 log "Creating database backup..."
@@ -69,6 +71,12 @@ fi
 
 # Pull latest images
 log "Pulling latest Docker images..."
+if [ -n "$1" ] && [ -n "$2" ]; then
+    export BACKEND_IMAGE=$1
+    export FRONTEND_IMAGE=$2
+    log "Using provided images: $BACKEND_IMAGE and $FRONTEND_IMAGE"
+fi
+
 docker pull "$BACKEND_IMAGE" || {
     log_error "Failed to pull backend image: $BACKEND_IMAGE"
     exit 1
@@ -85,9 +93,9 @@ log_success "Docker images pulled successfully"
 log "Stopping existing containers..."
 docker-compose -f docker-compose.prod.yml down --timeout 30
 
-# Start database and redis first
-log "Starting database and Redis..."
-docker-compose -f docker-compose.prod.yml up -d db redis
+# Start database first
+log "Starting database..."
+docker-compose -f docker-compose.prod.yml up -d db
 
 # Wait for database to be ready
 log "Waiting for database to be ready..."
@@ -105,14 +113,14 @@ done
 
 # Run database migrations
 log "Running database migrations..."
-docker-compose -f docker-compose.prod.yml run --rm backend python manage.py migrate --noinput || {
+docker-compose -f docker-compose.prod.yml run --rm backend python edulink/manage.py migrate --noinput || {
     log_error "Database migrations failed"
     exit 1
 }
 
 # Collect static files
 log "Collecting static files..."
-docker-compose -f docker-compose.prod.yml run --rm backend python manage.py collectstatic --noinput || {
+docker-compose -f docker-compose.prod.yml run --rm backend python edulink/manage.py collectstatic --noinput || {
     log_error "Static files collection failed"
     exit 1
 }
@@ -129,7 +137,7 @@ sleep 30
 log "Performing health checks..."
 
 # Check backend health
-if curl -f http://localhost/health/ >/dev/null 2>&1; then
+if curl -fL http://localhost/health/ >/dev/null 2>&1; then
     log_success "Backend health check passed"
 else
     log_error "Backend health check failed"
@@ -138,7 +146,7 @@ else
 fi
 
 # Check frontend
-if curl -f http://localhost/ >/dev/null 2>&1; then
+if curl -fL http://localhost/ >/dev/null 2>&1; then
     log_success "Frontend health check passed"
 else
     log_error "Frontend health check failed"
