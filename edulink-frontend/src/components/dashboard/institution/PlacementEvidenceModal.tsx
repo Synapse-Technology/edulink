@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Button, Table, Badge, Spinner, Alert, Form } from 'react-bootstrap';
 import { FileText, ExternalLink, Award } from 'lucide-react';
-import { toast } from 'react-hot-toast';
 import { FeedbackModal } from '../../common';
 import { useFeedbackModal } from '../../../hooks/useFeedbackModal';
 import { internshipService } from '../../../services/internship/internshipService';

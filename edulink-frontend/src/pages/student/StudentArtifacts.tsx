@@ -19,7 +19,7 @@ import { toast } from 'react-hot-toast';
 import StudentDashboardSkeleton from '../../components/student/skeletons/StudentDashboardSkeleton';
 
 const StudentArtifacts: React.FC = () => {
-  const { isDarkMode, toggleDarkMode } = useTheme();
+  const { isDarkMode } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [artifacts, setArtifacts] = useState<Artifact[]>([]);
   const [internship, setInternship] = useState<any | null>(null);

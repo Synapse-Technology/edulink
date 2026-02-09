@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Table, Button, Badge, Form, Modal, Spinner, Alert } from 'react-bootstrap';
-import { CheckCircle, XCircle, FileText, Clock, RotateCcw, MessageSquare, Lock, Calendar, AlertCircle } from 'lucide-react';
+import { CheckCircle, XCircle, FileText, Clock, RotateCcw, MessageSquare, Calendar, AlertCircle } from 'lucide-react';
 import { internshipService } from '../../../../services/internship/internshipService';
 import type { InternshipEvidence } from '../../../../services/internship/internshipService';
 import { toast } from 'react-hot-toast';

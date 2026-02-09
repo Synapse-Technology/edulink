@@ -28,7 +28,7 @@ const StudentLogbookDetail: React.FC = () => {
   const [evidence, setEvidence] = useState<any | null>(null);
   const [internship, setInternship] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
-  const { isDarkMode, toggleDarkMode } = useTheme();
+  const { isDarkMode } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {

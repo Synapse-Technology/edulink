@@ -3,7 +3,6 @@ import { Modal, Button, Form, ProgressBar, Badge } from 'react-bootstrap';
 import { AlertCircle } from 'lucide-react';
 import { studentService } from '../../services/student/studentService';
 import type { UpdateProfileData } from '../../services/student/studentService';
-import { config } from '../../config';
 import { DocumentPreviewModal } from '../common';
 
 interface ProfileWizardProps {

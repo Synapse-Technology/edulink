@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import StudentSidebar from './StudentSidebar';
 import StudentHeader from './StudentHeader';
 import { useTheme } from '../../contexts/ThemeContext';

@@ -10,7 +10,7 @@ import { FeedbackModal } from '../../../../components/common';
 
 const SupervisorProfile: React.FC = () => {
   const { user } = useAuth();
-  const { feedbackProps, showSuccess, showError } = useFeedbackModal();
+  const { feedbackProps } = useFeedbackModal();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { register, handleSubmit, formState: { errors } } = useForm<EmployerStaffProfileRequestCreate>({

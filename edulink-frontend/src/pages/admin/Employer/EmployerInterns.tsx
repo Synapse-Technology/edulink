@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, FileText, UserCheck, AlertCircle, GraduationCap } from 'lucide-react';
+import { Search, UserCheck, AlertCircle, GraduationCap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { EmployerLayout } from '../../../components/admin/employer';
 import TableSkeleton from '../../../components/admin/skeletons/TableSkeleton';

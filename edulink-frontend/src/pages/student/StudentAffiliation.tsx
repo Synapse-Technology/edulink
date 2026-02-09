@@ -16,7 +16,7 @@ import StudentAffiliationSkeleton from '../../components/student/skeletons/Stude
 
 const StudentAffiliation: React.FC = () => {
   const { user } = useAuth();
-  const { isDarkMode, toggleDarkMode } = useTheme();
+  const { isDarkMode } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [affiliations, setAffiliations] = useState<Affiliation[]>([]);

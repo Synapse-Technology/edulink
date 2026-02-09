@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Table, Button, Badge, Form, Modal, Spinner, Alert, Breadcrumb } from 'react-bootstrap';
+import { Card, Table, Button, Badge, Form, Modal, Spinner, Alert } from 'react-bootstrap';
 import { 
   CheckCircle, 
   XCircle, 
@@ -45,7 +45,6 @@ const StudentLogbookHistory: React.FC = () => {
 
   // Determine user role for private notes
   const isEmployerSupervisor = (user?.id === application?.employer_supervisor_details?.user_id) || (user?.id === application?.employer_supervisor_id) || user?.role === 'employer_admin' || user?.role === 'employer';
-  const isInstitutionSupervisor = (user?.id === application?.institution_supervisor_details?.user_id) || (user?.id === application?.institution_supervisor_id) || user?.role === 'institution_admin' || user?.role === 'institution';
   
   // Read-only mode if application is COMPLETED or CERTIFIED
   const isReadOnly = application?.status === 'COMPLETED' || application?.status === 'CERTIFIED' || application?.status === 'TERMINATED';

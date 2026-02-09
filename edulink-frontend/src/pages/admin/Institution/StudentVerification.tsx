@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Table, Badge, Form, Tab, Tabs, Modal, Alert } from 'react-bootstrap';
 import { institutionService, type Department, type Cohort, type PendingVerification, type BulkPreviewResult } from '../../../services/institution/institutionService';
-import { toast } from 'react-hot-toast';
 import TrustBadge, { type TrustLevel } from '../../../components/common/TrustBadge';
-import FeedbackModal, { type FeedbackVariant } from '../../../components/common/FeedbackModal';
+import FeedbackModal from '../../../components/common/FeedbackModal';
 import { useFeedbackModal } from '../../../hooks/useFeedbackModal';
 import { Info } from 'lucide-react';
+import toast from 'react-hot-toast';
 import InstitutionTableSkeleton from '../../../components/admin/skeletons/InstitutionTableSkeleton';
 
 const StudentVerification: React.FC = () => {
@@ -38,7 +38,7 @@ const StudentVerification: React.FC = () => {
   const [bulkDepartmentId, setBulkDepartmentId] = useState('');
   const [bulkCohortId, setBulkCohortId] = useState('');
 
-  const { feedbackProps, showFeedback, showError, showSuccess, showConfirm } = useFeedbackModal();
+  const { feedbackProps, showError, showSuccess, showConfirm } = useFeedbackModal();
 
   useEffect(() => {
     fetchReferenceData();

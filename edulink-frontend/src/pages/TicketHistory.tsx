@@ -2,7 +2,6 @@ import React, { useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supportService } from '../services/support/supportService';
-import type { SupportTicket } from '../services/support/supportService';
 import { useFeedbackModal } from '../hooks/useFeedbackModal';
 import { FeedbackModal } from '../components/common';
 import { usePusher } from '../hooks/usePusher';
@@ -12,7 +11,7 @@ import { format } from 'date-fns';
 const TicketHistory: React.FC = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { feedbackProps, showError } = useFeedbackModal();
+  const { feedbackProps } = useFeedbackModal();
 
   // Fetch tickets with TanStack Query
   const { data: tickets, isLoading: loading, isError } = useQuery({
@@ -22,7 +21,7 @@ const TicketHistory: React.FC = () => {
   });
 
   // Real-time updates via Pusher
-  const handleRealtimeUpdate = useCallback((data: any) => {
+  const handleRealtimeUpdate = useCallback(() => {
     // Refresh the list when any ticket is updated
     queryClient.invalidateQueries({ queryKey: ['tickets'] });
   }, [queryClient]);

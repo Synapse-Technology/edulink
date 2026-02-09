@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { 
   Shield, 
   Search, 
-  Filter, 
   Download,
   Calendar,
   ChevronLeft,

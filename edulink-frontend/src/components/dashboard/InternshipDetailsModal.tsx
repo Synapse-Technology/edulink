@@ -1,6 +1,6 @@
 import React from 'react';
 import { Modal, Button, Badge, Row, Col } from 'react-bootstrap';
-import { MapPin, Users, Calendar, Clock, Briefcase, Building } from 'lucide-react';
+import { MapPin, Users, Calendar, Briefcase, Building } from 'lucide-react';
 import type { Internship } from '../../services/internship/internshipService';
 
 interface InternshipDetailsModalProps {

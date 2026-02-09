@@ -18,13 +18,10 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  Activity,
-  ChevronLeft,
+  Activity, 
+  ChevronLeft, 
   ChevronRight,
-  User as UserIcon,
-  Smartphone,
   Info,
-  MapPin,
   ExternalLink
 } from 'lucide-react';
 import { adminAuthService } from '../../../services';

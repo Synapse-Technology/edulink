@@ -3,7 +3,6 @@ import { Card, Table, Button, Form, Modal, Alert, Spinner } from 'react-bootstra
 import { CheckCircle, XCircle, FileText, Clock, Award } from 'lucide-react';
 import { internshipService } from '../../../../services/internship/internshipService';
 import type { InternshipEvidence } from '../../../../services/internship/internshipService';
-import { toast } from 'react-hot-toast';
 import { SupervisorLayout } from '../../../../components/admin/employer';
 import SupervisorTableSkeleton from '../../../../components/admin/skeletons/SupervisorTableSkeleton';
 import { useFeedbackModal } from '../../../../hooks/useFeedbackModal';

@@ -1,17 +1,14 @@
 import React, { useState } from 'react';
 import { Card, Table, Badge, Button, Spinner } from 'react-bootstrap';
-import { CheckCircle, Users, FileText, AlertTriangle } from 'lucide-react';
+import { Users, FileText, CheckCircle } from 'lucide-react';
 import { useOutletContext, Link } from 'react-router-dom';
 import { internshipService, type InternshipApplication } from '../../../../services/internship/internshipService';
-import { useAuthStore } from '../../../../stores/authStore';
-import { toast } from 'react-hot-toast';
 import { FeedbackModal } from '../../../../components/common';
 import { useFeedbackModal } from '../../../../hooks/useFeedbackModal';
 import type { SupervisorDashboardContext } from './SupervisorDashboard';
 
 const SupervisorStudents: React.FC = () => {
   const { internships } = useOutletContext<SupervisorDashboardContext>();
-  const { user } = useAuthStore();
   const [processingId, setProcessingId] = useState<string | null>(null);
   const { feedbackProps, showError, showSuccess, showConfirm } = useFeedbackModal();
 

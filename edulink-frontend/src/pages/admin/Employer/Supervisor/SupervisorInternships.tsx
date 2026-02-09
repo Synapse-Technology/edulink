@@ -6,7 +6,6 @@ import type { InternshipApplication } from '../../../../services/internship/inte
 import { Link } from 'react-router-dom';
 import { SupervisorLayout } from '../../../../components/admin/employer';
 import SupervisorTableSkeleton from '../../../../components/admin/skeletons/SupervisorTableSkeleton';
-import { toast } from 'react-hot-toast';
 import { FeedbackModal } from '../../../../components/common';
 import { useFeedbackModal } from '../../../../hooks/useFeedbackModal';
 

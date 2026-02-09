@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, Row, Col, Badge } from 'react-bootstrap';
-import { Users, FileText, CheckCircle, Clock, ChevronRight, AlertTriangle } from 'lucide-react';
+import { Users, FileText, Clock, ChevronRight, AlertTriangle } from 'lucide-react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import type { SupervisorDashboardContext } from './SupervisorDashboard';
 
@@ -10,7 +10,6 @@ const SupervisorOverview: React.FC = () => {
     profile,
     assignedStudentsCount,
     pendingLogbooksCount,
-    reviewedLogbooksCount,
     hoursLoggedCount,
     recentEvidence,
     incidents

@@ -7,8 +7,7 @@ import {
   AlertTriangle,
   Settings,
   School,
-  X,
-  User as UserIcon
+  X
 } from 'lucide-react';
 import { useAuthStore } from '../../../../stores/authStore';
 

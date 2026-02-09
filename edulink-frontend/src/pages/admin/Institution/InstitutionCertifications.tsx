@@ -1,17 +1,17 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, Table, Button, Badge, Form, InputGroup, Row, Col, Modal, Alert, Nav } from 'react-bootstrap';
-import { Search, FileText, CheckCircle, Award, User, Download, AlertTriangle } from 'lucide-react';
+import { Search, FileText, CheckCircle, Award, User, AlertTriangle } from 'lucide-react';
 import { internshipService } from '../../../services/internship/internshipService';
 import type { InternshipApplication } from '../../../services/internship/internshipService';
-import { toast } from 'react-hot-toast';
 import TrustBadge, { type TrustLevel } from '../../../components/common/TrustBadge';
 import InstitutionTableSkeleton from '../../../components/admin/skeletons/InstitutionTableSkeleton';
 import { useFeedbackModal } from '../../../hooks/useFeedbackModal';
 import { FeedbackModal } from '../../../components/common';
+import toast from 'react-hot-toast';
 
 const InstitutionCertifications: React.FC = () => {
-  const { feedbackProps, showSuccess, showError } = useFeedbackModal();
+  const { feedbackProps } = useFeedbackModal();
   const [applications, setApplications] = useState<InternshipApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');

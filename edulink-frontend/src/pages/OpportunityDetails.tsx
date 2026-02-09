@@ -7,7 +7,6 @@ import { toast } from 'react-hot-toast';
 import { 
   Building2, 
   MapPin, 
-  Calendar, 
   Clock, 
   Users, 
   Briefcase, 

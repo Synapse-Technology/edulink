@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Table, Button, Badge, Form, InputGroup, Row, Col, Modal, Alert } from 'react-bootstrap';
+import { Card, Table, Button, Badge, Form, InputGroup, Row, Col, Modal } from 'react-bootstrap';
 import { Search, FileText, CheckCircle, XCircle, User } from 'lucide-react';
 import { internshipService } from '../../../services/internship/internshipService';
 import type { InternshipApplication } from '../../../services/internship/internshipService';
-import { toast } from 'react-hot-toast';
-import { FeedbackModal, type FeedbackVariant } from '../../../components/common';
 import TrustBadge, { type TrustLevel } from '../../../components/common/TrustBadge';
+import toast from 'react-hot-toast';
 import InstitutionTableSkeleton from '../../../components/admin/skeletons/InstitutionTableSkeleton';
 
 const InstitutionApplications: React.FC = () => {

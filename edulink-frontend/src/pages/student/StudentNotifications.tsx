@@ -3,7 +3,6 @@ import {
   CheckCircle,
   Info,
   Bell,
-  MoreVertical,
   Check
 } from 'lucide-react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
@@ -14,12 +13,12 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import StudentSidebar from '../../components/dashboard/StudentSidebar';
 import StudentHeader from '../../components/dashboard/StudentHeader';
-import { formatDistanceToNow, isToday, isYesterday, format } from 'date-fns';
+import { formatDistanceToNow, isToday, isYesterday } from 'date-fns';
 import toast from 'react-hot-toast';
 
 const StudentNotifications: React.FC = () => {
   const { user } = useAuth();
-  const { isDarkMode, toggleDarkMode } = useTheme();
+  const { isDarkMode } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const queryClient = useQueryClient();
 

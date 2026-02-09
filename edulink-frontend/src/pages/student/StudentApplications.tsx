@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Briefcase, 
@@ -52,7 +52,7 @@ const ApplicationStatusBadge = ({ status }: { status: string }) => {
 
 const StudentApplications: React.FC = () => {
   const { user } = useAuth();
-  const { isDarkMode, toggleDarkMode } = useTheme();
+  const { isDarkMode } = useTheme();
   const queryClient = useQueryClient();
 
   // Fetch applications using TanStack Query

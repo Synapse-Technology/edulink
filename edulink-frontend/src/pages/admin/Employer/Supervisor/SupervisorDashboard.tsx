@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { useAuth } from '../../../../contexts/AuthContext';
 import { Users, FileText, AlertTriangle, LayoutGrid, ChevronRight, Clock, Calendar, User, ArrowUpRight } from 'lucide-react';
 import { internshipService } from '../../../../services/internship/internshipService';
-import type { Incident, InternshipEvidence } from '../../../../services/internship/internshipService';
+import type { Incident } from '../../../../services/internship/internshipService';
 import { Link } from 'react-router-dom';
 import { Badge } from 'react-bootstrap';
 import { SupervisorLayout } from '../../../../components/admin/employer';

@@ -1,11 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, LogOut, Settings, Key, AlertTriangle, Menu } from 'lucide-react';
+import { LogOut, Settings, Key, Menu } from 'lucide-react';
 import NotificationBell from '../common/NotificationBell';
 import { useAdminAuth } from '../../contexts/AdminAuthContext';
 
 interface AdminHeaderProps {
-  notificationCount?: number;
   userEmail?: string;
   userName?: string;
   userRole?: string;
@@ -14,7 +13,6 @@ interface AdminHeaderProps {
 }
 
 const AdminHeader: React.FC<AdminHeaderProps> = ({ 
-  notificationCount = 0, 
   userEmail = '', 
   userName = '',
   userRole = '',

@@ -39,7 +39,7 @@ const AdminNavigation: React.FC<AdminNavigationProps> = ({ className = '' }) => 
     setIsMobileMenuOpen(false);
     // This effect runs when location changes to close the mobile menu
     // The linter warning is expected behavior for this use case
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [location.pathname]);
 
   return (

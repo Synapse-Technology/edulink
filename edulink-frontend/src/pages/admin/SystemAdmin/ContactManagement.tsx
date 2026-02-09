@@ -1,7 +1,6 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { contactService } from '../../../services/contact/contactService';
-import type { ContactSubmission } from '../../../services/contact/contactService';
 import { useFeedbackModal } from '../../../hooks/useFeedbackModal';
 import { FeedbackModal } from '../../../components/common';
 import { format } from 'date-fns';

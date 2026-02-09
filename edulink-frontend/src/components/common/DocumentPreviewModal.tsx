@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Button, Spinner } from 'react-bootstrap';
-import { X, Download, Maximize2, ExternalLink, FileText } from 'lucide-react';
+import { X, ExternalLink, FileText } from 'lucide-react';
 import { fetchDocumentBlob } from '../../utils/documentUtils';
 import { useTheme } from '../../contexts/ThemeContext';
 

@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle, XCircle, Calendar, MapPin, Briefcase, Users, FileText } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, MapPin, Briefcase, Users, FileText, Calendar } from 'lucide-react';
 import { EmployerLayout } from '../../../components/admin/employer';
 import { internshipService } from '../../../services/internship/internshipService';
 import type { InternshipApplication } from '../../../services/internship/internshipService';
 import { DocumentPreviewModal, FeedbackModal } from '../../../components/common';
 import { useFeedbackModal } from '../../../hooks/useFeedbackModal';
-import { config } from '../../../config';
-import { toast } from 'react-hot-toast';
 
 const EmployerApplicationDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();

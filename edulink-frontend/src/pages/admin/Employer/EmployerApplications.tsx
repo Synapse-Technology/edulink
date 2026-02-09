@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Search, FileText, UserCheck, ShieldCheck, AlertCircle } from 'lucide-react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Search, FileText } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { EmployerLayout } from '../../../components/admin/employer';
 import TableSkeleton from '../../../components/admin/skeletons/TableSkeleton';
-import { employerService } from '../../../services/employer/employerService';
 import { internshipService } from '../../../services/internship/internshipService';
 import type { InternshipApplication } from '../../../services/internship/internshipService';
 import TrustBadge, { type TrustLevel } from '../../../components/common/TrustBadge';
@@ -15,10 +14,6 @@ const EmployerApplications: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [trustFilter, setTrustFilter] = useState<string>('ALL');
-
-  // Modal states
-  const [selectedApp, setSelectedApp] = useState<InternshipApplication | null>(null);
-  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     // Check for query param filters on mount

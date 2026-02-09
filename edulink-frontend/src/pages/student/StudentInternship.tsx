@@ -10,7 +10,6 @@ import {
   Mail,
   ShieldCheck,
   FileText,
-  Download,
   AlertTriangle
 } from 'lucide-react';
 import StudentSidebar from '../../components/dashboard/StudentSidebar';
@@ -25,7 +24,7 @@ import ReportIncidentModal from '../../components/student/ReportIncidentModal';
 
 const StudentInternship: React.FC = () => {
   const { user } = useAuth();
-  const { isDarkMode, toggleDarkMode } = useTheme();
+  const { isDarkMode } = useTheme();
   const [internship, setInternship] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

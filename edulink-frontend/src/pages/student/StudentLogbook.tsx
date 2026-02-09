@@ -36,7 +36,7 @@ import StudentInternshipSkeleton from '../../components/student/skeletons/Studen
 
 const StudentLogbook: React.FC = () => {
   const { user } = useAuth();
-  const { isDarkMode, toggleDarkMode } = useTheme();
+  const { isDarkMode } = useTheme();
   const [internship, setInternship] = useState<any | null>(null);
   const [submissionHistory, setSubmissionHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

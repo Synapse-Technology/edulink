@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Plus, Search, MapPin, Calendar, Users, Briefcase } from 'lucide-react';
-import { toast } from 'react-hot-toast';
-import { FeedbackModal, type FeedbackVariant } from '../../../components/common';
+import { FeedbackModal } from '../../../components/common';
 import { useFeedbackModal } from '../../../hooks/useFeedbackModal';
 import { EmployerLayout } from '../../../components/admin/employer';
 import { employerService } from '../../../services/employer/employerService';

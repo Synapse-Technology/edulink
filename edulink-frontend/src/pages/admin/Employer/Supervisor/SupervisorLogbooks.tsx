@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Badge, Form, Modal, Alert, Spinner } from 'react-bootstrap';
-import { CheckCircle, XCircle, FileText, Clock, RotateCcw, MessageSquare, Lock, Calendar, AlertCircle } from 'lucide-react';
+import { CheckCircle, XCircle, FileText, Clock, RotateCcw, MessageSquare, Calendar, AlertCircle } from 'lucide-react';
 import { internshipService } from '../../../../services/internship/internshipService';
 import type { InternshipEvidence } from '../../../../services/internship/internshipService';
-import { toast } from 'react-hot-toast';
 import { FeedbackModal, DocumentPreviewModal } from '../../../../components/common';
 import { useFeedbackModal } from '../../../../hooks/useFeedbackModal';
 import { SupervisorLayout } from '../../../../components/admin/employer';
@@ -46,10 +45,6 @@ const SupervisorLogbooks: React.FC = () => {
       setLoading(false);
     }
   };
-
-  // No need to dynamically determine role here as this page is exclusively for Employer Supervisors
-  // However, we might want to check for read-only status if we reuse this component
-  const isReadOnly = false; // Supervisors usually can review unless completed, handled by backend error
 
   const handleReviewClick = (evidence: InternshipEvidence, action: 'ACCEPTED' | 'REJECTED' | 'REVISION_REQUIRED') => {
     setSelectedEvidence(evidence);

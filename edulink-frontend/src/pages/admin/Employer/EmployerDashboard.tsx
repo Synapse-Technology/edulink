@@ -7,7 +7,7 @@ import { EmployerDashboardSkeleton } from '../../../components/admin/skeletons';
 import TrustProgressWidget from '../../../components/dashboard/TrustProgressWidget';
 import { SEO } from '../../../components/common';
 import { internshipService } from '../../../services/internship/internshipService';
-import type { InternshipApplication, InternshipOpportunity } from '../../../services/internship/internshipService';
+import type { InternshipApplication } from '../../../services/internship/internshipService';
 import { employerService } from '../../../services/employer/employerService';
 import type { Employer } from '../../../services/employer/employerService';
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Table, Button, Badge, Form, InputGroup, Row, Col, Alert } from 'react-bootstrap';
-import { Search, Plus, BookOpen, Users, MoreHorizontal, Briefcase } from 'lucide-react';
+import { Search, Plus, BookOpen, MoreHorizontal, Briefcase } from 'lucide-react';
 import { internshipService } from '../../../services/internship/internshipService';
 import { institutionService } from '../../../services/institution/institutionService';
 import type { InternshipOpportunity } from '../../../services/internship/internshipService';

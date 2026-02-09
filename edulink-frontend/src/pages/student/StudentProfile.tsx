@@ -17,14 +17,12 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { studentService } from '../../services/student/studentService';
 import type { StudentProfile as IStudentProfile } from '../../services/student/studentService';
-import { config } from '../../config';
-import { fetchAndOpenDocument } from '../../utils/documentUtils';
 import StudentProfileSkeleton from '../../components/student/skeletons/StudentProfileSkeleton';
 import defaultProfile from '../../assets/images/default_profile.jpg';
 
 const StudentProfile: React.FC = () => {
   const { user } = useAuth();
-  const { isDarkMode, toggleDarkMode } = useTheme();
+  const { isDarkMode } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [profile, setProfile] = useState<IStudentProfile | null>(null);
   const [loading, setLoading] = useState(true);

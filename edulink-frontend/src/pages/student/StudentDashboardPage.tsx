@@ -2,14 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   CheckCircle, 
-  Clock, 
   Briefcase, 
   Calendar,
-  TrendingUp,
   Users,
   FileText,
   Star,
-  ChevronRight,
   User,
   Search,
   Building2
@@ -41,7 +38,7 @@ interface EventItem {
 
 const StudentDashboard: React.FC = () => {
   const { user } = useAuth();
-  const { isDarkMode, toggleDarkMode } = useTheme();
+  const { isDarkMode } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showProfileWizard, setShowProfileWizard] = useState(false);
   const [studentId, setStudentId] = useState('');

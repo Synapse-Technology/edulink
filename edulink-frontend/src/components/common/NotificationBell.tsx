@@ -3,7 +3,6 @@ import { Bell } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { notificationService } from '../../services/notifications/notificationService';
 import { usePusher } from '../../hooks/usePusher';
-import { useAuth } from '../../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 
