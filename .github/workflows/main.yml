@@ -73,4 +73,4 @@ jobs:
 
       - name: Deploy to server
         run: |
-          ssh ${{ secrets.SERVER_BOT }}@${{ secrets.SERVER_IP }} "~/deploy.sh ${{ secrets.DOCKER_USERNAME }}/edulink-backend:${{ github.sha }} ${{ secrets.DOCKER_USERNAME }}/edulink-frontend:${{ github.sha }}"
+          ssh ${{ secrets.SERVER_BOT }}@${{ secrets.SERVER_IP }}
