@@ -46,3 +46,8 @@ Thumbs.db
 .env
 *.sqlite3
 *.pyc
+
+# Node
+node_modules/
+dist/
+.npm
