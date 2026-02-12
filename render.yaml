@@ -3,6 +3,7 @@ services:
   - type: web
     name: edulink-backend
     env: python
+    plan: free
     buildCommand: ./build.sh
     startCommand: gunicorn edulink.config.wsgi:application
     envVars:
