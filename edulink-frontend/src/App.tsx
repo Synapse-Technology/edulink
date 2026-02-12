@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ProtectedRoute } from './routes';
-import { Layout, HybridLayout } from './components';
+import { Layout, HybridLayout, KeepAlive } from './components';
 import Home from './pages/Home';
 import About from './pages/About';
 import Contact from './pages/Contact';
@@ -94,6 +94,7 @@ import './styles/admin-landing.css';
 function App() {
   return (
     <Router>
+      <KeepAlive />
       <Routes>
         {/* Public routes with layout */}
         <Route path="/" element={<Layout />}>

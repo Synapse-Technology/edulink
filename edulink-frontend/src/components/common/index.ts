@@ -8,3 +8,4 @@ export { default as FeedbackModal } from './FeedbackModal';
 export type { FeedbackVariant } from './FeedbackModal';
 export { default as SEO } from './SEO';
 export { default as DocumentPreviewModal } from './DocumentPreviewModal';
+export { default as KeepAlive } from './KeepAlive';
