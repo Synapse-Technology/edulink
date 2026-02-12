@@ -5,8 +5,7 @@ services:
     env: python
     plan: free
     buildCommand: ./build.sh
-    preDeployCommand: python edulink/manage.py migrate
-    startCommand: gunicorn edulink.config.wsgi:application
+    startCommand: python edulink/manage.py migrate && gunicorn edulink.config.wsgi:application
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
@@ -19,7 +18,7 @@ services:
       - key: DEBUG
         value: "False"
       - key: DB_HOST
-        value: db.zpxwwmjczotdbzupesqv.supabase.co
+        value: aws-1-eu-central-1.pooler.supabase.com
       - key: DB_NAME
         value: postgres
       - key: DB_USER

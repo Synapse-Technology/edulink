@@ -8,6 +8,3 @@ pip install -r requirements.txt
 
 # Collect static files
 python edulink/manage.py collectstatic --no-input
-
-# Run migrations
-python edulink/manage.py migrate
