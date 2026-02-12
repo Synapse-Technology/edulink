@@ -5,7 +5,22 @@ from .base import *
 
 DEBUG = False
 
-ALLOWED_HOSTS = []  # Add your production hosts here
+ALLOWED_HOSTS = [
+    "edulink.jhubafrica.com",
+    "www.edulink.jhubafrica.com",
+    ".onrender.com",  # Allow all Render subdomains
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://edulink.jhubafrica.com",
+    "https://www.edulink.jhubafrica.com",
+]
+
+# Add Render host to trusted origins if present
+RENDER_EXTERNAL_URL = os.environ.get("RENDER_EXTERNAL_URL")
+if RENDER_EXTERNAL_URL:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_URL.replace("https://", ""))
+    CSRF_TRUSTED_ORIGINS.append(RENDER_EXTERNAL_URL)
 
 # Security
 SECURE_BROWSER_XSS_FILTER = True
@@ -18,16 +33,11 @@ SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 
 # Database
-# Configure your production database here
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.environ.get("DB_NAME", "edulink"),
-        "USER": os.environ.get("DB_USER", "edulink"),
-        "PASSWORD": os.environ.get("DB_PASSWORD", ""),
-        "HOST": os.environ.get("DB_HOST", "localhost"),
-        "PORT": os.environ.get("DB_PORT", "5432"),
-    }
+    "default": dj_database_url.config(
+        conn_max_age=600,
+        conn_health_checks=True,
+    )
 }
 
 # Email backend for production
