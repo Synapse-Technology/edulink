@@ -185,9 +185,9 @@ Q_CLUSTER = {
 }
 
 # Pusher Configuration (Managed Real-time)
-PUSHER_APP_ID = os.getenv("PUSHER_APP_ID", "123456")
-PUSHER_KEY = os.getenv("PUSHER_KEY", "edulink_dev_key")
-PUSHER_SECRET = os.getenv("PUSHER_SECRET", "edulink_dev_secret")
+PUSHER_APP_ID = os.getenv("PUSHER_APP_ID", "2112435")
+PUSHER_KEY = os.getenv("PUSHER_KEY", "f43311e71172349f71a2")
+PUSHER_SECRET = os.getenv("PUSHER_SECRET", "f68dffd5647b45eb1134")
 PUSHER_CLUSTER = os.getenv("PUSHER_CLUSTER", "mt1")
 PUSHER_SSL = True
 
