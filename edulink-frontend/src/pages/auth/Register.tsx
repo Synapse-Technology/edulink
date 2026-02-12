@@ -736,7 +736,7 @@ const Register: React.FC = () => {
     <>
       <style dangerouslySetInnerHTML={{ __html: styles }} />
       <div className="min-h-screen flex registration-container" style={{
-      background: 'url(/src/assets/images/background_2.jpeg) no-repeat center center/cover',
+      background: 'url(/images/background_2.jpeg) no-repeat center center/cover',
       minHeight: '100vh',
       width: '100%',
       overflowX: 'hidden',
@@ -782,7 +782,7 @@ const Register: React.FC = () => {
           justifyContent: 'center'
         }}>
           <Link to="/">
-            <img src="/src/assets/images/edulink_logo.png" alt="Edulink Logo" style={{
+            <img src="/images/edulink_logo.png" alt="Edulink Logo" style={{
               maxWidth: '150px',
               marginBottom: '15px'
             }} />

@@ -83,7 +83,7 @@ const WhyUs: React.FC = () => {
           <div className="container">
             <div className="row gy-4 align-items-center feature-item">
               <div className="col-md-5" data-aos="fade-right">
-                <img src="/src/assets/images/course-1.jpg" className="img-fluid" alt="" />
+                <img src="/images/course-1.jpg" className="img-fluid" alt="" />
               </div>
               <div className="col-md-7" data-aos="fade-left">
                 <h3>The EduLink Advantage: A Curated Talent Pipeline</h3>
@@ -98,7 +98,7 @@ const WhyUs: React.FC = () => {
 
             <div className="row gy-4 align-items-center feature-item">
               <div className="col-md-5 order-1 order-md-2" data-aos="fade-left">
-                <img src="/src/assets/images/course-2.jpg" className="img-fluid" alt="" />
+                <img src="/images/course-2.jpg" className="img-fluid" alt="" />
               </div>
               <div className="col-md-7 order-2 order-md-1" data-aos="fade-right">
                 <h3>360° Career Readiness and Development</h3>
@@ -115,7 +115,7 @@ const WhyUs: React.FC = () => {
 
             <div className="row gy-4 align-items-center feature-item">
               <div className="col-md-5" data-aos="fade-right">
-                <img src="/src/assets/images/course-3.jpg" className="img-fluid" alt="" />
+                <img src="/images/course-3.jpg" className="img-fluid" alt="" />
               </div>
               <div className="col-md-7" data-aos="fade-left">
                 <h3>Actionable Performance Insights for Institutions</h3>

@@ -14,6 +14,7 @@ ALLOWED_HOSTS = [
 CSRF_TRUSTED_ORIGINS = [
     "https://edulink.jhubafrica.com",
     "https://www.edulink.jhubafrica.com",
+    "https://edulink-frontend-mb63.onrender.com",
 ]
 
 # Add Render host to trusted origins if present
@@ -53,4 +54,8 @@ LOGGING["root"]["level"] = "WARNING"
 
 # CORS
 CORS_ALLOW_ALL_ORIGINS = False
-CORS_ALLOWED_ORIGINS = []  # Add your production frontend URL here
+CORS_ALLOWED_ORIGINS = [
+    "https://edulink.jhubafrica.com",
+    "https://www.edulink.jhubafrica.com",
+    "https://edulink-frontend-mb63.onrender.com",
+]

@@ -68,7 +68,7 @@ const VerifyEmail: React.FC = () => {
     <div
       className="min-h-screen flex registration-container"
       style={{
-        background: 'url(/src/assets/images/background_2.jpeg) no-repeat center center/cover',
+        background: 'url(/images/background_2.jpeg) no-repeat center center/cover',
         minHeight: '100vh',
         width: '100%',
         overflowX: 'hidden',
