@@ -2,7 +2,7 @@
 
 from django.db import models
 from django.contrib.auth import get_user_model
-from shared.db.base_models import BaseModel
+from edulink.shared.db.base_models import BaseModel
 import uuid
 
 User = get_user_model()

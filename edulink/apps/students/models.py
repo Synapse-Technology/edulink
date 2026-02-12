@@ -1,5 +1,5 @@
 from django.db import models
-from shared.db.base_models import BaseModel
+from edulink.shared.db.base_models import BaseModel
 from .constants import TRUST_TIER_LEVELS, TRUST_EVENT_POINTS, TRUST_TIER_THRESHOLDS
 
 class StudentInstitutionAffiliation(BaseModel):

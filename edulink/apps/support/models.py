@@ -1,5 +1,5 @@
 from django.db import models
-from shared.db.base_models import BaseModel
+from edulink.shared.db.base_models import BaseModel
 from django.conf import settings
 
 class SupportTicket(BaseModel):

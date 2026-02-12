@@ -1,5 +1,5 @@
 from django.db import models
-from shared.db.base_models import BaseModel
+from edulink.shared.db.base_models import BaseModel
 
 class LedgerEvent(BaseModel):
     event_type = models.CharField(max_length=100)

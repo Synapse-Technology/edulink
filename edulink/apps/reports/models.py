@@ -2,7 +2,7 @@
 
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-from shared.db.base_models import BaseModel
+from edulink.shared.db.base_models import BaseModel
 
 class ArtifactType(models.TextChoices):
     CERTIFICATE = "CERTIFICATE", _("Certificate of Completion")

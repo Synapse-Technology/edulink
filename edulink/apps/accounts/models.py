@@ -2,7 +2,7 @@
 
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-from shared.db.base_models import BaseModel
+from edulink.shared.db.base_models import BaseModel
 
 
 class User(AbstractUser, BaseModel):
