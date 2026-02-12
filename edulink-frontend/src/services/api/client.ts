@@ -60,8 +60,8 @@ class ApiClient {
         // Skip auth for login/register endpoints and when explicitly skipped
         const isAuthEndpoint = config.url?.includes('/login/') || config.url?.includes('/register/');
         
-        // Check for skip-auth header and remove it so it's not sent to the server
-        const skipAuth = config.headers?.['skip-auth'];
+        // Check for skipAuth property or skip-auth header and remove it so it's not sent to the server
+        const skipAuth = (config as RequestConfig).skipAuth || config.headers?.['skip-auth'];
         if (config.headers && 'skip-auth' in config.headers) {
           delete config.headers['skip-auth'];
         }
