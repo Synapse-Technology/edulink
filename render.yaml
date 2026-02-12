@@ -29,8 +29,9 @@ services:
         sync: false # Set this in Render dashboard
 
   # Frontend service
-  - type: static
+  - type: web
     name: edulink-frontend
+    env: static
     buildCommand: cd edulink-frontend && npm install && npm run build
     staticPublishPath: edulink-frontend/dist
     envVars:
