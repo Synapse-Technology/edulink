@@ -53,7 +53,7 @@ const Home: React.FC = () => {
       {/* Hero Section */}
       <section id="hero" className="hero section dark-background">
         <img 
-          src="/src/assets/images/hero.jpg" 
+          src="/images/hero.jpg" 
           alt="Hero Background" 
           data-aos="fade-in"
         />
@@ -72,7 +72,7 @@ const Home: React.FC = () => {
         <div className="container">
           <div className="row gy-4">
             <div className="col-lg-6 order-1 order-lg-2" data-aos="fade-up" data-aos-delay="100">
-              <img src="/src/assets/images/about.jpg" className="img-fluid" alt="" />
+              <img src="/images/about.jpg" className="img-fluid" alt="" />
             </div>
 
             <div className="col-lg-6 order-2 order-lg-1 content" data-aos="fade-up" data-aos-delay="200">

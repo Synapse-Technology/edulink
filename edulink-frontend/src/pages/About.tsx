@@ -31,7 +31,7 @@ const About: React.FC = () => {
           <div className="container">
             <div className="row gy-4">
               <div className="col-lg-6" data-aos="fade-up" data-aos-delay="100">
-                <img src="/src/assets/images/team/edulink_team.jpg" className="img-fluid rounded-lg shadow-lg" alt="Team discussing plans" />
+                <img src="/images/team/edulink_team.jpg" className="img-fluid rounded-lg shadow-lg" alt="Team discussing plans" />
               </div>
               <div className="col-lg-6 content" data-aos="fade-up" data-aos-delay="200">
                 <h3>Our Background</h3>
@@ -125,7 +125,7 @@ const About: React.FC = () => {
             <div className="row gy-4 justify-content-center" data-aos="fade-up" data-aos-delay="100">
               <div className="col-lg-3 col-md-4 col-6 d-flex flex-column align-items-center">
                 <div className="client-logo mb-3">
-                  <img src="/src/assets/images/partners/jkuat.png" alt="JKUAT" style={{height: '120px', width: '120px', objectFit: 'contain', borderRadius: '15px', background: '#fff', padding: '10px', boxShadow: '0 4px 15px rgba(0,0,0,0.07)'}} />
+                  <img src="/images/partners/jkuat.png" alt="JKUAT" style={{height: '120px', width: '120px', objectFit: 'contain', borderRadius: '15px', background: '#fff', padding: '10px', boxShadow: '0 4px 15px rgba(0,0,0,0.07)'}} />
                 </div>
                 <div className="text-center">
                   <h6 className="text-muted fw-bold mt-2">JKUAT</h6>
@@ -133,7 +133,7 @@ const About: React.FC = () => {
               </div>
               <div className="col-lg-3 col-md-4 col-6 d-flex flex-column align-items-center">
                 <div className="client-logo mb-3">
-                  <img src="/src/assets/images/partners/jhub.png" alt="Jhub Africa" style={{height: '120px', width: '120px', objectFit: 'contain', borderRadius: '15px', background: '#fff', padding: '10px', boxShadow: '0 4px 15px rgba(0,0,0,0.07)'}} />
+                  <img src="/images/partners/jhub.png" alt="Jhub Africa" style={{height: '120px', width: '120px', objectFit: 'contain', borderRadius: '15px', background: '#fff', padding: '10px', boxShadow: '0 4px 15px rgba(0,0,0,0.07)'}} />
                 </div>
                 <div className="text-center">
                   <h6 className="text-muted fw-bold mt-2">Jhub Africa</h6>
@@ -141,7 +141,7 @@ const About: React.FC = () => {
               </div>
               <div className="col-lg-3 col-md-4 col-6 d-flex flex-column align-items-center">
                 <div className="client-logo mb-3">
-                  <img src="/src/assets/images/partners/synapse.png" alt="Synapse Technology" style={{height: '120px', width: '120px', objectFit: 'contain', borderRadius: '15px', background: '#fff', padding: '10px', boxShadow: '0 4px 15px rgba(0,0,0,0.07)'}} />
+                  <img src="/images/partners/synapse.png" alt="Synapse Technology" style={{height: '120px', width: '120px', objectFit: 'contain', borderRadius: '15px', background: '#fff', padding: '10px', boxShadow: '0 4px 15px rgba(0,0,0,0.07)'}} />
                 </div>
                 <div className="text-center">
                   <h6 className="text-muted fw-bold mt-2">Synapse Technology</h6>
@@ -162,7 +162,7 @@ const About: React.FC = () => {
               {/* Dr. Lawrence Nderu */}
               <div className="col-lg-3 col-md-4 col-sm-6 d-flex align-items-stretch">
                 <div className="card shadow-sm border-0 text-center p-3">
-                  <img src="/src/assets/images/team/Lawrence.jpeg" className="img-fluid rounded-circle mb-3" alt="Dr. Lawrence Nderu" style={{width: '120px', height: '120px', objectFit: 'cover', margin: 'auto'}} />
+                  <img src="/images/team/Lawrence.jpeg" className="img-fluid rounded-circle mb-3" alt="Dr. Lawrence Nderu" style={{width: '120px', height: '120px', objectFit: 'cover', margin: 'auto'}} />
                   <h5 className="mb-1">Dr. Lawrence Nderu</h5>
                   <span className="text-success fw-bold">Project Inspector</span>
                   <p className="mt-2 small">Mentor and supervisor, guiding the team to success.</p>
@@ -175,7 +175,7 @@ const About: React.FC = () => {
               {/* Bouric Okwaro */}
               <div className="col-lg-3 col-md-4 col-sm-6 d-flex align-items-stretch">
                 <div className="card shadow-sm border-0 text-center p-3">
-                  <img src="/src/assets/images/team/bouric.jpeg" className="img-fluid rounded-circle mb-3" alt="Bouric Okwaro" style={{width: '120px', height: '120px', objectFit: 'cover', objectPosition: 'center top', margin: 'auto'}} />
+                  <img src="/images/team/bouric.jpeg" className="img-fluid rounded-circle mb-3" alt="Bouric Okwaro" style={{width: '120px', height: '120px', objectFit: 'cover', objectPosition: 'center top', margin: 'auto'}} />
                   <h5 className="mb-1">Bouric Okwaro</h5>
                   <span className="text-primary">Team Lead & Full Stack Developer</span>
                   <p className="mt-2 small">Leads the team and architects both frontend and backend solutions.</p>
@@ -188,7 +188,7 @@ const About: React.FC = () => {
               {/* Gabriella Muthoni */}
               <div className="col-lg-3 col-md-4 col-sm-6 d-flex align-items-stretch">
                 <div className="card shadow-sm border-0 text-center p-3">
-                  <img src="/src/assets/images/team/gabby.jpg" className="img-fluid rounded-circle mb-3" alt="Gabriella Muthoni" style={{width: '120px', height: '120px', objectFit: 'cover', margin: 'auto'}} />
+                  <img src="/images/team/gabby.jpg" className="img-fluid rounded-circle mb-3" alt="Gabriella Muthoni" style={{width: '120px', height: '120px', objectFit: 'cover', margin: 'auto'}} />
                   <h5 className="mb-1">Gabriella Muthoni</h5>
                   <span className="text-primary">UI & UX Designer</span>
                   <p className="mt-2 small">Designs intuitive and engaging user experiences for EduLink KE.</p>
@@ -201,7 +201,7 @@ const About: React.FC = () => {
               {/* Caroline Obuyah */}
               <div className="col-lg-3 col-md-4 col-sm-6 d-flex align-items-stretch">
                 <div className="card shadow-sm border-0 text-center p-3">
-                  <img src="/src/assets/images/team/caroline.jpg" className="img-fluid rounded-circle mb-3" alt="Caroline Obuyah" style={{width: '120px', height: '120px', objectFit: 'cover', margin: 'auto'}} />
+                  <img src="/images/team/caroline.jpg" className="img-fluid rounded-circle mb-3" alt="Caroline Obuyah" style={{width: '120px', height: '120px', objectFit: 'cover', margin: 'auto'}} />
                   <h5 className="mb-1">Caroline Obuyah</h5>
                   <span className="text-primary">Backend Developer</span>
                   <p className="mt-2 small">Builds robust server-side logic and APIs for seamless operations.</p>
@@ -214,7 +214,7 @@ const About: React.FC = () => {
               {/* Duncan Mathai */}
               <div className="col-lg-3 col-md-4 col-sm-6 d-flex align-items-stretch">
                 <div className="card shadow-sm border-0 text-center p-3">
-                  <img src="/src/assets/images/team/duncan.jpg" className="img-fluid rounded-circle mb-3" alt="Duncan Mathai" style={{width: '120px', height: '120px', objectFit: 'cover', margin: 'auto'}} />
+                  <img src="/images/team/duncan.jpg" className="img-fluid rounded-circle mb-3" alt="Duncan Mathai" style={{width: '120px', height: '120px', objectFit: 'cover', margin: 'auto'}} />
                   <h5 className="mb-1">Duncan Mathai</h5>
                   <span className="text-primary">Auth & Security Engineer</span>
                   <p className="mt-2 small">Ensures platform security and manages authentication systems.</p>
@@ -227,7 +227,7 @@ const About: React.FC = () => {
               {/* Jessy Cheruiyot */}
               <div className="col-lg-3 col-md-4 col-sm-6 d-flex align-items-stretch">
                 <div className="card shadow-sm border-0 text-center p-3">
-                  <img src="/src/assets/images/team/jessy.jpg" className="img-fluid rounded-circle mb-3" alt="Jessy Cheruiyot" style={{width: '120px', height: '120px', objectFit: 'cover', margin: 'auto'}} />
+                  <img src="/images/team/jessy.jpg" className="img-fluid rounded-circle mb-3" alt="Jessy Cheruiyot" style={{width: '120px', height: '120px', objectFit: 'cover', margin: 'auto'}} />
                   <h5 className="mb-1">Jessy Cheruiyot</h5>
                   <span className="text-primary">Mobile Developer</span>
                   <p className="mt-2 small">Develops and optimizes the EduLink KE mobile experience.</p>
@@ -240,7 +240,7 @@ const About: React.FC = () => {
               {/* Mark Matheka */}
               <div className="col-lg-3 col-md-4 col-sm-6 d-flex align-items-stretch">
                 <div className="card shadow-sm border-0 text-center p-3">
-                  <img src="/src/assets/images/team/mark.jpg" className="img-fluid rounded-circle mb-3" alt="Mark Matheka" style={{width: '120px', height: '120px', objectFit: 'cover', margin: 'auto'}} />
+                  <img src="/images/team/mark.jpg" className="img-fluid rounded-circle mb-3" alt="Mark Matheka" style={{width: '120px', height: '120px', objectFit: 'cover', margin: 'auto'}} />
                   <h5 className="mb-1">Mark Matheka</h5>
                   <span className="text-primary">Data Engineer</span>
                   <p className="mt-2 small">Manages data pipelines and analytics for actionable insights.</p>
@@ -253,7 +253,7 @@ const About: React.FC = () => {
               {/* Brian Kiragu */}
               <div className="col-lg-3 col-md-4 col-sm-6 d-flex align-items-stretch">
                 <div className="card shadow-sm border-0 text-center p-3">
-                  <img src="/src/assets/images/team/brian.jpg" className="img-fluid rounded-circle mb-3" alt="Brian Kiragu" style={{width: '120px', height: '120px', objectFit: 'cover', margin: 'auto'}} />
+                  <img src="/images/team/brian.jpg" className="img-fluid rounded-circle mb-3" alt="Brian Kiragu" style={{width: '120px', height: '120px', objectFit: 'cover', margin: 'auto'}} />
                   <h5 className="mb-1">Brian Kiragu</h5>
                   <span className="text-primary">Frontend Developer</span>
                   <p className="mt-2 small">Implements engaging and responsive user interfaces.</p>

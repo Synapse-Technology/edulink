@@ -30,15 +30,14 @@ services:
         sync: false # Set this in Render dashboard
 
   # Frontend service
-  - type: web
+  - type: static
     name: edulink-frontend
-    env: static
     buildCommand: cd edulink-frontend && npm install && npm run build
     staticPublishPath: edulink-frontend/dist
     envVars:
       - key: VITE_API_BASE_URL
-        value: https://edulink-backend.onrender.com # Update this if you change the backend name
+        value: https://edulink-backend-2ren.onrender.com # Update this if you change the backend name
     routes:
       - type: rewrite
-        source: /*
+        source: /[^.]*
         destination: /index.html

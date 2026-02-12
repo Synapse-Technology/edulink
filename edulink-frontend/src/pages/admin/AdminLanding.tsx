@@ -278,7 +278,7 @@ const AdminLanding: React.FC = () => {
         
         /* Hero Section */
         .admin-hero {
-          background-image: url('/src/assets/images/admin_hero.jpg');
+          background-image: url('/images/admin_hero.jpg');
           background-size: cover;
           background-position: center;
           background-repeat: no-repeat;

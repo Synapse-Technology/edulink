@@ -294,7 +294,7 @@ const Login: React.FC = () => {
           )}
         </div>
         <div className="min-h-screen flex login-container" style={{
-        background: 'url(/src/assets/images/signin.jpeg) no-repeat center center/cover',
+        background: 'url(/images/signin.jpeg) no-repeat center center/cover',
         minHeight: '100vh',
         width: '100%',
         overflowX: 'hidden',
@@ -342,7 +342,7 @@ const Login: React.FC = () => {
             justifyContent: 'center'
           }}>
             <Link to="/">
-              <img src="/src/assets/images/edulink_logo.png" alt="Edulink Logo" style={{
+              <img src="/images/edulink_logo.png" alt="Edulink Logo" style={{
                 maxWidth: '150px',
                 marginBottom: '25px'
               }} />
