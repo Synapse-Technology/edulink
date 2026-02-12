@@ -9,6 +9,7 @@ gunicorn==22.0.0
 
 # Database & Environment
 psycopg2-binary==2.9.9
+psycopg[binary]==3.1.18
 dj-database-url==2.1.0
 python-dotenv==1.0.1
 
@@ -22,8 +23,8 @@ xhtml2pdf==0.2.16
 python-bidi==0.4.2
 
 # Utilities
-requests==2.31.0
+requests==2.32.3
 python-dateutil==2.9.0.post0
 pytz==2024.1
 asgiref==3.8.1
-sqlparse==0.5.0
+sqlparse==0.5.1
