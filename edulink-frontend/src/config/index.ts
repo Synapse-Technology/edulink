@@ -215,11 +215,11 @@ export const getConfig = () => {
         ...config,
         api: {
           ...config.api,
-          baseURL: 'https://staging-api.edulink.co.ke',
+          baseURL: import.meta.env.VITE_API_BASE_URL || 'https://staging-api.edulink.co.ke',
         },
         app: {
           ...config.app,
-          url: 'https://staging.edulink.co.ke',
+          url: import.meta.env.VITE_APP_URL || 'https://staging.edulink.co.ke',
         },
       };
     
@@ -228,11 +228,11 @@ export const getConfig = () => {
         ...config,
         api: {
           ...config.api,
-          baseURL: 'https://api.edulink.co.ke',
+          baseURL: import.meta.env.VITE_API_BASE_URL || 'https://api.edulink.co.ke',
         },
         app: {
           ...config.app,
-          url: 'https://edulink.co.ke',
+          url: import.meta.env.VITE_APP_URL || 'https://edulink.co.ke',
         },
         security: {
           ...config.security,

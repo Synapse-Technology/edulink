@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search } from 'lucide-react';
+import { authService } from '../../services/auth/authService';
+import { institutionService } from '../../services/institution/institutionService';
+import { apiClient } from '../../services/api/client';
+import { ApiError } from '../../services/errors';
 
 // CSS Animations and Keyframes
 const styles = `
@@ -351,21 +355,8 @@ const Register: React.FC = () => {
   const handleInstitutionSearch = async (query: string) => {
     setIsSearchingInstitutions(true);
     try {
-      const response = await fetch(`/api/institutions/institutions/public_list/?q=${encodeURIComponent(query)}`);
-      
-      if (!response.ok) {
-        console.error('Failed to fetch institutions:', response.status);
-        return;
-      }
-
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        console.error('Invalid response format for institutions');
-        return;
-      }
-
-      const data = await response.json();
-      setAvailableInstitutions(data.results || data);
+      const results = await institutionService.getPublicList(query);
+      setAvailableInstitutions(results || []);
     } catch (error) {
       console.error('Error fetching institutions:', error);
     } finally {
@@ -413,21 +404,11 @@ const Register: React.FC = () => {
     setInterestSubmissionStatus('idle');
 
     try {
-      const response = await fetch('/api/institutions/institutions/record_interest/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          raw_name: institutionInterestName.trim(),
-          user_email: formData.email.trim(),
-          email_domain: formData.email.split('@')[1] || '',
-        }),
+      await institutionService.recordInterest({
+        raw_name: institutionInterestName.trim(),
+        user_email: formData.email.trim(),
+        email_domain: formData.email.split('@')[1] || '',
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to record interest');
-      }
 
       setInterestSubmissionStatus('success');
       setInstitutionInterestName('');
@@ -650,28 +631,7 @@ const Register: React.FC = () => {
         institution_id: selectedInstitution ? selectedInstitution.id : null,
       };
 
-      const response = await fetch('/api/auth/users/register/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        let errorMessage = 'Registration failed. Please try again.';
-        try {
-          const data = await response.json();
-          if (typeof data.error === 'string' && data.error) {
-            errorMessage = data.error;
-          }
-        } catch (parseError) {
-          console.error('Failed to parse registration error response', parseError);
-        }
-        setMessage(errorMessage);
-        showToastMessage(errorMessage, 'error');
-        return;
-      }
+      await apiClient.post('/api/auth/users/register/', payload);
 
       setRegistrationComplete(true);
       setRegisteredEmail(formData.email.trim());
@@ -680,9 +640,13 @@ const Register: React.FC = () => {
         'success',
       );
       setCurrentStep(0);
-    } catch (_error) {
-      setMessage('Registration failed. Please try again.');
-      showToastMessage('Registration failed. Please try again.', 'error');
+    } catch (error) {
+      let errorMessage = 'Registration failed. Please try again.';
+      if (error instanceof ApiError) {
+        errorMessage = error.message;
+      }
+      setMessage(errorMessage);
+      showToastMessage(errorMessage, 'error');
     } finally {
       setIsSubmitting(false);
       // Remove loading overlay
@@ -702,31 +666,14 @@ const Register: React.FC = () => {
     setIsResending(true);
 
     try {
-      const response = await fetch('/api/notifications/email-verification/resend/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email: registeredEmail }),
-      });
-
-      if (!response.ok) {
-        let errorMessage = 'Failed to resend verification email.';
-        try {
-          const data = await response.json();
-          if (typeof data.error === 'string' && data.error) {
-            errorMessage = data.error;
-          }
-        } catch (parseError) {
-          console.error('Failed to parse resend verification error response', parseError);
-        }
-        showToastMessage(errorMessage, 'error');
-        return;
-      }
-
+      await authService.resendVerificationEmail(registeredEmail);
       showToastMessage('Verification email resent successfully.', 'success');
-    } catch (_error) {
-      showToastMessage('Failed to resend verification email.', 'error');
+    } catch (error) {
+      let errorMessage = 'Failed to resend verification email.';
+      if (error instanceof ApiError) {
+        errorMessage = error.message;
+      }
+      showToastMessage(errorMessage, 'error');
     } finally {
       setIsResending(false);
     }
@@ -968,7 +915,7 @@ const Register: React.FC = () => {
               ))}
             </div>
 
-            <form onSubmit={handleSubmit} id="registerForm" role="form" aria-label="Student registration form">
+            <form onSubmit={handleSubmit} id="registerForm" role="form" aria-label="Student registration form" noValidate>
               {/* Step 1: Account Credentials */}
               <fieldset className="form-step" style={{
                 display: currentStep === 0 ? 'flex' : 'none',
