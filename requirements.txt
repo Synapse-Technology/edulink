@@ -19,6 +19,7 @@ pusher==3.3.2
 # PDF Generation
 reportlab==4.2.0
 xhtml2pdf==0.2.16
+python-bidi==0.4.2
 
 # Utilities
 requests==2.31.0
