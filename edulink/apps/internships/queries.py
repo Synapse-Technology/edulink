@@ -12,42 +12,52 @@ from .models import InternshipOpportunity, InternshipApplication, OpportunitySta
 def get_opportunities_for_user(user) -> QuerySet[InternshipOpportunity]:
     """
     Returns opportunities visible to the user.
+    - Public (OPEN) opportunities are visible to everyone.
+    - Owners (Employer/Institution Admins) see their own opportunities regardless of status.
+    - Students see only OPEN opportunities.
     """
-    queryset = InternshipOpportunity.objects.all()
+    queryset = InternshipOpportunity.objects.all().order_by('-created_at')
+
+    # Base filter: Publicly open opportunities
+    visibility_filter = Q(status=OpportunityStatus.OPEN)
 
     if not user.is_authenticated:
-        return queryset.filter(status=OpportunityStatus.OPEN)
+        return queryset.filter(visibility_filter)
 
     if user.is_system_admin:
         return queryset
 
-    elif user.is_institution_admin:
-        inst = get_institution_for_user(str(user.id))
-        if inst:
-            return queryset.filter(institution_id=inst.id)
-        return InternshipOpportunity.objects.none()
-
-    elif user.is_employer_admin:
-        employer = get_employer_for_user(user.id)
-        if employer:
-            return queryset.filter(employer_id=employer.id)
-        return InternshipOpportunity.objects.none()
+    # Identify user's organization affiliations
+    user_id = user.id if isinstance(user.id, UUID) else UUID(str(user.id))
     
-    elif user.is_student:
+    # Institution Admin Visibility
+    if user.is_institution_admin:
+        inst = get_institution_for_user(str(user_id))
+        if inst:
+            visibility_filter |= Q(institution_id=inst.id)
+
+    # Employer Admin Visibility
+    if user.is_employer_admin:
+        employer = get_employer_for_user(user_id)
+        if employer:
+            visibility_filter |= Q(employer_id=employer.id)
+    
+    # Student Visibility (Only OPEN)
+    if user.is_student:
         return queryset.filter(status=OpportunityStatus.OPEN)
 
-    # Supervisors (view opportunities of their org)
-    elif user.is_supervisor:
-        employer = get_employer_for_user(user.id)
+    # Supervisors Visibility
+    if user.is_supervisor:
+        employer = get_employer_for_user(user_id)
         if employer:
-             return queryset.filter(employer_id=employer.id)
+             visibility_filter |= Q(employer_id=employer.id)
              
         from edulink.apps.institutions.queries import get_institution_staff_profile
-        staff = get_institution_staff_profile(str(user.id))
+        staff = get_institution_staff_profile(str(user_id))
         if staff:
-             return queryset.filter(institution_id=staff.institution_id)
+             visibility_filter |= Q(institution_id=staff.institution_id)
 
-    return InternshipOpportunity.objects.none()
+    return queryset.filter(visibility_filter).distinct()
 
 def get_applications_for_user(user) -> QuerySet[InternshipApplication]:
     """
