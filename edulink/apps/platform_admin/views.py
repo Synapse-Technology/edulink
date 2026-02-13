@@ -31,18 +31,20 @@ class PlatformStaffPermission(IsAuthenticated):
     """Permission class for platform staff only."""
     
     def has_permission(self, request, view):
-        if not super().has_permission(request, view):
+        user = request.user
+        if not (user and user.is_authenticated):
             return False
-        return policies.is_platform_staff(actor=request.user)
+        return policies.is_platform_staff(actor=user)
 
 
 class SuperAdminPermission(IsAuthenticated):
     """Permission class for super admins only."""
     
     def has_permission(self, request, view):
-        if not super().has_permission(request, view):
+        user = request.user
+        if not (user and user.is_authenticated):
             return False
-        return policies.can_create_staff_invites(actor=request.user)
+        return policies.get_platform_staff_role(actor=user) == PlatformStaffProfile.ROLE_SUPER_ADMIN
 
 
 class AdminDashboardView(APIView):
