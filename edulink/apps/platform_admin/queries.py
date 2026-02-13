@@ -194,7 +194,6 @@ def get_system_analytics():
     from edulink.apps.accounts import queries as account_queries
     from edulink.apps.institutions import queries as institution_queries
     from edulink.apps.internships import queries as internship_queries
-    import psutil
     
     # 1. Base Stats
     account_stats = account_queries.get_account_analytics()
@@ -222,6 +221,7 @@ def get_system_analytics():
     
     # 4. Performance metrics
     try:
+        import psutil
         system_load = psutil.cpu_percent(interval=0.1)
         memory_usage = psutil.virtual_memory().percent
         disk_usage = psutil.disk_usage('/').percent

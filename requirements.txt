@@ -27,6 +27,7 @@ xhtml2pdf==0.2.16
 python-bidi==0.4.2
 
 # Utilities
+psutil==5.9.8
 requests==2.32.3
 python-dateutil==2.9.0.post0
 pytz==2024.1
