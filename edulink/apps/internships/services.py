@@ -91,7 +91,8 @@ def create_internship_opportunity(
     end_date=None,
     duration: str = "",
     application_deadline=None,
-    is_institution_restricted: bool = False
+    is_institution_restricted: bool = False,
+    **kwargs
 ) -> InternshipOpportunity:
     """
     Creates a new Internship Opportunity in DRAFT state.

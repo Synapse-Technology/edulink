@@ -66,9 +66,12 @@ class InternshipViewSet(viewsets.ReadOnlyModelViewSet):
             return Response({"detail": "Not authorized to create internship"}, status=status.HTTP_403_FORBIDDEN)
 
         try:
+            data = serializer.validated_data.copy()
+            data.pop('supervisor_ids', None) # Not yet supported in model
+            
             internship = create_internship_opportunity(
                 actor=request.user,
-                **serializer.validated_data
+                **data
             )
             return Response(InternshipOpportunitySerializer(internship).data, status=status.HTTP_201_CREATED)
         except Exception as e:
