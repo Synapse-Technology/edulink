@@ -60,6 +60,12 @@ CORS_ALLOWED_ORIGINS = [
     "https://edulink-frontend-mb63.onrender.com",
 ]
 
+# Production Apps
+INSTALLED_APPS += [
+    "cloudinary_storage",
+    "cloudinary",
+]
+
 # Media Storage (Cloudinary)
 # Render Free tier has an ephemeral file system. We use Cloudinary for persistent media storage.
 CLOUDINARY_STORAGE = {
