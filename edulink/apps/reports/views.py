@@ -41,7 +41,8 @@ class ArtifactViewSet(viewsets.ReadOnlyModelViewSet):
         return Artifact.objects.none()
 
     def get_authenticators(self):
-        if self.action == 'verify':
+        action = getattr(self, "action", None)
+        if action == 'verify':
             return []
         return super().get_authenticators()
 

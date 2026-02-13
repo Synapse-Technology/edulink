@@ -225,7 +225,7 @@ EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "30"))
 
 # Site Configuration
 SITE_NAME = "Edulink"
-SITE_URL = "http://localhost:5173/"  # Update this for production
+SITE_URL = "https://edulink-backend-2ren.onrender.com/"  # Update this for production
 SUPPORT_EMAIL = "support@edulink.com"
 
 # Security Settings

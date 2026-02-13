@@ -79,12 +79,14 @@ class EmployerRequestViewSet(viewsets.ModelViewSet):
     search_fields = ['tracking_code', 'name', 'official_email', 'domain']
     
     def get_permissions(self):
-        if self.action in ["create", "track"]:
+        action = getattr(self, "action", None)
+        if action in ["create", "track"]:
             return [AllowAny()]
         return [IsAuthenticated()]
 
     def get_authenticators(self):
-        if self.action in ["create", "track"]:
+        action = getattr(self, "action", None)
+        if action in ["create", "track"]:
             return []
         return super().get_authenticators()
 
@@ -162,12 +164,14 @@ class EmployerViewSet(viewsets.ReadOnlyModelViewSet):
     filterset_fields = ['is_featured', 'status', 'trust_level']
 
     def get_permissions(self):
-        if self.action in ['list', 'retrieve']:
+        action = getattr(self, "action", None)
+        if action in ["list", "retrieve"]:
             return [AllowAny()]
         return [IsAuthenticated()]
 
     def get_authenticators(self):
-        if self.action in ['list', 'retrieve']:
+        action = getattr(self, "action", None)
+        if action in ["list", "retrieve"]:
             return []
         return super().get_authenticators()
 
