@@ -11,6 +11,8 @@ User = get_user_model()
 
 def is_platform_staff(*, actor: User) -> bool:
     """Check if user has any platform staff authority."""
+    if actor.is_superuser:
+        return True
     return PlatformStaffProfile.objects.filter(
         user=actor,
         is_active=True,
@@ -25,7 +27,14 @@ def get_platform_staff_role(*, actor: User) -> str:
         is_active=True,
         revoked_at__isnull=True
     ).first()
-    return profile.role if profile else None
+    
+    if profile:
+        return profile.role
+    
+    if actor.is_superuser:
+        return PlatformStaffProfile.ROLE_SUPER_ADMIN
+        
+    return None
 
 
 def can_view_staff_list(*, actor: User) -> bool:
@@ -40,12 +49,7 @@ def can_create_staff_invites(*, actor: User) -> bool:
     Only super admins can create staff invites.
     This is the controlled creation path for all future staff.
     """
-    return PlatformStaffProfile.objects.filter(
-        user=actor,
-        role=PlatformStaffProfile.ROLE_SUPER_ADMIN,
-        is_active=True,
-        revoked_at__isnull=True
-    ).exists()
+    return get_platform_staff_role(actor=actor) == PlatformStaffProfile.ROLE_SUPER_ADMIN
 
 
 def can_revoke_staff_authority(*, actor: User, target_staff: User) -> bool:
@@ -56,12 +60,7 @@ def can_revoke_staff_authority(*, actor: User, target_staff: User) -> bool:
     if actor.id == target_staff.id:
         return False
     
-    return PlatformStaffProfile.objects.filter(
-        user=actor,
-        role=PlatformStaffProfile.ROLE_SUPER_ADMIN,
-        is_active=True,
-        revoked_at__isnull=True
-    ).exists()
+    return get_platform_staff_role(actor=actor) == PlatformStaffProfile.ROLE_SUPER_ADMIN
 
 
 def can_manage_institutions(*, actor: User) -> bool:
@@ -69,15 +68,11 @@ def can_manage_institutions(*, actor: User) -> bool:
     Super admins and platform admins can manage institutions.
     This includes reviewing and approving institution requests.
     """
-    return PlatformStaffProfile.objects.filter(
-        user=actor,
-        role__in=[
-            PlatformStaffProfile.ROLE_SUPER_ADMIN,
-            PlatformStaffProfile.ROLE_PLATFORM_ADMIN
-        ],
-        is_active=True,
-        revoked_at__isnull=True
-    ).exists()
+    role = get_platform_staff_role(actor=actor)
+    return role in [
+        PlatformStaffProfile.ROLE_SUPER_ADMIN,
+        PlatformStaffProfile.ROLE_PLATFORM_ADMIN
+    ]
 
 
 def can_manage_users(*, actor: User) -> bool:
@@ -85,15 +80,11 @@ def can_manage_users(*, actor: User) -> bool:
     Super admins and platform admins can manage users.
     This includes suspending, reactivating, and changing user roles.
     """
-    return PlatformStaffProfile.objects.filter(
-        user=actor,
-        role__in=[
-            PlatformStaffProfile.ROLE_SUPER_ADMIN,
-            PlatformStaffProfile.ROLE_PLATFORM_ADMIN
-        ],
-        is_active=True,
-        revoked_at__isnull=True
-    ).exists()
+    role = get_platform_staff_role(actor=actor)
+    return role in [
+        PlatformStaffProfile.ROLE_SUPER_ADMIN,
+        PlatformStaffProfile.ROLE_PLATFORM_ADMIN
+    ]
 
 
 def can_suspend_user(*, actor: User, target_user: User) -> bool:
@@ -108,30 +99,22 @@ def can_suspend_user(*, actor: User, target_user: User) -> bool:
     if is_platform_staff(actor=target_user):
         return False
     
-    return PlatformStaffProfile.objects.filter(
-        user=actor,
-        role__in=[
-            PlatformStaffProfile.ROLE_SUPER_ADMIN,
-            PlatformStaffProfile.ROLE_PLATFORM_ADMIN
-        ],
-        is_active=True,
-        revoked_at__isnull=True
-    ).exists()
+    role = get_platform_staff_role(actor=actor)
+    return role in [
+        PlatformStaffProfile.ROLE_SUPER_ADMIN,
+        PlatformStaffProfile.ROLE_PLATFORM_ADMIN
+    ]
 
 
 def can_reactivate_user(*, actor: User) -> bool:
     """
     Platform admins can reactivate suspended users.
     """
-    return PlatformStaffProfile.objects.filter(
-        user=actor,
-        role__in=[
-            PlatformStaffProfile.ROLE_SUPER_ADMIN,
-            PlatformStaffProfile.ROLE_PLATFORM_ADMIN
-        ],
-        is_active=True,
-        revoked_at__isnull=True
-    ).exists()
+    role = get_platform_staff_role(actor=actor)
+    return role in [
+        PlatformStaffProfile.ROLE_SUPER_ADMIN,
+        PlatformStaffProfile.ROLE_PLATFORM_ADMIN
+    ]
 
 
 def can_change_user_roles(*, actor: User, target_user: User) -> bool:
@@ -143,15 +126,11 @@ def can_change_user_roles(*, actor: User, target_user: User) -> bool:
     if is_platform_staff(actor=target_user):
         return False
     
-    return PlatformStaffProfile.objects.filter(
-        user=actor,
-        role__in=[
-            PlatformStaffProfile.ROLE_SUPER_ADMIN,
-            PlatformStaffProfile.ROLE_PLATFORM_ADMIN
-        ],
-        is_active=True,
-        revoked_at__isnull=True
-    ).exists()
+    role = get_platform_staff_role(actor=actor)
+    return role in [
+        PlatformStaffProfile.ROLE_SUPER_ADMIN,
+        PlatformStaffProfile.ROLE_PLATFORM_ADMIN
+    ]
 
 
 def can_view_system_analytics(*, actor: User) -> bool:
@@ -181,43 +160,30 @@ def can_perform_emergency_actions(*, actor: User) -> bool:
     Only super admins can perform emergency actions.
     This includes emergency suspensions and policy overrides.
     """
-    return PlatformStaffProfile.objects.filter(
-        user=actor,
-        role=PlatformStaffProfile.ROLE_SUPER_ADMIN,
-        is_active=True,
-        revoked_at__isnull=True
-    ).exists()
+    return get_platform_staff_role(actor=actor) == PlatformStaffProfile.ROLE_SUPER_ADMIN
 
 
 def can_perform_ledger_audits(*, actor: User) -> bool:
     """
     Super admins and auditors can perform ledger audits.
     """
-    return PlatformStaffProfile.objects.filter(
-        user=actor,
-        role__in=[
-            PlatformStaffProfile.ROLE_SUPER_ADMIN,
-            PlatformStaffProfile.ROLE_AUDITOR
-        ],
-        is_active=True,
-        revoked_at__isnull=True
-    ).exists()
+    role = get_platform_staff_role(actor=actor)
+    return role in [
+        PlatformStaffProfile.ROLE_SUPER_ADMIN,
+        PlatformStaffProfile.ROLE_AUDITOR
+    ]
 
 
 def can_respond_to_support_tickets(*, actor: User) -> bool:
     """
     Moderators and above can respond to support tickets.
     """
-    return PlatformStaffProfile.objects.filter(
-        user=actor,
-        role__in=[
-            PlatformStaffProfile.ROLE_SUPER_ADMIN,
-            PlatformStaffProfile.ROLE_PLATFORM_ADMIN,
-            PlatformStaffProfile.ROLE_MODERATOR
-        ],
-        is_active=True,
-        revoked_at__isnull=True
-    ).exists()
+    role = get_platform_staff_role(actor=actor)
+    return role in [
+        PlatformStaffProfile.ROLE_SUPER_ADMIN,
+        PlatformStaffProfile.ROLE_PLATFORM_ADMIN,
+        PlatformStaffProfile.ROLE_MODERATOR
+    ]
 
 
 def can_manage_contact_submissions(*, actor: User) -> bool:
