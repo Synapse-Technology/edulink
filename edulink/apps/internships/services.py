@@ -76,6 +76,8 @@ def propagate_student_institution_to_applications(*, student_id: UUID, instituti
 
 
 def create_internship_opportunity(
+    *,
+    actor,
     title: str, 
     description: str, 
     institution_id: UUID, 

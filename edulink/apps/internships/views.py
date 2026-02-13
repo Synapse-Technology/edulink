@@ -56,32 +56,33 @@ class InternshipViewSet(viewsets.ReadOnlyModelViewSet):
         serializer = CreateInternshipSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
+        # Policy Check: View level orchestration
+        from .policies import can_create_internship
+        if not can_create_internship(
+            request.user, 
+            institution_id=serializer.validated_data.get('institution_id'),
+            employer_id=serializer.validated_data.get('employer_id')
+        ):
+            return Response({"detail": "Not authorized to create internship"}, status=status.HTTP_403_FORBIDDEN)
+
         try:
             internship = create_internship_opportunity(
                 actor=request.user,
-                title=serializer.validated_data['title'],
-                description=serializer.validated_data['description'],
-                department=serializer.validated_data.get('department', ''),
-                skills=serializer.validated_data.get('skills', []),
-                capacity=serializer.validated_data.get('capacity', 1),
-                location=serializer.validated_data.get('location', ''),
-                location_type=serializer.validated_data.get('location_type', InternshipOpportunity.LOCATION_ONSITE),
-                institution_id=serializer.validated_data.get('institution_id'),
-                employer_id=serializer.validated_data.get('employer_id'),
-                start_date=serializer.validated_data.get('start_date'),
-                end_date=serializer.validated_data.get('end_date'),
-                duration=serializer.validated_data.get('duration', ''),
-                application_deadline=serializer.validated_data.get('application_deadline'),
-                is_institution_restricted=serializer.validated_data.get('is_institution_restricted', False)
+                **serializer.validated_data
             )
             return Response(InternshipOpportunitySerializer(internship).data, status=status.HTTP_201_CREATED)
-        except PermissionError as e:
-            return Response({"detail": str(e)}, status=status.HTTP_403_FORBIDDEN)
-        except ValueError as e:
+        except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['post'])
     def publish(self, request, pk=None):
+        opportunity = self.get_object()
+        
+        # Policy Check
+        from .policies import can_transition_opportunity
+        if not can_transition_opportunity(request.user, opportunity, OpportunityStatus.OPEN):
+            return Response({"detail": "Not authorized to publish this opportunity"}, status=status.HTTP_403_FORBIDDEN)
+
         try:
             internship = publish_internship(request.user, pk)
             return Response(InternshipOpportunitySerializer(internship).data)
@@ -154,10 +155,30 @@ class ApplicationViewSet(viewsets.ReadOnlyModelViewSet):
         """
         Handle application actions: shortlist, accept, reject, complete, certify
         """
+        application = self.get_object()
         serializer = InternshipActionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         action_name = serializer.validated_data['action']
         
+        # Map action names to target states for policy check
+        action_to_state = {
+            'shortlist': ApplicationStatus.SHORTLISTED,
+            'reject': ApplicationStatus.REJECTED,
+            'accept': ApplicationStatus.ACCEPTED,
+            'start': ApplicationStatus.ACTIVE,
+            'complete': ApplicationStatus.COMPLETED,
+            'certify': ApplicationStatus.CERTIFIED
+        }
+        
+        target_state = action_to_state.get(action_name)
+        if not target_state:
+            return Response({"detail": "Invalid action"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        # Policy Check
+        from .policies import can_transition_application
+        if not can_transition_application(request.user, application, target_state):
+            return Response({"detail": f"Not authorized to perform action: {action_name}"}, status=status.HTTP_403_FORBIDDEN)
+            
         try:
             if action_name in ['shortlist', 'reject']:
                 app = process_application(request.user, pk, action_name)
@@ -173,25 +194,25 @@ class ApplicationViewSet(viewsets.ReadOnlyModelViewSet):
                 return Response({"detail": "Invalid action"}, status=status.HTTP_400_BAD_REQUEST)
                 
             return Response(InternshipApplicationSerializer(app).data)
-        except PermissionError as e:
-             return Response({"detail": str(e)}, status=status.HTTP_403_FORBIDDEN)
-        except ValueError as e:
+        except Exception as e:
              return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['post'], parser_classes=[MultiPartParser, FormParser])
     def submit_evidence(self, request, pk=None):
+        application = self.get_object()
         serializer = SubmitEvidenceSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
+        # Policy Check
+        from .policies import can_submit_evidence
+        if not can_submit_evidence(request.user, application):
+            return Response({"detail": "Not authorized to submit evidence for this application"}, status=status.HTTP_403_FORBIDDEN)
+            
         try:
             evidence = submit_evidence(
                 actor=request.user,
                 application_id=pk,
-                title=serializer.validated_data['title'],
-                file=serializer.validated_data.get('file'),
-                description=serializer.validated_data.get('description', ''),
-                evidence_type=serializer.validated_data.get('evidence_type', 'OTHER'),
-                metadata=serializer.validated_data.get('metadata', {})
+                **serializer.validated_data
             )
             return Response(InternshipEvidenceSerializer(evidence, context={'request': request}).data, status=status.HTTP_201_CREATED)
         except Exception as e:
@@ -209,9 +230,15 @@ class ApplicationViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True, methods=['post'], url_path='review-evidence/(?P<evidence_id>[^/.]+)')
     def review_evidence(self, request, pk=None, evidence_id=None):
+        application = self.get_object()
         serializer = ReviewEvidenceSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
+        # Policy Check
+        from .policies import can_review_evidence
+        if not can_review_evidence(request.user, application):
+            return Response({"detail": "Not authorized to review evidence for this application"}, status=status.HTTP_403_FORBIDDEN)
+            
         try:
             evidence = review_evidence(
                 actor=request.user,
@@ -226,9 +253,16 @@ class ApplicationViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True, methods=['post'])
     def assign_supervisor(self, request, pk=None):
+        application = self.get_object()
+        opportunity = application.opportunity
         serializer = AssignSupervisorSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
+        # Policy Check
+        from .policies import can_assign_supervisor
+        if not can_assign_supervisor(request.user, opportunity):
+            return Response({"detail": "Not authorized to assign supervisors"}, status=status.HTTP_403_FORBIDDEN)
+            
         try:
             app = assign_supervisors(
                 actor=request.user,
@@ -248,6 +282,11 @@ class ApplicationViewSet(viewsets.ReadOnlyModelViewSet):
         serializer = BulkAssignSupervisorSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
+        # Policy Check
+        from .policies import can_bulk_assign_supervisors
+        if not can_bulk_assign_supervisors(request.user):
+            return Response({"detail": "Not authorized to perform bulk assignment"}, status=status.HTTP_403_FORBIDDEN)
+            
         try:
             result = bulk_assign_institution_supervisors(
                 actor=request.user,
@@ -265,9 +304,15 @@ class ApplicationViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True, methods=['post'], url_path='submit-final-feedback')
     def submit_feedback(self, request, pk=None):
+        application = self.get_object()
         serializer = SubmitFinalFeedbackSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
+        # Policy Check
+        from .policies import can_submit_final_feedback
+        if not can_submit_final_feedback(request.user, application):
+            return Response({"detail": "Not authorized to submit final feedback"}, status=status.HTTP_403_FORBIDDEN)
+            
         try:
             app = submit_final_feedback(
                 actor=request.user,
@@ -283,8 +328,15 @@ class ApplicationViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True, methods=['post'], url_path='create-success-story')
     def create_story(self, request, pk=None):
+        application = self.get_object()
         serializer = CreateSuccessStorySerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        
+        # Policy Check: Success stories follow same visibility/owner rules as application
+        from .policies import can_view_application
+        if not can_view_application(request.user, application):
+            return Response({"detail": "Not authorized to create success story"}, status=status.HTTP_403_FORBIDDEN)
+            
         try:
             story = create_success_story(
                 actor=request.user,
@@ -299,9 +351,15 @@ class ApplicationViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True, methods=['post'])
     def report_incident(self, request, pk=None):
+        application = self.get_object()
         serializer = CreateIncidentSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
+        # Policy Check
+        from .policies import can_flag_misconduct
+        if not can_flag_misconduct(request.user, application):
+            return Response({"detail": "Not authorized to report incidents for this application"}, status=status.HTTP_403_FORBIDDEN)
+            
         try:
             incident = create_incident(
                 actor=request.user,
@@ -318,6 +376,10 @@ class ApplicationViewSet(viewsets.ReadOnlyModelViewSet):
         serializer = ResolveIncidentSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
+        # Policy Check: Resolving incidents requires admin roles usually
+        if not (request.user.is_employer_admin or request.user.is_institution_admin):
+             return Response({"detail": "Only admins can resolve incidents"}, status=status.HTTP_403_FORBIDDEN)
+             
         try:
             incident = resolve_incident(
                 actor=request.user,
