@@ -39,10 +39,8 @@ class Command(BaseCommand):
             role=PlatformStaffProfile.ROLE_SUPER_ADMIN,
             is_active=True
         ).exists():
-            raise CommandError(
-                "Genesis super admin already exists. "
-                "This command can only be run once."
-            )
+            self.stdout.write(self.style.WARNING("Genesis super admin profile already exists."))
+            return
         
         # Get email
         email = options.get('email')

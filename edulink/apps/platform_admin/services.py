@@ -23,33 +23,47 @@ User = get_user_model()
 
 def create_genesis_super_admin(*, email: str, password: str) -> User:
     """
-    Create the first super admin (genesis creation).
+    Create or update the first super admin (genesis creation).
     Used once at system birth, out-of-band.
     """
-    # Check if any super admin already exists
+    # Check if any super admin profile already exists
     if PlatformStaffProfile.objects.filter(
         role=PlatformStaffProfile.ROLE_SUPER_ADMIN,
         is_active=True
     ).exists():
-        raise ValidationError("Genesis super admin already exists")
+        raise ValidationError("Genesis super admin profile already exists")
     
-    # Create the user
-    user = User.objects.create_superuser(
-        username=email,  # Use email as username since USERNAME_FIELD is email
-        email=email,
-        password=password
-    )
+    # Get or create the user
+    user = User.objects.filter(email=email).first()
+    if user:
+        user.set_password(password)
+        user.is_superuser = True
+        user.is_staff = True
+    else:
+        user = User.objects.create_superuser(
+            username=email,
+            email=email,
+            password=password
+        )
     
     # Set the correct role for system admin
     user.role = User.ROLE_SYSTEM_ADMIN
     user.save()
     
-    # Create the platform staff profile
-    profile = PlatformStaffProfile.objects.create(
+    # Create or update the platform staff profile
+    profile, created = PlatformStaffProfile.objects.get_or_create(
         user=user,
-        role=PlatformStaffProfile.ROLE_SUPER_ADMIN,
-        created_by=None  # Genesis creation
+        defaults={
+            'role': PlatformStaffProfile.ROLE_SUPER_ADMIN,
+            'created_by': None
+        }
     )
+    
+    if not created:
+        profile.role = PlatformStaffProfile.ROLE_SUPER_ADMIN
+        profile.is_active = True
+        profile.revoked_at = None
+        profile.save()
     
     # Record the ledger event
     record_event(
