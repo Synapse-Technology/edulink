@@ -74,8 +74,8 @@ if CLOUDINARY_STORAGE['CLOUD_NAME']:
     }
 
 # WhiteNoise Configuration
-# Use CompressedStaticFilesStorage instead of CompressedManifestStaticFilesStorage
-# to avoid build failures when third-party packages (like DRF) have broken CSS references.
+# Use StaticFilesStorage to avoid build failures due to missing files or compression errors.
+# This is a safer option for environments where some third-party static files might be missing.
 STORAGES["staticfiles"] = {
-    "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+    "BACKEND": "whitenoise.storage.StaticFilesStorage",
 }
