@@ -59,3 +59,18 @@ CORS_ALLOWED_ORIGINS = [
     "https://www.edulink.jhubafrica.com",
     "https://edulink-frontend-mb63.onrender.com",
 ]
+
+# Media Storage (Cloudinary)
+# Render Free tier has an ephemeral file system. We use Cloudinary for persistent media storage.
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
+    'API_KEY': os.environ.get('CLOUDINARY_API_KEY'),
+    'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
+}
+
+if CLOUDINARY_STORAGE['CLOUD_NAME']:
+    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+else:
+    # Fallback to local storage if Cloudinary is not configured
+    # Note: Files will be lost on redeploy if using local storage on Render
+    DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'

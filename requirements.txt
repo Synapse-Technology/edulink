@@ -17,6 +17,10 @@ python-dotenv==1.0.1
 django-q2==1.6.1
 pusher==3.3.2
 
+# Cloud Storage
+cloudinary==1.40.0
+django-cloudinary-storage==0.3.0
+
 # PDF Generation
 reportlab==4.2.0
 xhtml2pdf==0.2.16

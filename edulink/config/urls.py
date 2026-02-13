@@ -6,6 +6,8 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from django.http import JsonResponse
+from django.views.static import serve
+from django.urls import re_path
 
 def health_check(request):
     return JsonResponse({"status": "healthy"})
@@ -35,5 +37,9 @@ urlpatterns = [
     path("api/contact/", include("edulink.apps.contact.urls")),
 ]
 
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Serve media files in both development and production
+# Note: In production, it's better to use a dedicated storage provider like Cloudinary or S3
+urlpatterns += [
+    re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
+]
+
