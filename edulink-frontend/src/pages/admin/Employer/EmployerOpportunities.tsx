@@ -19,6 +19,7 @@ const EmployerOpportunities: React.FC = () => {
   const [employerId, setEmployerId] = useState<string | undefined>(undefined);
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [publishingId, setPublishingId] = useState<string | null>(null);
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { feedbackProps, showError } = useFeedbackModal();
@@ -81,6 +82,7 @@ const EmployerOpportunities: React.FC = () => {
 
   const handlePublish = async (id: string) => {
       try {
+          setPublishingId(id);
           await internshipService.publishOpportunity(id);
           fetchOpportunities();
       } catch (error: any) {
@@ -90,6 +92,8 @@ const EmployerOpportunities: React.FC = () => {
             'We encountered an error while trying to publish this opportunity.',
             error.response?.data?.error || error.message
           );
+      } finally {
+          setPublishingId(null);
       }
   };
 
@@ -265,10 +269,18 @@ const EmployerOpportunities: React.FC = () => {
                         <div className="d-flex gap-2 justify-content-end">
                           {opp.status === 'DRAFT' && (
                               <button 
-                                className="btn btn-sm btn-success"
+                                className="btn btn-sm btn-success d-flex align-items-center gap-1"
                                 onClick={() => handlePublish(opp.id)}
+                                disabled={publishingId === opp.id}
                               >
-                                Publish
+                                {publishingId === opp.id ? (
+                                  <>
+                                    <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                    <span>Publishing...</span>
+                                  </>
+                                ) : (
+                                  'Publish'
+                                )}
                               </button>
                           )}
                           <button 
