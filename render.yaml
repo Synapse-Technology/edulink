@@ -17,6 +17,8 @@ services:
         generateValue: true
       - key: DEBUG
         value: "False"
+      - key: DJANGO_Q_SYNC
+        value: "True" # Set to True because Free Tier doesn't support background workers
       - key: DB_HOST
         value: aws-1-eu-central-1.pooler.supabase.com
       - key: DB_NAME

@@ -102,7 +102,7 @@ Q_CLUSTER = {
     'queue_limit': 500,
     'label': 'Django Q',
     'orm': 'default',
-    'sync': False,
+    'sync': os.getenv('DJANGO_Q_SYNC', 'True').lower() == 'true', # Default to True for Free Tier/Render
     'retry': 120,      # Consider task failed if not finished in 120s
     'max_attempts': 3,  # Automatically retry tasks up to 3 times on failure
     'ack_failures': True,
