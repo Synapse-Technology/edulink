@@ -74,9 +74,9 @@ const EmployerOpportunities: React.FC = () => {
   };
 
   const filteredOpportunities = opportunities.filter(opp => 
-    opp.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    opp.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    opp.department.toLowerCase().includes(searchQuery.toLowerCase())
+    (opp.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (opp.location || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (opp.department || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handlePublish = async (id: string) => {
@@ -249,7 +249,7 @@ const EmployerOpportunities: React.FC = () => {
                             </span>
                           </div>
                           <div className="d-flex gap-2">
-                            {opp.skills.map((skill, idx) => (
+                            {(opp.skills || []).map((skill, idx) => (
                               <span key={idx} className="badge bg-light text-secondary border">{skill}</span>
                             ))}
                           </div>

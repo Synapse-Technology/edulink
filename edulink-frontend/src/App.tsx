@@ -280,6 +280,7 @@ function App() {
         {/* Employer Routes */}
         <Route path="/employer/dashboard" element={<EmployerDashboard />} />
         <Route path="/employer/dashboard/opportunities" element={<EmployerOpportunities />} />
+        <Route path="/employer/dashboard/opportunities/:id" element={<EmployerOpportunities />} />
         <Route path="/employer/dashboard/applications" element={<EmployerApplications />} />
         <Route path="/employer/dashboard/interns" element={<EmployerInterns />} />
         <Route path="/employer/dashboard/applications/:id" element={<EmployerApplicationDetail />} />

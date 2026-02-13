@@ -94,12 +94,12 @@ const InternshipDetailsModal: React.FC<InternshipDetailsModalProps> = ({ show, o
         <div>
           <h6 className="fw-bold text-uppercase text-muted small mb-3">Required Skills</h6>
           <div className="d-flex flex-wrap gap-2">
-            {internship.skills.map((skill, index) => (
+            {(internship.skills || []).map((skill, index) => (
               <Badge key={index} bg="light" text="dark" className="border px-3 py-2 fw-normal">
                 {skill}
               </Badge>
             ))}
-            {internship.skills.length === 0 && (
+            {(!internship.skills || internship.skills.length === 0) && (
               <span className="text-muted fst-italic">No specific skills listed</span>
             )}
           </div>
