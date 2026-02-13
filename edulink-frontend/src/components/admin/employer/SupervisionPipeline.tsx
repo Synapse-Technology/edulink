@@ -1,17 +1,17 @@
 import React from 'react';
 import { Card, Table, Badge, Button, Dropdown } from 'react-bootstrap';
-import { UserPlus, UserCheck, AlertTriangle, MoreVertical, ExternalLink } from 'lucide-react';
+import { UserPlus, UserCheck, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface Intern {
   id: string;
-  student_info: {
+  student_info?: {
     name: string;
     email: string;
   };
   title: string;
   status: string;
-  employer_supervisor_id: string | null;
+  employer_supervisor_id?: string | null;
   employer_supervisor_name?: string | null;
 }
 
@@ -67,8 +67,8 @@ const SupervisionPipeline: React.FC<SupervisionPipelineProps> = ({
                 needsMentor.map((intern) => (
                   <tr key={intern.id}>
                     <td className="ps-4">
-                      <div className="fw-semibold">{intern.student_info.name}</div>
-                      <div className="small text-muted">{intern.student_info.email}</div>
+                      <div className="fw-semibold">{intern.student_info?.name}</div>
+                      <div className="small text-muted">{intern.student_info?.email}</div>
                     </td>
                     <td>
                       <Badge bg="light" text="dark" className="border">
@@ -100,7 +100,7 @@ const SupervisionPipeline: React.FC<SupervisionPipelineProps> = ({
                             ))
                           )}
                           <Dropdown.Divider />
-                          <Dropdown.Item as={Link} to="/employer/dashboard/supervisors">
+                          <Dropdown.Item as={Link as any} to="/employer/dashboard/supervisors">
                             <PlusCircle size={14} className="me-2" /> Invite New Supervisor
                           </Dropdown.Item>
                         </Dropdown.Menu>
@@ -110,7 +110,7 @@ const SupervisionPipeline: React.FC<SupervisionPipelineProps> = ({
                       <Button 
                         variant="link" 
                         size="sm" 
-                        as={Link} 
+                        as={Link as any} 
                         to={`/employer/dashboard/applications/${intern.id}`}
                         className="text-primary p-0"
                       >
@@ -137,8 +137,8 @@ const SupervisionPipeline: React.FC<SupervisionPipelineProps> = ({
                 <div key={intern.id} className="border rounded-3 p-3 mb-3 bg-light bg-opacity-10">
                   <div className="d-flex justify-content-between align-items-start mb-3">
                     <div>
-                      <div className="fw-bold">{intern.student_info.name}</div>
-                      <div className="small text-muted mb-2">{intern.student_info.email}</div>
+                      <div className="fw-bold">{intern.student_info?.name}</div>
+                      <div className="small text-muted mb-2">{intern.student_info?.email}</div>
                       <Badge bg="white" text="dark" className="border">
                         {intern.title}
                       </Badge>
@@ -146,7 +146,7 @@ const SupervisionPipeline: React.FC<SupervisionPipelineProps> = ({
                     <Button 
                       variant="link" 
                       size="sm" 
-                      as={Link} 
+                      as={Link as any} 
                       to={`/employer/dashboard/applications/${intern.id}`}
                       className="text-primary p-0"
                     >
@@ -180,7 +180,7 @@ const SupervisionPipeline: React.FC<SupervisionPipelineProps> = ({
                           ))
                         )}
                         <Dropdown.Divider />
-                        <Dropdown.Item as={Link} to="/employer/dashboard/supervisors" className="py-2 text-primary">
+                        <Dropdown.Item as={Link as any} to="/employer/dashboard/supervisors" className="py-2 text-primary">
                           <PlusCircle size={14} className="me-2" /> Invite New Supervisor
                         </Dropdown.Item>
                       </Dropdown.Menu>

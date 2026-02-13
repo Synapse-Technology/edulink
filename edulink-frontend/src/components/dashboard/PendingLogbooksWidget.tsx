@@ -83,7 +83,7 @@ const PendingLogbooksWidget: React.FC<PendingLogbooksWidgetProps> = ({
                   <Button 
                     variant="link" 
                     size="sm" 
-                    as={Link} 
+                    as={Link as any} 
                     to={`${reviewLinkPrefix}`}
                     className="text-primary p-0 ms-2 flex-shrink-0 align-self-center"
                   >

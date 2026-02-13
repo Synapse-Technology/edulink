@@ -9,7 +9,8 @@ import TrustProgressWidget from '../../../components/dashboard/TrustProgressWidg
 import { SEO } from '../../../components/common';
 import { institutionService } from '../../../services/institution/institutionService';
 import type { PlacementStats } from '../../../services/institution/institutionService';
-import { internshipService, InternshipEvidence } from '../../../services/internship/internshipService';
+import { internshipService } from '../../../services/internship/internshipService';
+import type { InternshipEvidence } from '../../../services/internship/internshipService';
 import PendingLogbooksWidget from '../../../components/dashboard/PendingLogbooksWidget';
 
 const StatCard = ({ title, value, icon: Icon, color, bgColor, trend }: { title: string, value: number, icon: any, color: string, bgColor: string, trend: number }) => {

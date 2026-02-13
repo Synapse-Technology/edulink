@@ -2,17 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { Briefcase, Users, FileText, UserCheck, Clock, ArrowRight, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
-import { EmployerLayout, SupervisionPipeline } from '../../../components/admin/Employer';
+import { EmployerLayout, SupervisionPipeline } from '../../../components/admin/employer';
 import PendingLogbooksWidget from '../../../components/dashboard/PendingLogbooksWidget';
 import { EmployerDashboardSkeleton } from '../../../components/admin/skeletons';
 import TrustProgressWidget from '../../../components/dashboard/TrustProgressWidget';
 import { SEO } from '../../../components/common';
-import { internshipService, InternshipEvidence } from '../../../services/internship/internshipService';
-import type { InternshipApplication } from '../../../services/internship/internshipService';
+import { internshipService } from '../../../services/internship/internshipService';
+import type { InternshipApplication, InternshipEvidence } from '../../../services/internship/internshipService';
 import { employerService } from '../../../services/employer/employerService';
 import type { Employer } from '../../../services/employer/employerService';
 import TrustTimeline from '../../../components/student/dashboard/TrustTimeline';
-import { ledgerService, LedgerEvent } from '../../../services/ledger/ledgerService';
+import { ledgerService } from '../../../services/ledger/ledgerService';
+import type { LedgerEvent } from '../../../services/ledger/ledgerService';
 
 const EmployerDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -103,7 +104,7 @@ const EmployerDashboard: React.FC = () => {
 
   const handleAssignSupervisor = async (internId: string, supervisorId: string) => {
     try {
-      await internshipService.assignSupervisor(internId, supervisorId, 'EMPLOYER');
+      await internshipService.assignSupervisor(internId, supervisorId, 'employer');
       // Refresh data
       await fetchData();
     } catch (error) {

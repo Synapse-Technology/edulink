@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, Button, Form, ProgressBar, Badge, Alert } from 'react-bootstrap';
+import { Card, Button, Form, ProgressBar, Alert } from 'react-bootstrap';
 import { 
   Calendar, 
   Clock, 
@@ -116,7 +116,7 @@ const ActiveInternshipWidget: React.FC<ActiveInternshipWidgetProps> = ({
               <Button 
                 variant="outline-success" 
                 size="sm" 
-                as={Link} 
+                as={Link as any} 
                 to="/dashboard/student/logbook"
                 className="d-flex align-items-center gap-2 px-3 flex-grow-1 flex-md-grow-0"
               >
@@ -125,7 +125,7 @@ const ActiveInternshipWidget: React.FC<ActiveInternshipWidgetProps> = ({
               <Button 
                 variant="outline-primary" 
                 size="sm" 
-                as={Link} 
+                as={Link as any} 
                 to="/dashboard/student/artifacts"
                 className="d-flex align-items-center gap-2 px-3 flex-grow-1 flex-md-grow-0"
               >
