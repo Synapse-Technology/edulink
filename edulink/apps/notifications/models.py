@@ -125,6 +125,9 @@ class Notification(BaseModel):
     related_entity_type = models.CharField(max_length=50, blank=True)
     related_entity_id = models.UUIDField(null=True, blank=True)
     
+    # Idempotency and tracking
+    idempotency_key = models.CharField(max_length=255, null=True, blank=True, unique=True)
+    
     class Meta:
         app_label = "notifications"
         db_table = "notifications_notification"
@@ -134,6 +137,7 @@ class Notification(BaseModel):
             models.Index(fields=["recipient_id", "status"]),
             models.Index(fields=["type", "status"]),
             models.Index(fields=["sent_at"]),
+            models.Index(fields=["idempotency_key"]),
         ]
     
     def __str__(self):

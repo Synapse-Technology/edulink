@@ -95,6 +95,7 @@ const InstitutionManagement: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [activeTab, setActiveTab] = useState<'institutions' | 'pending'>('institutions');
   const [isLoading, setIsLoading] = useState(true);
+  const [isProcessing, setIsProcessing] = useState<string | null>(null);
   const [error, setError] = useState<string>('');
   const [selectedInstitution, setSelectedInstitution] = useState<Institution | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -137,12 +138,16 @@ const InstitutionManagement: React.FC = () => {
 
   const handleApproveRequest = async (requestId: string) => {
     try {
+      setIsProcessing(requestId);
       await adminAuthService.approveInstitutionRequest(requestId);
       
       // Update local state to remove request
       setPendingRequests(prevRequests => 
         prevRequests.filter(request => request.id !== requestId)
       );
+      
+      // If modal is open, close it
+      setShowReviewModal(false);
       
       // Refresh institution data to show the new institution
       fetchInstitutionData();
@@ -153,6 +158,8 @@ const InstitutionManagement: React.FC = () => {
       } else {
         setError('An unexpected error occurred');
       }
+    } finally {
+      setIsProcessing(null);
     }
   };
 
@@ -170,13 +177,17 @@ const InstitutionManagement: React.FC = () => {
     if (!selectedPendingRequest || !rejectionReasonCode) return;
     
     try {
+      setIsProcessing(selectedPendingRequest.id);
       await handleRejectRequest(selectedPendingRequest.id, rejectionReasonCode, rejectionReason);
       setShowRejectModal(false);
       setRejectionReasonCode('');
       setRejectionReason('');
       setSelectedPendingRequest(null);
     } catch (err) {
-      // Error is already handled in handleRejectRequest
+      // Error is already handled and state set in handleRejectRequest
+      // We catch it here to prevent the modal from closing
+    } finally {
+      setIsProcessing(null);
     }
   };
 
@@ -217,6 +228,7 @@ const InstitutionManagement: React.FC = () => {
       }
       
       setError(errorMessage);
+      throw err; // Re-throw to prevent modal closing in handleConfirmReject
     }
   };
 
@@ -619,20 +631,31 @@ const InstitutionManagement: React.FC = () => {
                                     <button
                                       onClick={() => handleApproveRequest(request.id)}
                                       className="btn btn-success btn-sm"
+                                      disabled={isProcessing === request.id}
                                     >
-                                      <CheckCircle size={14} className="me-1" />
-                                      Approve
+                                      {isProcessing === request.id ? (
+                                        <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                      ) : (
+                                        <CheckCircle size={14} className="me-1" />
+                                      )}
+                                      {isProcessing === request.id ? 'Approving...' : 'Approve'}
                                     </button>
                                     <button
                                       onClick={() => handleShowRejectModal(request)}
                                       className="btn btn-outline-danger btn-sm"
+                                      disabled={isProcessing === request.id}
                                     >
-                                      <XCircle size={14} className="me-1" />
-                                      Reject
+                                      {isProcessing === request.id ? (
+                                        <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                      ) : (
+                                        <XCircle size={14} className="me-1" />
+                                      )}
+                                      {isProcessing === request.id ? 'Rejecting...' : 'Reject'}
                                     </button>
                                     <button 
                                       onClick={() => handleShowReviewModal(request)}
                                       className="btn btn-outline-secondary btn-sm"
+                                      disabled={isProcessing === request.id}
                                     >
                                       <Eye size={14} className="me-1" />
                                       Review
@@ -906,22 +929,33 @@ const InstitutionManagement: React.FC = () => {
                   type="button" 
                   className="btn btn-secondary"
                   onClick={() => setShowReviewModal(false)}
+                  disabled={isProcessing === selectedPendingRequest.id}
                 >
                   Close
                 </button>
                 <button 
                   onClick={() => handleShowRejectModal(selectedPendingRequest)}
                   className="btn btn-outline-danger"
+                  disabled={isProcessing === selectedPendingRequest.id}
                 >
-                  <XCircle size={14} className="me-1" />
-                  Reject Request
+                  {isProcessing === selectedPendingRequest.id ? (
+                    <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                  ) : (
+                    <XCircle size={14} className="me-1" />
+                  )}
+                  {isProcessing === selectedPendingRequest.id ? 'Rejecting...' : 'Reject Request'}
                 </button>
                 <button 
                   onClick={() => handleApproveRequest(selectedPendingRequest.id)}
                   className="btn btn-success"
+                  disabled={isProcessing === selectedPendingRequest.id}
                 >
-                  <CheckCircle size={14} className="me-1" />
-                  Approve Request
+                  {isProcessing === selectedPendingRequest.id ? (
+                    <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                  ) : (
+                    <CheckCircle size={14} className="me-1" />
+                  )}
+                  {isProcessing === selectedPendingRequest.id ? 'Approving...' : 'Approve Request'}
                 </button>
               </div>
             </div>
@@ -987,10 +1021,14 @@ const InstitutionManagement: React.FC = () => {
                 <button 
                   onClick={handleConfirmReject}
                   className="btn btn-danger"
-                  disabled={!rejectionReasonCode || !rejectionReason.trim()}
+                  disabled={!rejectionReasonCode || !rejectionReason.trim() || isProcessing === selectedPendingRequest.id}
                 >
-                  <XCircle size={14} className="me-1" />
-                  Confirm Rejection
+                  {isProcessing === selectedPendingRequest.id ? (
+                    <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                  ) : (
+                    <XCircle size={14} className="me-1" />
+                  )}
+                  {isProcessing === selectedPendingRequest.id ? 'Rejecting...' : 'Confirm Rejection'}
                 </button>
               </div>
             </div>

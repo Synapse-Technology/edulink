@@ -2,6 +2,7 @@ from rest_framework import viewsets, permissions, pagination
 from rest_framework.decorators import action
 from django.http import HttpResponse
 from django.template.loader import get_template
+from django.db import models
 from xhtml2pdf import pisa
 from io import BytesIO
 from .models import LedgerEvent
@@ -22,10 +23,40 @@ class StandardResultsSetPagination(pagination.PageNumberPagination):
 class LedgerEventViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = LedgerEvent.objects.all().order_by('-occurred_at')
     serializer_class = LedgerEventSerializer
-    permission_classes = [IsSystemAdmin]
+    permission_classes = [permissions.IsAuthenticated]
     pagination_class = StandardResultsSetPagination
     filterset_fields = ['event_type', 'entity_type', 'actor_id', 'entity_id']
     search_fields = ['event_type', 'entity_type', 'payload']
+
+    def get_queryset(self):
+        from .queries import get_events_for_user_context
+        user = self.request.user
+        
+        # System admins can see everything
+        if user.is_staff or (hasattr(user, 'is_system_admin') and user.is_system_admin):
+            return super().get_queryset()
+            
+        # 1. Identify relevant profile ID for the user
+        profile_id = None
+        
+        if hasattr(user, 'is_student') and user.is_student:
+            from edulink.apps.students.queries import get_student_for_user
+            student = get_student_for_user(user.id)
+            if student:
+                profile_id = str(student.id)
+                
+        elif (hasattr(user, 'is_employer_admin') and user.is_employer_admin) or \
+             (hasattr(user, 'is_supervisor') and user.is_supervisor):
+            from edulink.apps.employers.queries import get_supervisor_id_for_user
+            profile_id = get_supervisor_id_for_user(user.id)
+            if profile_id:
+                profile_id = str(profile_id)
+        
+        # 2. Return filtered events if profile_id found, else just user-actor events
+        if profile_id:
+            return get_events_for_user_context(profile_id=profile_id)
+            
+        return super().get_queryset().filter(actor_id=str(user.id))
 
     @action(detail=False, methods=['get'])
     def export(self, request):

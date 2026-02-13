@@ -19,7 +19,8 @@ class SupportTicketViewSet(viewsets.ModelViewSet):
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get_permissions(self):
-        if self.action == 'create':
+        action = getattr(self, 'action', None)
+        if action == 'create':
             return [AllowAny()]
         return [IsAuthenticated()]
 

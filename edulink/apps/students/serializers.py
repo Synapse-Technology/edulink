@@ -122,3 +122,28 @@ class StudentInstitutionAffiliationSerializer(serializers.ModelSerializer):
         from edulink.apps.internships.queries import get_supervisor_for_student
         supervisor = get_supervisor_for_student(student_id=obj.student_id)
         return supervisor["email"] if supervisor else None
+
+
+class StudentDocumentUploadSerializer(serializers.Serializer):
+    document_type = serializers.CharField()
+    file_name = serializers.CharField()
+    file = serializers.FileField()
+
+
+class StudentActivityLogSerializer(serializers.Serializer):
+    activity_type = serializers.CharField()
+    description = serializers.CharField()
+
+
+class StudentAffiliationClaimSerializer(serializers.Serializer):
+    institution_id = serializers.UUIDField()
+    claimed_via = serializers.ChoiceField(choices=['domain', 'manual'], default='manual')
+
+
+class StudentActivityApproveSerializer(serializers.Serializer):
+    supervisor_id = serializers.UUIDField()
+    activity_id = serializers.CharField()
+
+
+class StudentInternshipCertifySerializer(serializers.Serializer):
+    certificate_id = serializers.CharField(required=False)

@@ -35,15 +35,17 @@ class NotificationViewSet(viewsets.ModelViewSet):
     
     def get_serializer_class(self):
         """Return appropriate serializer based on action."""
-        if self.action == 'create':
+        action = getattr(self, 'action', None)
+        if action == 'create':
             return NotificationCreateSerializer
-        elif self.action == 'update_status':
+        elif action == 'update_status':
             return NotificationStatusUpdateSerializer
         return NotificationSerializer
     
     def get_permissions(self):
         """Return appropriate permissions based on action."""
-        if self.action in ['retrieve', 'update', 'partial_update', 'destroy']:
+        action = getattr(self, 'action', None)
+        if action in ['retrieve', 'update', 'partial_update', 'destroy']:
             return [IsAuthenticated(), IsNotificationRecipient()]
         return super().get_permissions()
     

@@ -8,7 +8,11 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import Student, StudentInstitutionAffiliation
-from .serializers import StudentSerializer, TrustTierSerializer, StudentTrustTierSerializer, StudentInstitutionAffiliationSerializer
+from .serializers import (
+    StudentSerializer, TrustTierSerializer, StudentTrustTierSerializer, StudentInstitutionAffiliationSerializer,
+    StudentDocumentUploadSerializer, StudentActivityLogSerializer, StudentAffiliationClaimSerializer,
+    StudentActivityApproveSerializer, StudentInternshipCertifySerializer
+)
 from .filters import StudentFilter
 from .services import (
     upload_student_document, log_internship_activity, 
@@ -23,7 +27,8 @@ from .queries import (
     get_institution_id_for_user, 
     get_pending_affiliations_for_all_admin_institutions,
     calculate_profile_readiness,
-    get_student_dashboard_stats
+    get_student_dashboard_stats,
+    get_students_by_trust_level
 )
 from edulink.apps.trust.services import compute_student_trust_tier
 from .policies import is_student
@@ -138,21 +143,14 @@ class StudentViewSet(viewsets.ModelViewSet):
     def upload_document(self, request, pk=None):
         """Upload a document for trust scoring"""
         student = self.get_object()
-        document_type = request.data.get('document_type')
-        file_name = request.data.get('file_name')
-        file = request.FILES.get('file')
-        
-        if not document_type or not file_name or not file:
-            return Response(
-                {'error': 'document_type, file_name, and file are required'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        serializer = StudentDocumentUploadSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         
         upload_student_document(
             student_id=str(student.id),
-            document_type=document_type,
-            file_name=file_name,
-            file=file
+            document_type=serializer.validated_data['document_type'],
+            file_name=serializer.validated_data['file_name'],
+            file=serializer.validated_data['file']
         )
         
         # Return updated trust tier
@@ -166,19 +164,13 @@ class StudentViewSet(viewsets.ModelViewSet):
     def log_activity(self, request, pk=None):
         """Log internship activity for trust scoring"""
         student = self.get_object()
-        activity_type = request.data.get('activity_type')
-        description = request.data.get('description')
-        
-        if not activity_type or not description:
-            return Response(
-                {'error': 'activity_type and description are required'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        serializer = StudentActivityLogSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
             
         log_internship_activity(
             student_id=str(student.id),
-            activity_type=activity_type,
-            description=description
+            activity_type=serializer.validated_data['activity_type'],
+            description=serializer.validated_data['description']
         )
         
         # Return updated trust tier
@@ -192,19 +184,14 @@ class StudentViewSet(viewsets.ModelViewSet):
     def claim_affiliation(self, request, pk=None):
         """Student claims affiliation with an institution"""
         student = self.get_object()
-        institution_id = request.data.get('institution_id')
-        
-        if not institution_id:
-            return Response(
-                {'error': 'institution_id is required'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        serializer = StudentAffiliationClaimSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
             
         try:
             affiliation = create_institution_affiliation_claim(
                 student_id=str(student.id),
-                institution_id=institution_id,
-                claimed_via=StudentInstitutionAffiliation.CLAIMED_VIA_MANUAL
+                institution_id=str(serializer.validated_data['institution_id']),
+                claimed_via=serializer.validated_data['claimed_via']
             )
             return Response(StudentInstitutionAffiliationSerializer(affiliation).data)
         except Exception as e:
@@ -221,19 +208,13 @@ class StudentViewSet(viewsets.ModelViewSet):
     def approve_activity(self, request, pk=None):
         """Approve student activity (supervisor action)"""
         student = self.get_object()
-        supervisor_id = request.data.get('supervisor_id')
-        activity_id = request.data.get('activity_id')
-        
-        if not supervisor_id or not activity_id:
-            return Response(
-                {'error': 'supervisor_id and activity_id are required'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        serializer = StudentActivityApproveSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         
         approve_supervisor_activity(
             student_id=str(student.id),
-            supervisor_id=supervisor_id,
-            activity_id=activity_id
+            supervisor_id=str(serializer.validated_data['supervisor_id']),
+            activity_id=serializer.validated_data['activity_id']
         )
         
         # Return updated trust tier
@@ -247,6 +228,8 @@ class StudentViewSet(viewsets.ModelViewSet):
     def certify_completion(self, request, pk=None):
         """Certify internship completion (institution action)"""
         student = self.get_object()
+        serializer = StudentInternshipCertifySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         
         # Infer institution_id from user if not provided (safer)
         institution_id = get_institution_id_for_user(request.user)
@@ -255,13 +238,11 @@ class StudentViewSet(viewsets.ModelViewSet):
                 {'error': 'User is not associated with an active institution'},
                 status=status.HTTP_403_FORBIDDEN
             )
-            
-        certificate_id = request.data.get('certificate_id')
         
         certify_internship_completion(
             student_id=str(student.id),
             institution_id=institution_id,
-            certificate_id=certificate_id
+            certificate_id=serializer.validated_data.get('certificate_id')
         )
         
         # Return updated trust tier
@@ -290,7 +271,6 @@ class StudentViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        from .queries import get_students_by_trust_level
         students = get_students_by_trust_level(level=tier_level)
         
         serializer = self.get_serializer(students, many=True)

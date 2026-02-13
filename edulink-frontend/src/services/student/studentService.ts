@@ -128,8 +128,6 @@ class StudentService {
     file?: File 
   }): Promise<InternshipEvidence> {
     try {
-      // Using internshipService.submitEvidence
-      // Need to format title/desc/metadata
       const title = `Weekly Logbook - ${data.weekStartDate}`;
       const description = 'Weekly logbook submission';
       const evidenceType = 'LOGBOOK';
@@ -146,18 +144,6 @@ class StudentService {
         formData.append('file', data.file);
       }
 
-      // We can use internshipService but it expects separate args, or manual client call
-      // Let's use manual client call to match exact behavior or adapt to service
-      // internshipService.submitEvidence expects 'file' as File.
-      // But here we might have metadata as JSON string which internshipService doesn't explicitly support in its helper (it takes metadata object but sends it as JSON? let's check).
-      // internshipService.submitEvidence does NOT stringify metadata. It ignores it?
-      // Wait, let's check `internshipService.submitEvidence` again.
-      // It takes `metadata: dict` but doesn't append it to formData in the implementation I wrote/read!
-      // I missed appending metadata in `internshipService.ts`!
-      
-      // Let's fix `internshipService.ts` later or manual call here.
-      // I'll stick to manual call for now to ensure safety, pointing to NEW endpoint.
-      
       const response = await client.post<InternshipEvidence>(`/api/internships/applications/${applicationId}/submit_evidence/`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -167,6 +153,34 @@ class StudentService {
     } catch (error) {
       if (error instanceof ApiError) throw error;
       throw new Error('Failed to submit logbook');
+    }
+  }
+
+  async submitDailyLog(applicationId: string, entry: string): Promise<InternshipEvidence> {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const title = `Daily Log - ${today}`;
+      const description = 'Quick dashboard log entry';
+      
+      const formData = new FormData();
+      formData.append('title', title);
+      formData.append('description', description);
+      formData.append('evidence_type', 'LOGBOOK');
+      formData.append('metadata', JSON.stringify({
+        entries: {
+          [today]: entry
+        }
+      }));
+
+      const response = await client.post<InternshipEvidence>(`/api/internships/applications/${applicationId}/submit_evidence/`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response;
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new Error('Failed to submit daily log');
     }
   }
 

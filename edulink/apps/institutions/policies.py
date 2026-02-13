@@ -29,3 +29,15 @@ def is_institution_staff(actor) -> bool:
     # Check if user has an active InstitutionStaff record
     staff = get_institution_staff_profile(str(actor.id))
     return staff is not None
+
+def can_verify_student_for_institution(*, actor, institution_id: str) -> bool:
+    """Check if the actor is an admin of the specified institution."""
+    if not actor.is_authenticated:
+        return False
+    
+    from .queries import get_institution_for_user
+    inst = get_institution_for_user(str(actor.id))
+    if not inst:
+        return False
+        
+    return str(inst.id) == str(institution_id)

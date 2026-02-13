@@ -23,7 +23,10 @@ import ActionStep from '../../components/student/dashboard/ActionStep';
 import UpcomingEvent from '../../components/student/dashboard/UpcomingEvent';
 import TrustJourneyRoadmap from '../../components/student/dashboard/TrustJourneyRoadmap';
 import ProfileNudge from '../../components/student/dashboard/ProfileNudge';
+import ActiveInternshipWidget from '../../components/student/dashboard/ActiveInternshipWidget';
+import TrustTimeline from '../../components/student/dashboard/TrustTimeline';
 import { studentService } from '../../services/student/studentService';
+import { ledgerService, LedgerEvent } from '../../services/ledger/ledgerService';
 import type { StudentProfile } from '../../services/student/studentService';
 import { internshipService } from '../../services/internship/internshipService';
 import type { Internship } from '../../services/internship/internshipService';
@@ -52,17 +55,19 @@ const StudentDashboard: React.FC = () => {
   const [dashboardStats, setDashboardStats] = useState<any | null>(null);
   const [missingItems, setMissingItems] = useState<string[]>([]);
   const [trustLevel, setTrustLevel] = useState(0);
+  const [ledgerEvents, setLedgerEvents] = useState<LedgerEvent[]>([]);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
         const profileData = await studentService.getProfile();
-        const [apps, active, allInternships, stats] = await Promise.all([
+        const [apps, active, allInternships, stats, ledgerData] = await Promise.all([
           studentService.getApplications(),
           studentService.getActiveInternship(),
           internshipService.getInternships({ status: 'OPEN' }),
-          studentService.getDashboardStats(profileData.id)
+          studentService.getDashboardStats(profileData.id),
+          ledgerService.getEvents({ page_size: 5 })
         ]);
 
         setProfile(profileData);
@@ -70,6 +75,7 @@ const StudentDashboard: React.FC = () => {
         setApplications(apps);
         setActiveInternship(active);
         setDashboardStats(stats);
+        setLedgerEvents(ledgerData.results);
         
         // Calculate dynamic trust level based on profile and applications
         let calculatedLevel = Math.floor(profileData.trust_level || 0);
@@ -141,6 +147,11 @@ const StudentDashboard: React.FC = () => {
 
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
+  };
+
+  const handleQuickLogSubmit = async (entry: string) => {
+    if (!activeInternship) return;
+    await studentService.submitDailyLog(activeInternship.id, entry);
   };
 
   const getStatusColor = (status: string) => {
@@ -347,6 +358,15 @@ const StudentDashboard: React.FC = () => {
           ))}
             </div>
 
+            {/* Active Internship Hub */}
+            {activeInternship && activeInternship.status === 'ACTIVE' && (
+              <ActiveInternshipWidget 
+                internship={activeInternship} 
+                isDarkMode={isDarkMode}
+                onQuickLogSubmit={handleQuickLogSubmit}
+              />
+            )}
+
             {/* Main Content Grid */}
             <div className="row g-4">
               {/* Left Column */}
@@ -431,6 +451,14 @@ const StudentDashboard: React.FC = () => {
                         <UpcomingEvent key={index} {...event} />
                       ))}
                     </div>
+                  </div>
+                </div>
+
+                {/* Trust Timeline */}
+                <div className={`card mb-4 ${isDarkMode ? 'bg-dark border-secondary' : 'bg-white'}`} style={{ borderRadius: '16px', border: isDarkMode ? '1px solid #374151' : '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' }}>
+                  <div className="card-body p-4">
+                    <h5 className={`fw-bold mb-4 ${isDarkMode ? 'text-info' : ''}`} style={isDarkMode ? { textShadow: '0 0 8px rgba(32, 201, 151, 0.3)' } : {}}>Trust History</h5>
+                    <TrustTimeline events={ledgerEvents} isDarkMode={isDarkMode} />
                   </div>
                 </div>
 

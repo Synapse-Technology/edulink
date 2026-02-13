@@ -1,0 +1,36 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}Onboarding Approved - Edulink{% endblock %}
+
+{% block content %}
+<h2 style="color: #10b981;">Institution Onboarding Approved!</h2>
+
+<p>Dear {{ representative_name }},</p>
+
+<p>Great news! Your institution onboarding request for <strong>{{ institution_name }}</strong> has been approved.</p>
+
+<div class="highlight-box" style="background-color: #f0fdf4; border-color: #dcfce7; border-left-color: #10b981;">
+    <h3 style="margin-top: 0; color: #166534; font-size: 18px;">Next Steps</h3>
+    <p>You're just one step away from accessing your institution dashboard. Please complete the setup process to activate your admin account.</p>
+    
+    <div style="text-align: center;">
+        <a href="{{ setup_url }}" class="email-button" style="background-color: #10b981; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2);">
+            Complete Setup Now
+        </a>
+    </div>
+</div>
+
+<p><strong>What you'll do next:</strong></p>
+<ul>
+    <li>Set up your admin account password</li>
+    <li>Review and accept institutional responsibilities</li>
+    <li>Configure your institution profile</li>
+    <li>Enable two-factor authentication (recommended)</li>
+</ul>
+
+<p>This setup link is unique to your email address and will expire in {{ expires_in_hours }} hours for security purposes.</p>
+
+<p>If you have any questions during setup, please contact us at <a href="mailto:{{ support_email }}">{{ support_email }}</a> and reference your tracking code: <strong>{{ tracking_code }}</strong>.</p>
+
+<p>Welcome to the Edulink community!<br>The Edulink Team</p>
+{% endblock %}

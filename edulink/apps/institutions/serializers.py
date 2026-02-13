@@ -503,3 +503,16 @@ class InstitutionStaffProfileRequestSerializer(serializers.ModelSerializer):
 class InstitutionStaffProfileRequestActionSerializer(serializers.Serializer):
     action = serializers.ChoiceField(choices=['approve', 'reject'])
     admin_feedback = serializers.CharField(required=False, allow_blank=True)
+
+
+class BulkVerificationEntrySerializer(serializers.Serializer):
+    student_email = serializers.EmailField()
+    registration_number = serializers.CharField()
+    is_valid = serializers.BooleanField()
+    student_id = serializers.UUIDField(required=False, allow_null=True)
+
+
+class BulkVerificationConfirmSerializer(serializers.Serializer):
+    entries = BulkVerificationEntrySerializer(many=True)
+    department_id = serializers.UUIDField(required=False, allow_null=True)
+    cohort_id = serializers.UUIDField(required=False, allow_null=True)

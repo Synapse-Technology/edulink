@@ -79,9 +79,32 @@ if CLOUDINARY_STORAGE['CLOUD_NAME']:
         "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
     }
 
+# Site Configuration
+BACKEND_URL = os.environ.get("BACKEND_URL", os.environ.get("SITE_URL", "https://edulink-backend-2ren.onrender.com/"))
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "https://edulink-frontend-mb63.onrender.com/")
+SITE_URL = FRONTEND_URL
+
 # WhiteNoise Configuration
 # Use StaticFilesStorage to avoid build failures due to missing files or compression errors.
 # This is a safer option for environments where some third-party static files might be missing.
 STORAGES["staticfiles"] = {
     "BACKEND": "whitenoise.storage.StaticFilesStorage",
+}
+
+# Django Q Configuration for Production
+Q_CLUSTER = {
+    'name': 'edulink_q_prod',
+    'workers': os.cpu_count() * 2 if os.cpu_count() else 4,
+    'recycle': 500,
+    'timeout': 60,
+    'compress': True,
+    'save_limit': 1000,
+    'queue_limit': 500,
+    'label': 'Django Q',
+    'orm': 'default',
+    'sync': False,
+    'retry': 120,      # Consider task failed if not finished in 120s
+    'max_attempts': 3,  # Automatically retry tasks up to 3 times on failure
+    'ack_failures': True,
+    'scheduler': True,
 }

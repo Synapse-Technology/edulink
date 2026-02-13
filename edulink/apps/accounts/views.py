@@ -50,9 +50,10 @@ class UserViewSet(viewsets.ModelViewSet):
         """
         Set permissions based on action.
         """
-        if self.action in ['register', 'login', 'reset_password_request', 'reset_password_confirm', 'token_refresh', 'token_obtain_pair']:
+        action = getattr(self, 'action', None)
+        if action in ['register', 'login', 'reset_password_request', 'reset_password_confirm', 'token_refresh', 'token_obtain_pair']:
             return [AllowAny()]
-        elif self.action in ['list', 'retrieve', 'assign_role']:
+        elif action in ['list', 'retrieve', 'assign_role']:
             return [IsAuthenticated()]  # Additional role-based checks can be added
         else:
             return [IsAuthenticated()]
@@ -61,25 +62,26 @@ class UserViewSet(viewsets.ModelViewSet):
         """
         Return appropriate serializer class based on action.
         """
-        if self.action == 'register':
+        action = getattr(self, 'action', None)
+        if action == 'register':
             return UserRegistrationSerializer
-        elif self.action == 'login':
+        elif action == 'login':
             return UserLoginSerializer
-        elif self.action == 'change_password':
+        elif action == 'change_password':
             return PasswordChangeSerializer
-        elif self.action == 'reset_password_request':
+        elif action == 'reset_password_request':
             return PasswordResetRequestSerializer
-        elif self.action == 'reset_password_confirm':
+        elif action == 'reset_password_confirm':
             return PasswordResetConfirmSerializer
-        elif self.action == 'update_profile':
+        elif action == 'update_profile':
             return UserProfileUpdateSerializer
-        elif self.action == 'assign_role':
+        elif action == 'assign_role':
             return RoleAssignmentSerializer
-        elif self.action == 'token_obtain_pair':
+        elif action == 'token_obtain_pair':
             return TokenObtainPairSerializer
-        elif self.action == 'token_refresh':
+        elif action == 'token_refresh':
             return TokenRefreshSerializer
-        elif self.action == 'list':
+        elif action == 'list':
             return UserListSerializer
         return UserSerializer
     

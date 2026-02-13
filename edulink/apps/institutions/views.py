@@ -41,6 +41,7 @@ from .serializers import (
     InstitutionStaffProfileRequestSerializer,
     InstitutionStaffProfileRequestCreateSerializer,
     InstitutionStaffProfileRequestActionSerializer,
+    BulkVerificationConfirmSerializer,
 )
 from .services import (
     create_institution_by_admin,
@@ -120,16 +121,18 @@ class InstitutionViewSet(viewsets.ReadOnlyModelViewSet):
     search_fields = ["name", "domain"]
 
     def get_permissions(self):
-        if self.action in ["create_by_admin", "verify"]:
+        action = getattr(self, "action", None)
+        if action in ["create_by_admin", "verify"]:
             return [IsAuthenticated(), IsSystemAdmin()]
-        if self.action == "request":
+        if action == "request":
             return [IsAuthenticated()]
-        if self.action in ["public_list", "record_interest"]:
+        if action in ["public_list", "record_interest"]:
             return [AllowAny()]
         return [IsAuthenticated()]
 
     def get_queryset(self):
-        if self.action in ["list", "retrieve"]:
+        action = getattr(self, "action", None)
+        if action in ["list", "retrieve"]:
             return list_public_institutions()
         return super().get_queryset()
 
@@ -384,9 +387,10 @@ class InstitutionSuggestionViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = InstitutionSuggestionSerializer
 
     def get_permissions(self):
-        if self.action in ["create"]:
+        action = getattr(self, "action", None)
+        if action in ["create"]:
             return [IsAuthenticated(), IsStudent()]
-        if self.action in ["list", "retrieve", "review", "accept", "reject"]:
+        if action in ["list", "retrieve", "review", "accept", "reject"]:
             return [IsAuthenticated(), IsSystemAdmin()]
         return [IsAuthenticated()]
 
@@ -406,9 +410,10 @@ class InstitutionSuggestionViewSet(viewsets.ReadOnlyModelViewSet):
         )
 
     def get_queryset(self):
-        if self.action == "list":
+        action = getattr(self, "action", None)
+        if action == "list":
             return list_open_suggestions()
-        if self.action in ["reviewed"]:
+        if action in ["reviewed"]:
             return list_reviewed_suggestions()
         return super().get_queryset()
 
@@ -453,15 +458,17 @@ class InstitutionRequestViewSet(viewsets.ModelViewSet):
         return get_institution_request_queryset(status_filter=status_filter)
 
     def get_permissions(self):
-        if self.action == "create":
+        action = getattr(self, "action", None)
+        if action == "create":
             # Public endpoint - anyone can submit
             return []
         return super().get_permissions()
 
     def get_serializer_class(self):
-        if self.action == "create":
+        action = getattr(self, "action", None)
+        if action == "create":
             return InstitutionRequestCreateSerializer
-        elif self.action == "review":
+        elif action == "review":
             return InstitutionRequestReviewSerializer
         return self.serializer_class
 
@@ -1066,19 +1073,14 @@ class InstitutionStudentVerificationViewSet(viewsets.ViewSet):
     def approve(self, request, pk=None):
         from edulink.apps.students.services import verify_student_affiliation
         from edulink.apps.students.queries import get_student_institution_affiliation_by_id
-        from edulink.apps.institutions.queries import get_institution_for_user
+        from .policies import can_verify_student_for_institution
         
         try:
-            # Policy Check: Ensure user owns the affiliation's institution
-            inst = get_institution_for_user(str(request.user.id))
-            if not inst:
-                return Response({'error': 'Institution not found'}, status=status.HTTP_403_FORBIDDEN)
-                
             affiliation = get_student_institution_affiliation_by_id(pk)
             if not affiliation:
                 return Response({'error': 'Affiliation not found'}, status=status.HTTP_404_NOT_FOUND)
 
-            if str(affiliation.institution_id) != str(inst.id):
+            if not can_verify_student_for_institution(actor=request.user, institution_id=str(affiliation.institution_id)):
                  return Response({'error': 'Not authorized for this institution'}, status=status.HTTP_403_FORBIDDEN)
 
             department_id = request.data.get('department_id')
@@ -1098,20 +1100,15 @@ class InstitutionStudentVerificationViewSet(viewsets.ViewSet):
     def reject(self, request, pk=None):
         from edulink.apps.students.services import reject_student_affiliation
         from edulink.apps.students.queries import get_student_institution_affiliation_by_id
-        from edulink.apps.institutions.queries import get_institution_for_user
+        from .policies import can_verify_student_for_institution
 
         reason = request.data.get('reason', 'No reason provided')
         try:
-            # Policy Check: Ensure user owns the affiliation's institution
-            inst = get_institution_for_user(str(request.user.id))
-            if not inst:
-                return Response({'error': 'Institution not found'}, status=status.HTTP_403_FORBIDDEN)
-                
             affiliation = get_student_institution_affiliation_by_id(pk)
             if not affiliation:
                 return Response({'error': 'Affiliation not found'}, status=status.HTTP_404_NOT_FOUND)
 
-            if str(affiliation.institution_id) != str(inst.id):
+            if not can_verify_student_for_institution(actor=request.user, institution_id=str(affiliation.institution_id)):
                  return Response({'error': 'Not authorized for this institution'}, status=status.HTTP_403_FORBIDDEN)
 
             reject_student_affiliation(affiliation_id=pk, reason=reason, actor_id=str(request.user.id))
@@ -1122,6 +1119,7 @@ class InstitutionStudentVerificationViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['post'], url_path='bulk-preview')
     def bulk_preview(self, request):
         from edulink.apps.institutions.services import process_bulk_verification_csv
+        from .queries import get_institution_for_user
         
         file = request.FILES.get('file')
         if not file:
@@ -1143,10 +1141,10 @@ class InstitutionStudentVerificationViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['post'], url_path='bulk-confirm')
     def bulk_confirm(self, request):
         from edulink.apps.institutions.services import process_bulk_verification_confirm
+        from .queries import get_institution_for_user
         
-        entries = request.data.get('entries', [])
-        if not entries:
-            return Response({'error': 'No entries provided'}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = BulkVerificationConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
             
         inst = get_institution_for_user(str(request.user.id))
         if not inst:
@@ -1155,9 +1153,9 @@ class InstitutionStudentVerificationViewSet(viewsets.ViewSet):
         try:
             total_processed = process_bulk_verification_confirm(
                 institution_id=str(inst.id),
-                entries=entries,
-                department_id=request.data.get('department_id'),
-                cohort_id=request.data.get('cohort_id'),
+                entries=serializer.validated_data['entries'],
+                department_id=serializer.validated_data.get('department_id'),
+                cohort_id=serializer.validated_data.get('cohort_id'),
                 actor_id=str(request.user.id)
             )
                 

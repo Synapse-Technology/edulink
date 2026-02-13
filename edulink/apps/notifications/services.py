@@ -37,7 +37,8 @@ def create_notification(
     related_entity_type: str = "",
     related_entity_id: Optional[str] = None,
     actor_id: Optional[str] = None,
-) -> Notification:
+    idempotency_key: Optional[str] = None,
+) -> Optional[Notification]:
     """
     Create a new notification record.
     Follows architecture rule: no business logic in models, pure data storage.
@@ -52,13 +53,21 @@ def create_notification(
         related_entity_type: Type of related entity (e.g., "Internship", "Application")
         related_entity_id: UUID of related entity
         actor_id: UUID of the actor who triggered the notification (optional)
+        idempotency_key: Unique key to prevent duplicate notifications
     
     Returns:
-        Notification: Created notification instance
+        Notification: Created notification instance or None if duplicate
     
     Raises:
         ValueError: If invalid notification type or channel
     """
+    # Check for existing notification if idempotency key is provided
+    if idempotency_key:
+        existing = Notification.objects.filter(idempotency_key=idempotency_key).first()
+        if existing:
+            logger.warning(f"Duplicate notification attempt blocked for key: {idempotency_key}")
+            return existing
+
     # Validate notification type
     valid_types = [choice[0] for choice in Notification.TYPE_CHOICES]
     if type not in valid_types:
@@ -69,17 +78,25 @@ def create_notification(
     if channel not in valid_channels:
         raise ValueError(f"Invalid notification channel: {channel}")
     
-    notification = Notification.objects.create(
-        recipient_id=uuid.UUID(recipient_id),
-        type=type,
-        channel=channel,
-        title=title,
-        body=body,
-        template_name=template_name,
-        related_entity_type=related_entity_type,
-        related_entity_id=uuid.UUID(related_entity_id) if related_entity_id else None,
-        status=Notification.STATUS_PENDING
-    )
+    try:
+        notification = Notification.objects.create(
+            recipient_id=uuid.UUID(recipient_id),
+            type=type,
+            channel=channel,
+            title=title,
+            body=body,
+            template_name=template_name,
+            related_entity_type=related_entity_type,
+            related_entity_id=uuid.UUID(related_entity_id) if related_entity_id else None,
+            status=Notification.STATUS_PENDING,
+            idempotency_key=idempotency_key
+        )
+    except Exception as e:
+        # Handle race conditions where another process created it simultaneously
+        if "unique constraint" in str(e).lower() or "already exists" in str(e).lower():
+            if idempotency_key:
+                return Notification.objects.filter(idempotency_key=idempotency_key).first()
+        raise e
     
     # Determine actor_id for ledger event
     # If not provided, we use None as permitted by the ledger model
@@ -98,6 +115,7 @@ def create_notification(
             "title": title,
             "related_entity_type": related_entity_type,
             "related_entity_id": related_entity_id,
+            "idempotency_key": idempotency_key,
             "created_at": timezone.now().isoformat()
         }
     )
@@ -131,6 +149,9 @@ def send_employer_request_confirmation(request: Any, actor_id: Optional[str] = N
         "official_email": request.official_email,
         "domain": request.domain,
         "tracking_code": request.tracking_code,
+        "notification_type": Notification.TYPE_EMPLOYER_REQUEST_RECEIVED,
+        "related_entity_type": "EmployerRequest",
+        "related_entity_id": str(request.id)
     }
     
     return send_email_notification(
@@ -138,7 +159,8 @@ def send_employer_request_confirmation(request: Any, actor_id: Optional[str] = N
         subject="Employer Onboarding Request Received - Edulink",
         template_name="employer_request_received",
         context=context,
-        actor_id=actor_id
+        actor_id=actor_id,
+        idempotency_key=f"employer_request_confirmation_{request.id}"
     )
 
 
@@ -151,6 +173,9 @@ def send_employer_approval_notification(request: Any, raw_token: str, actor_id: 
     context = {
         "name": request.name,
         "invite_link": invite_link,
+        "notification_type": Notification.TYPE_EMPLOYER_REQUEST_APPROVED,
+        "related_entity_type": "EmployerRequest",
+        "related_entity_id": str(request.id)
     }
     
     return send_email_notification(
@@ -158,7 +183,8 @@ def send_employer_approval_notification(request: Any, raw_token: str, actor_id: 
         subject="Employer Request Approved - Activate Your Account",
         template_name="employer_request_approved",
         context=context,
-        actor_id=actor_id
+        actor_id=actor_id,
+        idempotency_key=f"employer_approval_{request.id}"
     )
 
 
@@ -169,6 +195,9 @@ def send_employer_rejection_notification(request: Any, actor_id: Optional[str] =
     context = {
         "name": request.name,
         "rejection_reason": request.rejection_reason,
+        "notification_type": Notification.TYPE_EMPLOYER_REQUEST_REJECTED,
+        "related_entity_type": "EmployerRequest",
+        "related_entity_id": str(request.id)
     }
     
     return send_email_notification(
@@ -176,7 +205,8 @@ def send_employer_rejection_notification(request: Any, actor_id: Optional[str] =
         subject="Update on Your Employer Onboarding Request",
         template_name="employer_request_rejected",
         context=context,
-        actor_id=actor_id
+        actor_id=actor_id,
+        idempotency_key=f"employer_rejection_{request.id}_{request.updated_at.timestamp()}"
     )
 
 
@@ -192,18 +222,6 @@ def send_admin_new_onboarding_request_notification(
 ) -> int:
     """
     Send notification to platform admins about a new onboarding request.
-    
-    Args:
-        request_type: Type of request ("Institution" or "Employer")
-        name: Name of the organization
-        representative_name: Name of the representative
-        email: Email of the representative
-        tracking_code: Tracking code of the request
-        review_link: URL to review the request
-        actor_id: Optional actor ID
-        
-    Returns:
-        int: Number of emails sent
     """
     try:
         from edulink.apps.platform_admin.queries import get_active_admins
@@ -223,7 +241,8 @@ def send_admin_new_onboarding_request_notification(
                 "email": email,
                 "tracking_code": tracking_code,
                 "review_link": review_link,
-                "user_id": str(admin_profile.user.id)  # For entity_id resolution in send_email_notification
+                "user_id": str(admin_profile.user.id),
+                "notification_type": Notification.TYPE_ADMIN_NEW_ONBOARDING_REQUEST
             }
             
             success = send_email_notification(
@@ -231,27 +250,13 @@ def send_admin_new_onboarding_request_notification(
                 subject=f"New {request_type} Onboarding Request - {name}",
                 template_name="admin_new_onboarding_request",
                 context=context,
-                actor_id=actor_id
+                actor_id=actor_id,
+                idempotency_key=f"admin_onboarding_notice_{request_type.lower()}_{tracking_code}_{admin_profile.user.id}"
             )
             
             if success:
                 sent_count += 1
                 
-                # Also create a notification record for the admin
-                try:
-                    create_notification(
-                        recipient_id=str(admin_profile.user.id),
-                        type=Notification.TYPE_ADMIN_NEW_ONBOARDING_REQUEST,
-                        title=f"New {request_type} Onboarding Request",
-                        body=f"{name} has submitted a new onboarding request.",
-                        channel=Notification.CHANNEL_EMAIL,
-                        related_entity_type="OnboardingRequest", # Generic type, or specific if we had ID
-                        related_entity_id=None, # We don't have the request ID passed as UUID here conveniently, skipping for now or I should pass it
-                        actor_id=actor_id
-                    )
-                except Exception as e:
-                    logger.error(f"Failed to create notification record for admin {admin_profile.user.email}: {e}")
-
         return sent_count
     
     except ImportError:
@@ -267,42 +272,33 @@ def send_certificate_generated_notification(*, student_email: str, student_name:
     """
     dashboard_url = f"{settings.FRONTEND_URL}/dashboard/student/artifacts"
     
+    # Find user ID from email for notification record
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    user = User.objects.filter(email=student_email).first()
+    user_id = str(user.id) if user else None
+
     context = {
         "student_name": student_name,
         "position": position,
         "employer_name": employer_name,
         "tracking_code": tracking_code,
         "dashboard_url": dashboard_url,
-        "site_name": "Edulink"
+        "site_name": "Edulink",
+        "user_id": user_id,
+        "notification_type": Notification.TYPE_CERTIFICATE_GENERATED,
+        "related_entity_type": "Artifact",
+        "related_entity_id": artifact_id
     }
     
-    success = send_email_notification(
+    return send_email_notification(
         recipient_email=student_email,
         subject=f"Certificate Generated - {position} at {employer_name}",
         template_name="certificate_generated",
         context=context,
-        actor_id=actor_id
+        actor_id=actor_id,
+        idempotency_key=f"certificate_generated_{artifact_id}"
     )
-
-    if success:
-         # Find user ID from email for notification record
-        from django.contrib.auth import get_user_model
-        User = get_user_model()
-        user = User.objects.filter(email=student_email).first()
-        
-        if user:
-            create_notification(
-                recipient_id=str(user.id),
-                type=Notification.TYPE_CERTIFICATE_GENERATED,
-                title="Certificate Available",
-                body=f"Your certificate for {position} at {employer_name} is ready.",
-                channel=Notification.CHANNEL_EMAIL,
-                related_entity_type="Artifact",
-                related_entity_id=artifact_id,
-                actor_id=actor_id
-            )
-
-    return success
 
 def send_performance_summary_generated_notification(*, student_email: str, student_name: str, employer_name: str, logbooks_count: int, milestones_count: int, artifact_id: str, actor_id: Optional[str] = None) -> bool:
     """
@@ -310,41 +306,32 @@ def send_performance_summary_generated_notification(*, student_email: str, stude
     """
     dashboard_url = f"{settings.FRONTEND_URL}/dashboard/student/artifacts"
     
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    user = User.objects.filter(email=student_email).first()
+    user_id = str(user.id) if user else None
+
     context = {
         "student_name": student_name,
         "employer_name": employer_name,
         "logbooks_count": logbooks_count,
         "milestones_count": milestones_count,
         "dashboard_url": dashboard_url,
-        "site_name": "Edulink"
+        "site_name": "Edulink",
+        "user_id": user_id,
+        "notification_type": Notification.TYPE_PERFORMANCE_SUMMARY_GENERATED,
+        "related_entity_type": "Artifact",
+        "related_entity_id": artifact_id
     }
     
-    success = send_email_notification(
+    return send_email_notification(
         recipient_email=student_email,
         subject="Performance Summary Generated",
         template_name="performance_summary_generated",
         context=context,
-        actor_id=actor_id
+        actor_id=actor_id,
+        idempotency_key=f"performance_summary_{artifact_id}"
     )
-
-    if success:
-        from django.contrib.auth import get_user_model
-        User = get_user_model()
-        user = User.objects.filter(email=student_email).first()
-        
-        if user:
-            create_notification(
-                recipient_id=str(user.id),
-                type=Notification.TYPE_PERFORMANCE_SUMMARY_GENERATED,
-                title="Performance Summary Available",
-                body=f"Your performance summary for {employer_name} is ready.",
-                channel=Notification.CHANNEL_EMAIL,
-                related_entity_type="Artifact",
-                related_entity_id=artifact_id,
-                actor_id=actor_id
-            )
-
-    return success
 
 def send_logbook_report_generated_notification(*, student_email: str, student_name: str, employer_name: str, logbooks_count: int, tracking_code: str, artifact_id: str, actor_id: Optional[str] = None) -> bool:
     """
@@ -352,41 +339,32 @@ def send_logbook_report_generated_notification(*, student_email: str, student_na
     """
     dashboard_url = f"{settings.FRONTEND_URL}/dashboard/student/artifacts"
     
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    user = User.objects.filter(email=student_email).first()
+    user_id = str(user.id) if user else None
+
     context = {
         "student_name": student_name,
         "employer_name": employer_name,
         "logbooks_count": logbooks_count,
         "tracking_code": tracking_code,
         "dashboard_url": dashboard_url,
-        "site_name": "Edulink"
+        "site_name": "Edulink",
+        "user_id": user_id,
+        "notification_type": Notification.TYPE_LOGBOOK_REPORT_GENERATED,
+        "related_entity_type": "Artifact",
+        "related_entity_id": artifact_id
     }
     
-    success = send_email_notification(
+    return send_email_notification(
         recipient_email=student_email,
         subject="Logbook Report Generated",
         template_name="logbook_report_generated",
         context=context,
-        actor_id=actor_id
+        actor_id=actor_id,
+        idempotency_key=f"logbook_report_{artifact_id}"
     )
-
-    if success:
-        from django.contrib.auth import get_user_model
-        User = get_user_model()
-        user = User.objects.filter(email=student_email).first()
-        
-        if user:
-            create_notification(
-                recipient_id=str(user.id),
-                type=Notification.TYPE_LOGBOOK_REPORT_GENERATED,
-                title="Logbook Report Available",
-                body=f"Your logbook report for {employer_name} is ready.",
-                channel=Notification.CHANNEL_EMAIL,
-                related_entity_type="Artifact",
-                related_entity_id=artifact_id,
-                actor_id=actor_id
-            )
-
-    return success
 
 
 def send_employer_onboarded_notification(user: Any, employer: Any, actor_id: Optional[str] = None) -> bool:
@@ -860,15 +838,6 @@ def send_institution_approval_notification(*, institution_request, invite_token:
     """
     Send approval notification to institution representative.
     This initiates the invite-based activation process.
-    
-    Args:
-        institution_request: InstitutionRequest instance that was approved
-        invite_token: The raw activation token
-        invite_id: The UUID of the invite record
-        actor_id: Optional ID of the actor triggering the notification
-        
-    Returns:
-        bool: True if notification was sent successfully
     """
     context = {
         "institution_name": institution_request.institution_name,
@@ -880,148 +849,26 @@ def send_institution_approval_notification(*, institution_request, invite_token:
         "approved_at": timezone.now().strftime("%B %d, %Y"),
         "setup_url": f"{settings.FRONTEND_URL}/institution/activate?id={invite_id}&token={invite_token}",
         "expires_in_hours": 72,
+        "site_url": settings.SITE_URL,
+        "notification_type": Notification.TYPE_INSTITUTION_ONBOARDED,
+        "related_entity_type": "InstitutionRequest",
+        "related_entity_id": str(institution_request.id)
     }
     
-    subject = f"Institution Onboarding Approved - {institution_request.institution_name}"
-    
-    html_message = f"""
-    <html>
-        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-                <h2 style="color: #28a745;">Institution Onboarding Approved!</h2>
-                
-                <p>Dear {institution_request.representative_name},</p>
-                
-                <p>Great news! Your institution onboarding request for <strong>{institution_request.institution_name}</strong> has been approved.</p>
-                
-                <div style="background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 8px; padding: 20px; margin: 20px 0;">
-                    <h3 style="margin-top: 0; color: #155724;">Next Steps</h3>
-                    <p>You're just one step away from accessing your institution dashboard. Please complete the setup process to activate your admin account.</p>
-                    
-                    <p style="text-align: center; margin: 20px 0;">
-                        <a href="{context['setup_url']}" 
-                           style="background-color: #28a745; color: white; padding: 15px 30px; 
-                                  text-decoration: none; border-radius: 5px; display: inline-block; 
-                                  font-weight: bold;">
-                            Complete Setup Now
-                        </a>
-                    </p>
-                </div>
-                
-                <p><strong>What you'll do next:</strong></p>
-                <ul>
-                    <li>Set up your admin account password</li>
-                    <li>Review and accept institutional responsibilities</li>
-                    <li>Configure your institution profile</li>
-                    <li>Enable two-factor authentication (recommended)</li>
-                </ul>
-                
-                <p>This setup link is unique to your email address and will expire in {context['expires_in_hours']} hours for security purposes.</p>
-                
-                <p>If you have any questions during setup, please contact us at {settings.SUPPORT_EMAIL or settings.DEFAULT_FROM_EMAIL} and reference your tracking code: <strong>{institution_request.tracking_code}</strong>.</p>
-                
-                <p style="margin-top: 30px; font-size: 14px; color: #666;">
-                    Welcome to the Edulink community!<br>
-                    The Edulink Team
-                </p>
-            </div>
-        </body>
-    </html>
-    """
-    
-    plain_message = f"""
-    Institution Onboarding Approved!
-    
-    Dear {institution_request.representative_name},
-    
-    Great news! Your institution onboarding request for {institution_request.institution_name} has been approved.
-    
-    NEXT STEPS
-    You're just one step away from accessing your institution dashboard. Please complete the setup process to activate your admin account.
-    
-    Complete Setup: {context['setup_url']}
-    
-    What you'll do next:
-    - Set up your admin account password
-    - Review and accept institutional responsibilities  
-    - Configure your institution profile
-    - Enable two-factor authentication (recommended)
-    
-    This setup link is unique to your email address and will expire in 7 days for security purposes.
-    
-    If you have any questions during setup, please contact us at {settings.SUPPORT_EMAIL or settings.DEFAULT_FROM_EMAIL} and reference your tracking code: {institution_request.tracking_code}.
-    
-    Welcome to the Edulink community!
-    The Edulink Team
-    """
-    
-    try:
-        send_mail(
-            subject=subject,
-            message=plain_message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[institution_request.representative_email],
-            html_message=html_message,
-            fail_silently=False,
-        )
-        
-        # Determine actor_id for ledger event
-        ledger_actor_id = uuid.UUID(actor_id) if actor_id else None
-
-        # Record successful approval notification event
-        record_event(
-            event_type="INSTITUTION_APPROVAL_NOTIFICATION_SENT",
-            actor_id=ledger_actor_id,
-            entity_type="InstitutionRequest",
-            entity_id=str(institution_request.id),
-            payload={
-                "recipient_email": institution_request.representative_email,
-                "institution_name": institution_request.institution_name,
-                "setup_url": context['setup_url'],
-                "sent_at": timezone.now().isoformat(),
-                "success": True
-            }
-        )
-        
-        logger.info(f"Institution approval notification sent to {institution_request.representative_email}")
-        return True
-        
-    except Exception as e:
-        # Determine actor_id for ledger event
-        ledger_actor_id = uuid.UUID(actor_id) if actor_id else None
-
-        # Record failed notification event
-        record_event(
-            event_type="INSTITUTION_APPROVAL_NOTIFICATION_FAILED",
-            actor_id=ledger_actor_id,
-            entity_type="InstitutionRequest",
-            entity_id=str(institution_request.id),
-            payload={
-                "recipient_email": institution_request.representative_email,
-                "institution_name": institution_request.institution_name,
-                "error": str(e),
-                "failed_at": timezone.now().isoformat(),
-                "success": False
-            }
-        )
-        
-        logger.error(f"Failed to send institution approval notification to {institution_request.representative_email}: {e}")
-        return False
+    return send_email_notification(
+        recipient_email=institution_request.representative_email,
+        subject=f"Institution Onboarding Approved - {institution_request.institution_name}",
+        template_name="institution_approval",
+        context=context,
+        actor_id=actor_id,
+        idempotency_key=f"institution_approval_{institution_request.id}"
+    )
 
 
 def send_institution_rejection_notification(*, institution_request, rejection_reason_code: str | None = None, rejection_reason: str | None = None, actor_id: Optional[str] = None) -> bool:
     """
     Send rejection notification to institution representative.
     Provides clear, actionable feedback without silent rejections.
-    
-    Args:
-        institution_request: InstitutionRequest instance that was rejected
-        rejection_reason_code: Structured reason code for rejection
-        rejection_reason: Human-readable reason for rejection (optional, for detailed explanation)
-        actor_id: Optional ID of the actor triggering the notification
-        
-    Returns:
-        bool: True if notification was sent successfully
     """
     # Build the full rejection reason based on code and text
     if rejection_reason_code:
@@ -1044,150 +891,25 @@ def send_institution_rejection_notification(*, institution_request, rejection_re
         "rejection_reason": full_rejection_reason,
         "rejected_at": timezone.now().strftime("%B %d, %Y"),
         "resubmit_url": f"{settings.FRONTEND_URL}/institution/request",
+        "site_url": settings.SITE_URL,
+        "notification_type": Notification.TYPE_INSTITUTION_ONBOARDED,
+        "related_entity_type": "InstitutionRequest",
+        "related_entity_id": str(institution_request.id)
     }
     
-    subject = f"Institution Onboarding Update - {institution_request.institution_name}"
-    
-    html_message = f"""
-    <html>
-        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-                <h2 style="color: #dc3545;">Institution Onboarding Update</h2>
-                
-                <p>Dear {institution_request.representative_name},</p>
-                
-                <p>Thank you for your interest in bringing <strong>{institution_request.institution_name}</strong> to Edulink.</p>
-                
-                <div style="background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 8px; padding: 20px; margin: 20px 0;">
-                    <h3 style="margin-top: 0; color: #721c24;">Application Status</h3>
-                    <p>After careful review, we are unable to approve your institution onboarding request at this time.</p>
-                    
-                    <p><strong>Reason:</strong></p>
-                    <p style="background-color: white; padding: 15px; border-radius: 5px; margin: 10px 0; font-style: italic;">
-                        {rejection_reason}
-                    </p>
-                </div>
-                
-                <p><strong>What you can do next:</strong></p>
-                <ul>
-                    <li>Review the feedback above and address any issues</li>
-                    <li>Gather additional documentation or information</li>
-                    <li>Resubmit your application when ready</li>
-                </ul>
-                
-                <p style="text-align: center; margin: 20px 0;">
-                    <a href="{context['resubmit_url']}" 
-                       style="background-color: #007bff; color: white; padding: 12px 24px; 
-                              text-decoration: none; border-radius: 5px; display: inline-block;">
-                        Resubmit Application
-                    </a>
-                </p>
-                
-                <p>We encourage you to resubmit your application once you've addressed the concerns mentioned above. Our team is here to support you through this process.</p>
-                
-                <p>If you have any questions or need clarification, please contact us at {settings.SUPPORT_EMAIL or settings.DEFAULT_FROM_EMAIL} and reference your tracking code: <strong>{institution_request.tracking_code}</strong>.</p>
-                
-                <p style="margin-top: 30px; font-size: 14px; color: #666;">
-                    Thank you for your interest in Edulink.<br>
-                    The Edulink Team
-                </p>
-            </div>
-        </body>
-    </html>
-    """
-    
-    plain_message = f"""
-    Institution Onboarding Update
-    
-    Dear {institution_request.representative_name},
-    
-    Thank you for your interest in bringing {institution_request.institution_name} to Edulink.
-    
-    APPLICATION STATUS
-    After careful review, we are unable to approve your institution onboarding request at this time.
-    
-    Reason: {full_rejection_reason}
-    
-    What you can do next:
-    - Review the feedback above and address any issues
-    - Gather additional documentation or information  
-    - Resubmit your application when ready
-    
-    Resubmit Application: {context['resubmit_url']}
-    
-    We encourage you to resubmit your application once you've addressed the concerns mentioned above. Our team is here to support you through this process.
-    
-    If you have any questions or need clarification, please contact us at {settings.SUPPORT_EMAIL or settings.DEFAULT_FROM_EMAIL} and reference your tracking code: {institution_request.tracking_code}.
-    
-    Thank you for your interest in Edulink.
-    The Edulink Team
-    """
-    
-    try:
-        send_mail(
-            subject=subject,
-            message=plain_message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[institution_request.representative_email],
-            html_message=html_message,
-            fail_silently=False,
-        )
-        
-        # Determine actor_id for ledger event
-        ledger_actor_id = uuid.UUID(actor_id) if actor_id else None
-
-        # Record successful rejection notification event
-        record_event(
-            event_type="INSTITUTION_REJECTION_NOTIFICATION_SENT",
-            actor_id=ledger_actor_id,
-            entity_type="InstitutionRequest",
-            entity_id=str(institution_request.id),
-            payload={
-                "recipient_email": institution_request.representative_email,
-                "institution_name": institution_request.institution_name,
-                "rejection_reason_code": rejection_reason_code,
-                "sent_at": timezone.now().isoformat(),
-                "success": True
-            }
-        )
-        
-        logger.info(f"Institution rejection notification sent to {institution_request.representative_email}")
-        return True
-        
-    except Exception as e:
-        # Determine actor_id for ledger event
-        ledger_actor_id = uuid.UUID(actor_id) if actor_id else None
-
-        # Record failed notification event
-        record_event(
-            event_type="INSTITUTION_REJECTION_NOTIFICATION_FAILED",
-            actor_id=ledger_actor_id,
-            entity_type="InstitutionRequest",
-            entity_id=str(institution_request.id),
-            payload={
-                "recipient_email": institution_request.representative_email,
-                "institution_name": institution_request.institution_name,
-                "error": str(e),
-                "failed_at": timezone.now().isoformat(),
-                "success": False
-            }
-        )
-        
-        logger.error(f"Failed to send institution rejection notification to {institution_request.representative_email}: {e}")
-        return False
+    return send_email_notification(
+        recipient_email=institution_request.representative_email,
+        subject=f"Institution Onboarding Update - {institution_request.institution_name}",
+        template_name="institution_rejection",
+        context=context,
+        actor_id=actor_id,
+        idempotency_key=f"institution_rejection_{institution_request.id}_{institution_request.updated_at.timestamp()}"
+    )
 
 
 def send_institution_admin_setup_completion_notification(*, admin_user_id: str, institution_name: str, institution_domain: str) -> bool:
     """
     Send notification when institution admin completes setup wizard.
-    
-    Args:
-        admin_user_id: Institution admin user ID
-        institution_name: Name of the institution
-        institution_domain: Primary domain of the institution
-    
-    Returns:
-        bool: True if notification was sent successfully
     """
     from django.contrib.auth import get_user_model
     User = get_user_model()
@@ -1205,118 +927,25 @@ def send_institution_admin_setup_completion_notification(*, admin_user_id: str, 
         "admin_name": admin_user.get_full_name() or admin_user.username,
         "site_name": "Edulink",
         "support_email": settings.DEFAULT_FROM_EMAIL,
-        "dashboard_url": f"{settings.FRONTEND_URL}/dashboard",
-        "completed_at": timezone.now().strftime("%Y-%m-%d %H:%M:%S")
+        "dashboard_url": f"{settings.FRONTEND_URL}/institution/dashboard",
+        "completed_at": timezone.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "site_url": settings.SITE_URL,
+        "notification_type": Notification.TYPE_INSTITUTION_ONBOARDED,
+        "user_id": str(admin_user.id)
     }
     
-    subject = f"Institution Setup Complete - Welcome to Edulink!"
-    
-    html_message = f"""
-    <html>
-        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-                <h2 style="color: #28a745;">Welcome to Edulink!</h2>
-                
-                <p>Dear {context['admin_name']},</p>
-                
-                <p>Congratulations! You have successfully completed the setup for <strong>{institution_name}</strong>.</p>
-                
-                <div style="background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 8px; padding: 20px; margin: 20px 0;">
-                    <h3 style="margin-top: 0; color: #155724;">Account Active</h3>
-                    <p>Your institution is now active on the Edulink platform. You can now access your dashboard to manage your institution's profile, staff, and students.</p>
-                    
-                    <p style="text-align: center; margin: 20px 0;">
-                        <a href="{context['dashboard_url']}" 
-                           style="background-color: #28a745; color: white; padding: 15px 30px; 
-                                  text-decoration: none; border-radius: 5px; display: inline-block; 
-                                  font-weight: bold;">
-                            Go to Dashboard
-                        </a>
-                    </p>
-                </div>
-                
-                <p><strong>Institution Details:</strong></p>
-                <ul>
-                    <li>Name: {institution_name}</li>
-                    <li>Domain: {institution_domain}</li>
-                </ul>
-                
-                <p>If you have any questions, please contact us at {context['support_email']}.</p>
-                
-                <p style="margin-top: 30px; font-size: 14px; color: #666;">
-                    Welcome aboard!<br>
-                    The Edulink Team
-                </p>
-            </div>
-        </body>
-    </html>
-    """
-    
-    plain_message = f"""
-    Welcome to Edulink!
-    
-    Dear {context['admin_name']},
-    
-    Congratulations! You have successfully completed the setup for {institution_name}.
-    
-    ACCOUNT ACTIVE
-    Your institution is now active on the Edulink platform. You can now access your dashboard to manage your institution's profile, staff, and students.
-    
-    Go to Dashboard: {context['dashboard_url']}
-    
-    Institution Details:
-    - Name: {institution_name}
-    - Domain: {institution_domain}
-    
-    If you have any questions, please contact us at {context['support_email']}.
-    
-    Welcome aboard!
-    The Edulink Team
-    """
-    
-    try:
-        send_mail(
-            subject=subject,
-            message=plain_message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[admin_user.email],
-            html_message=html_message,
-            fail_silently=False,
-        )
-        
-        # Record event
-        record_event(
-            event_type="INSTITUTION_ADMIN_SETUP_NOTIFICATION_SENT",
-            entity_type="User",
-            entity_id=admin_user_id,
-            payload={
-                "institution_name": institution_name,
-                "institution_domain": institution_domain,
-                "admin_email": admin_user.email,
-                "success": True,
-                "sent_at": timezone.now().isoformat()
-            }
-        )
-        
-        logger.info(f"Institution setup completion notification sent to {admin_user.email}")
-        return True
-        
-    except Exception as e:
-        logger.error(f"Failed to send institution admin setup completion notification to {admin_user.email}: {e}")
-        return False
+    return send_email_notification(
+        recipient_email=admin_user.email,
+        subject="Institution Setup Complete - Welcome to Edulink!",
+        template_name="institution_admin_setup_complete",
+        context=context,
+        idempotency_key=f"institution_setup_complete_{admin_user_id}"
+    )
 
 
 def send_institution_request_confirmation(*, institution_request, actor_id: Optional[str] = None) -> bool:
     """
     Send confirmation email for institution onboarding request submission.
-    This is a separate institution-specific email function to avoid mixing with student emails.
-    
-    Args:
-        institution_request: InstitutionRequest instance
-        actor_id: Optional ID of the actor triggering the notification
-        
-    Returns:
-        bool: True if email was sent successfully
     """
     context = {
         "institution_name": institution_request.institution_name,
@@ -1325,121 +954,20 @@ def send_institution_request_confirmation(*, institution_request, actor_id: Opti
         "site_name": "Edulink",
         "support_email": settings.SUPPORT_EMAIL or settings.DEFAULT_FROM_EMAIL,
         "submitted_at": institution_request.created_at.strftime("%B %d, %Y"),
+        "site_url": settings.SITE_URL,
+        "notification_type": Notification.TYPE_ADMIN_NEW_ONBOARDING_REQUEST,
+        "related_entity_type": "InstitutionRequest",
+        "related_entity_id": str(institution_request.id)
     }
     
-    subject = f"Institution Onboarding Request Submitted - {institution_request.tracking_code}"
-    
-    html_message = f"""
-    <html>
-        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-                <h2 style="color: #2c5aa0;">Institution Onboarding Request Received</h2>
-                
-                <p>Dear {institution_request.representative_name},</p>
-                
-                <p>Thank you for submitting your institution onboarding request for <strong>{institution_request.institution_name}</strong>.</p>
-                
-                <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2c5aa0;">
-                    <h3 style="margin-top: 0; color: #2c5aa0;">Your Tracking Code</h3>
-                    <p style="font-size: 24px; font-weight: bold; margin: 10px 0; font-family: monospace; letter-spacing: 2px;">
-                        {institution_request.tracking_code}
-                    </p>
-                    <p style="margin-bottom: 0; font-size: 14px; color: #666;">
-                        Please save this code. You'll need it when contacting support or checking status.
-                    </p>
-                </div>
-                
-                <p><strong>What happens next?</strong></p>
-                <ul>
-                    <li>Our team will review your submission within 3-5 business days</li>
-                    <li>We'll verify your institution's information and domain</li>
-                    <li>You'll receive an email notification once a decision is made</li>
-                </ul>
-                
-                <p>If you have any questions, please contact us at {settings.SUPPORT_EMAIL or settings.DEFAULT_FROM_EMAIL} and reference your tracking code.</p>
-                
-                <p style="margin-top: 30px; font-size: 14px; color: #666;">
-                    Best regards,<br>
-                    The Edulink Team
-                </p>
-            </div>
-        </body>
-    </html>
-    """
-    
-    plain_message = f"""
-    Institution Onboarding Request Received
-    
-    Dear {institution_request.representative_name},
-    
-    Thank you for submitting your institution onboarding request for {institution_request.institution_name}.
-    
-    YOUR TRACKING CODE: {institution_request.tracking_code}
-    
-    Please save this code. You'll need it when contacting support or checking status.
-    
-    What happens next?
-    - Our team will review your submission within 3-5 business days
-    - We'll verify your institution's information and domain  
-    - You'll receive an email notification once a decision is made
-    
-    If you have any questions, please contact us at {settings.SUPPORT_EMAIL or settings.DEFAULT_FROM_EMAIL} and reference your tracking code.
-    
-    Best regards,
-    The Edulink Team
-    """
-    
-    try:
-        send_mail(
-            subject=subject,
-            message=plain_message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[institution_request.representative_email],
-            html_message=html_message,
-            fail_silently=False,
-        )
-        
-        # Determine actor_id for ledger event
-        ledger_actor_id = uuid.UUID(actor_id) if actor_id else None
-
-        # Record successful email event
-        record_event(
-            event_type="INSTITUTION_REQUEST_CONFIRMATION_SENT",
-            actor_id=ledger_actor_id,
-            entity_type="InstitutionRequest",
-            entity_id=str(institution_request.id),
-            payload={
-                "recipient_email": institution_request.representative_email,
-                "tracking_code": institution_request.tracking_code,
-                "sent_at": timezone.now().isoformat(),
-                "success": True
-            }
-        )
-        
-        logger.info(f"Institution request confirmation sent to {institution_request.representative_email} with tracking code {institution_request.tracking_code}")
-        return True
-        
-    except Exception as e:
-        # Determine actor_id for ledger event
-        ledger_actor_id = uuid.UUID(actor_id) if actor_id else None
-
-        # Record failed email event
-        record_event(
-            event_type="INSTITUTION_REQUEST_CONFIRMATION_FAILED",
-            actor_id=ledger_actor_id,
-            entity_type="InstitutionRequest",
-            entity_id=str(institution_request.id),
-            payload={
-                "recipient_email": institution_request.representative_email,
-                "tracking_code": institution_request.tracking_code,
-                "error": str(e),
-                "failed_at": timezone.now().isoformat(),
-                "success": False
-            }
-        )
-        
-        logger.error(f"Failed to send institution request confirmation email to {institution_request.representative_email}: {e}")
-        return False
+    return send_email_notification(
+        recipient_email=institution_request.representative_email,
+        subject=f"Institution Onboarding Request Submitted - {institution_request.tracking_code}",
+        template_name="institution_request_confirmation",
+        context=context,
+        actor_id=actor_id,
+        idempotency_key=f"institution_request_confirmation_{institution_request.id}"
+    )
         
 
 
@@ -1652,14 +1180,69 @@ def get_unread_notification_count(*, user_id: str) -> int:
     ).count()
 
 
-def send_email_notification(*, recipient_email: str, subject: str, template_name: str, context: dict, actor_id: Optional[str] = None) -> bool:
+def send_email_notification(*, recipient_email: str, subject: str, template_name: str, context: dict, actor_id: Optional[str] = None, idempotency_key: Optional[str] = None) -> bool:
     """
     Asynchronously send an email notification using Django Q.
     Ensures the task is only enqueued after the current transaction commits.
+    Includes idempotency tracking using the Notification model.
     """
+    # Check for existing notification if idempotency key is provided
+    if idempotency_key:
+        existing = Notification.objects.filter(idempotency_key=idempotency_key).first()
+        if existing and existing.status in [Notification.STATUS_SENT, Notification.STATUS_DELIVERED]:
+            logger.info(f"Email notification with key {idempotency_key} already sent. Skipping.")
+            return True
+
+    # Get user_id from context or generate a deterministic one for tracking
+    user_id = context.get("user_id")
+    if not user_id:
+        user_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"mailto:{recipient_email}"))
+
+    # Create a notification record to track the email status
+    # This also enforces idempotency at the database level
+    try:
+        # Determine notification type based on template or context
+        notification_type = context.get("notification_type")
+        if not notification_type:
+            # Map common templates to types or use generic
+            template_to_type = {
+                "welcome": Notification.TYPE_WELCOME,
+                "email_verification": Notification.TYPE_EMAIL_VERIFICATION,
+                "password_reset": Notification.TYPE_PASSWORD_RESET,
+                "institution_approval": Notification.TYPE_INSTITUTION_ONBOARDED,
+                "institution_rejection": Notification.TYPE_INSTITUTION_ONBOARDED,
+            }
+            notification_type = template_to_type.get(template_name, "generic_email")
+
+        # Prepare body for the notification record
+        body_content = strip_tags(render_to_string(f"notifications/emails/{template_name}.html", context))
+        
+        notification = create_notification(
+            recipient_id=user_id,
+            type=notification_type,
+            title=subject,
+            body=body_content,
+            channel=Notification.CHANNEL_EMAIL,
+            template_name=template_name,
+            related_entity_type=context.get("related_entity_type", ""),
+            related_entity_id=context.get("related_entity_id"),
+            actor_id=actor_id,
+            idempotency_key=idempotency_key
+        )
+    except Exception as e:
+        logger.error(f"Failed to create notification record for email: {e}")
+        # If creation fails but it's not a duplicate, we might still want to send the email
+        # but for robustness we prefer failing here to ensure tracking.
+        return False
+
+    if not notification:
+        # Duplicate blocked by create_notification
+        return True
+
     def enqueue():
         async_task(
             'edulink.apps.notifications.services._send_email_notification_sync',
+            notification_id=str(notification.id),
             recipient_email=recipient_email,
             subject=subject,
             template_name=template_name,
@@ -1671,12 +1254,21 @@ def send_email_notification(*, recipient_email: str, subject: str, template_name
     return True
 
 
-def _send_email_notification_sync(*, recipient_email: str, subject: str, template_name: str, context: dict, actor_id: Optional[str] = None) -> bool:
+def _send_email_notification_sync(*, notification_id: str, recipient_email: str, subject: str, template_name: str, context: dict, actor_id: Optional[str] = None) -> bool:
     """
     The actual synchronous logic for sending email. 
     Should only be called via send_email_notification (background task).
-    Includes retry logic for rate limits and handles SSL certificate issues.
+    Updates the Notification record status.
     """
+    try:
+        notification = Notification.objects.get(id=notification_id)
+        if notification.status in [Notification.STATUS_SENT, Notification.STATUS_DELIVERED]:
+            logger.info(f"Notification {notification_id} already sent. Skipping.")
+            return True
+    except Notification.DoesNotExist:
+        logger.error(f"Notification record {notification_id} not found for background task.")
+        return False
+
     max_retries = 3
     retry_delay = 2  # seconds
 
@@ -1689,8 +1281,7 @@ def _send_email_notification_sync(*, recipient_email: str, subject: str, templat
             # Send email
             from django.core.mail import get_connection
             
-            # For development with Mailtrap port 2525, we sometimes need to force 
-            # an insecure connection if the system's SSL library is being too aggressive.
+            # For development with Mailtrap port 2525
             connection = None
             if settings.DEBUG and settings.EMAIL_PORT == '2525' and not settings.EMAIL_USE_TLS:
                 try:
@@ -1713,11 +1304,10 @@ def _send_email_notification_sync(*, recipient_email: str, subject: str, templat
                 connection=connection
             )
             
-            # Determine entity_id (must be UUID)
-            entity_id = context.get("user_id")
-            if not entity_id:
-                # Generate deterministic UUID from email if no user_id is provided
-                entity_id = uuid.uuid5(uuid.NAMESPACE_URL, f"mailto:{recipient_email}")
+            # Update notification status
+            notification.status = Notification.STATUS_SENT
+            notification.sent_at = timezone.now()
+            notification.save()
             
             # Determine actor_id for ledger event
             ledger_actor_id = uuid.UUID(actor_id) if actor_id else None
@@ -1726,82 +1316,67 @@ def _send_email_notification_sync(*, recipient_email: str, subject: str, templat
             record_event(
                 event_type="EMAIL_SENT",
                 actor_id=ledger_actor_id,
-                entity_type="User",
-                entity_id=entity_id,
+                entity_type="Notification",
+                entity_id=str(notification.id),
                 payload={
                     "recipient_email": recipient_email,
                     "subject": subject,
                     "template": template_name,
-                    "sent_at": timezone.now().isoformat(),
-                    "success": True
+                    "sent_at": notification.sent_at.isoformat(),
+                    "success": True,
+                    "idempotency_key": notification.idempotency_key
                 }
             )
             
-            logger.info(f"Email sent successfully to {recipient_email}")
+            logger.info(f"Email sent successfully to {recipient_email} for notification {notification_id}")
             return True
             
         except (SMTPDataError, SMTPException, ssl.SSLError) as e:
-            # Check if it's a rate limit error (Mailtrap code 550 with specific message)
             error_msg = str(e)
             
-            # Handle SSL certificate verification failure specifically for dev
             if "CERTIFICATE_VERIFY_FAILED" in error_msg:
-                logger.error(f"SSL Certificate verification failed for {recipient_email}. This is common in some dev environments. Ensure EMAIL_USE_TLS is False in .env if using Mailtrap port 2525.")
-                break # Don't retry SSL errors immediately without config change
+                logger.error(f"SSL Certificate verification failed for {recipient_email}.")
+                break
                 
             if "550" in error_msg and "Too many emails per second" in error_msg and attempt < max_retries - 1:
-                logger.warning(f"Rate limit hit for {recipient_email}, retrying in {retry_delay}s... (Attempt {attempt + 1})")
+                logger.warning(f"Rate limit hit for {recipient_email}, retrying in {retry_delay}s...")
                 time.sleep(retry_delay)
                 continue
             
-            # For other errors or if we've exhausted retries, log and record failure
-            entity_id = context.get("user_id")
-            if not entity_id:
-                entity_id = uuid.uuid5(uuid.NAMESPACE_URL, f"mailto:{recipient_email}")
+            # Mark as failed
+            notification.status = Notification.STATUS_FAILED
+            notification.failure_reason = error_msg
+            notification.retry_count = attempt + 1
+            notification.save()
 
             ledger_actor_id = uuid.UUID(actor_id) if actor_id else None
 
             record_event(
                 event_type="EMAIL_FAILED",
                 actor_id=ledger_actor_id,
-                entity_type="User", 
-                entity_id=entity_id,
+                entity_type="Notification", 
+                entity_id=str(notification.id),
                 payload={
                     "recipient_email": recipient_email,
                     "subject": subject,
                     "template": template_name,
                     "error": error_msg,
-                    "failed_at": timezone.now().isoformat()
+                    "attempt": attempt + 1,
+                    "failed_at": timezone.now().isoformat(),
+                    "success": False
                 }
             )
             
             logger.error(f"Failed to send email to {recipient_email}: {error_msg}")
             return False
         except Exception as e:
-            # Catch-all for other non-SMTP exceptions
-            error_msg = str(e)
-            entity_id = context.get("user_id")
-            if not entity_id:
-                entity_id = uuid.uuid5(uuid.NAMESPACE_URL, f"mailto:{recipient_email}")
-
-            ledger_actor_id = uuid.UUID(actor_id) if actor_id else None
-
-            record_event(
-                event_type="EMAIL_FAILED",
-                actor_id=ledger_actor_id,
-                entity_type="User", 
-                entity_id=entity_id,
-                payload={
-                    "recipient_email": recipient_email,
-                    "subject": subject,
-                    "template": template_name,
-                    "error": error_msg,
-                    "failed_at": timezone.now().isoformat()
-                }
-            )
-            
-            logger.error(f"Failed to send email to {recipient_email}: {error_msg}")
+            logger.error(f"Unexpected error sending email: {e}")
+            notification.status = Notification.STATUS_FAILED
+            notification.failure_reason = str(e)
+            notification.save()
             return False
+    
+    return False
 
 def send_support_ticket_confirmation(*, ticket, actor_id: Optional[str] = None) -> bool:
     """Send confirmation email to user when a support ticket is created."""

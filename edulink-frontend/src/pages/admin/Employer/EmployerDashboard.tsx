@@ -10,6 +10,9 @@ import { internshipService } from '../../../services/internship/internshipServic
 import type { InternshipApplication } from '../../../services/internship/internshipService';
 import { employerService } from '../../../services/employer/employerService';
 import type { Employer } from '../../../services/employer/employerService';
+import SupervisionPipeline from '../../../components/admin/Employer/SupervisionPipeline';
+import TrustTimeline from '../../../components/student/dashboard/TrustTimeline';
+import { ledgerService, LedgerEvent } from '../../../services/ledger/ledgerService';
 
 const EmployerDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -23,85 +26,88 @@ const EmployerDashboard: React.FC = () => {
     totalSupervisors: 0
   });
   const [recentApplications, setRecentApplications] = useState<InternshipApplication[]>([]);
+  const [allApplications, setAllApplications] = useState<InternshipApplication[]>([]);
+  const [supervisors, setSupervisors] = useState<any[]>([]);
+  const [ledgerEvents, setLedgerEvents] = useState<LedgerEvent[]>([]);
+
+  const fetchData = async () => {
+    try {
+      setIsLoading(true);
+      // 1. Fetch current employer
+      let employer: Employer | null = null;
+      try {
+          employer = await employerService.getCurrentEmployer();
+          setCurrentEmployer(employer);
+      } catch (e) {
+          console.warn("Could not fetch employer details", e);
+      }
+
+      // Fetch Trust Stats
+      try {
+          const trustData = await employerService.getTrustProgress();
+          setTrustStats(trustData);
+      } catch (e) {
+          console.warn("Failed to fetch trust stats", e);
+      }
+
+      // 2. Fetch Applications (Engagements)
+      const [applications, ledgerData] = await Promise.all([
+        internshipService.getApplications(),
+        ledgerService.getEvents({ page_size: 5 })
+      ]);
+      setAllApplications(applications);
+      setLedgerEvents(ledgerData.results);
+
+      // Calculate stats based on Applications
+      const active = applications.filter(a => a.status === 'ACTIVE').length;
+      const pending = applications.filter(a => a.status === 'APPLIED').length;
+      const shortlisted = applications.filter(a => a.status === 'SHORTLISTED').length;
+      
+      // Supervisors
+      let supervisorList: any[] = [];
+      try {
+        supervisorList = await employerService.getSupervisors();
+        setSupervisors(supervisorList);
+      } catch (e) {
+        console.warn("Failed to fetch supervisors", e);
+      }
+
+      setStats({
+        activeInternships: active,
+        pendingApplications: pending,
+        scheduledInterviews: shortlisted,
+        totalSupervisors: supervisorList.length
+      });
+
+      // Recent Applications (Recruitment only)
+      const recent = applications
+        .filter(a => !['ACTIVE', 'COMPLETED'].includes(a.status))
+        .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
+        .slice(0, 5);
+      
+      setRecentApplications(recent);
+
+    } catch (error) {
+      console.error('Failed to fetch dashboard data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
-        // 1. Fetch current employer
-        let employer: Employer | null = null;
-        try {
-            employer = await employerService.getCurrentEmployer();
-            setCurrentEmployer(employer);
-        } catch (e) {
-            console.warn("Could not fetch employer details", e);
-        }
-
-        // Fetch Trust Stats
-        try {
-            const trustData = await employerService.getTrustProgress();
-            setTrustStats(trustData);
-        } catch (e) {
-            console.warn("Failed to fetch trust stats", e);
-        }
-
-        // 2. Fetch Applications (Engagements)
-        // We need 'getApplications' to see who applied to our jobs
-        // Note: internshipService.getApplications() usually fetches applications for the CURRENT user.
-        // For an Employer, we need a way to fetch applications received for THEIR opportunities.
-        // If the backend 'getApplications' endpoint handles role-based logic (returning *received* apps for employers), we are good.
-        // Let's assume internshipService.getApplications() is smart enough or we need a specific endpoint.
-        // Based on previous tasks, we added `getApplications` which hits `/api/internships/applications/`.
-        // The backend view `InternshipApplicationViewSet` filters by `opportunity__employer_id` if user is employer.
-        // So this call is correct.
-        const applications = await internshipService.getApplications();
-
-        // 3. Fetch Opportunities (for active internship count if needed, but active apps is better)
-        // const opportunities = await internshipService.getInternships(); 
-
-        // Calculate stats based on Applications
-        // Active: Applications with status ACTIVE
-        const active = applications.filter(a => a.status === 'ACTIVE').length;
-        
-        // Pending: Applications with status APPLIED
-        const pending = applications.filter(a => a.status === 'APPLIED').length;
-        
-        // Shortlisted: Applications with status SHORTLISTED
-        const shortlisted = applications.filter(a => a.status === 'SHORTLISTED').length;
-        
-        // Supervisors
-        let supervisorCount = 0;
-        try {
-          const supervisorsData = await employerService.getSupervisors();
-          supervisorCount = supervisorsData.length;
-        } catch (e) {
-          console.warn("Failed to fetch supervisors", e);
-        }
-
-        setStats({
-          activeInternships: active,
-          pendingApplications: pending,
-          scheduledInterviews: shortlisted,
-          totalSupervisors: supervisorCount
-        });
-
-        // Recent Applications (Recruitment only)
-        const recent = applications
-          .filter(a => !['ACTIVE', 'COMPLETED'].includes(a.status))
-          .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
-          .slice(0, 5);
-        
-        setRecentApplications(recent);
-
-      } catch (error) {
-        console.error('Failed to fetch dashboard data:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchData();
   }, []);
+
+  const handleAssignSupervisor = async (internId: string, supervisorId: string) => {
+    try {
+      await internshipService.assignSupervisor(internId, supervisorId, 'EMPLOYER');
+      // Refresh data
+      await fetchData();
+    } catch (error) {
+      console.error('Failed to assign supervisor:', error);
+      alert('Failed to assign supervisor. Please try again.');
+    }
+  };
 
   if (isLoading) {
     return (
@@ -237,9 +243,16 @@ const EmployerDashboard: React.FC = () => {
         </div>
 
         <div className="row">
-          {/* Recent Applications */}
-          <div className="col-lg-8 mb-4">
-            <div className="card border-0 shadow-sm h-100">
+          <div className="col-lg-8">
+            {/* Supervision Pipeline */}
+            <SupervisionPipeline 
+              interns={allApplications} 
+              supervisors={supervisors}
+              onAssignSupervisor={handleAssignSupervisor}
+            />
+
+            {/* Recent Applications */}
+            <div className="card border-0 shadow-sm h-100 mb-4">
               <div className="card-header bg-white py-3 d-flex justify-content-between align-items-center">
                 <h5 className="mb-0 fw-bold">Recent Applications</h5>
                 <Link to="/employer/dashboard/applications" className="btn btn-sm btn-outline-primary">View All</Link>
@@ -322,6 +335,16 @@ const EmployerDashboard: React.FC = () => {
           <div className="col-lg-4 mb-4">
             <div className="mb-4">
                 <TrustProgressWidget data={trustStats} isLoading={isLoading} userType="employer" />
+            </div>
+
+            {/* Trust Timeline */}
+            <div className="card border-0 shadow-sm mb-4">
+              <div className="card-header bg-white py-3">
+                <h5 className="mb-0 fw-bold">Audit History</h5>
+              </div>
+              <div className="card-body">
+                <TrustTimeline events={ledgerEvents} isDarkMode={false} />
+              </div>
             </div>
 
             <div className="card border-0 shadow-sm">

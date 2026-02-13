@@ -1,0 +1,40 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}Onboarding Update - Edulink{% endblock %}
+
+{% block content %}
+<h2 style="color: #ef4444;">Institution Onboarding Update</h2>
+
+<p>Dear {{ representative_name }},</p>
+
+<p>Thank you for your interest in bringing <strong>{{ institution_name }}</strong> to Edulink.</p>
+
+<div class="highlight-box" style="background-color: #fef2f2; border-color: #fee2e2; border-left-color: #ef4444;">
+    <h3 style="margin-top: 0; color: #991b1b; font-size: 18px;">Application Status</h3>
+    <p>After careful review, we are unable to approve your institution onboarding request at this time.</p>
+    
+    <p style="margin-top: 16px;"><strong>Reason:</strong></p>
+    <div style="background-color: #ffffff; padding: 16px; border-radius: 8px; margin: 8px 0; border: 1px solid #fee2e2; font-style: italic; color: #7f1d1d;">
+        {{ rejection_reason }}
+    </div>
+</div>
+
+<p><strong>What you can do next:</strong></p>
+<ul>
+    <li>Review the feedback above and address any issues</li>
+    <li>Gather additional documentation or information</li>
+    <li>Resubmit your application when ready</li>
+</ul>
+
+<div style="text-align: center;">
+    <a href="{{ resubmit_url }}" class="email-button" style="background-color: #3b82f6; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.2);">
+        Resubmit Application
+    </a>
+</div>
+
+<p>We encourage you to resubmit your application once you've addressed the concerns mentioned above. Our team is here to support you through this process.</p>
+
+<p>If you have any questions or need clarification, please contact us at <a href="mailto:{{ support_email }}">{{ support_email }}</a> and reference your tracking code: <strong>{{ tracking_code }}</strong>.</p>
+
+<p>Thank you for your interest in Edulink.<br>The Edulink Team</p>
+{% endblock %}

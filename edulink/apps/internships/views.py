@@ -12,7 +12,7 @@ from .serializers import (
     CreateIncidentSerializer, ResolveIncidentSerializer, AssignSupervisorSerializer,
     BulkAssignSupervisorSerializer,
     InternshipEvidenceSerializer, SuccessStorySerializer,
-    SubmitFinalFeedbackSerializer
+    SubmitFinalFeedbackSerializer, InternshipApplySerializer, CreateSuccessStorySerializer
 )
 from .filters import InternshipOpportunityFilter, InternshipApplicationFilter
 from .services import (
@@ -90,9 +90,14 @@ class InternshipViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True, methods=['post'])
     def apply(self, request, pk=None):
+        serializer = InternshipApplySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         try:
-            cover_letter = request.data.get('cover_letter', '')
-            application = apply_for_internship(request.user, pk, cover_letter)
+            application = apply_for_internship(
+                request.user, 
+                pk, 
+                serializer.validated_data['cover_letter']
+            )
             return Response(InternshipApplicationSerializer(application).data, status=status.HTTP_201_CREATED)
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -278,13 +283,15 @@ class ApplicationViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True, methods=['post'], url_path='create-success-story')
     def create_story(self, request, pk=None):
+        serializer = CreateSuccessStorySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         try:
             story = create_success_story(
                 actor=request.user,
                 application_id=pk,
-                student_testimonial=request.data.get('student_testimonial', ''),
-                employer_feedback=request.data.get('employer_feedback', ''),
-                is_published=request.data.get('is_published', False)
+                student_testimonial=serializer.validated_data['student_testimonial'],
+                employer_feedback=serializer.validated_data['employer_feedback'],
+                is_published=serializer.validated_data['is_published']
             )
             return Response(SuccessStorySerializer(story).data, status=status.HTTP_201_CREATED)
         except Exception as e:

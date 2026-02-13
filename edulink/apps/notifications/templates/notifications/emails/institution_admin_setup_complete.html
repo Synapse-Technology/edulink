@@ -1,0 +1,32 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}Setup Complete - Edulink{% endblock %}
+
+{% block content %}
+<h2 style="color: #10b981;">Welcome to Edulink!</h2>
+
+<p>Dear {{ admin_name }},</p>
+
+<p>Congratulations! You have successfully completed the setup for <strong>{{ institution_name }}</strong>.</p>
+
+<div class="highlight-box" style="background-color: #f0fdf4; border-color: #dcfce7; border-left-color: #10b981;">
+    <h3 style="margin-top: 0; color: #166534; font-size: 18px;">Account Active</h3>
+    <p>Your institution is now active on the Edulink platform. You can now access your dashboard to manage your institution's profile, staff, and students.</p>
+    
+    <div style="text-align: center;">
+        <a href="{{ dashboard_url }}" class="email-button" style="background-color: #10b981; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2);">
+            Go to Dashboard
+        </a>
+    </div>
+</div>
+
+<p><strong>Institution Details:</strong></p>
+<ul>
+    <li>Name: {{ institution_name }}</li>
+    <li>Domain: {{ institution_domain }}</li>
+</ul>
+
+<p>If you have any questions, please contact us at <a href="mailto:{{ support_email }}">{{ support_email }}</a>.</p>
+
+<p>Welcome aboard!<br>The Edulink Team</p>
+{% endblock %}

@@ -329,3 +329,13 @@ class BulkAssignSupervisorSerializer(serializers.Serializer):
 class SubmitFinalFeedbackSerializer(serializers.Serializer):
     feedback = serializers.CharField()
     rating = serializers.IntegerField(min_value=1, max_value=5, required=False)
+
+
+class InternshipApplySerializer(serializers.Serializer):
+    cover_letter = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+class CreateSuccessStorySerializer(serializers.Serializer):
+    student_testimonial = serializers.CharField(required=False, allow_blank=True, default="")
+    employer_feedback = serializers.CharField(required=False, allow_blank=True, default="")
+    is_published = serializers.BooleanField(required=False, default=False)
