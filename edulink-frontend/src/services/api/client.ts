@@ -1,7 +1,9 @@
 import axios from 'axios';
 import type { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
-import { config } from '../../config';
+import { getConfig } from '../../config';
 import { ApiError, NetworkError, ValidationError, AuthenticationError } from '../errors/index';
+
+const config = getConfig();
 
 interface ApiClientConfig {
   baseURL: string;

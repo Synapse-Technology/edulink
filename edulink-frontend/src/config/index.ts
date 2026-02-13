@@ -2,7 +2,8 @@
 export const config = {
   // API Configuration
   api: {
-    baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000',
+    baseURL: import.meta.env.VITE_API_BASE_URL || 
+             (import.meta.env.MODE === 'production' ? 'https://edulink-backend-2ren.onrender.com' : 'http://localhost:8000'),
     timeout: 30000, // 30 seconds
     retryAttempts: 3,
     retryDelay: 1000, // 1 second
@@ -228,7 +229,7 @@ export const getConfig = () => {
         ...config,
         api: {
           ...config.api,
-          baseURL: import.meta.env.VITE_API_BASE_URL || 'https://api.edulink.co.ke',
+          baseURL: import.meta.env.VITE_API_BASE_URL || 'https://edulink-backend-2ren.onrender.com',
         },
         app: {
           ...config.app,
