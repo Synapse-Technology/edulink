@@ -72,3 +72,10 @@ if CLOUDINARY_STORAGE['CLOUD_NAME']:
     STORAGES["default"] = {
         "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
     }
+
+# WhiteNoise Configuration
+# Use CompressedStaticFilesStorage instead of CompressedManifestStaticFilesStorage
+# to avoid build failures when third-party packages (like DRF) have broken CSS references.
+STORAGES["staticfiles"] = {
+    "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+}
