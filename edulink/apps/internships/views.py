@@ -37,12 +37,14 @@ class InternshipViewSet(viewsets.ReadOnlyModelViewSet):
     filterset_class = InternshipOpportunityFilter
     
     def get_permissions(self):
-        if self.action in ['list', 'retrieve', 'success_stories']:
+        action = getattr(self, 'action', None)
+        if action in ['list', 'retrieve', 'success_stories']:
             return [AllowAny()]
         return [IsAuthenticated()]
     
     def get_authenticators(self):
-        if self.action in ['list', 'retrieve', 'success_stories']:
+        action = getattr(self, 'action', None)
+        if action in ['list', 'retrieve', 'success_stories']:
             return []
         return super().get_authenticators()
     
