@@ -1,5 +1,6 @@
 import logging
 from uuid import UUID
+from typing import Optional
 from django.db import transaction
 from django.conf import settings
 from django.utils import timezone
@@ -80,8 +81,8 @@ def create_internship_opportunity(
     actor,
     title: str, 
     description: str, 
-    institution_id: UUID, 
-    employer_id: UUID,
+    institution_id: Optional[UUID] = None, 
+    employer_id: Optional[UUID] = None,
     department: str = "",
     skills: list = None,
     capacity: int = 1,
