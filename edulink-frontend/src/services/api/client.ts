@@ -1,9 +1,9 @@
 import axios from 'axios';
 import type { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
-import { getConfig } from '../../config';
+import config from '../../config';
 import { ApiError, NetworkError, ValidationError, AuthenticationError } from '../errors/index';
 
-const config = getConfig();
+// config is now the initialized object from the default export
 
 interface ApiClientConfig {
   baseURL: string;

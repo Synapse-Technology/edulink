@@ -3,7 +3,7 @@ export const config = {
   // API Configuration
   api: {
     baseURL: import.meta.env.VITE_API_BASE_URL || 
-             (import.meta.env.MODE === 'production' ? 'https://edulink-backend-2ren.onrender.com' : 'http://localhost:8000'),
+             (import.meta.env.PROD ? 'https://edulink-backend-2ren.onrender.com' : 'http://localhost:8000'),
     timeout: 30000, // 30 seconds
     retryAttempts: 3,
     retryDelay: 1000, // 1 second
@@ -191,19 +191,26 @@ export const config = {
 
 // Environment-specific configurations
 export const getConfig = () => {
-  const environment = import.meta.env.MODE;
+  const mode = import.meta.env.MODE;
+  const isProd = import.meta.env.PROD;
   
-  switch (environment) {
+  // Base configuration that respects environment variables
+  const baseConfig = {
+    ...config,
+    api: {
+      ...config.api,
+      baseURL: import.meta.env.VITE_API_BASE_URL || 
+               (isProd ? 'https://edulink-backend-2ren.onrender.com' : 'http://localhost:8000'),
+    }
+  };
+
+  switch (mode) {
     case 'development':
       return {
-        ...config,
+        ...baseConfig,
         api: {
-          ...config.api,
-          baseURL: 'http://localhost:8000',
-        },
-        app: {
-          ...config.app,
-          url: 'http://localhost:5173',
+          ...baseConfig.api,
+          baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000',
         },
         development: {
           ...config.development,
@@ -213,27 +220,19 @@ export const getConfig = () => {
     
     case 'staging':
       return {
-        ...config,
+        ...baseConfig,
         api: {
-          ...config.api,
-          baseURL: import.meta.env.VITE_API_BASE_URL || 'https://staging-api.edulink.co.ke',
-        },
-        app: {
-          ...config.app,
-          url: import.meta.env.VITE_APP_URL || 'https://staging.edulink.co.ke',
+          ...baseConfig.api,
+          baseURL: import.meta.env.VITE_API_BASE_URL || 'https://edulink-backend-2ren.onrender.com', // Default to prod backend if staging not set
         },
       };
     
     case 'production':
       return {
-        ...config,
+        ...baseConfig,
         api: {
-          ...config.api,
+          ...baseConfig.api,
           baseURL: import.meta.env.VITE_API_BASE_URL || 'https://edulink-backend-2ren.onrender.com',
-        },
-        app: {
-          ...config.app,
-          url: import.meta.env.VITE_APP_URL || 'https://edulink.co.ke',
         },
         security: {
           ...config.security,
@@ -246,8 +245,10 @@ export const getConfig = () => {
       };
     
     default:
-      return config;
+      // For any other mode (like Render preview deployments), default to production backend
+      // unless we are explicitly in development.
+      return baseConfig;
   }
 };
 
-export default config;
+export default getConfig();

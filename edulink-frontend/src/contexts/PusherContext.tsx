@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import Pusher, { Channel } from 'pusher-js';
-import { config } from '../config';
+import config from '../config';
 
 interface PusherContextType {
   pusher: Pusher | null;
