@@ -115,10 +115,10 @@ class InternshipViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=False, methods=['get'], url_path='pending-evidence')
     def pending_evidence(self, request):
         """
-        List all pending evidence for the current supervisor.
+        List all pending evidence for the current user (Supervisor or Admin).
         """
-        from .queries import get_pending_evidence_for_supervisor
-        evidence = get_pending_evidence_for_supervisor(request.user)
+        from .queries import get_pending_evidence_for_user
+        evidence = get_pending_evidence_for_user(request.user)
         serializer = InternshipEvidenceSerializer(evidence, many=True, context={'request': request})
         return Response(serializer.data)
 

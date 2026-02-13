@@ -125,34 +125,61 @@ def get_evidence_for_application(application_id: UUID) -> QuerySet[InternshipEvi
 def get_incidents_for_application(application_id: UUID) -> QuerySet[Incident]:
     return Incident.objects.filter(application_id=application_id)
 
-def get_pending_evidence_for_supervisor(user) -> QuerySet[InternshipEvidence]:
+def get_pending_evidence_for_user(user) -> QuerySet[InternshipEvidence]:
     """
-    Returns evidence that needs review from this supervisor.
-    An item is pending if the supervisor is assigned and has not yet set a review status.
+    Returns evidence that needs review from this user (Supervisor or Admin).
+    An item is pending if the user is responsible for reviewing it and has not yet set a review status.
     """
-    if not user.is_authenticated or not user.is_supervisor:
+    if not user.is_authenticated:
         return InternshipEvidence.objects.none()
         
-    from edulink.apps.employers.queries import get_supervisor_id_for_user
-    from edulink.apps.institutions.queries import get_institution_staff_id_for_user
-    
-    employer_supervisor_id = get_supervisor_id_for_user(user.id)
-    institution_supervisor_id = get_institution_staff_id_for_user(str(user.id))
-    
-    filters = Q()
-    if employer_supervisor_id:
-        filters |= Q(application__employer_supervisor_id=employer_supervisor_id, employer_review_status__isnull=True)
-    if institution_supervisor_id:
-        filters |= Q(application__institution_supervisor_id=institution_supervisor_id, institution_review_status__isnull=True)
+    if user.is_system_admin:
+        return InternshipEvidence.objects.filter(status=InternshipEvidence.STATUS_SUBMITTED).select_related('application', 'application__opportunity')
+
+    if user.is_institution_admin:
+        from edulink.apps.institutions.queries import get_institution_for_user
+        inst = get_institution_for_user(str(user.id))
+        if inst:
+            from edulink.apps.students.queries import get_affiliated_student_ids
+            affiliated_student_ids = get_affiliated_student_ids(str(inst.id))
+            return InternshipEvidence.objects.filter(
+                Q(application__opportunity__institution_id=inst.id) |
+                Q(application__student_id__in=affiliated_student_ids),
+                institution_review_status__isnull=True
+            ).select_related('application', 'application__opportunity').distinct()
+
+    if user.is_employer_admin:
+        from edulink.apps.employers.queries import get_employer_for_user
+        employer = get_employer_for_user(user.id)
+        if employer:
+            return InternshipEvidence.objects.filter(
+                application__opportunity__employer_id=employer.id,
+                employer_review_status__isnull=True
+            ).select_related('application', 'application__opportunity').distinct()
+
+    if user.is_supervisor:
+        from edulink.apps.employers.queries import get_supervisor_id_for_user
+        from edulink.apps.institutions.queries import get_institution_staff_id_for_user
         
-    if not employer_supervisor_id and not institution_supervisor_id:
-        user_id = user.id if isinstance(user.id, UUID) else UUID(str(user.id))
-        filters = (
-            Q(application__employer_supervisor_id=user_id, employer_review_status__isnull=True) | 
-            Q(application__institution_supervisor_id=user_id, institution_review_status__isnull=True)
-        )
+        employer_supervisor_id = get_supervisor_id_for_user(user.id)
+        institution_supervisor_id = get_institution_staff_id_for_user(str(user.id))
+        
+        filters = Q()
+        if employer_supervisor_id:
+            filters |= Q(application__employer_supervisor_id=employer_supervisor_id, employer_review_status__isnull=True)
+        if institution_supervisor_id:
+            filters |= Q(application__institution_supervisor_id=institution_supervisor_id, institution_review_status__isnull=True)
+            
+        if not employer_supervisor_id and not institution_supervisor_id:
+            user_id = user.id if isinstance(user.id, UUID) else UUID(str(user.id))
+            filters = (
+                Q(application__employer_supervisor_id=user_id, employer_review_status__isnull=True) | 
+                Q(application__institution_supervisor_id=user_id, institution_review_status__isnull=True)
+            )
+        
+        return InternshipEvidence.objects.filter(filters).select_related('application', 'application__opportunity')
     
-    return InternshipEvidence.objects.filter(filters).select_related('application', 'application__opportunity')
+    return InternshipEvidence.objects.none()
 
 def get_incidents_for_supervisor(user) -> QuerySet[Incident]:
     """
@@ -248,6 +275,46 @@ def get_active_placements_for_institution(institution_id: str) -> QuerySet[Inter
             ApplicationStatus.CERTIFIED
         ]
     )
+
+
+def get_active_placements_for_monitoring(institution_id: str) -> List[dict]:
+    """
+    Returns enriched placement data for monitoring dashboard.
+    """
+    from edulink.apps.students.queries import get_students_by_ids
+    from edulink.apps.employers.queries import get_employers_by_ids
+
+    placements = get_active_placements_for_institution(institution_id=institution_id)
+    
+    # Collect IDs for batch fetching
+    student_ids = [str(p.student_id) for p in placements if p.student_id]
+    employer_ids = [str(p.opportunity.employer_id) for p in placements if p.opportunity and p.opportunity.employer_id]
+    
+    students_map = get_students_by_ids(student_ids)
+    employers_map = get_employers_by_ids(employer_ids)
+    
+    data = []
+    for p in placements:
+        student = students_map.get(str(p.student_id))
+        employer = employers_map.get(str(p.opportunity.employer_id) if p.opportunity else None)
+        
+        data.append({
+            "id": p.id,
+            "title": p.opportunity.title if p.opportunity else "N/A",
+            "department": p.opportunity.department if p.opportunity else "N/A",
+            "status": p.status,
+            "start_date": p.opportunity.start_date if p.opportunity else None,
+            "end_date": p.opportunity.end_date if p.opportunity else None,
+            "employer_id": p.opportunity.employer_id if p.opportunity else None,
+            "employer_name": employer.name if employer else "Unknown Employer",
+            "student_info": {
+                "id": str(student.id),
+                "name": student.user.get_full_name() if student.user else "Unknown Student",
+                "email": student.user.email if student.user else "N/A",
+                "trust_level": student.trust_level,
+            } if student else None
+        })
+    return data
 
 def calculate_trend(current_count: int, previous_count: int) -> float:
     """

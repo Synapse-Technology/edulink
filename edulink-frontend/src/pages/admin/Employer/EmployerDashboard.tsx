@@ -2,15 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Briefcase, Users, FileText, UserCheck, Clock, ArrowRight, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
-import { EmployerLayout } from '../../../components/admin/employer';
+import { EmployerLayout, SupervisionPipeline } from '../../../components/admin/Employer';
+import PendingLogbooksWidget from '../../../components/dashboard/PendingLogbooksWidget';
 import { EmployerDashboardSkeleton } from '../../../components/admin/skeletons';
 import TrustProgressWidget from '../../../components/dashboard/TrustProgressWidget';
 import { SEO } from '../../../components/common';
-import { internshipService } from '../../../services/internship/internshipService';
+import { internshipService, InternshipEvidence } from '../../../services/internship/internshipService';
 import type { InternshipApplication } from '../../../services/internship/internshipService';
 import { employerService } from '../../../services/employer/employerService';
 import type { Employer } from '../../../services/employer/employerService';
-import SupervisionPipeline from '../../../components/admin/Employer/SupervisionPipeline';
 import TrustTimeline from '../../../components/student/dashboard/TrustTimeline';
 import { ledgerService, LedgerEvent } from '../../../services/ledger/ledgerService';
 
@@ -29,6 +29,7 @@ const EmployerDashboard: React.FC = () => {
   const [allApplications, setAllApplications] = useState<InternshipApplication[]>([]);
   const [supervisors, setSupervisors] = useState<any[]>([]);
   const [ledgerEvents, setLedgerEvents] = useState<LedgerEvent[]>([]);
+  const [pendingLogbooks, setPendingLogbooks] = useState<InternshipEvidence[]>([]);
 
   const fetchData = async () => {
     try {
@@ -51,12 +52,14 @@ const EmployerDashboard: React.FC = () => {
       }
 
       // 2. Fetch Applications (Engagements)
-      const [applications, ledgerData] = await Promise.all([
+      const [applications, ledgerData, evidence] = await Promise.all([
         internshipService.getApplications(),
-        ledgerService.getEvents({ page_size: 5 })
+        ledgerService.getEvents({ page_size: 5 }),
+        internshipService.getPendingEvidence()
       ]);
       setAllApplications(applications);
       setLedgerEvents(ledgerData.results);
+      setPendingLogbooks(evidence.filter(e => e.evidence_type === 'LOGBOOK'));
 
       // Calculate stats based on Applications
       const active = applications.filter(a => a.status === 'ACTIVE').length;
@@ -244,6 +247,14 @@ const EmployerDashboard: React.FC = () => {
 
         <div className="row">
           <div className="col-lg-8">
+            {/* Pending Logbooks Widget */}
+            <PendingLogbooksWidget 
+              logbooks={pendingLogbooks}
+              isLoading={isLoading}
+              viewAllLink="/employer/dashboard/interns" // Point to interns or a specific logbook page if exists
+              reviewLinkPrefix="/employer/dashboard/applications"
+            />
+
             {/* Supervision Pipeline */}
             <SupervisionPipeline 
               interns={allApplications} 

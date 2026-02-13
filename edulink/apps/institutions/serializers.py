@@ -516,3 +516,22 @@ class BulkVerificationConfirmSerializer(serializers.Serializer):
     entries = BulkVerificationEntrySerializer(many=True)
     department_id = serializers.UUIDField(required=False, allow_null=True)
     cohort_id = serializers.UUIDField(required=False, allow_null=True)
+
+
+class PlacementStudentInfoSerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    name = serializers.CharField()
+    email = serializers.EmailField()
+    trust_level = serializers.IntegerField()
+
+
+class PlacementMonitoringSerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    title = serializers.CharField()
+    department = serializers.CharField()
+    status = serializers.CharField()
+    start_date = serializers.DateField()
+    end_date = serializers.DateField()
+    employer_id = serializers.UUIDField()
+    employer_name = serializers.CharField()
+    student_info = PlacementStudentInfoSerializer()

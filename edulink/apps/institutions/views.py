@@ -1174,46 +1174,16 @@ class PlacementMonitoringViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated, IsInstitutionAdmin]
 
     def list(self, request):
-        from edulink.apps.internships.queries import get_active_placements_for_institution
-        from edulink.apps.students.queries import get_students_by_ids
-        from edulink.apps.employers.queries import get_employers_by_ids
+        from edulink.apps.internships.queries import get_active_placements_for_monitoring
+        from .serializers import PlacementMonitoringSerializer
         
         inst = get_institution_for_user(str(request.user.id))
         if not inst:
             return Response({"detail": "No institution found."}, status=status.HTTP_404_NOT_FOUND)
             
-        placements = get_active_placements_for_institution(institution_id=str(inst.id))
-        
-        # Collect IDs for batch fetching
-        student_ids = [str(p.student_id) for p in placements if p.student_id]
-        employer_ids = [str(p.opportunity.employer_id) for p in placements if p.opportunity and p.opportunity.employer_id]
-        
-        students_map = get_students_by_ids(student_ids)
-        employers_map = get_employers_by_ids(employer_ids)
-        
-        data = []
-        for p in placements:
-            student = students_map.get(str(p.student_id))
-            employer = employers_map.get(str(p.opportunity.employer_id) if p.opportunity else None)
-            
-            data.append({
-                "id": p.id,
-                "title": p.opportunity.title if p.opportunity else "N/A",
-                "department": p.opportunity.department if p.opportunity else "N/A",
-                "status": p.status,
-                "start_date": p.opportunity.start_date if p.opportunity else None,
-                "end_date": p.opportunity.end_date if p.opportunity else None,
-                "employer_id": p.opportunity.employer_id if p.opportunity else None,
-                "employer_name": employer.name if employer else "Unknown Employer",
-                "student_info": {
-                    "id": str(student.id),
-                    "name": student.user.get_full_name() if student.user else "Unknown Student",
-                    "email": student.user.email if student.user else "N/A",
-                    "trust_level": student.trust_level,
-                } if student else None
-            })
-            
-        return Response(data)
+        data = get_active_placements_for_monitoring(institution_id=str(inst.id))
+        serializer = PlacementMonitoringSerializer(data, many=True)
+        return Response(serializer.data)
 
 class InstitutionReportsViewSet(viewsets.ViewSet):
     """

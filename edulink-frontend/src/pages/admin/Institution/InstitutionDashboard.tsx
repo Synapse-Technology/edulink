@@ -9,6 +9,8 @@ import TrustProgressWidget from '../../../components/dashboard/TrustProgressWidg
 import { SEO } from '../../../components/common';
 import { institutionService } from '../../../services/institution/institutionService';
 import type { PlacementStats } from '../../../services/institution/institutionService';
+import { internshipService, InternshipEvidence } from '../../../services/internship/internshipService';
+import PendingLogbooksWidget from '../../../components/dashboard/PendingLogbooksWidget';
 
 const StatCard = ({ title, value, icon: Icon, color, bgColor, trend }: { title: string, value: number, icon: any, color: string, bgColor: string, trend: number }) => {
   const isPositive = trend >= 0;
@@ -44,17 +46,20 @@ const StatCard = ({ title, value, icon: Icon, color, bgColor, trend }: { title: 
 const InstitutionDashboard: React.FC = () => {
   const [stats, setStats] = useState<PlacementStats | null>(null);
   const [trustStats, setTrustStats] = useState<any>(null);
+  const [pendingLogbooks, setPendingLogbooks] = useState<InternshipEvidence[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [data, trustData] = await Promise.all([
+        const [data, trustData, evidence] = await Promise.all([
           institutionService.getPlacementSuccessStats(),
-          institutionService.getTrustProgress()
+          institutionService.getTrustProgress(),
+          internshipService.getPendingEvidence()
         ]);
         setStats(data);
         setTrustStats(trustData);
+        setPendingLogbooks(evidence.filter(e => e.evidence_type === 'LOGBOOK'));
       } catch (error) {
         console.error('Failed to fetch dashboard stats:', error);
       } finally {
@@ -147,7 +152,15 @@ const InstitutionDashboard: React.FC = () => {
               <DashboardCharts stats={stats} />
             </Col>
             <Col lg={4}>
-              <TrustProgressWidget data={trustStats} isLoading={loading} userType="institution" />
+              <div className="mb-4">
+                <TrustProgressWidget data={trustStats} isLoading={loading} userType="institution" />
+              </div>
+              <PendingLogbooksWidget 
+                logbooks={pendingLogbooks}
+                isLoading={loading}
+                viewAllLink="/institution/dashboard/applications"
+                reviewLinkPrefix="/institution/supervisor-dashboard/logbooks"
+              />
             </Col>
           </Row>
 
