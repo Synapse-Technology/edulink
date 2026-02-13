@@ -209,8 +209,7 @@ class InternshipService {
       }
       
       const response = await this.client.get<InternshipOpportunity[]>('/api/internships/', { 
-        params: cleanParams,
-        headers: { 'skip-auth': 'true' }
+        params: cleanParams
       });
       return response;
     } catch (error) {
@@ -221,9 +220,7 @@ class InternshipService {
 
   async getInternship(id: string): Promise<InternshipOpportunity> {
     try {
-      const response = await this.client.get<InternshipOpportunity>(`/api/internships/${id}/`, {
-        headers: { 'skip-auth': 'true' }
-      });
+      const response = await this.client.get<InternshipOpportunity>(`/api/internships/${id}/`);
       return response;
     } catch (error) {
       if (error instanceof ApiError) throw error;

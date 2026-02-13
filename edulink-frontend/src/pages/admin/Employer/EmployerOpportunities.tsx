@@ -17,6 +17,8 @@ const EmployerOpportunities: React.FC = () => {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedInternship, setSelectedInternship] = useState<InternshipOpportunity | null>(null);
   const [employerId, setEmployerId] = useState<string | undefined>(undefined);
+  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { feedbackProps, showError } = useFeedbackModal();
@@ -51,13 +53,18 @@ const EmployerOpportunities: React.FC = () => {
       }
     };
     fetchEmployerId();
-    fetchOpportunities();
   }, []);
+
+  useEffect(() => {
+    fetchOpportunities();
+  }, [statusFilter]);
 
   const fetchOpportunities = async () => {
     try {
       setIsLoading(true);
-      const allInternships = await internshipService.getInternships();
+      const allInternships = await internshipService.getInternships({
+        status: statusFilter || undefined
+      });
       setOpportunities(allInternships);
     } catch (error) {
       console.error('Failed to fetch opportunities:', error);
@@ -65,6 +72,12 @@ const EmployerOpportunities: React.FC = () => {
       setIsLoading(false);
     }
   };
+
+  const filteredOpportunities = opportunities.filter(opp => 
+    opp.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    opp.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    opp.department.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const handlePublish = async (id: string) => {
       try {
@@ -106,11 +119,21 @@ const EmployerOpportunities: React.FC = () => {
                   <span className="input-group-text bg-light border-end-0">
                     <Search size={18} className="text-muted" />
                   </span>
-                  <input type="text" className="form-control border-start-0 bg-light" placeholder="Search opportunities..." />
+                  <input 
+                    type="text" 
+                    className="form-control border-start-0 bg-light" 
+                    placeholder="Search opportunities..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
                 </div>
               </div>
               <div className="col-md-3">
-                <select className="form-select bg-light">
+                <select 
+                  className="form-select bg-light"
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                >
                   <option value="">All Statuses</option>
                   <option value="DRAFT">Draft</option>
                   <option value="OPEN">Open</option>
@@ -177,7 +200,7 @@ const EmployerOpportunities: React.FC = () => {
                 }
               `}</style>
             </div>
-          ) : opportunities.length === 0 ? (
+          ) : filteredOpportunities.length === 0 ? (
             <div className="col-12">
               <div className="card border-0 shadow-sm text-center py-5">
                 <div className="card-body">
@@ -185,7 +208,11 @@ const EmployerOpportunities: React.FC = () => {
                     <Briefcase size={32} className="text-muted" />
                   </div>
                   <h5>No opportunities found</h5>
-                  <p className="text-muted mb-3">Get started by posting your first internship opportunity.</p>
+                  <p className="text-muted mb-3">
+                    {searchQuery || statusFilter 
+                      ? "No opportunities match your current filters." 
+                      : "Get started by posting your first internship opportunity."}
+                  </p>
                   <button 
                     className="btn btn-outline-primary"
                     onClick={() => setShowCreateModal(true)}
@@ -196,7 +223,7 @@ const EmployerOpportunities: React.FC = () => {
               </div>
             </div>
           ) : (
-            opportunities.map(opp => (
+            filteredOpportunities.map(opp => (
               <div key={opp.id} className="col-12 mb-3">
                 <div className="card border-0 shadow-sm">
                   <div className="card-body">
