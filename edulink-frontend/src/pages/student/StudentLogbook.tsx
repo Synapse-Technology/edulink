@@ -82,8 +82,19 @@ const StudentLogbook: React.FC = () => {
     return monday;
   }
 
+  const parseLocalDate = (dateStr: string) => {
+    return new Date(`${dateStr}T00:00:00`);
+  };
+
+  const getLocalDateString = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const isDateInCurrentWeek = (dateStr: string) => {
-    const date = new Date(dateStr);
+    const date = parseLocalDate(dateStr);
     const start = new Date(currentWeekStart);
     const end = new Date(start);
     end.setDate(start.getDate() + 6);
@@ -92,8 +103,9 @@ const StudentLogbook: React.FC = () => {
   };
 
   const isDateInPast = (dateStr: string) => {
-    const date = new Date(dateStr);
+    const date = parseLocalDate(dateStr);
     const start = new Date(currentWeekStart);
+    start.setHours(0, 0, 0, 0);
     return date < start;
   };
 
@@ -121,7 +133,7 @@ const StudentLogbook: React.FC = () => {
   // Load drafts from local storage when internship or week changes
   useEffect(() => {
     if (internship) {
-      const key = `logbook_draft_${internship.id}_${currentWeekStart.toISOString().split('T')[0]}`;
+      const key = `logbook_draft_${internship.id}_${getLocalDateString(currentWeekStart)}`;
       const saved = localStorage.getItem(key);
       if (saved) {
         setLogbookEntries(JSON.parse(saved));
@@ -145,7 +157,7 @@ const StudentLogbook: React.FC = () => {
     
     // Save to local storage
     if (internship) {
-      const key = `logbook_draft_${internship.id}_${currentWeekStart.toISOString().split('T')[0]}`;
+      const key = `logbook_draft_${internship.id}_${getLocalDateString(currentWeekStart)}`;
       localStorage.setItem(key, JSON.stringify(newEntries));
     }
   };
@@ -215,14 +227,14 @@ const StudentLogbook: React.FC = () => {
     try {
       setSubmitting(true);
       await studentService.submitLogbook(internship.id, {
-        weekStartDate: currentWeekStart.toISOString().split('T')[0],
+        weekStartDate: getLocalDateString(currentWeekStart),
         entries: logbookEntries
       });
       
       setSubmissionSuccess(true);
       setSubmitModalOpen(false);
       // Clear draft
-      const key = `logbook_draft_${internship.id}_${currentWeekStart.toISOString().split('T')[0]}`;
+      const key = `logbook_draft_${internship.id}_${getLocalDateString(currentWeekStart)}`;
       localStorage.removeItem(key);
       toast.success("Logbook submitted successfully!");
       
@@ -308,7 +320,7 @@ const StudentLogbook: React.FC = () => {
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
 
   const handleQuickAddToday = () => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString(new Date());
     const isCurrent = isDateInCurrentWeek(today);
     
     // Check if internship is completed
@@ -609,7 +621,7 @@ const StudentLogbook: React.FC = () => {
                          {[0, 1, 2, 3, 4].map(dayOffset => {
                            const date = new Date(currentWeekStart);
                            date.setDate(date.getDate() + dayOffset);
-                           const dateStr = date.toISOString().split('T')[0];
+                           const dateStr = getLocalDateString(date);
                            const entry = logbookEntries[dateStr];
                            const isInternshipCompleted = internship && ['COMPLETED', 'CERTIFIED', 'TERMINATED'].includes(internship.status);
                            
@@ -990,7 +1002,7 @@ const StudentLogbook: React.FC = () => {
                         {Object.entries(logbookEntries).sort().map(([date, content]) => (
                           <div key={date} className={`p-3 rounded-4 ${isDarkMode ? 'bg-secondary bg-opacity-10' : 'bg-light'} border-start border-4 border-primary shadow-sm`}>
                             <div className="d-flex justify-content-between align-items-center mb-2">
-                              <span className="fw-bold small text-primary">{new Date(date).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</span>
+                              <span className="fw-bold small text-primary">{parseLocalDate(date).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</span>
                               <Badge bg="white" className="text-muted border fw-normal extra-small">{date}</Badge>
                             </div>
                             <p className="mb-0 small" style={{ whiteSpace: 'pre-wrap' }}>{content}</p>
