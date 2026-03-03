@@ -39,7 +39,12 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 export const useTheme = () => {
   const context = useContext(ThemeContext);
   if (context === undefined) {
-    throw new Error('useTheme must be used within a ThemeProvider');
+    // Fallback for parts of the app that don't have ThemeProvider (e.g. Admin/Employer portals)
+    // which are always in light mode.
+    return {
+      isDarkMode: false,
+      toggleDarkMode: () => { console.warn('Theme toggling is not supported in this context'); }
+    };
   }
   return context;
 };
