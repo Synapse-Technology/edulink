@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Button, Spinner } from 'react-bootstrap';
 import { X, ExternalLink, FileText } from 'lucide-react';
-import { fetchDocumentBlob } from '../../utils/documentUtils';
+import { fetchDocumentBlob, fetchAndOpenDocument } from '../../utils/documentUtils';
 import { useTheme } from '../../contexts/ThemeContext';
 
 interface DocumentPreviewModalProps {
@@ -17,6 +17,7 @@ const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({ show, onHid
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const [contentType, setContentType] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isNotFound, setIsNotFound] = useState(false);
 
   useEffect(() => {
     let currentBlobUrl: string | null = null;
@@ -25,13 +26,19 @@ const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({ show, onHid
       if (show && url) {
         setLoading(true);
         setError(null);
+        setIsNotFound(false);
         try {
           const { blobUrl: fetchedBlobUrl, contentType: fetchedContentType } = await fetchDocumentBlob(url);
           setBlobUrl(fetchedBlobUrl);
           setContentType(fetchedContentType);
           currentBlobUrl = fetchedBlobUrl;
-        } catch (err) {
-          setError('Failed to load document preview. You can still try opening it in a new tab.');
+        } catch (err: any) {
+          if (err.response && err.response.status === 404) {
+            setError('Document not found. The file may have been deleted or moved.');
+            setIsNotFound(true);
+          } else {
+            setError('Failed to load document preview. You can still try opening it in a new tab.');
+          }
         } finally {
           setLoading(false);
         }
@@ -52,6 +59,8 @@ const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({ show, onHid
   const handleOpenInNewTab = () => {
     if (blobUrl) {
       window.open(blobUrl, '_blank');
+    } else if (url && !isNotFound) {
+      fetchAndOpenDocument(url);
     }
   };
 
@@ -70,9 +79,11 @@ const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({ show, onHid
         <div className="text-center py-5 px-4">
           <FileText size={48} className="text-muted mb-3 opacity-25" />
           <p className="mb-4">{error}</p>
-          <Button variant="primary" onClick={handleOpenInNewTab}>
-            Open in New Tab
-          </Button>
+          {!isNotFound && (
+            <Button variant="primary" onClick={handleOpenInNewTab}>
+              Open in New Tab
+            </Button>
+          )}
         </div>
       );
     }
