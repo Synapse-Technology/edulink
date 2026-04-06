@@ -1,0 +1,73 @@
+name: edulink_app
+description: EduLink KE — Verified Internships & Brighter Futures for Kenyan Students
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Navigation
+  go_router: ^13.2.0
+
+  # State Management
+  flutter_riverpod: ^2.5.1
+
+  # Networking
+  dio: ^5.4.3
+
+  # Local Storage
+  shared_preferences: ^2.2.3
+  hive_flutter: ^1.1.0
+  hive: ^2.2.3
+
+  # UI & Design
+  google_fonts: ^6.2.1
+  flutter_svg: ^2.0.10+1
+  cached_network_image: ^3.3.1
+  shimmer: ^3.0.0
+  lottie: ^3.1.0
+
+  # Auth & Security
+  flutter_secure_storage: ^9.0.0
+
+  # File & Camera
+  image_picker: ^1.1.2
+  file_picker: ^8.0.3
+  permission_handler: ^11.3.1
+
+  # QR Code
+  qr_flutter: ^4.1.0
+  mobile_scanner: ^5.1.0
+
+  # Push Notifications
+  firebase_core: ^3.1.0
+  firebase_messaging: ^15.0.0
+  flutter_local_notifications: ^17.1.2
+
+  # Connectivity (offline support)
+  connectivity_plus: ^6.0.3
+
+  # Utils
+  intl: ^0.19.0
+  timeago: ^3.6.1
+  uuid: ^4.4.0
+  url_launcher: ^6.3.0
+
+  cupertino_icons: ^1.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  build_runner: ^2.4.9
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/icons/
