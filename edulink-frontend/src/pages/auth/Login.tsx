@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAuthStore } from '../../stores/authStore';
 import { Eye, EyeOff } from 'lucide-react';
+import { getLoginErrorMessage } from '../../utils/loginErrorMessage';
 
 // CSS Animations and Keyframes
 const styles = `
@@ -222,8 +223,8 @@ const Login: React.FC = () => {
         showToastMessage('Access restricted to Students. Please use the appropriate portal.', 'error');
         await useAuthStore.getState().logout();
       }
-    } catch (_error) {
-      showToastMessage('Login failed. Please check your credentials.', 'error');
+    } catch (error) {
+      showToastMessage(getLoginErrorMessage(error, { portal: 'student' }), 'error');
     } finally {
       setIsSubmitting(false);
     }

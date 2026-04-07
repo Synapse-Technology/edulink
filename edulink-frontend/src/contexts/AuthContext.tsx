@@ -45,7 +45,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         await store.login({ email, password });
     } catch (error) {
         if (error instanceof ApiError) {
-            throw new Error(error.message);
+        throw error;
         }
         console.error('Login failed:', error);
         throw new Error('Invalid email or password');

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Form, Button, Card, Container, Alert, Spinner, Row, Col, InputGroup } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../../stores/authStore';
+import { getLoginErrorMessage } from '../../../utils/loginErrorMessage';
 
 const InstitutionLogin: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -81,8 +82,8 @@ const InstitutionLogin: React.FC = () => {
          }
       }
 
-    } catch (error: any) {
-      setApiError(error.message || 'Login failed. Please check your credentials.');
+    } catch (error) {
+      setApiError(getLoginErrorMessage(error, { portal: 'institution' }));
     }
   };
 

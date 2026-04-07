@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Shield, AlertCircle, LogIn, Building2, Lock } from 'lucide-react';
 import { useAdminAuth } from '../../../contexts/AdminAuthContext';
+import { getLoginErrorMessage } from '../../../utils/loginErrorMessage';
 
 interface LoginFormData {
   email: string;
@@ -57,18 +58,8 @@ const SystemAdminLogin: React.FC = () => {
     try {
       await login(formData.email, formData.password);
       navigate('/dashboard/admin');
-    } catch (err) {
-      let errorMessage = 'Invalid email or password. Please try again.';
-      if (err instanceof Error) {
-        errorMessage = err.message;
-        // Improve user-friendliness for common errors
-        if (errorMessage.toLowerCase().includes('network error') || errorMessage.toLowerCase().includes('failed to fetch')) {
-          errorMessage = 'Unable to connect to the server. Please check your internet connection.';
-        } else if (errorMessage === 'Login failed') {
-            errorMessage = 'Invalid credentials. Please check your email and password.';
-        }
-      }
-      setError(errorMessage);
+    } catch (error) {
+      setError(getLoginErrorMessage(error, { portal: 'admin' }));
     } finally {
       setIsLoading(false);
     }
