@@ -30,6 +30,7 @@ export interface InternshipOpportunity {
   end_date?: string;
   duration?: string;
   application_deadline?: string;
+  is_deadline_expired?: boolean; // Backend computed field for deadline validation
   is_institution_restricted?: boolean;
   created_at?: string;
   updated_at?: string;
@@ -43,7 +44,7 @@ export interface InternshipApplication {
   id: string;
   status: string; // APPLIED, SHORTLISTED, ACCEPTED, ACTIVE, COMPLETED, CERTIFIED, REJECTED, TERMINATED
   student_id: string;
-  opportunity: string; // UUID
+  opportunity: string | { status?: string; [key: string]: any }; // UUID or full object if returned by backend
   
   // Flattened Opportunity Fields
   title: string;

@@ -209,7 +209,7 @@ const StudentApplications: React.FC = () => {
                           <div className="d-none d-md-block">
                             <div className="d-flex gap-2 flex-wrap justify-content-md-end">
                               <ApplicationStatusBadge status={app.status} />
-                              {(app.status === 'OPEN' || (!app.opportunity?.status || app.opportunity?.status === 'CLOSED')) && (
+                              {(app.status === 'OPEN' || (typeof app.opportunity === 'object' && !app.opportunity?.status) || (typeof app.opportunity === 'object' && app.opportunity?.status === 'CLOSED')) && (
                                 <OpportunityClosedBadge />
                               )}
                             </div>

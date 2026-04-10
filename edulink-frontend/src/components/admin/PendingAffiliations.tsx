@@ -17,6 +17,12 @@ interface StudentInstitutionAffiliation {
   updated_at: string;
 }
 
+interface PendingAffiliationsResponse {
+  pending_affiliations?: StudentInstitutionAffiliation[];
+  results?: StudentInstitutionAffiliation[];
+  [key: string]: any;
+}
+
 interface PendingAffiliationsProps {
   institutionId?: string;
 }
@@ -40,8 +46,8 @@ const PendingAffiliations: React.FC<PendingAffiliationsProps> = ({ institutionId
       
       // BUGFIX: Use apiClient instead of direct fetch()
       // This ensures proper token handling, error handling, and interceptors
-      const data = await apiClient.get(url);
-      setAffiliations(data.pending_affiliations || data.results || data);
+      const data = await apiClient.get<PendingAffiliationsResponse>(url);
+      setAffiliations(data.pending_affiliations || data.results || data as any as StudentInstitutionAffiliation[]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
