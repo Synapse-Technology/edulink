@@ -2621,5 +2621,229 @@ def send_incident_reported_notification(*, incident_id: str, recipient_ids: List
                 
         except User.DoesNotExist:
             continue
-            
+
+
+# ============================================================================
+# INTERNSHIP DEADLINE NOTIFICATIONS
+# ============================================================================
+# These functions are called by internships.tasks scheduled jobs to notify
+# employers of upcoming and passed deadlines.
+# ============================================================================
+
+def send_internship_deadline_closing_notification(
+    *,
+    opportunity_id: str,
+    opportunity_title: str,
+    employer_id: str,
+    employer_email: str,
+    total_applications: int,
+    deadline: str,
+    actor_id: Optional[str] = None
+) -> bool:
+    """
+    Send notification to employer when their internship opportunity has closed due to deadline.
+    
+    Called by: internships.tasks.notify_employer_deadline_passed
+    Purpose: Inform employer that applications are now closed
+    """
+    context = {
+        "opportunity_title": opportunity_title,
+        "opportunity_id": opportunity_id,
+        "deadline": deadline,
+        "total_applications": total_applications,
+        "dashboard_url": f"{settings.FRONTEND_URL}/employer/opportunities/{opportunity_id}",
+        "notification_type": Notification.TYPE_OPPORTUNITY_CLOSED,
+        "related_entity_type": "InternshipOpportunity",
+        "related_entity_id": opportunity_id
+    }
+    
+    return send_email_notification(
+        recipient_email=employer_email,
+        subject=f"Internship Opportunity Closed: {opportunity_title}",
+        template_name="opportunity_closed",
+        context=context,
+        actor_id=actor_id,
+        idempotency_key=f"deadline-closed-{opportunity_id}"
+    )
+
+
+def send_internship_deadline_approaching_24h_notification(
+    *,
+    opportunity_id: str,
+    opportunity_title: str,
+    employer_id: str,
+    employer_email: str,
+    current_applications: int,
+    deadline: str,
+    actor_id: Optional[str] = None,
+    idempotency_key: str = None
+) -> bool:
+    """
+    Send "deadline in 24 hours" reminder to employer.
+    
+    Called by: internships.tasks.send_deadline_reminders_24h
+    Purpose: Give employer 24 hours notice that applications will close
+    """
+    context = {
+        "opportunity_title": opportunity_title,
+        "opportunity_id": opportunity_id,
+        "deadline": deadline,
+        "current_applications": current_applications,
+        "dashboard_url": f"{settings.FRONTEND_URL}/employer/opportunities/{opportunity_id}",
+        "notification_type": Notification.TYPE_DEADLINE_APPROACHING,
+        "related_entity_type": "InternshipOpportunity",
+        "related_entity_id": opportunity_id
+    }
+    
+    if not idempotency_key:
+        idempotency_key = f"deadline-24h-{opportunity_id}"
+    
+    return send_email_notification(
+        recipient_email=employer_email,
+        subject=f"Reminder: {opportunity_title} applications close in 24 hours",
+        template_name="deadline_approaching_24h",
+        context=context,
+        actor_id=actor_id,
+        idempotency_key=idempotency_key
+    )
+
+
+def send_internship_deadline_approaching_1h_notification(
+    *,
+    opportunity_id: str,
+    opportunity_title: str,
+    employer_id: str,
+    employer_email: str,
+    current_applications: int,
+    deadline: str,
+    actor_id: Optional[str] = None,
+    idempotency_key: str = None
+) -> bool:
+    """
+    Send "deadline in 1 hour" urgent reminder to employer.
+    
+    Called by: internships.tasks.send_deadline_reminders_1h
+    Purpose: Final urgent notice as deadline fast approaches
+    """
+    context = {
+        "opportunity_title": opportunity_title,
+        "opportunity_id": opportunity_id,
+        "deadline": deadline,
+        "current_applications": current_applications,
+        "dashboard_url": f"{settings.FRONTEND_URL}/employer/opportunities/{opportunity_id}",
+        "notification_type": Notification.TYPE_DEADLINE_URGENT,
+        "related_entity_type": "InternshipOpportunity",
+        "related_entity_id": opportunity_id
+    }
+    
+    if not idempotency_key:
+        idempotency_key = f"deadline-1h-{opportunity_id}"
+    
+    return send_email_notification(
+        recipient_email=employer_email,
+        subject=f"URGENT: {opportunity_title} applications close in 1 hour",
+        template_name="deadline_approaching_1h",
+        context=context,
+        actor_id=actor_id,
+        idempotency_key=idempotency_key
+    )
+
+
+def send_employer_no_applications_notification(
+    *,
+    opportunity_id: str,
+    opportunity_title: str,
+    employer_id: str,
+    employer_email: str,
+    deadline: str,
+    actor_id: Optional[str] = None,
+    idempotency_key: Optional[str] = None
+) -> bool:
+    """
+    Escalation notification: Inform employer that zero applications were received
+    by the deadline for their opportunity.
+    
+    Context passed to template:
+    - employer_id: UUID of employer
+    - opportunity_id: UUID of opportunity
+    - opportunity_title: Title of the opportunity
+    - deadline: Formatted deadline string
+    - dashboard_url: Link to employer dashboard
+    - support_url: Link to create support ticket
+    
+    Transaction model: async_task with idempotency key (send_email_notification).
+    """
+    context = {
+        "employer_id": employer_id,
+        "opportunity_title": opportunity_title,
+        "opportunity_id": opportunity_id,
+        "deadline": deadline,
+        "dashboard_url": f"{settings.FRONTEND_URL}/employer/opportunities/{opportunity_id}",
+        "support_url": f"{settings.FRONTEND_URL}/support",
+        "notification_type": Notification.TYPE_OPPORTUNITY_CLOSED,
+        "related_entity_type": "InternshipOpportunity",
+        "related_entity_id": opportunity_id
+    }
+    
+    if not idempotency_key:
+        idempotency_key = f"escalation-no-apps-{opportunity_id}"
+    
+    return send_email_notification(
+        recipient_email=employer_email,
+        subject=f"Your {opportunity_title} opportunity closed with no applications",
+        template_name="employer_no_applications_received",
+        context=context,
+        actor_id=actor_id,
+        idempotency_key=idempotency_key
+    )
+
+
+def send_student_opportunity_deadline_alert_notification(
+    *,
+    opportunity_id: str,
+    opportunity_title: str,
+    student_email: str,
+    student_name: str,
+    deadline: str,
+    actor_id: Optional[str] = None,
+    idempotency_key: Optional[str] = None
+) -> bool:
+    """
+    Student notification: Alert students that a registered opportunity
+    is closing in 24 hours.
+    
+    Context passed to template:
+    - student_name: Name of the student
+    - opportunity_title: Title of the opportunity
+    - opportunity_id: UUID of opportunity
+    - deadline: Formatted deadline string
+    - dashboard_url: Link to student applications dashboard
+    - opportunity_url: Link to view opportunity details
+    
+    Transaction model: async_task with idempotency key (send_email_notification).
+    """
+    context = {
+        "student_name": student_name,
+        "opportunity_title": opportunity_title,
+        "opportunity_id": opportunity_id,
+        "deadline": deadline,
+        "dashboard_url": f"{settings.FRONTEND_URL}/student/applications",
+        "opportunity_url": f"{settings.FRONTEND_URL}/opportunities/{opportunity_id}",
+        "notification_type": Notification.TYPE_DEADLINE_APPROACHING,
+        "related_entity_type": "InternshipOpportunity",
+        "related_entity_id": opportunity_id
+    }
+    
+    if not idempotency_key:
+        idempotency_key = f"student-deadline-alert-{opportunity_id}"
+    
+    return send_email_notification(
+        recipient_email=student_email,
+        subject=f"{opportunity_title} application closes in 24 hours!",
+        template_name="student_opportunity_deadline_alert",
+        context=context,
+        actor_id=actor_id,
+        idempotency_key=idempotency_key
+    )
+
     return sent_count

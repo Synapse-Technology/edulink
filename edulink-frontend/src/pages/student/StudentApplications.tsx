@@ -50,6 +50,15 @@ const ApplicationStatusBadge = ({ status }: { status: string }) => {
   );
 };
 
+const OpportunityClosedBadge = () => {
+  return (
+    <span className="badge bg-warning bg-opacity-10 text-warning d-inline-flex align-items-center gap-1">
+      <Clock size={12} />
+      Opp. Closed
+    </span>
+  );
+};
+
 const StudentApplications: React.FC = () => {
   const { user } = useAuth();
   const { isDarkMode } = useTheme();
@@ -198,7 +207,12 @@ const StudentApplications: React.FC = () => {
                         
                         <div className="col-md-4 text-md-end mt-3 mt-md-0 d-flex flex-column align-items-md-end justify-content-center gap-3">
                           <div className="d-none d-md-block">
-                            <ApplicationStatusBadge status={app.status} />
+                            <div className="d-flex gap-2 flex-wrap justify-content-md-end">
+                              <ApplicationStatusBadge status={app.status} />
+                              {(app.status === 'OPEN' || (!app.opportunity?.status || app.opportunity?.status === 'CLOSED')) && (
+                                <OpportunityClosedBadge />
+                              )}
+                            </div>
                           </div>
                           
                           <Link to={`/dashboard/student/applications/${app.id}`} className="btn btn-outline-primary btn-sm d-flex align-items-center gap-2">

@@ -1,0 +1,38 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}Opportunity Application Deadline Closed - Edulink{% endblock %}
+
+{% block content %}
+<h2>Application Deadline Closed</h2>
+
+<p>Hello {{ employer_name }},</p>
+
+<p>The application deadline for your <strong>{{ opportunity_title }}</strong> internship opportunity has passed and the opportunity is now <strong>closed</strong>.</p>
+
+<div class="highlight-box">
+    <p><strong>Opportunity Closed</strong></p>
+    <p style="margin-top: 10px; font-size: 14px;">Deadline: <strong>{{ deadline }}</strong></p>
+    <p style="margin-top: 8px; font-size: 14px;">Total Applications Received: <strong>{{ application_count }}</strong></p>
+</div>
+
+<p>You can still review all applications received before the deadline and take further actions on your opportunity.</p>
+
+<div style="text-align: center; margin: 30px 0;">
+    <a href="{{ opportunity_url }}" class="email-button">View Opportunity & Applications</a>
+</div>
+
+<div class="divider"></div>
+
+<p><strong>What's Next?</strong></p>
+<ul>
+    <li>Review and evaluate applications from {{ application_count }} candidate(s)</li>
+    <li>Contact qualified applicants for interviews</li>
+    <li>Create new opportunities when you're ready to recruit again</li>
+    <li>Extend the deadline if needed (contact support for assistance)</li>
+</ul>
+
+<p>If you have questions or need assistance, please reach out to our support team at <a href="mailto:{{ support_email }}">{{ support_email }}</a></p>
+
+<p>Best regards,<br>
+<strong>The Edulink Team</strong></p>
+{% endblock %}

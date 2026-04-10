@@ -42,6 +42,9 @@ class Notification(BaseModel):
     TYPE_SUPERVISOR_ASSIGNED = "supervisor_assigned"
     TYPE_INCIDENT_RESOLVED = "incident_resolved"
     TYPE_INCIDENT_REPORTED = "incident_reported"
+    TYPE_OPPORTUNITY_CLOSED = "opportunity_closed"
+    TYPE_DEADLINE_APPROACHING = "deadline_approaching"
+    TYPE_DEADLINE_URGENT = "deadline_urgent"
     
     TYPE_CHOICES = [
         (TYPE_EMAIL_VERIFICATION, "Email Verification"),
@@ -71,6 +74,9 @@ class Notification(BaseModel):
         (TYPE_SUPERVISOR_ASSIGNED, "Supervisor Assigned"),
         (TYPE_INCIDENT_RESOLVED, "Incident Resolved"),
         (TYPE_INCIDENT_REPORTED, "Incident Reported"),
+        (TYPE_OPPORTUNITY_CLOSED, "Opportunity Closed Due to Deadline"),
+        (TYPE_DEADLINE_APPROACHING, "Internship Deadline Approaching (24h)"),
+        (TYPE_DEADLINE_URGENT, "Internship Deadline Urgent (1h)"),
     ]
     
     # Delivery channels

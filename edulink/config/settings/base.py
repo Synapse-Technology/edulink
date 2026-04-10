@@ -182,6 +182,8 @@ Q_CLUSTER = {
     'label': 'Django Q',
     'orm': 'default',  # Use the default database as a broker
     'sync': os.getenv('DJANGO_Q_SYNC', str(DEBUG)).lower() == 'true',
+    'scheduler': True,  # Enable periodic task scheduling
+    'schedule_module': 'edulink.schedule',  # Load schedule definitions from this module
 }
 
 # Pusher Configuration (Managed Real-time)

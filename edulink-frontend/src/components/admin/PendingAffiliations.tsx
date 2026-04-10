@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FeedbackModal } from '../common';
 import { useFeedbackModal } from '../../hooks/useFeedbackModal';
+import { apiClient } from '../../services/api/client';
 
 interface StudentInstitutionAffiliation {
   id: string;
@@ -37,20 +38,9 @@ const PendingAffiliations: React.FC<PendingAffiliationsProps> = ({ institutionId
         url += `?institution_id=${institutionId}`;
       }
       
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch pending affiliations');
-      }
-
-      const data = await response.json();
+      // BUGFIX: Use apiClient instead of direct fetch()
+      // This ensures proper token handling, error handling, and interceptors
+      const data = await apiClient.get(url);
       setAffiliations(data.pending_affiliations || data.results || data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -63,18 +53,10 @@ const PendingAffiliations: React.FC<PendingAffiliationsProps> = ({ institutionId
     try {
       setProcessingId(affiliationId);
       
-      const response = await fetch(`/api/student-affiliations/${affiliationId}/approve/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-        },
-        body: JSON.stringify({ review_notes: reviewNotes }),
+      // BUGFIX: Use apiClient instead of direct fetch()
+      await apiClient.post(`/api/student-affiliations/${affiliationId}/approve/`, {
+        review_notes: reviewNotes
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to approve affiliation');
-      }
 
       // Remove the approved affiliation from the list
       setAffiliations(prev => prev.filter(affiliation => affiliation.id !== affiliationId));
@@ -92,18 +74,10 @@ const PendingAffiliations: React.FC<PendingAffiliationsProps> = ({ institutionId
     try {
       setProcessingId(affiliationId);
       
-      const response = await fetch(`/api/student-affiliations/${affiliationId}/reject/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-        },
-        body: JSON.stringify({ review_notes: reviewNotes }),
+      // BUGFIX: Use apiClient instead of direct fetch()
+      await apiClient.post(`/api/student-affiliations/${affiliationId}/reject/`, {
+        review_notes: reviewNotes
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to reject affiliation');
-      }
 
       // Remove the rejected affiliation from the list
       setAffiliations(prev => prev.filter(affiliation => affiliation.id !== affiliationId));

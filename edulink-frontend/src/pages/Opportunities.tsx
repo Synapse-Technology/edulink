@@ -145,6 +145,30 @@ const Opportunities: React.FC = () => {
     }
   };
 
+  // Client-side deadline validation helper
+  const isOpportunityAvailable = (opportunity: InternshipOpportunity): boolean => {
+    /**
+     * Defense-in-depth: Filter expired opportunities on client side.
+     * Per architecture: Serializer includes is_deadline_expired, and backend filters,
+     * but we add client-side validation for immediate UX feedback.
+     */
+    if (opportunity.is_deadline_expired === true) {
+      return false; // Explicitly expired
+    }
+    
+    if (opportunity.application_deadline) {
+      const deadline = new Date(opportunity.application_deadline);
+      if (deadline < new Date()) {
+        return false; // Deadline has passed
+      }
+    }
+    
+    return true;
+  };
+
+  // Filter opportunities for display
+  const availableOpportunities = opportunities.filter(isOpportunityAvailable);
+
   const getCategoryColor = (dept: string = '') => {
     const category = dept.toLowerCase();
     if (category.includes('tech') || category.includes('software')) return 'bg-primary bg-opacity-10 text-primary';
@@ -316,9 +340,9 @@ const Opportunities: React.FC = () => {
                     <span className="visually-hidden">Loading...</span>
                   </div>
                 </div>
-              ) : opportunities.length > 0 ? (
+              ) : availableOpportunities.length > 0 ? (
                 <div className="row g-4">
-                  {opportunities.map((opportunity) => (
+                  {availableOpportunities.map((opportunity) => (
                     <div key={opportunity.id} className="col-12">
                       <div className="opportunity-card horizontal-card">
                         <div className="row g-0">
@@ -413,7 +437,16 @@ const Opportunities: React.FC = () => {
                 </div>
               ) : (
                 <div className="text-center py-5 bg-light rounded">
-                  <p className="lead text-muted mb-0">No opportunities found matching your criteria.</p>
+                  {opportunities.length > 0 && availableOpportunities.length === 0 ? (
+                    <>
+                      <p className="lead text-muted mb-2">All matching opportunities have expired.</p>
+                      <p className="text-muted small mb-3">Their application deadlines have passed. Check back soon for new opportunities!</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="lead text-muted mb-0">No opportunities found matching your criteria.</p>
+                    </>
+                  )}
                   <button 
                     className="btn btn-link mt-2"
                     onClick={() => setFilters({...filters, department: 'all', locationType: '', employerType: ''})}

@@ -1,0 +1,36 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}Urgent: Application Deadline Closing Soon - Edulink{% endblock %}
+
+{% block content %}
+<h2>⏰ URGENT: Application Deadline Closing in 1 Hour</h2>
+
+<p>Hello {{ employer_name }},</p>
+
+<p>Your <strong>{{ opportunity_title }}</strong> internship opportunity deadline is closing <strong>in just 1 hour</strong>!</p>
+
+<div class="highlight-box" style="background-color: #fee2e2; border-left-color: #ef4444;">
+    <p><strong style="color: #991b1b;">Deadline: {{ deadline }}</strong></p>
+    <p style="margin-top: 10px; font-size: 14px;">Applications Received: <strong>{{ application_count }}</strong></p>
+</div>
+
+<p>This is your last chance to receive new applications for this opportunity. After the deadline, the posting will automatically close.</p>
+
+<div style="text-align: center; margin: 30px 0;">
+    <a href="{{ opportunity_url }}" class="email-button">View Opportunity Now</a>
+</div>
+
+<div class="divider"></div>
+
+<p><strong>Last-Minute Actions:</strong></p>
+<ul>
+    <li>✓ Review current applications</li>
+    <li>✓ Share the opportunity link to your network for final applicants</li>
+    <li><strong>Need more time?</strong> <a href="mailto:{{ support_email }}?subject=Urgent%20Deadline%20Extension%20Request%20-%20{{ opportunity_title }}">Contact support immediately</a> to request a deadline extension</li>
+</ul>
+
+<p><em>Note: Deadline extensions are subject to approval. Contact support as soon as possible if you need additional time.</em></p>
+
+<p>Best regards,<br>
+<strong>The Edulink Team</strong></p>
+{% endblock %}

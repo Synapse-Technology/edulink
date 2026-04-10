@@ -1,0 +1,37 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}Application Deadline Approaching - Edulink{% endblock %}
+
+{% block content %}
+<h2>Application Deadline - 24 Hours Remaining</h2>
+
+<p>Hello {{ employer_name }},</p>
+
+<p>This is a friendly reminder that the application deadline for your <strong>{{ opportunity_title }}</strong> internship opportunity is <strong>closing in 24 hours</strong>.</p>
+
+<div class="highlight-box" style="background-color: #fef3c7; border-left-color: #f59e0b;">
+    <p><strong>Deadline: {{ deadline }}</strong></p>
+    <p style="margin-top: 10px; font-size: 14px;">Current Applications: <strong>{{ application_count }}</strong></p>
+</div>
+
+<p>After this deadline closes, the opportunity will no longer be visible to students in the marketplace, and no further applications will be accepted.</p>
+
+<div style="text-align: center; margin: 30px 0;">
+    <a href="{{ opportunity_url }}" class="email-button">View Opportunity</a>
+</div>
+
+<div class="divider"></div>
+
+<p><strong>Quick Actions:</strong></p>
+<ul>
+    <li>✓ Check your applications so far</li>
+    <li>✓ Review incoming applications</li>
+    <li>✓ Share the opportunity link to reach more candidates (if deadline allows)</li>
+    <li>✓ <a href="mailto:{{ support_email }}?subject=Deadline%20Extension%20Request">Contact support</a> if you need to extend the deadline</li>
+</ul>
+
+<p><strong>Pro Tip:</strong> You can extend the deadline at any time if you'd like more time to review applications. Reach out to our support team for assistance.</p>
+
+<p>Best regards,<br>
+<strong>The Edulink Team</strong></p>
+{% endblock %}

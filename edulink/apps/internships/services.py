@@ -170,8 +170,8 @@ def apply_for_internship(actor, opportunity_id: UUID, cover_letter: str = "") ->
     if opportunity.status != OpportunityStatus.OPEN:
         raise ValueError("Internship opportunity is not open")
         
-    # Check application deadline
-    if opportunity.application_deadline and timezone.now() > opportunity.application_deadline:
+    # Check application deadline (using computed property for consistency)
+    if opportunity.is_deadline_expired:
         raise ValueError("The application deadline for this opportunity has passed.")
         
     # Check duplicate application
@@ -931,3 +931,236 @@ def certify_internship(actor, application_id: UUID) -> InternshipApplication:
     _trigger_application_update_pusher(app, "Certified")
     
     return app
+
+
+@transaction.atomic
+def close_expired_opportunities() -> int:
+    """
+    SYSTEM SERVICE: Close all OPEN opportunities whose deadline has passed.
+    
+    Called by: internships.tasks.close_expired_deadlines (scheduled task)
+    Returns: Count of opportunities closed
+    
+    Per architecture rules:
+    - This is a business action (write operation)
+    - Transitions state via workflow
+    - Records events in ledger
+    - Operates in atomic transaction
+    """
+    now = timezone.now()
+    
+    # Find all OPEN opportunities with passed deadlines
+    expired = InternshipOpportunity.objects.filter(
+        status=OpportunityStatus.OPEN,
+        application_deadline__isnull=False,
+        application_deadline__lt=now
+    )
+    
+    closed_count = 0
+    for opportunity in expired:
+        try:
+            # Transition via workflow
+            opportunity_workflow.transition(
+                opportunity,
+                target_status=OpportunityStatus.CLOSED,
+                actor_role="SYSTEM"
+            )
+            opportunity.save()
+            closed_count += 1
+            logger.info(f"Auto-closed expired opportunity: {opportunity.id} ({opportunity.title})")
+        except Exception as e:
+            logger.error(f"Failed to close expired opportunity {opportunity.id}: {e}")
+            continue
+    
+    return closed_count
+
+
+@transaction.atomic
+def bulk_extend_opportunity_deadlines(
+    actor,
+    opportunity_ids: list,
+    new_deadline,
+    reason: str = ""
+):
+    """
+    Service function: Extend application deadlines for multiple opportunities at once.
+    
+    Business logic:
+    - Only employer admins can extend deadlines for their own opportunities
+    - Can only extend OPEN opportunities
+    - New deadline must be in the future
+    - Records extension event in ledger for audit trail
+    
+    Returns: dict with success count, failed count, and details
+    """
+    from edulink.apps.ledger.services import record_event
+    
+    success_count = 0
+    failed_count = 0
+    errors = []
+    
+    # Fetch all requested opportunities
+    opportunities = InternshipOpportunity.objects.filter(id__in=opportunity_ids)
+    
+    if opportunities.count() != len(opportunity_ids):
+        failed_count += len(opportunity_ids) - opportunities.count()
+        errors.append("Some opportunity IDs could not be found")
+    
+    for opportunity in opportunities:
+        try:
+            # Policy check: Can user extend this opportunity?
+            from .policies import can_transition_opportunity
+            if not can_transition_opportunity(actor, opportunity, OpportunityStatus.OPEN):
+                failed_count += 1
+                errors.append(f"Not authorized to extend deadline for {opportunity.title}")
+                continue
+            
+            # Only OPEN opportunities can have deadlines extended
+            if opportunity.status != OpportunityStatus.OPEN:
+                failed_count += 1
+                errors.append(f"Cannot extend closed or draft opportunity: {opportunity.title}")
+                continue
+            
+            # Store old deadline for audit trail
+            old_deadline = opportunity.application_deadline
+            
+            # Update deadline
+            opportunity.application_deadline = new_deadline
+            opportunity.save(update_fields=['application_deadline'])
+            
+            # Record event in ledger
+            record_event(
+                event_type="INTERNSHIP_OPPORTUNITY_DEADLINE_EXTENDED",
+                entity_id=opportunity.id,
+                entity_type="InternshipOpportunity",
+                actor_id=actor.id,
+                actor_role="EMPLOYER_ADMIN",
+                payload={
+                    "opportunity_title": opportunity.title,
+                    "old_deadline": old_deadline.isoformat() if old_deadline else None,
+                    "new_deadline": new_deadline.isoformat(),
+                    "extension_reason": reason,
+                    "extended_by_admin_id": str(actor.id)
+                }
+            )
+            
+            success_count += 1
+            logger.info(f"Extended deadline for opportunity {opportunity.id}: {old_deadline} → {new_deadline}")
+            
+        except Exception as e:
+            failed_count += 1
+            errors.append(f"Error extending {opportunity.title}: {str(e)}")
+            logger.error(f"Failed to extend deadline for opportunity {opportunity.id}: {e}")
+            continue
+    
+    return {
+        "success_count": success_count,
+        "failed_count": failed_count,
+        "total_processed": success_count + failed_count,
+        "errors": errors if errors else None
+    }
+
+
+def get_deadline_analytics(employer_id):
+    """
+    Service function: Calculate deadline performance analytics for an employer.
+    
+    Returns comprehensive metrics about:
+    - Opportunity posting and closure rates
+    - Application conversion metrics
+    - Deadline performance trends
+    - Upcoming and expired opportunity counts
+    
+    Used for employer analytics dashboard.
+    """
+    from datetime import timedelta
+    from django.utils import timezone
+    from django.db.models import Count, Q, F, Case, When, IntegerField
+    
+    now = timezone.now()
+    week_ago = now - timedelta(days=7)
+    
+    # Get all opportunities for this employer
+    opportunities = InternshipOpportunity.objects.filter(employer_id=employer_id)
+    
+    total_opportunities = opportunities.count()
+    open_opportunities = opportunities.filter(status=OpportunityStatus.OPEN).count()
+    closed_opportunities = opportunities.filter(status=OpportunityStatus.CLOSED).count()
+    
+    # Count opportunities by deadline status
+    opportunities_with_valid_deadline = opportunities.filter(
+        application_deadline__isnull=False
+    )
+    
+    opportunities_closing_in_24h = opportunities_with_valid_deadline.filter(
+        status=OpportunityStatus.OPEN,
+        application_deadline__gte=now,
+        application_deadline__lte=now + timedelta(hours=24)
+    ).count()
+    
+    opportunities_closing_in_48h = opportunities_with_valid_deadline.filter(
+        status=OpportunityStatus.OPEN,
+        application_deadline__gte=now,
+        application_deadline__lte=now + timedelta(hours=48)
+    ).count()
+    
+    expired_recently = opportunities.filter(
+        status=OpportunityStatus.CLOSED,
+        application_deadline__gte=week_ago,
+        application_deadline__lt=now
+    ).count()
+    
+    # Calculate application metrics
+    total_applications = 0
+    total_offers = 0
+    zero_app_count = 0
+    
+    for opp in opportunities:
+        app_count = opp.internshipapplication_set.filter(
+            status__in=["APPLIED", "SHORTLISTED", "ACCEPTED", "OFFERED", "REJECTED"]
+        ).count()
+        total_applications += app_count
+        
+        offer_count = opp.internshipapplication_set.filter(
+            status__in=["ACCEPTED", "OFFERED"]
+        ).count()
+        total_offers += offer_count
+        
+        if app_count == 0:
+            zero_app_count += 1
+    
+    # Calculate averages
+    avg_applications = total_applications / total_opportunities if total_opportunities > 0 else 0
+    
+    # Calculate average days to deadline (for opportunities with deadlines)
+    avg_days_to_deadline = 0
+    if opportunities_with_valid_deadline.count() > 0:
+        total_days = 0
+        for opp in opportunities_with_valid_deadline:
+            days_left = max(0, (opp.application_deadline - now).days)
+            total_days += days_left
+        avg_days_to_deadline = total_days / opportunities_with_valid_deadline.count()
+    
+    # Calculate conversion rate
+    conversion_rate = 0.0
+    if total_applications > 0:
+        conversion_rate = (total_offers / total_applications) * 100
+    
+    return {
+        "total_opportunities": total_opportunities,
+        "open_opportunities": open_opportunities,
+        "closed_opportunities": closed_opportunities,
+        "opportunities_with_zero_applications": zero_app_count,
+        "total_applications_received": total_applications,
+        "total_offers_made": total_offers,
+        "average_applications_per_opportunity": round(avg_applications, 2),
+        "average_days_to_deadline": round(avg_days_to_deadline, 1),
+        "conversion_rate": round(conversion_rate, 2),
+        "opportunities_closing_in_24h": opportunities_closing_in_24h,
+        "opportunities_closing_in_48h": opportunities_closing_in_48h,
+        "expired_recently": expired_recently,
+        "period_start": week_ago,
+        "period_end": now,
+        "generated_at": now
+    }
+

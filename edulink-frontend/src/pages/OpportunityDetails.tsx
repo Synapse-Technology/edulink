@@ -59,6 +59,50 @@ const OpportunityDetails: React.FC = () => {
     setShowApplyModal(true);
   };
 
+  // Deadline validation helper
+  const isApplicationOpen = (): boolean => {
+    if (!opportunity) return false;
+    
+    // Check if already applied
+    if (opportunity.student_has_applied) return false;
+    
+    // Check deadline
+    if (opportunity.is_deadline_expired === true) {
+      return false;
+    }
+    
+    if (opportunity.application_deadline) {
+      const deadline = new Date(opportunity.application_deadline);
+      return deadline > new Date();
+    }
+    
+    return true;
+  };
+
+  // Get deadline status message
+  const getDeadlineMessage = (): string => {
+    if (!opportunity?.application_deadline) {
+      return "No deadline set";
+    }
+    
+    if (opportunity.is_deadline_expired) {
+      return "Deadline has passed";
+    }
+    
+    const deadline = new Date(opportunity.application_deadline);
+    const now = new Date();
+    const hoursLeft = (deadline.getTime() - now.getTime()) / (1000 * 60 * 60);
+    
+    if (hoursLeft < 1) {
+      return "Closes in less than 1 hour";
+    } else if (hoursLeft < 24) {
+      return `Closes in ${Math.ceil(hoursLeft)} hours`;
+    }
+    
+    const daysLeft = Math.ceil(hoursLeft / 24);
+    return `Closes in ${daysLeft} day${daysLeft > 1 ? 's' : ''}`;
+  };
+
   const handleConfirmApply = async (coverLetter: string) => {
     if (!opportunity) return;
 
@@ -224,16 +268,33 @@ const OpportunityDetails: React.FC = () => {
               
               <div className="d-grid gap-3 mb-4">
                 <button 
-                  className={`btn btn-lg ${opportunity.student_has_applied ? 'btn-success' : 'btn-primary'}`}
+                  className={`btn btn-lg ${
+                    opportunity.student_has_applied 
+                      ? 'btn-success' 
+                      : isApplicationOpen() 
+                      ? 'btn-primary' 
+                      : 'btn-secondary'
+                  }`}
                   onClick={initiateApply}
-                  disabled={opportunity.student_has_applied}
+                  disabled={!isApplicationOpen()}
                 >
-                  {opportunity.student_has_applied ? 'Applied' : 'Apply Now'}
+                  {opportunity.student_has_applied 
+                    ? 'Applied' 
+                    : isApplicationOpen()
+                    ? 'Apply Now' 
+                    : 'Applications Closed'
+                  }
                 </button>
                 {opportunity.student_has_applied && (
                   <div className="alert alert-success d-flex align-items-center mb-0 p-2 small">
                     <CheckCircle2 size={16} className="me-2" />
                     You have applied for this position
+                  </div>
+                )}
+                {!isApplicationOpen() && !opportunity.student_has_applied && (
+                  <div className={`alert ${opportunity.is_deadline_expired ? 'alert-danger' : 'alert-warning'} d-flex align-items-center mb-0 p-2 small`}>
+                    <Clock size={16} className="me-2" />
+                    {getDeadlineMessage()}
                   </div>
                 )}
               </div>

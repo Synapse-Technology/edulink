@@ -1,0 +1,51 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}Opportunity Closed - Zero Applications Received - Edulink{% endblock %}
+
+{% block content %}
+<h2>Your Opportunity Closed - Let's Improve Reach</h2>
+
+<p>Hello,</p>
+
+<p>Your <strong>{{ opportunity_title }}</strong> internship opportunity deadline of <strong>{{ deadline }}</strong> has closed, but unfortunately received <strong>zero applications</strong>.</p>
+
+<div class="highlight-box" style="background-color: #fef3c7; border-left-color: #f59e0b;">
+    <p><strong>Zero Applications Received</strong></p>
+    <p style="margin-top: 10px; font-size: 14px;">We understand this can be disappointing. Let's work together to improve your next posting.</p>
+</div>
+
+<p><strong>Here's why applications may not have been received:</strong></p>
+<ul>
+    <li>📍 Limited visibility - The posting may not have reached all relevant students</li>
+    <li>💼 Job description clarity - Market conditions or posting requirements may need adjustment</li>
+    <li>📅 Timing - Deadline timing may not align with student search patterns</li>
+    <li>🏷️ Competitiveness - Salary, benefits, or requirements may need review</li>
+</ul>
+
+<div style="text-align: center; margin: 30px 0;">
+    <a href="{{ dashboard_url }}" class="email-button">Repost This Opportunity</a>
+</div>
+
+<div class="divider"></div>
+
+<p><strong>Next Steps:</strong></p>
+<ul>
+    <li>✓ <strong>Review your posting:</strong> Make sure the title, description, and requirements are clear and compelling</li>
+    <li>✓ <strong>Consider adjustments:</strong> Minor tweaks to salary, location, or skills can attract more applicants</li>
+    <li>✓ <strong>Get expert advice:</strong> Contact our support team if you'd like tips on crafting attractive postings</li>
+    <li>✓ <strong>Try again:</strong> Repost the opportunity with improvements and adjustments</li>
+</ul>
+
+<p><strong>Pro Tips for Better Results:</strong></p>
+<ul>
+    <li>Be specific about required skills and experience levels</li>
+    <li>Highlight unique opportunities (mentorship, learning, growth)</li>
+    <li>Set realistic deadlines (at least 2-3 weeks recommended)</li>
+    <li>Keep position description concise (500 words or less)</li>
+</ul>
+
+<p>We're here to help you succeed in recruiting top student talent! <a href="{{ support_url }}">Reach out to support</a> if you need assistance improving your posting strategy.</p>
+
+<p>Best regards,<br>
+<strong>The Edulink Team</strong></p>
+{% endblock %}

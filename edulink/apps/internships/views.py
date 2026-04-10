@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.parsers import MultiPartParser, FormParser
 from django_filters.rest_framework import DjangoFilterBackend
+import logging
 
 from .models import InternshipOpportunity, InternshipApplication, InternshipEvidence, Incident, OpportunityStatus, ApplicationStatus
 from .serializers import (
@@ -12,7 +13,8 @@ from .serializers import (
     CreateIncidentSerializer, ResolveIncidentSerializer, AssignSupervisorSerializer,
     BulkAssignSupervisorSerializer,
     InternshipEvidenceSerializer, SuccessStorySerializer,
-    SubmitFinalFeedbackSerializer, InternshipApplySerializer, CreateSuccessStorySerializer
+    SubmitFinalFeedbackSerializer, InternshipApplySerializer, CreateSuccessStorySerializer,
+    BulkExtendDeadlineSerializer, DeadlineAnalyticsSerializer
 )
 from .filters import InternshipOpportunityFilter, InternshipApplicationFilter
 from .services import (
@@ -20,12 +22,15 @@ from .services import (
     process_application, accept_offer, start_internship, complete_internship,
     certify_internship, submit_evidence, review_evidence, create_incident, resolve_incident, assign_supervisors,
     bulk_assign_institution_supervisors,
-    create_success_story, submit_final_feedback
+    create_success_story, submit_final_feedback, bulk_extend_opportunity_deadlines, get_deadline_analytics
 )
 from .queries import (
     get_opportunities_for_user, get_applications_for_user, 
     get_opportunity_by_id, get_application_by_id
 )
+
+logger = logging.getLogger(__name__)
+
 
 class InternshipViewSet(viewsets.ReadOnlyModelViewSet):
     """
@@ -134,6 +139,88 @@ class InternshipViewSet(viewsets.ReadOnlyModelViewSet):
             
         serializer = IncidentSerializer(incidents, many=True, context={'request': request})
         return Response(serializer.data)
+
+    @action(detail=False, methods=['post'], url_path='bulk-extend-deadline')
+    def bulk_extend_deadline(self, request):
+        """
+        Bulk extend application deadlines for multiple opportunities.
+        
+        Only employers can extend deadlines for their own opportunities.
+        Accepts list of opportunity IDs and new deadline date.
+        """
+        serializer = BulkExtendDeadlineSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        # Policy Check: Only employer admins can extend deadlines
+        if not request.user.is_employer_admin:
+            return Response(
+                {"detail": "Only employer administrators can extend opportunity deadlines"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        try:
+            result = bulk_extend_opportunity_deadlines(
+                actor=request.user,
+                opportunity_ids=serializer.validated_data['opportunity_ids'],
+                new_deadline=serializer.validated_data['new_deadline'],
+                reason=serializer.validated_data.get('reason', '')
+            )
+            
+            # Return summary of results
+            response_data = {
+                "message": f"Successfully extended {result['success_count']} opportunity/ies deadline",
+                "success_count": result['success_count'],
+                "failed_count": result['failed_count'],
+                "total_processed": result['total_processed'],
+            }
+            
+            if result['errors']:
+                response_data['errors'] = result['errors']
+            
+            status_code = status.HTTP_200_OK if result['success_count'] > 0 else status.HTTP_400_BAD_REQUEST
+            return Response(response_data, status=status_code)
+            
+        except PermissionError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_403_FORBIDDEN)
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['get'], url_path='deadline-analytics')
+    def deadline_analytics(self, request):
+        """
+        Get comprehensive analytics on deadline performance for the current employer.
+        
+        Only employer admins can view their organization's analytics.
+        Provides metrics on opportunity posting, applications, conversions, and deadlines.
+        """
+        # Policy Check: Only employer admins can view analytics
+        if not request.user.is_employer_admin:
+            return Response(
+                {"detail": "Only employer administrators can view analytics"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        try:
+            # Get employer ID from user's employer profile
+            from edulink.apps.employers.queries import get_employer_by_user
+            employer = get_employer_by_user(request.user)
+            
+            if not employer:
+                return Response(
+                    {"detail": "Could not determine employer for current user"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Calculate analytics
+            analytics_data = get_deadline_analytics(employer.id)
+            
+            # Serialize and return
+            serializer = DeadlineAnalyticsSerializer(analytics_data)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"Failed to generate analytics: {e}")
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ApplicationViewSet(viewsets.ReadOnlyModelViewSet):

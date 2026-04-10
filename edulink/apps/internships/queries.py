@@ -42,9 +42,16 @@ def get_opportunities_for_user(user) -> QuerySet[InternshipOpportunity]:
         if employer:
             visibility_filter |= Q(employer_id=employer.id)
     
-    # Student Visibility (Only OPEN)
+    # Student Visibility (Only OPEN opportunities with valid deadlines, or no deadline)
     if user.is_student:
-        return queryset.filter(status=OpportunityStatus.OPEN)
+        from django.utils import timezone
+        now = timezone.now()
+        return queryset.filter(
+            status=OpportunityStatus.OPEN
+        ).filter(
+            Q(application_deadline__isnull=True) |  # No deadline set
+            Q(application_deadline__gt=now)  # Deadline is in the future
+        )
 
     # Supervisors Visibility
     if user.is_supervisor:
@@ -628,3 +635,28 @@ def get_internship_growth_stats(days: int = 30) -> dict:
         "current_applications": current_apps,
         "previous_applications": prev_apps,
     }
+
+
+def get_valid_opportunities() -> QuerySet[InternshipOpportunity]:
+    """
+    Returns only OPEN opportunities with valid deadlines (not expired).
+    
+    Per architecture: This is a read-only query that combines filtering logic.
+    Follows queries.py purpose: encapsulate all read patterns for reuse.
+    
+    Business rule: An opportunity is "valid" when:
+    - Status is OPEN
+    - Either deadline is NULL (no deadline) OR deadline is in the future
+    
+    Used by: API listing endpoints, marketplace marketplace filtering
+    """
+    from django.utils import timezone
+    now = timezone.now()
+    
+    return InternshipOpportunity.objects.filter(
+        Q(status=OpportunityStatus.OPEN) & (
+            Q(application_deadline__isnull=True) |  # No deadline set
+            Q(application_deadline__gt=now)  # Deadline is in the future
+        )
+    ).order_by('-created_at')
+

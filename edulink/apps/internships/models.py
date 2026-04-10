@@ -63,6 +63,18 @@ class InternshipOpportunity(BaseModel):
     application_deadline = models.DateTimeField(null=True, blank=True)
     is_institution_restricted = models.BooleanField(default=False, help_text="If true, only students from the owning institution can apply")
     
+    @property
+    def is_deadline_expired(self) -> bool:
+        """
+        Computed property: Returns True if the application deadline has passed.
+        
+        Per architecture rules: This is a read-only computed property that combines
+        data fields to derive state. Follows rule: models describe what exists, not
+        computed behavior. No DB writes, no side effects.
+        """
+        from django.utils import timezone
+        return self.application_deadline and timezone.now() > self.application_deadline
+    
     class Meta:
         app_label = "internships"
         db_table = "internship_opportunities"

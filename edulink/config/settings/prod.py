@@ -107,4 +107,5 @@ Q_CLUSTER = {
     'max_attempts': 3,  # Automatically retry tasks up to 3 times on failure
     'ack_failures': True,
     'scheduler': True,
+    'schedule_module': 'edulink.schedule',  # Load schedule definitions from this module
 }

@@ -34,13 +34,17 @@ class InternshipOpportunitySerializer(serializers.ModelSerializer):
     location_type_display = serializers.CharField(source='get_location_type_display', read_only=True)
     employer_details = serializers.SerializerMethodField()
     student_has_applied = serializers.SerializerMethodField()
+    is_deadline_expired = serializers.BooleanField(read_only=True)
+    deadline_status = serializers.SerializerMethodField()
+    days_until_deadline = serializers.SerializerMethodField()
     
     class Meta:
         model = InternshipOpportunity
         fields = '__all__'
         read_only_fields = [
             'id', 'created_at', 'updated_at', 'status', 
-            'institution_id', 'employer_id'
+            'institution_id', 'employer_id', 'is_deadline_expired',
+            'deadline_status', 'days_until_deadline'
         ]
 
     def get_employer_details(self, obj):
@@ -71,6 +75,52 @@ class InternshipOpportunitySerializer(serializers.ModelSerializer):
             
         from .queries import has_student_applied
         return has_student_applied(opportunity_id=obj.id, student_id=student.id)
+    
+    def get_deadline_status(self, obj):
+        """
+        Returns deadline status enum for frontend UI:
+        - VALID: No deadline or deadline is in future
+        - APPROACHING_24H: Deadline within 24 hours
+        - APPROACHING_1H: Deadline within 1 hour
+        - EXPIRED: Deadline has passed
+        """
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        if not obj.application_deadline:
+            return "VALID"
+        
+        now = timezone.now()
+        if obj.is_deadline_expired:
+            return "EXPIRED"
+        
+        time_until_deadline = obj.application_deadline - now
+        
+        if time_until_deadline <= timedelta(hours=1):
+            return "APPROACHING_1H"
+        elif time_until_deadline <= timedelta(hours=24):
+            return "APPROACHING_24H"
+        else:
+            return "VALID"
+    
+    def get_days_until_deadline(self, obj):
+        """
+        Returns number of days until deadline, or None if no deadline.
+        Convenience field for frontend.
+        """
+        if not obj.application_deadline:
+            return None
+        
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        now = timezone.now()
+        if obj.is_deadline_expired:
+            return 0
+        
+        delta = obj.application_deadline - now
+        days = delta.days + (1 if delta.seconds > 0 else 0)  # Round up
+        return max(0, days)
 
 class InternshipApplicationSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source='get_status_display', read_only=True)
@@ -339,3 +389,64 @@ class CreateSuccessStorySerializer(serializers.Serializer):
     student_testimonial = serializers.CharField(required=False, allow_blank=True, default="")
     employer_feedback = serializers.CharField(required=False, allow_blank=True, default="")
     is_published = serializers.BooleanField(required=False, default=False)
+
+
+class BulkExtendDeadlineSerializer(serializers.Serializer):
+    """
+    Serializer for bulk deadline extension requests.
+    Allows employers to extend deadlines for multiple opportunities at once.
+    """
+    opportunity_ids = serializers.ListField(
+        child=serializers.UUIDField(),
+        help_text="List of opportunity IDs to extend"
+    )
+    new_deadline = serializers.DateTimeField(
+        help_text="New application deadline (must be in future)"
+    )
+    reason = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=500,
+        help_text="Reason for extension (optional, for records)"
+    )
+    
+    def validate_opportunity_ids(self, value):
+        """Ensure at least one opportunity is provided"""
+        if not value:
+            raise serializers.ValidationError("At least one opportunity ID must be provided.")
+        if len(value) > 50:
+            raise serializers.ValidationError("Cannot extend more than 50 opportunities at once.")
+        return value
+    
+    def validate_new_deadline(self, value):
+        """Ensure new deadline is in the future"""
+        from django.utils import timezone
+        if value <= timezone.now():
+            raise serializers.ValidationError("New deadline must be in the future.")
+        return value
+
+
+class DeadlineAnalyticsSerializer(serializers.Serializer):
+    """
+    Serializer for deadline performance analytics.
+    Provides comprehensive metrics for employers about their internship opportunities.
+    """
+    total_opportunities = serializers.IntegerField()
+    open_opportunities = serializers.IntegerField()
+    closed_opportunities = serializers.IntegerField()
+    opportunities_with_zero_applications = serializers.IntegerField()
+    total_applications_received = serializers.IntegerField()
+    total_offers_made = serializers.IntegerField()
+    average_applications_per_opportunity = serializers.FloatField()
+    average_days_to_deadline = serializers.FloatField()
+    conversion_rate = serializers.FloatField(help_text="Percentage of applications that led to offers")
+    
+    # Aggregations by deadline status
+    opportunities_closing_in_24h = serializers.IntegerField()
+    opportunities_closing_in_48h = serializers.IntegerField()
+    expired_recently = serializers.IntegerField(help_text="Closed in last 7 days")
+    
+    # Performance metadata
+    period_start = serializers.DateTimeField()
+    period_end = serializers.DateTimeField()
+    generated_at = serializers.DateTimeField()
