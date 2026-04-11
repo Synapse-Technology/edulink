@@ -5,7 +5,7 @@
 
 import { useCallback } from 'react';
 import { useErrorHandler as useBaseErrorHandler } from './useErrorHandler';
-import { getLoginErrorResponse, getLoginErrorMessage } from '../utils/loginErrorMessage';
+import { getLoginErrorMessage } from '../utils/loginErrorMessage';
 import type { ApiError } from '../services/errors';
 
 type LoginPortal = 'student' | 'employer' | 'institution' | 'admin';
@@ -53,7 +53,7 @@ export function useLoginErrorHandler(options: UseLoginErrorHandlerOptions = {}) 
 /**
  * Hook for registration forms with field validation
  */
-export function useRegisterErrorHandler(options?: UseLoginErrorHandlerOptions) {
+export function useRegisterErrorHandler() {
   const formErrorHandler = useBaseErrorHandler({
     onValidationError: (error) => {
       console.warn('Registration validation errors:', error.fieldValidations);

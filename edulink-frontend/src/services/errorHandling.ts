@@ -93,7 +93,7 @@ export function isErrorRetryable(statusCode: number, errorCode?: string): boolea
 /**
  * Get suggested action based on error type
  */
-export function getSuggestedAction(statusCode: number, errorCode?: string): string {
+export function getSuggestedAction(statusCode: number, _errorCode?: string): string {
   switch (statusCode) {
     case 400:
       return 'Please check your input and try again.';

@@ -15,7 +15,8 @@ import StudentHeader from '../../components/dashboard/StudentHeader';
 import { useTheme } from '../../contexts/ThemeContext';
 import { artifactService, type Artifact } from '../../services/reports/artifactService';
 import { studentService } from '../../services/student/studentService';
-import { toast } from 'react-hot-toast';
+import { useErrorHandler } from '../../hooks/useErrorHandler';
+import { showToast } from '../../utils/toast';
 import StudentDashboardSkeleton from '../../components/student/skeletons/StudentDashboardSkeleton';
 
 const StudentArtifacts: React.FC = () => {
@@ -25,6 +26,12 @@ const StudentArtifacts: React.FC = () => {
   const [internship, setInternship] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState<string | null>(null);
+
+  const handleArtifactError = useErrorHandler({
+    onNotFound: () => showToast.error('Internship or artifacts not found.'),
+    onAuthError: () => showToast.error('Session expired. Please log in again.'),
+    onUnexpected: (error) => showToast.error(error.message || 'Failed to load artifacts.')
+  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -37,8 +44,7 @@ const StudentArtifacts: React.FC = () => {
         setArtifacts(artifactData);
         setInternship(internshipData);
       } catch (err) {
-        console.error(err);
-        toast.error('Failed to load artifacts');
+        await handleArtifactError(err);
       } finally {
         setLoading(false);
       }
@@ -49,11 +55,11 @@ const StudentArtifacts: React.FC = () => {
 
   const handleDownload = async (artifact: Artifact) => {
     try {
-      toast.loading('Preparing download...', { id: 'download' });
+      showToast.loading('Preparing download...');
       await artifactService.downloadArtifact(artifact);
-      toast.success('Download started!', { id: 'download' });
+      showToast.success('Download started!');
     } catch (err) {
-      toast.error('Failed to download artifact', { id: 'download' });
+      await handleArtifactError(err);
     }
   };
 
@@ -63,14 +69,14 @@ const StudentArtifacts: React.FC = () => {
     try {
       setGenerating(type);
       const label = type === 'CERTIFICATE' ? 'Certificate' : type === 'LOGBOOK_REPORT' ? 'Logbook Report' : 'Performance Summary';
-      toast.loading(`Generating ${label}...`, { id: 'gen' });
+      showToast.loading(`Generating ${label}...`);
       
       const newArtifact = await artifactService.generateArtifact(internship.id, type);
       setArtifacts([newArtifact, ...artifacts]);
       
-      toast.success('Generated successfully!', { id: 'gen' });
+      showToast.success('Generated successfully!');
     } catch (err) {
-      toast.error('Generation failed. Ensure your internship is completed.', { id: 'gen' });
+      showToast.error('Generation failed. Ensure your internship is completed.');
     } finally {
       setGenerating(null);
     }

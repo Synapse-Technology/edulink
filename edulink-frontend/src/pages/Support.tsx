@@ -1,16 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import toast from 'react-hot-toast';
 import { supportService } from '../services/support/supportService';
 import type { TicketCategory, TicketPriority } from '../services/support/supportService';
 import { useFeedbackModal } from '../hooks/useFeedbackModal';
 import { FeedbackModal } from '../components/common';
 import { useAuth } from '../contexts/AuthContext';
+import { useErrorHandler } from '../hooks/useErrorHandler';
+import { showToast } from '../utils/toast';
 
 const Support: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { feedbackProps, showError, showSuccess } = useFeedbackModal();
+  
+  const handleSupportError = useErrorHandler({
+    onValidationError: () => showToast.error('Please check your form entries.'),
+    onAuthError: () => showToast.error('Session expired. Please log in again.'),
+    onUnexpected: (error) => showToast.error(error.message || 'Failed to create support ticket.')
+  });
+
+  const handleFeedbackError = useErrorHandler({
+    onValidationError: () => showToast.error('Please enter your feedback.'),
+    onUnexpected: (error) => showToast.error(error.message || 'Failed to submit feedback.')
+  });
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -80,9 +92,8 @@ const Support: React.FC = () => {
       // Optionally redirect to history
       setTimeout(() => navigate('/support/history'), 3000);
       
-    } catch (error: any) {
-      console.error('Support submission error:', error);
-      showError('Submission Failed', 'Failed to send support request. Please try again.', error.message);
+    } catch (error) {
+      await handleSupportError(error);
     } finally {
       setIsSubmitting(false);
     }
@@ -91,7 +102,7 @@ const Support: React.FC = () => {
   const handleFeedbackSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!feedback.trim()) {
-        toast.error('Please enter your feedback first.');
+        showToast.error('Please enter your feedback first.');
         return;
     }
     if (isSubmitting) return;
@@ -99,11 +110,10 @@ const Support: React.FC = () => {
     try {
       setIsSubmitting(true);
       await supportService.submitFeedback({ message: feedback });
-      toast.success('Feedback submitted successfully!');
+      showToast.success('Feedback submitted successfully!');
       setFeedback('');
-    } catch (error: any) {
-      console.error('Feedback submission error:', error);
-      toast.error(error.message || 'Failed to submit feedback. Please try again.');
+    } catch (error) {
+      await handleFeedbackError(error);
     } finally {
       setIsSubmitting(false);
     }

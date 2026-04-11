@@ -4,6 +4,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { EmployerLayout } from '../../../components/admin/employer';
 import TableSkeleton from '../../../components/admin/skeletons/TableSkeleton';
 import { internshipService } from '../../../services/internship/internshipService';
+import { useErrorHandler } from '../../../hooks/useErrorHandler';
+import { showToast } from '../../../utils/toast';
 import type { InternshipApplication } from '../../../services/internship/internshipService';
 import TrustBadge, { type TrustLevel } from '../../../components/common/TrustBadge';
 
@@ -14,6 +16,11 @@ const EmployerApplications: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [trustFilter, setTrustFilter] = useState<string>('ALL');
+
+  const handleApplicationError = useErrorHandler({
+    onAuthError: () => showToast.error('Session expired. Please log in again.'),
+    onUnexpected: (error) => showToast.error(error.message || 'Failed to load applications.')
+  });
 
   useEffect(() => {
     // Check for query param filters on mount
@@ -32,7 +39,7 @@ const EmployerApplications: React.FC = () => {
       const recruitmentApps = apps.filter(app => !['ACTIVE', 'COMPLETED'].includes(app.status));
       setApplications(recruitmentApps);
     } catch (error) {
-      console.error('Failed to fetch applications:', error);
+      await handleApplicationError(error);
     } finally {
       setIsLoading(false);
     }

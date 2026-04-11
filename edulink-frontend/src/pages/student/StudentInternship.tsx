@@ -18,7 +18,8 @@ import { studentService } from '../../services/student/studentService';
 import { artifactService } from '../../services/reports/artifactService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { toast } from 'react-hot-toast';
+import { useErrorHandler } from '../../hooks/useErrorHandler';
+import { showToast } from '../../utils/toast';
 import StudentInternshipSkeleton from '../../components/student/skeletons/StudentInternshipSkeleton';
 import ReportIncidentModal from '../../components/student/ReportIncidentModal';
 
@@ -29,6 +30,12 @@ const StudentInternship: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showIncidentModal, setShowIncidentModal] = useState(false);
+
+  const handleInternshipError = useErrorHandler({
+    onNotFound: () => showToast.error('No active internship found.'),
+    onAuthError: () => showToast.error('Session expired. Please log in again.'),
+    onUnexpected: (error) => showToast.error(error.message || 'Failed to load internship.')
+  });
 
   // Suppress unused warning
   useEffect(() => {
@@ -45,8 +52,7 @@ const StudentInternship: React.FC = () => {
         const data = await studentService.getActiveInternship();
         setInternship(data);
       } catch (err) {
-        console.error(err);
-        setError('Failed to load active internship');
+        await handleInternshipError(err);
       } finally {
         setLoading(false);
       }

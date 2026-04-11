@@ -20,7 +20,8 @@ import { studentService } from '../../services/student/studentService';
 import { artifactService } from '../../services/reports/artifactService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { toast } from 'react-hot-toast';
+import { useErrorHandler } from '../../hooks/useErrorHandler';
+import { showToast } from '../../utils/toast';
 import { Link } from 'react-router-dom';
 import { Badge } from 'react-bootstrap';
 import { FeedbackModal } from '../../components/common';
@@ -41,6 +42,12 @@ const StudentLogbook: React.FC = () => {
   const [submissionHistory, setSubmissionHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const handleLogbookError = useErrorHandler({
+    onNotFound: () => showToast.error('Internship or logbook not found.'),
+    onAuthError: () => showToast.error('Session expired. Please log in again.'),
+    onUnexpected: (error) => showToast.error(error.message || 'Failed to load logbook.')
+  });
 
   // Suppress unused warning
   useEffect(() => {

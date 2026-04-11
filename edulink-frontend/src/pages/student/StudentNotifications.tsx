@@ -11,16 +11,22 @@ import type { Notification } from '../../services/notifications/notificationServ
 import { usePusher } from '../../hooks/usePusher';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useErrorHandler } from '../../hooks/useErrorHandler';
+import { showToast } from '../../utils/toast';
 import StudentSidebar from '../../components/dashboard/StudentSidebar';
 import StudentHeader from '../../components/dashboard/StudentHeader';
 import { formatDistanceToNow, isToday, isYesterday } from 'date-fns';
-import toast from 'react-hot-toast';
 
 const StudentNotifications: React.FC = () => {
   const { user } = useAuth();
   const { isDarkMode } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const queryClient = useQueryClient();
+
+  const handleNotificationError = useErrorHandler({
+    onAuthError: () => showToast.error('Session expired. Please log in again.'),
+    onUnexpected: (error) => showToast.error(error.message || 'Failed to load notifications.')
+  });
 
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
 
@@ -36,10 +42,10 @@ const StudentNotifications: React.FC = () => {
     mutationFn: notificationService.markAllAsRead,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
-      toast.success('All notifications marked as read');
+      showToast.success('All notifications marked as read');
     },
     onError: () => {
-      toast.error('Failed to update notifications');
+      showToast.error('Failed to update notifications');
     }
   });
 

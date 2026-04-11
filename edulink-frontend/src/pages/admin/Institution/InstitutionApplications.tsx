@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Card, Table, Button, Badge, Form, InputGroup, Row, Col, Modal } from 'react-bootstrap';
 import { Search, FileText, CheckCircle, XCircle, User } from 'lucide-react';
 import { internshipService } from '../../../services/internship/internshipService';
+import { useErrorHandler } from '../../../hooks/useErrorHandler';
+import { showToast } from '../../../utils/toast';
 import type { InternshipApplication } from '../../../services/internship/internshipService';
 import TrustBadge, { type TrustLevel } from '../../../components/common/TrustBadge';
-import toast from 'react-hot-toast';
 import InstitutionTableSkeleton from '../../../components/admin/skeletons/InstitutionTableSkeleton';
 
 const InstitutionApplications: React.FC = () => {
@@ -12,6 +13,11 @@ const InstitutionApplications: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  
+  const handleApplicationError = useErrorHandler({
+    onAuthError: () => showToast.error('Session expired. Please log in again.'),
+    onUnexpected: (error) => showToast.error(error.message || 'Failed to load applications.')
+  });
   
   // Modal states
   const [selectedApp, setSelectedApp] = useState<InternshipApplication | null>(null);
@@ -30,8 +36,7 @@ const InstitutionApplications: React.FC = () => {
       const apps = await internshipService.getApplications({ is_institutional: true });
       setApplications(apps);
     } catch (err) {
-      console.error("Failed to fetch applications", err);
-      toast.error("Failed to load applications");
+      await handleApplicationError(err);
     } finally {
       setLoading(false);
     }
@@ -43,13 +48,12 @@ const InstitutionApplications: React.FC = () => {
     try {
       setProcessing(true);
       await internshipService.processApplication(selectedApp.id, action, action === 'REJECT' ? rejectionReason : undefined);
-      toast.success(`Application processed successfully`);
+      showToast.success(`Application processed successfully`);
       setShowReviewModal(false);
       setRejectionReason('');
       fetchApplications();
     } catch (error) {
-      console.error('Failed to process application:', error);
-      toast.error('Failed to process application');
+      await handleApplicationError(error);
     } finally {
       setProcessing(false);
     }

@@ -5,6 +5,8 @@ import StudentHeader from '../../components/dashboard/StudentHeader';
 import StudentSidebar from '../../components/dashboard/StudentSidebar';
 import { DocumentPreviewModal } from '../../components/common';
 import { internshipService } from '../../services/internship/internshipService';
+import { useErrorHandler } from '../../hooks/useErrorHandler';
+import { showToast } from '../../utils/toast';
 import type { InternshipApplication } from '../../services/internship/internshipService';
 import { useTheme } from '../../contexts/ThemeContext';
 
@@ -20,6 +22,15 @@ const StudentApplicationDetail: React.FC = () => {
   // Theme state from context
   const { isDarkMode } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const handleDetailError = useErrorHandler({
+    onNotFound: () => {
+      showToast.error('Application not found.');
+      navigate('/student/applications');
+    },
+    onAuthError: () => showToast.error('Session expired. Please log in again.'),
+    onUnexpected: (error) => showToast.error(error.message || 'Failed to load application.')
+  });
 
   // Preview Modal State
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -38,7 +49,7 @@ const StudentApplicationDetail: React.FC = () => {
       const data = await internshipService.getApplication(appId);
       setApplication(data);
     } catch (error) {
-      console.error('Failed to fetch application:', error);
+      await handleDetailError(error);
     } finally {
       setIsLoading(false);
     }
@@ -56,8 +67,8 @@ const StudentApplicationDetail: React.FC = () => {
       setShowWithdrawModal(false);
       setWithdrawReason('');
       
-      // Show success message (you could use a toast here)
-      alert('Application withdrawn successfully');
+      // Show success message
+      showToast.success('Application withdrawn successfully');
     } catch (error: any) {
       console.error('Failed to withdraw application:', error);
       alert(error.message || 'Failed to withdraw application. Please try again.');

@@ -7,8 +7,9 @@ import { useFeedbackModal } from '../hooks/useFeedbackModal';
 import { FeedbackModal } from '../components/common';
 import { useAuth } from '../contexts/AuthContext';
 import { usePusher } from '../hooks/usePusher';
+import { useErrorHandler } from '../hooks/useErrorHandler';
+import { showToast } from '../utils/toast';
 import { format } from 'date-fns';
-import toast from 'react-hot-toast';
 
 const TicketDetail: React.FC = () => {
   const { trackingCode } = useParams<{ trackingCode: string }>();
@@ -17,6 +18,18 @@ const TicketDetail: React.FC = () => {
   const [replyMessage, setReplyMessage] = useState('');
   const { feedbackProps } = useFeedbackModal();
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  const handleDetailError = useErrorHandler({
+    onNotFound: () => showToast.error('Ticket not found.'),
+    onAuthError: () => showToast.error('Session expired. Please log in again.'),
+    onUnexpected: (error) => showToast.error(error.message || 'Failed to load ticket.')
+  });
+
+  const handleReplyError = useErrorHandler({
+    onValidationError: () => showToast.error('Please enter a valid message.'),
+    onAuthError: () => showToast.error('Session expired. Please log in again.'),
+    onUnexpected: (error) => showToast.error(error.message || 'Failed to send message')
+  });
 
   // Fetch ticket with TanStack Query
   const { data: ticket, isLoading: loading } = useQuery({
@@ -73,7 +86,7 @@ const TicketDetail: React.FC = () => {
       if (context?.previousTicket) {
         queryClient.setQueryData(['ticket', trackingCode], context.previousTicket);
       }
-      toast.error('Failed to send message');
+      showToast.error('Failed to send message');
     },
     onSettled: () => {
       // Always refetch after error or success to ensure we have the correct server state
@@ -81,7 +94,7 @@ const TicketDetail: React.FC = () => {
     },
     onSuccess: () => {
       setReplyMessage('');
-      toast.success('Message sent');
+      showToast.success('Message sent');
     }
   });
 

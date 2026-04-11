@@ -119,7 +119,7 @@ const OpportunityDetails: React.FC = () => {
 
     try {
       await internshipService.applyForInternship(opportunity.id, coverLetter);
-      toast.success('Application submitted successfully!');
+      showToast.success('Application submitted successfully!');
       
       // Update local state
       setOpportunity(prev => prev ? { ...prev, student_has_applied: true } : null);
@@ -143,7 +143,7 @@ const OpportunityDetails: React.FC = () => {
     } else {
       // Fallback for browsers that don't support Web Share API
       navigator.clipboard.writeText(window.location.href);
-      toast.success('Link copied to clipboard!');
+      showToast.success('Link copied to clipboard!');
     }
   };
 

@@ -1,9 +1,12 @@
 import logging
 from uuid import UUID
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from django.db import transaction
 from django.conf import settings
 from django.utils import timezone
+
+if TYPE_CHECKING:
+    from .models import SuccessStory, SupervisorAssignment
 
 logger = logging.getLogger(__name__)
 
@@ -790,6 +793,8 @@ def create_success_story(
     """
     Create a success story for a completed internship.
     """
+    from .models import SuccessStory
+    
     application = InternshipApplication.objects.get(id=application_id)
     
     # Only allow if internship is COMPLETED or CERTIFIED
@@ -1690,6 +1695,7 @@ def create_supervisor_assignment(*, actor, application_id: UUID, supervisor_id: 
     """
     from .models import SupervisorAssignment
     from .policies import can_assign_supervisor
+    from edulink.apps.ledger.services import record_event
     
     application = InternshipApplication.objects.get(id=application_id)
     
@@ -1777,6 +1783,7 @@ def accept_supervisor_assignment(actor, assignment_id: UUID) -> "SupervisorAssig
     """
     from .models import SupervisorAssignment
     from .workflows import supervisor_assignment_workflow
+    from edulink.apps.ledger.services import record_event
     
     assignment = SupervisorAssignment.objects.select_for_update().get(id=assignment_id)
     
@@ -1837,6 +1844,7 @@ def reject_supervisor_assignment(actor, assignment_id: UUID, reason: str = None)
     """
     from .models import SupervisorAssignment
     from .workflows import supervisor_assignment_workflow
+    from edulink.apps.ledger.services import record_event
     
     assignment = SupervisorAssignment.objects.select_for_update().get(id=assignment_id)
     

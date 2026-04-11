@@ -341,7 +341,7 @@ class IdempotencyKey:
         return IdempotencyKey(f"{actor_id}:{operation}:{resource_id}")
 
 
-def idempotent(key_func: Callable[[...], str]) -> Callable:
+def idempotent(key_func: Callable[..., str]) -> Callable:
     """
     Decorator to make function idempotent using key-value cache.
     

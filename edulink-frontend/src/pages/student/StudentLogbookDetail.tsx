@@ -15,10 +15,11 @@ import StudentHeader from '../../components/dashboard/StudentHeader';
 import { studentService } from '../../services/student/studentService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useErrorHandler } from '../../hooks/useErrorHandler';
+import { showToast } from '../../utils/toast';
 import LogbookDetailSkeleton from '../../components/student/skeletons/LogbookDetailSkeleton';
 import { Badge, Card, Button } from 'react-bootstrap';
 import { generateLogbookPDF } from '../../utils/pdfGenerator';
-import { toast } from 'react-hot-toast';
 
 const StudentLogbookDetail: React.FC = () => {
   const { evidenceId } = useParams<{ evidenceId: string }>();
@@ -30,6 +31,15 @@ const StudentLogbookDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const { isDarkMode } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const handleLogbookDetailError = useErrorHandler({
+    onNotFound: () => {
+      showToast.error('Logbook entry not found.');
+      navigate('/student/logbook');
+    },
+    onAuthError: () => showToast.error('Session expired. Please log in again.'),
+    onUnexpected: (error) => showToast.error(error.message || 'Failed to load logbook entry.')
+  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -48,7 +58,7 @@ const StudentLogbookDetail: React.FC = () => {
           setEvidence(found);
         }
       } catch (err) {
-        console.error("Failed to fetch logbook details", err);
+        await handleLogbookDetailError(err);
       } finally {
         setLoading(false);
       }

@@ -1,8 +1,15 @@
 import React, { useState } from 'react';
 import { contactService } from '../services/contact/contactService';
-import toast from 'react-hot-toast';
+import { useErrorHandler } from '../hooks/useErrorHandler';
+import { showToast } from '../utils/toast';
 
 const Contact: React.FC = () => {
+  const handleContactError = useErrorHandler({
+    onValidationError: () => showToast.error('Please check your form entries.'),
+    onAuthError: () => showToast.error('Session expired. Please refresh and try again.'),
+    onUnexpected: (error) => showToast.error(error.message || 'Failed to send message.')
+  });
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -35,12 +42,10 @@ const Contact: React.FC = () => {
       });
       
       setMessage('Your message has been sent. Thank you!');
-      toast.success('Message sent successfully!');
+      showToast.success('Message sent successfully!');
       setFormData({ name: '', email: '', subject: '', message: '' });
-    } catch (error: any) {
-      console.error('Contact form error:', error);
-      setMessage('There was an error sending your message. Please try again.');
-      toast.error(error.message || 'Failed to send message.');
+    } catch (error) {
+      await handleContactError(error);
     } finally {
       setIsSubmitting(false);
       setTimeout(() => setMessage(''), 5000);

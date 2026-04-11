@@ -128,7 +128,7 @@ const Opportunities: React.FC = () => {
     }
 
     if (user.role !== 'student') {
-      toast.error('Only students can apply for internships');
+      showToast.error('Only students can apply for internships');
       return;
     }
 
@@ -141,7 +141,7 @@ const Opportunities: React.FC = () => {
 
     try {
       await internshipService.applyForInternship(selectedOpportunity.id, coverLetter);
-      toast.success('Application submitted successfully!');
+      showToast.success('Application submitted successfully!');
       
       // Update local state to reflect application
       setOpportunities(prev => prev.map(opp => 
