@@ -86,6 +86,8 @@ import AdminSupportTicketDetail from './pages/admin/SystemAdmin/AdminSupportTick
 import ContactManagement from './pages/admin/SystemAdmin/ContactManagement';
 import { AdminAuthProvider } from './contexts/AdminAuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
+import { ToastProvider } from './utils/toast';
 import NotFound from './pages/NotFound';
 import './App.css';
 import './styles/admin-dashboard.css';
@@ -93,8 +95,10 @@ import './styles/admin-landing.css';
 
 function App() {
   return (
-    <Router>
-      <KeepAlive />
+    <ErrorBoundary>
+      <ToastProvider>
+        <Router>
+          <KeepAlive />
       <Routes>
         {/* Public routes with layout */}
         <Route path="/" element={<Layout />}>
@@ -327,6 +331,8 @@ function App() {
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Router>
+      </ToastProvider>
+    </ErrorBoundary>
   );
 }
 
