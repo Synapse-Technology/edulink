@@ -126,9 +126,3 @@ export const usePusher = <T = any>(
 
   return { isPolling };
 };
-
-  return {
-    pusher,
-    channel: channelRef.current,
-  };
-};

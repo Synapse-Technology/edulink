@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePusher } from '../../hooks/usePusher';
+import { useErrorHandler } from '../../hooks/useErrorHandler';
+import { showToast } from '../../utils/toast';
 import StudentSidebar from '../../components/dashboard/StudentSidebar';
 import StudentHeader from '../../components/dashboard/StudentHeader';
 import { studentService } from '../../services/student/studentService';
@@ -70,12 +72,23 @@ const StudentApplications: React.FC = () => {
   const { isDarkMode } = useTheme();
   const queryClient = useQueryClient();
 
+  const { handleError: handleApplicationError } = useErrorHandler({
+    onNotFound: () => showToast.error('No applications found'),
+    onAuthError: () => showToast.error('Unauthorized access'),
+    onUnexpected: (error) => showToast.error(`Failed to load applications: ${error.message}`),
+  });
+
   // Fetch applications using TanStack Query
-  const { data: applications, isLoading: loading, isError } = useQuery({
+  const { data: applications, isLoading: loading, isError, error } = useQuery({
     queryKey: ['applications'],
     queryFn: () => studentService.getApplications(),
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
+
+  // Handle query errors
+  if (isError && error) {
+    handleApplicationError(error);
+  }
 
   // Handle real-time updates via Pusher with fallback polling
   const handleStatusUpdate = useCallback((data: any) => {

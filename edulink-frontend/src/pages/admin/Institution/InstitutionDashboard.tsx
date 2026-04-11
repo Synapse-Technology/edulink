@@ -7,6 +7,8 @@ import DashboardCharts from '../../../components/dashboard/institution/Dashboard
 import InstitutionDashboardSkeleton from '../../../components/admin/skeletons/InstitutionDashboardSkeleton';
 import TrustProgressWidget from '../../../components/dashboard/TrustProgressWidget';
 import { SEO } from '../../../components/common';
+import { useErrorHandler } from '../../../hooks/useErrorHandler';
+import { showToast } from '../../../utils/toast';
 import { institutionService } from '../../../services/institution/institutionService';
 import type { PlacementStats } from '../../../services/institution/institutionService';
 import { internshipService } from '../../../services/internship/internshipService';
@@ -50,6 +52,11 @@ const InstitutionDashboard: React.FC = () => {
   const [pendingLogbooks, setPendingLogbooks] = useState<InternshipEvidence[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const { handleError: handleDashboardError } = useErrorHandler({
+    onAuthError: () => showToast.error('Unauthorized access'),
+    onUnexpected: (error) => showToast.error(`Failed to load dashboard: ${error.message}`),
+  });
+
   useEffect(() => {
     const fetchStats = async () => {
       try {
@@ -62,7 +69,7 @@ const InstitutionDashboard: React.FC = () => {
         setTrustStats(trustData);
         setPendingLogbooks(evidence.filter(e => e.evidence_type === 'LOGBOOK'));
       } catch (error) {
-        console.error('Failed to fetch dashboard stats:', error);
+        await handleDashboardError(error);
       } finally {
         setLoading(false);
       }

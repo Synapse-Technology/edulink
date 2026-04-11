@@ -16,6 +16,8 @@ import StudentSidebar from '../../components/dashboard/StudentSidebar';
 import { SEO } from '../../components/common';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useErrorHandler } from '../../hooks/useErrorHandler';
+import { showToast } from '../../utils/toast';
 import ProfileWizard from '../../components/student/ProfileWizard';
 import ProgressRing from '../../components/student/dashboard/ProgressRing';
 import StatCard from '../../components/student/dashboard/StatCard';
@@ -57,6 +59,12 @@ const StudentDashboard: React.FC = () => {
   const [missingItems, setMissingItems] = useState<string[]>([]);
   const [trustLevel, setTrustLevel] = useState(0);
   const [ledgerEvents, setLedgerEvents] = useState<LedgerEvent[]>([]);
+
+  const { handleError: handleDashboardError } = useErrorHandler({
+    onNotFound: () => showToast.error('Student profile not found'),
+    onAuthError: () => showToast.error('Unauthorized. Please login again'),
+    onUnexpected: (error) => showToast.error(`Failed to load dashboard: ${error.message}`),
+  });
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -131,7 +139,7 @@ const StudentDashboard: React.FC = () => {
         }
 
       } catch (error) {
-        console.error('Failed to fetch dashboard data', error);
+        await handleDashboardError(error);
       } finally {
         setLoading(false);
       }

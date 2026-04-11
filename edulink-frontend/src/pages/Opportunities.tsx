@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { internshipService, type InternshipOpportunity, type SuccessStory, type InternshipParams } from '../services/internship/internshipService';
 import { employerService, type Employer } from '../services/employer/employerService';
 import { useAuth } from '../contexts/AuthContext';
-import { toast } from 'react-hot-toast';
+import { useErrorHandler } from '../hooks/useErrorHandler';
+import { showToast } from '../utils/toast';
 import { Building2, Code, Megaphone, LineChart, Stethoscope, Wrench, Briefcase, MapPin } from 'lucide-react';
 import { SEO } from '../components/common';
 
@@ -21,6 +22,16 @@ import LoginRequiredModal from '../components/common/LoginRequiredModal';
 const Opportunities: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  
+  const { handleError: handleOpportunitiesError } = useErrorHandler({
+    onNotFound: () => showToast.error('No opportunities available'),
+    onAuthError: () => showToast.error('Unauthorized access'),
+    onUnexpected: (error) => showToast.error(`Failed to load opportunities: ${error.message}`),
+  });
+
+  const { handleError: handleAuxiliaryError } = useErrorHandler({
+    onUnexpected: () => showToast.error('Failed to load featured content'),
+  });
   
   // State
   const [searchQuery, setSearchQuery] = useState('');
@@ -63,7 +74,7 @@ const Opportunities: React.FC = () => {
         setFeaturedEmployers(employersRes);
         setSuccessStories(storiesRes);
       } catch (error) {
-        console.error('Failed to fetch auxiliary data', error);
+        await handleAuxiliaryError(error);
       }
     };
     fetchInitialData();
@@ -96,8 +107,7 @@ const Opportunities: React.FC = () => {
         const data = await internshipService.getInternships(params);
         setOpportunities(data);
       } catch (error) {
-        console.error('Failed to fetch opportunities', error);
-        toast.error('Failed to load opportunities');
+        await handleOpportunitiesError(error);
       } finally {
         setLoading(false);
       }

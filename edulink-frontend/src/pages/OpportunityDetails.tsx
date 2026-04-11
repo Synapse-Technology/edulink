@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { internshipService, type InternshipOpportunity } from '../services/internship/internshipService';
 import { useAuth } from '../contexts/AuthContext';
-import { toast } from 'react-hot-toast';
+import { useErrorHandler } from '../hooks/useErrorHandler';
+import { showToast } from '../utils/toast';
 import { 
   Building2, 
   MapPin, 
@@ -22,6 +23,18 @@ const OpportunityDetails: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   
+  const { handleError: handleDetailError } = useErrorHandler({
+    onNotFound: () => {
+      showToast.error('Opportunity not found');
+      navigate('/opportunities');
+    },
+    onAuthError: () => showToast.error('Unauthorized access'),
+    onUnexpected: (error) => {
+      showToast.error(`Failed to load opportunity: ${error.message}`);
+      navigate('/opportunities');
+    },
+  });
+  
   const [opportunity, setOpportunity] = useState<InternshipOpportunity | null>(null);
   const [loading, setLoading] = useState(true);
   const [showApplyModal, setShowApplyModal] = useState(false);
@@ -34,9 +47,7 @@ const OpportunityDetails: React.FC = () => {
         const data = await internshipService.getInternship(id);
         setOpportunity(data);
       } catch (error) {
-        console.error('Failed to fetch opportunity details', error);
-        toast.error('Failed to load opportunity details');
-        navigate('/opportunities');
+        await handleDetailError(error);
       } finally {
         setLoading(false);
       }
@@ -52,7 +63,7 @@ const OpportunityDetails: React.FC = () => {
     }
 
     if (user.role !== 'student') {
-      toast.error('Only students can apply for internships');
+      showToast.error('Only students can apply for internships');
       return;
     }
 

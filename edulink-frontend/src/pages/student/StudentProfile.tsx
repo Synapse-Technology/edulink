@@ -15,6 +15,8 @@ import TrustBadge, { type TrustLevel } from '../../components/common/TrustBadge'
 import { DocumentPreviewModal } from '../../components/common';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useErrorHandler } from '../../hooks/useErrorHandler';
+import { showToast } from '../../utils/toast';
 import { studentService } from '../../services/student/studentService';
 import type { StudentProfile as IStudentProfile } from '../../services/student/studentService';
 import StudentProfileSkeleton from '../../components/student/skeletons/StudentProfileSkeleton';
@@ -30,6 +32,12 @@ const StudentProfile: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const { handleError: handleProfileError } = useErrorHandler({
+    onNotFound: () => showToast.error('Profile not found'),
+    onAuthError: () => showToast.error('Unauthorized access'),
+    onUnexpected: (error) => showToast.error(`Failed to load profile: ${error.message}`),
+  });
+
   // Preview Modal State
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewTitle, setPreviewTitle] = useState('');
@@ -41,7 +49,7 @@ const StudentProfile: React.FC = () => {
         const data = await studentService.getProfile();
         setProfile(data);
       } catch (error) {
-        console.error('Failed to fetch profile', error);
+        await handleProfileError(error);
       } finally {
         setLoading(false);
       }

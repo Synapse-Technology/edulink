@@ -320,7 +320,7 @@ def change_user_password(*, user_id: str, old_password: str, new_password: str) 
     except DjangoValidationError as e:
         raise ValidationError(
             user_message="Password does not meet security requirements.",
-            developer_message=f"Invalid new password: {", ".join(e.messages)}",
+            developer_message=f"Invalid new password: {', '.join(e.messages)}",
             context=ErrorContext().build(),
         )
     
