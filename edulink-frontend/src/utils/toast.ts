@@ -13,7 +13,6 @@ export type ToastType = 'success' | 'error' | 'loading' | 'info' | 'warning';
 export interface ToastOptions {
   duration?: number;
   position?: 'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right';
-  icon?: string;
   className?: string;
 }
 
@@ -44,7 +43,6 @@ export const showToast = {
       duration: options?.duration ?? DEFAULT_DURATION.success,
       position: options?.position ?? DEFAULT_POSITION,
       className: options?.className,
-      icon: options?.icon ?? '✓',
     });
   },
 
@@ -57,7 +55,6 @@ export const showToast = {
       duration: options?.duration ?? DEFAULT_DURATION.error,
       position: options?.position ?? DEFAULT_POSITION,
       className: options?.className,
-      icon: options?.icon ?? '✕',
     });
   },
 
@@ -83,7 +80,6 @@ export const showToast = {
       duration: options?.duration ?? DEFAULT_DURATION.info,
       position: options?.position ?? DEFAULT_POSITION,
       className: options?.className,
-      icon: options?.icon ?? 'ℹ️',
     });
   },
 
@@ -96,7 +92,6 @@ export const showToast = {
       duration: options?.duration ?? DEFAULT_DURATION.warning,
       position: options?.position ?? DEFAULT_POSITION,
       className: options?.className,
-      icon: options?.icon ?? '⚠️',
     });
   },
 
@@ -126,18 +121,9 @@ export const showToast = {
   /**
    * Update existing toast
    */
-  update: (toastId: string, message: string, type: ToastType = 'info'): void => {
-    const icon = {
-      success: '✓',
-      error: '✕',
-      info: 'ℹ️',
-      warning: '⚠️',
-      loading: undefined,
-    }[type];
-
+  update: (toastId: string, message: string): void => {
     toast(message, {
       id: toastId,
-      icon: icon as string | undefined,
     });
   },
 
@@ -182,12 +168,12 @@ export function useToastMutation<TData>(
 
     try {
       const result = await asyncFn(data);
-      showToast.update(toastId, msgs.success, 'success');
+      showToast.update(toastId, msgs.success);
       setTimeout(() => showToast.dismiss(toastId), 3000);
       return result;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : msgs.error;
-      showToast.update(toastId, errorMsg, 'error');
+      showToast.update(toastId, errorMsg);
       throw error;
     }
   };
