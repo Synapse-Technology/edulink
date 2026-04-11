@@ -9,6 +9,13 @@ class ArtifactType(models.TextChoices):
     LOGBOOK_REPORT = "LOGBOOK_REPORT", _("Internship Logbook Report")
     PERFORMANCE_SUMMARY = "PERFORMANCE_SUMMARY", _("Performance Summary")
 
+class ArtifactStatus(models.TextChoices):
+    """Artifact generation lifecycle states"""
+    PENDING = "PENDING", _("Generation queued")
+    PROCESSING = "PROCESSING", _("Currently generating")
+    SUCCESS = "SUCCESS", _("Generation successful")
+    FAILED = "FAILED", _("Generation failed")
+
 class Artifact(BaseModel):
     """
     Represents a generated professional document (PDF) for an internship.
@@ -22,13 +29,29 @@ class Artifact(BaseModel):
         default=ArtifactType.LOGBOOK_REPORT
     )
     
-    file = models.FileField(upload_to='artifacts/%Y/%m/', help_text="The generated PDF file")
+    # Status tracking for async generation
+    status = models.CharField(
+        max_length=20,
+        choices=ArtifactStatus.choices,
+        default=ArtifactStatus.PENDING,
+        help_text="Artifact generation state"
+    )
+    
+    # Error tracking
+    error_message = models.TextField(
+        null=True,
+        blank=True,
+        help_text="Error details if generation failed"
+    )
+    
+    file = models.FileField(upload_to='artifacts/%Y/%m/', null=True, blank=True, help_text="The generated PDF file")
     
     # Store context to allow regeneration if needed
     metadata = models.JSONField(default=dict, blank=True, help_text="Contextual data used for generation")
     
     # Traceability
     generated_by = models.UUIDField(help_text="User ID who triggered the generation")
+    completed_at = models.DateTimeField(null=True, blank=True, help_text="When generation completed")
     
     tracking_code = models.CharField(
         max_length=20, 
@@ -46,8 +69,9 @@ class Artifact(BaseModel):
             models.Index(fields=["student_id"]),
             models.Index(fields=["artifact_type"]),
             models.Index(fields=["tracking_code"]),
+            models.Index(fields=["status"]),  # For polling
         ]
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"{self.get_artifact_type_display()} - {self.application_id}"
+        return f"{self.get_artifact_type_display()} - {self.application_id} ({self.status})"

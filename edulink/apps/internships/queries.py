@@ -515,9 +515,9 @@ def get_student_internship_dashboard_stats(student_id: str) -> Dict[str, dict]:
     prev_week = last_week - timedelta(days=7)
 
     # Optimize: prefetch related opportunity data to avoid N+1 queries
+    # Note: institution_id and employer_id are UUID fields, not ForeignKeys, so no select_related needed
     app_qs = InternshipApplication.objects.filter(student_id=student_id).select_related(
-        'opportunity__employer',
-        'opportunity__institution'
+        'opportunity'
     )
 
     active_apps_count = app_qs.filter(
