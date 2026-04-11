@@ -16,13 +16,16 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { artifactService, type Artifact } from '../../services/reports/artifactService';
 import { studentService } from '../../services/student/studentService';
 import { showToast } from '../../utils/toast';
+import { getErrorMessage, logError } from '../../utils/errorMapper';
+import { dateFormatter } from '../../utils/dateFormatter';
+import type { Internship } from '../../types/internship';
 import StudentDashboardSkeleton from '../../components/student/skeletons/StudentDashboardSkeleton';
 
 const StudentArtifacts: React.FC = () => {
   const { isDarkMode } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [artifacts, setArtifacts] = useState<Artifact[]>([]);
-  const [internship, setInternship] = useState<any | null>(null);
+  const [internship, setInternship] = useState<Internship | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState<string | null>(null);
 
@@ -35,10 +38,15 @@ const StudentArtifacts: React.FC = () => {
           studentService.getActiveInternship()
         ]);
         setArtifacts(artifactData);
-        setInternship(internshipData);
+        // Extract Internship from InternshipApplication
+        if (internshipData) {
+          const internshipToSet = (internshipData as any).internship || (internshipData as any);
+          setInternship(internshipToSet);
+        }
       } catch (err) {
-        console.error('Failed to load artifacts:', err);
-        showToast.error('Failed to load artifacts.');
+        const message = getErrorMessage(err, { action: 'Load Artifacts' });
+        showToast.error(message);
+        logError(err, { action: 'Load Artifacts' });
       } finally {
         setLoading(false);
       }
@@ -53,24 +61,29 @@ const StudentArtifacts: React.FC = () => {
       await artifactService.downloadArtifact(artifact);
       showToast.success('Download started!');
     } catch (err) {
-      console.error("Error:", err); showToast.error("An error occurred. Please try again.");
+      const message = getErrorMessage(err, { action: 'Download Artifact' });
+      showToast.error(message);
+      logError(err, { action: 'Download Artifact', data: { artifactId: artifact.id } });
     }
   };
 
   const handleGenerate = async (type: 'CERTIFICATE' | 'LOGBOOK_REPORT' | 'PERFORMANCE_SUMMARY') => {
     if (!internship) return;
     
+    const label = type === 'CERTIFICATE' ? 'Certificate' : type === 'LOGBOOK_REPORT' ? 'Logbook Report' : 'Performance Summary';
+    
     try {
       setGenerating(type);
-      const label = type === 'CERTIFICATE' ? 'Certificate' : type === 'LOGBOOK_REPORT' ? 'Logbook Report' : 'Performance Summary';
       showToast.loading(`Generating ${label}...`);
       
       const newArtifact = await artifactService.generateArtifact(internship.id, type);
       setArtifacts([newArtifact, ...artifacts]);
       
-      showToast.success('Generated successfully!');
+      showToast.success(`${label} generated successfully!`);
     } catch (err) {
-      showToast.error('Generation failed. Ensure your internship is completed.');
+      const message = getErrorMessage(err, { action: `Generate ${label}` });
+      showToast.error(message);
+      logError(err, { action: 'Generate Artifact', data: { type } });
     } finally {
       setGenerating(null);
     }
@@ -205,7 +218,7 @@ const StudentArtifacts: React.FC = () => {
                                 <td className="py-3 px-4 border-0 small">
                                   <div className="d-flex align-items-center gap-2">
                                     <Clock size={14} className="text-muted" />
-                                    {new Date(artifact.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                    {dateFormatter.shortDate(artifact.created_at)}
                                   </div>
                                 </td>
                                 <td className="py-3 px-4 border-0 text-end">
@@ -221,6 +234,8 @@ const StudentArtifacts: React.FC = () => {
                                     <button 
                                       className={`btn btn-sm ${isDarkMode ? 'btn-outline-light' : 'btn-outline-primary'} rounded-pill px-3`}
                                       onClick={() => handleDownload(artifact)}
+                                      aria-label={`Download ${artifact.artifact_type_display || artifact.artifact_type}`}
+                                      title={`Download your ${(artifact.artifact_type_display || artifact.artifact_type).toLowerCase()}`}
                                     >
                                       <Download size={14} className="me-1" />
                                       Download
@@ -273,11 +288,14 @@ const StudentArtifacts: React.FC = () => {
                           className={`btn ${isDarkMode ? 'btn-primary' : 'btn-light text-primary'} btn-sm py-2 fw-bold d-flex align-items-center justify-content-center gap-2 w-100`}
                           onClick={() => handleGenerate('LOGBOOK_REPORT')}
                           disabled={!internship || !!generating || isLimitReached('LOGBOOK_REPORT')}
+                          aria-busy={generating === 'LOGBOOK_REPORT'}
+                          aria-label={generating === 'LOGBOOK_REPORT' ? 'Generating logbook report, please wait' : 'Regenerate logbook report'}
+                          title={isLimitReached('LOGBOOK_REPORT') ? 'Generation limit reached for this artifact type' : 'Generate a comprehensive report of your logbook entries'}
                         >
                           {generating === 'LOGBOOK_REPORT' ? (
-                            <span className="spinner-border spinner-border-sm" role="status"></span>
+                            <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
                           ) : (
-                            <RefreshCw size={16} />
+                            <RefreshCw size={16} aria-hidden="true" />
                           )}
                           {isLimitReached('LOGBOOK_REPORT') ? 'Report Limit Reached' : 'Regenerate Logbook Report'}
                         </button>
@@ -291,11 +309,14 @@ const StudentArtifacts: React.FC = () => {
                           className={`btn ${isDarkMode ? 'btn-info' : 'btn-info text-white'} btn-sm py-2 fw-bold d-flex align-items-center justify-content-center gap-2 w-100`}
                           onClick={() => handleGenerate('PERFORMANCE_SUMMARY')}
                           disabled={!internship || !!generating || isLimitReached('PERFORMANCE_SUMMARY')}
+                          aria-busy={generating === 'PERFORMANCE_SUMMARY'}
+                          aria-label={generating === 'PERFORMANCE_SUMMARY' ? 'Generating performance summary, please wait' : 'Generate performance summary'}
+                          title={isLimitReached('PERFORMANCE_SUMMARY') ? 'Generation limit reached for this artifact type' : 'Generate a summary of your performance during the internship'}
                         >
                           {generating === 'PERFORMANCE_SUMMARY' ? (
-                            <span className="spinner-border spinner-border-sm" role="status"></span>
+                            <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
                           ) : (
-                            <FileText size={16} />
+                            <FileText size={16} aria-hidden="true" />
                           )}
                           {isLimitReached('PERFORMANCE_SUMMARY') ? 'Summary Limit Reached' : 'Generate Performance Summary'}
                         </button>
@@ -310,12 +331,14 @@ const StudentArtifacts: React.FC = () => {
                             className={`btn ${isDarkMode ? 'btn-success' : 'btn-success'} btn-sm py-2 fw-bold d-flex align-items-center justify-content-center gap-2 w-100`}
                             onClick={() => handleGenerate('CERTIFICATE')}
                             disabled={!!generating || internship?.status !== 'CERTIFIED' || isLimitReached('CERTIFICATE')}
-                            title={internship?.status !== 'CERTIFIED' ? "Waiting for Institution Certification" : isLimitReached('CERTIFICATE') ? "Maximum generations reached" : "Generate Certificate"}
+                            aria-busy={generating === 'CERTIFICATE'}
+                            aria-label={generating === 'CERTIFICATE' ? 'Generating completion certificate, please wait' : internship?.status !== 'CERTIFIED' ? 'Completion certificate will be available after institution certification' : 'Generate your professional completion certificate'}
+                            title={internship?.status !== 'CERTIFIED' ? "Waiting for Institution Certification" : isLimitReached('CERTIFICATE') ? "Maximum generations reached" : "Generate your professional completion certificate"}
                           >
                             {generating === 'CERTIFICATE' ? (
-                              <span className="spinner-border spinner-border-sm" role="status"></span>
+                              <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
                             ) : (
-                              <Award size={16} />
+                              <Award size={16} aria-hidden="true" />
                             )}
                             {internship?.status !== 'CERTIFIED' ? "Pending Certification" : isLimitReached('CERTIFICATE') ? "Certificate Limit Reached" : "Generate Certificate"}
                           </button>
