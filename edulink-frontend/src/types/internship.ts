@@ -25,6 +25,7 @@ export interface Internship {
   description: string;
   location: string;
   arrangement: 'FULL_TIME' | 'PART_TIME' | 'REMOTE' | 'HYBRID';
+  department?: string;
   created_at: string;
   start_date: string;
   end_date?: string;

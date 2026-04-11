@@ -22,6 +22,9 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 
 import { showToast } from '../../utils/toast';
+import { getErrorMessage, logError } from '../../utils/errorMapper';
+import { dateFormatter } from '../../utils/dateFormatter';
+import type { Internship } from '../../types/internship';
 import { Link } from 'react-router-dom';
 import { Badge } from 'react-bootstrap';
 import { FeedbackModal } from '../../components/common';
@@ -38,7 +41,7 @@ import StudentInternshipSkeleton from '../../components/student/skeletons/Studen
 const StudentLogbook: React.FC = () => {
   const { user } = useAuth();
   const { isDarkMode } = useTheme();
-  const [internship, setInternship] = useState<any | null>(null);
+  const [internship, setInternship] = useState<Internship | null>(null);
   const [submissionHistory, setSubmissionHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -114,15 +117,18 @@ const StudentLogbook: React.FC = () => {
     const fetchActiveInternship = async () => {
       try {
         const data = await studentService.getActiveInternship();
-        setInternship(data);
         if (data) {
-          const history = await studentService.getEvidence(data.id);
-          // Filter for logbooks
+          // Extract Internship from InternshipApplication
+          const internshipData = (data as any).internship || (data as any);
+          setInternship(internshipData);
+          const history = await studentService.getEvidence(internshipData.id);
           setSubmissionHistory(history.filter(e => e.evidence_type === 'LOGBOOK'));
         }
       } catch (err) {
-        console.error(err);
-        setError('Failed to load active internship');
+        const message = getErrorMessage(err, { action: 'Load Logbook Data' });
+        showToast.error(message);
+        logError(err, { action: 'Load Logbook Data' });
+        setError(message);
       } finally {
         setLoading(false);
       }
@@ -234,17 +240,16 @@ const StudentLogbook: React.FC = () => {
       
       setSubmissionSuccess(true);
       setSubmitModalOpen(false);
-      // Clear draft
       const key = `logbook_draft_${internship.id}_${getLocalDateString(currentWeekStart)}`;
       localStorage.removeItem(key);
       showToast.success("Logbook submitted successfully!");
       
-      // Refresh history
       const history = await studentService.getEvidence(internship.id);
       setSubmissionHistory(history.filter(e => e.evidence_type === 'LOGBOOK'));
     } catch (err) {
-      console.error(err);
-      showToast.error("Failed to submit logbook. Please try again.");
+      const message = getErrorMessage(err, { action: 'Submit Logbook' });
+      showToast.error(message);
+      logError(err, { action: 'Submit Logbook', data: { weekStart: getLocalDateString(currentWeekStart) } });
     } finally {
       setSubmitting(false);
     }
@@ -271,7 +276,7 @@ const StudentLogbook: React.FC = () => {
         internshipTitle: internship.title,
         employerName: internship.employer_details?.name || "Employer",
         department: internship.department,
-        weekStartDate: currentWeekStart.toISOString().split('T')[0],
+        weekStartDate: dateFormatter.isoDate(currentWeekStart),
         status: "Draft / Pending Submission",
         entries: logbookEntries
       });
@@ -281,10 +286,11 @@ const StudentLogbook: React.FC = () => {
         'Your logbook PDF has been generated and downloaded successfully.'
       );
     } catch (err: any) {
-      console.error(err);
+      const message = getErrorMessage(err, { action: 'Generate Logbook PDF' });
+      logError(err, { action: 'Generate Logbook PDF' });
       showError(
         'Generation Failed',
-        'Failed to generate PDF. Please try again.',
+        message,
         err.message
       );
     }

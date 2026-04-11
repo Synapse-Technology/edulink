@@ -16,8 +16,8 @@ import StudentSidebar from '../../components/dashboard/StudentSidebar';
 import { SEO } from '../../components/common';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useErrorHandler } from '../../hooks/useErrorHandler';
 import { showToast } from '../../utils/toast';
+import { getErrorMessage, logError } from '../../utils/errorMapper';
 import ProfileWizard from '../../components/student/ProfileWizard';
 import ProgressRing from '../../components/student/dashboard/ProgressRing';
 import StatCard from '../../components/student/dashboard/StatCard';
@@ -59,12 +59,6 @@ const StudentDashboard: React.FC = () => {
   const [missingItems, setMissingItems] = useState<string[]>([]);
   const [trustLevel, setTrustLevel] = useState(0);
   const [ledgerEvents, setLedgerEvents] = useState<LedgerEvent[]>([]);
-
-  const { handleError: handleDashboardError } = useErrorHandler({
-    onNotFound: () => showToast.error('Student profile not found'),
-    onAuthError: () => showToast.error('Unauthorized. Please login again'),
-    onUnexpected: (error) => showToast.error(`Failed to load dashboard: ${error.message}`),
-  });
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -137,9 +131,10 @@ const StudentDashboard: React.FC = () => {
         if (isProfileIncomplete) {
           setShowProfileWizard(true);
         }
-
       } catch (error) {
-        await handleDashboardError(error);
+        const message = getErrorMessage(error, { action: 'Load Dashboard Data' });
+        showToast.error(message);
+        logError(error, { action: 'Load Dashboard Data' });
       } finally {
         setLoading(false);
       }
@@ -160,7 +155,14 @@ const StudentDashboard: React.FC = () => {
 
   const handleQuickLogSubmit = async (entry: string) => {
     if (!activeInternship) return;
-    await studentService.submitDailyLog(activeInternship.id, entry);
+    try {
+      await studentService.submitDailyLog(activeInternship.id, entry);
+      showToast.success('Log entry submitted successfully');
+    } catch (error) {
+      const message = getErrorMessage(error, { action: 'Submit Daily Log' });
+      showToast.error(message);
+      logError(error, { action: 'Submit Daily Log', data: { internshipId: activeInternship.id } });
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -401,11 +403,16 @@ const StudentDashboard: React.FC = () => {
                   <div className="card-body p-4">
                     <div className="d-flex align-items-center justify-content-between mb-4">
                       <h5 className={`fw-bold mb-0 ${isDarkMode ? 'text-info' : ''}`} style={isDarkMode ? { textShadow: '0 0 8px rgba(32, 201, 151, 0.3)' } : {}}>Recent Applications</h5>
-                      <Link to="/dashboard/student/applications" className={`btn btn-sm ${isDarkMode ? 'btn-outline-info' : 'btn-outline-primary'}`}>
+                      <Link 
+                        to="/dashboard/student/applications" 
+                        className={`btn btn-sm ${isDarkMode ? 'btn-outline-info' : 'btn-outline-primary'}`}
+                        aria-label="View all applications"
+                        title="View all applications"
+                      >
                         View All
                       </Link>
                     </div>
-                    <div className="table-responsive" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                    <div className="table-responsive" style={{ maxHeight: '300px', overflowY: 'auto' }} role="region" aria-label="Recent applications table">
                       <table className={`table table-hover align-middle ${isDarkMode ? 'table-dark' : ''} mb-0`}>
                         <thead className={`${isDarkMode ? 'table-dark' : ''} sticky-top bg-white`} style={{ zIndex: 1 }}>
                           <tr>
@@ -451,7 +458,12 @@ const StudentDashboard: React.FC = () => {
                         Upcoming Events
                       </h5>
                       {/* No calendar page yet, redirect to applications where status is visible */}
-                      <Link to="/dashboard/student/applications" className={`btn btn-sm ${isDarkMode ? 'btn-link text-info' : 'btn-link'}`}>
+                      <Link 
+                        to="/dashboard/student/applications" 
+                        className={`btn btn-sm ${isDarkMode ? 'btn-outline-info' : 'btn-outline-primary'}`}
+                        aria-label="View all applications"
+                        title="View all applications"
+                      >
                         View All
                       </Link>
                     </div>

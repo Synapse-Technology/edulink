@@ -325,7 +325,7 @@ const StudentArtifacts: React.FC = () => {
                         </div>
                       </div>
                       
-                      {['COMPLETED', 'CERTIFIED'].includes(internship?.status) && (
+                      {internship && ['COMPLETED', 'CERTIFIED'].includes(internship.status) && (
                         <div>
                           <button 
                             className={`btn ${isDarkMode ? 'btn-success' : 'btn-success'} btn-sm py-2 fw-bold d-flex align-items-center justify-content-center gap-2 w-100`}

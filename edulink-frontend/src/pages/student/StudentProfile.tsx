@@ -15,8 +15,8 @@ import TrustBadge, { type TrustLevel } from '../../components/common/TrustBadge'
 import { DocumentPreviewModal } from '../../components/common';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useErrorHandler } from '../../hooks/useErrorHandler';
 import { showToast } from '../../utils/toast';
+import { getErrorMessage, logError } from '../../utils/errorMapper';
 import { studentService } from '../../services/student/studentService';
 import type { StudentProfile as IStudentProfile } from '../../services/student/studentService';
 import StudentProfileSkeleton from '../../components/student/skeletons/StudentProfileSkeleton';
@@ -32,12 +32,6 @@ const StudentProfile: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { handleError: handleProfileError } = useErrorHandler({
-    onNotFound: () => showToast.error('Profile not found'),
-    onAuthError: () => showToast.error('Unauthorized access'),
-    onUnexpected: (error) => showToast.error(`Failed to load profile: ${error.message}`),
-  });
-
   // Preview Modal State
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewTitle, setPreviewTitle] = useState('');
@@ -49,7 +43,9 @@ const StudentProfile: React.FC = () => {
         const data = await studentService.getProfile();
         setProfile(data);
       } catch (error) {
-        await handleProfileError(error);
+        const message = getErrorMessage(error, { action: 'Load Profile' });
+        showToast.error(message);
+        logError(error, { action: 'Load Profile' });
       } finally {
         setLoading(false);
       }
@@ -70,11 +66,14 @@ const StudentProfile: React.FC = () => {
           profile_picture: file
         });
         setProfile(updatedProfile);
+        showToast.success('Profile picture updated successfully');
         // Force header update if possible, or reload page.
         // For now, we rely on page reload or navigation to update header.
         // Ideally we should update a global context or store.
       } catch (error) {
-        console.error('Failed to upload profile picture', error);
+        const message = getErrorMessage(error, { action: 'Upload Profile Picture' });
+        showToast.error(message);
+        logError(error, { action: 'Upload Profile Picture', data: { fileName: file.name } });
       } finally {
         setUploading(false);
       }
@@ -109,6 +108,8 @@ const StudentProfile: React.FC = () => {
         <button 
           onClick={() => handleViewDocument(path, title)}
           className="btn btn-sm btn-outline-primary d-flex align-items-center gap-2"
+          aria-label={`Preview ${title}`}
+          title={`Preview ${title}`}
         >
           <FileText size={14} />
           Preview
@@ -169,6 +170,8 @@ const StudentProfile: React.FC = () => {
             <button 
               className="btn btn-primary d-flex align-items-center gap-2"
               onClick={() => setShowWizard(true)}
+              aria-label="Edit profile information"
+              title="Edit profile information"
             >
               <Edit size={18} />
               Edit Profile
@@ -185,14 +188,22 @@ const StudentProfile: React.FC = () => {
                   </h5>
                   
                   <div className="d-flex justify-content-center mb-4 position-relative">
-                    <div className="position-relative" style={{ cursor: 'pointer' }} onClick={handleImageClick}>
+                    <div 
+                      className="position-relative" 
+                      style={{ cursor: 'pointer' }} 
+                      onClick={handleImageClick}
+                      role="button"
+                      tabIndex={0}
+                      aria-label="Click to change profile picture"
+                      onKeyDown={(e) => e.key === 'Enter' && handleImageClick()}
+                    >
                       <img 
                         src={profile?.profile_picture || user?.avatar || defaultProfile} 
-                        alt="Profile" 
+                        alt="Profile picture" 
                         className="rounded-circle object-fit-cover border border-3 border-primary"
                         style={{ width: '120px', height: '120px' }}
                       />
-                      <div className="position-absolute bottom-0 end-0 bg-primary text-white rounded-circle p-2 border border-2 border-white">
+                      <div className="position-absolute bottom-0 end-0 bg-primary text-white rounded-circle p-2 border border-2 border-white" title="Change photo">
                         <Camera size={16} />
                       </div>
                       {uploading && (
