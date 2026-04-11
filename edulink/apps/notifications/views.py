@@ -2,6 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.pagination import PageNumberPagination
 from django.shortcuts import get_object_or_404
 from django.conf import settings
 
@@ -24,6 +25,13 @@ from .services import (
 from .permissions import IsNotificationRecipient, IsSystemAdmin
 
 
+class NotificationPagination(PageNumberPagination):
+    """Pagination for notifications: 20 per page."""
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+
 class NotificationViewSet(viewsets.ModelViewSet):
     """
     ViewSet for notification operations.
@@ -32,6 +40,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
     queryset = Notification.objects.all()
     serializer_class = NotificationSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = NotificationPagination
     
     def get_serializer_class(self):
         """Return appropriate serializer based on action."""

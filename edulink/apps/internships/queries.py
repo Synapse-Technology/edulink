@@ -503,6 +503,7 @@ def get_application_logbook_count(application_id: UUID) -> int:
 def get_student_internship_dashboard_stats(student_id: str) -> Dict[str, dict]:
     """
     Returns internship-related dashboard stats for a given student.
+    Optimized with select_related to prevent N+1 queries.
     """
     from django.utils import timezone
     from datetime import timedelta
@@ -513,7 +514,11 @@ def get_student_internship_dashboard_stats(student_id: str) -> Dict[str, dict]:
     prev_30 = last_month - timedelta(days=30)
     prev_week = last_week - timedelta(days=7)
 
-    app_qs = InternshipApplication.objects.filter(student_id=student_id)
+    # Optimize: prefetch related opportunity data to avoid N+1 queries
+    app_qs = InternshipApplication.objects.filter(student_id=student_id).select_related(
+        'opportunity__employer',
+        'opportunity__institution'
+    )
 
     active_apps_count = app_qs.filter(
         status__in=[
@@ -659,4 +664,68 @@ def get_valid_opportunities() -> QuerySet[InternshipOpportunity]:
             Q(application_deadline__gt=now)  # Deadline is in the future
         )
     ).order_by('-created_at')
+
+
+def get_withdrawn_applications_for_student(student_id: UUID) -> QuerySet[InternshipApplication]:
+    """
+    Returns all withdrawn applications for a specific student.
+    Includes information about when and why they were withdrawn.
+    """
+    return InternshipApplication.objects.filter(
+        student_id=student_id,
+        status=ApplicationStatus.WITHDRAWN
+    ).select_related('opportunity').order_by('-updated_at')
+
+
+def get_withdrawn_applications_for_opportunity(opportunity_id: UUID) -> QuerySet[InternshipApplication]:
+    """
+    Returns all withdrawn applications for a specific opportunity.
+    Useful for monitoring withdrawal trends and patterns.
+    """
+    return InternshipApplication.objects.filter(
+        opportunity_id=opportunity_id,
+        status=ApplicationStatus.WITHDRAWN
+    ).select_related('student').order_by('-updated_at')
+
+
+def get_withdrawal_stats_for_opportunity(opportunity_id: UUID) -> dict:
+    """
+    Returns withdrawal statistics for a specific opportunity.
+    Helps identify if an opportunity has high withdrawal rates.
+    """
+    total_applications = InternshipApplication.objects.filter(
+        opportunity_id=opportunity_id
+    ).count()
+    
+    withdrawn_applications = InternshipApplication.objects.filter(
+        opportunity_id=opportunity_id,
+        status=ApplicationStatus.WITHDRAWN
+    ).count()
+    
+    withdrawal_rate = 0
+    if total_applications > 0:
+        withdrawal_rate = round((withdrawn_applications / total_applications) * 100, 2)
+    
+    return {
+        "total_applications": total_applications,
+        "withdrawn_applications": withdrawn_applications,
+        "withdrawal_rate": withdrawal_rate,
+    }
+
+
+def get_recent_withdrawals_for_opportunity(opportunity_id: UUID, days: int = 30) -> QuerySet[InternshipApplication]:
+    """
+    Returns withdrawn applications from the last N days for an opportunity.
+    Useful for identifying if an opportunity has recent withdrawal spikes.
+    """
+    from django.utils import timezone
+    from datetime import timedelta
+    
+    cutoff_date = timezone.now() - timedelta(days=days)
+    
+    return InternshipApplication.objects.filter(
+        opportunity_id=opportunity_id,
+        status=ApplicationStatus.WITHDRAWN,
+        updated_at__gte=cutoff_date
+    ).select_related('student').order_by('-updated_at')
 

@@ -20,6 +20,11 @@ import ssl
 from smtplib import SMTPDataError, SMTPException
 
 from edulink.apps.ledger.services import record_event
+from edulink.apps.shared.error_handling import (
+    ValidationError as EduLinkValidationError,
+    NotFoundError,
+    ErrorContext,
+)
 from edulink.shared.pusher_utils import trigger_pusher_event
 from .models import Notification, EmailVerificationToken, PasswordResetToken
 
@@ -71,12 +76,20 @@ def create_notification(
     # Validate notification type
     valid_types = [choice[0] for choice in Notification.TYPE_CHOICES]
     if type not in valid_types:
-        raise ValueError(f"Invalid notification type: {type}")
+        raise EduLinkValidationError(
+            user_message="Invalid notification type.",
+            developer_message=f"Notification type '{type}' not in valid types: {valid_types}",
+            context=ErrorContext().with_data(requested_type=type).build(),
+        )
     
     # Validate channel
     valid_channels = [choice[0] for choice in Notification.CHANNEL_CHOICES]
     if channel not in valid_channels:
-        raise ValueError(f"Invalid notification channel: {channel}")
+        raise EduLinkValidationError(
+            user_message="Invalid notification channel.",
+            developer_message=f"Notification channel '{channel}' not in valid channels: {valid_channels}",
+            context=ErrorContext().with_data(requested_channel=channel).build(),
+        )
     
     try:
         notification = Notification.objects.create(
@@ -1204,7 +1217,7 @@ def send_email_notification(*, recipient_email: str, subject: str, template_name
         # Determine notification type based on template or context
         notification_type = context.get("notification_type")
         if not notification_type:
-            # Map common templates to types or use generic
+            # Map common templates to types or use valid default
             template_to_type = {
                 "welcome": Notification.TYPE_WELCOME,
                 "email_verification": Notification.TYPE_EMAIL_VERIFICATION,
@@ -1212,7 +1225,9 @@ def send_email_notification(*, recipient_email: str, subject: str, template_name
                 "institution_approval": Notification.TYPE_INSTITUTION_ONBOARDED,
                 "institution_rejection": Notification.TYPE_INSTITUTION_ONBOARDED,
             }
-            notification_type = template_to_type.get(template_name, "generic_email")
+            notification_type = template_to_type.get(template_name, Notification.TYPE_EMAIL_VERIFICATION)
+            if template_name not in template_to_type:
+                logger.warning(f"Unmapped email template '{template_name}' - using TYPE_EMAIL_VERIFICATION as default")
 
         # Prepare body for the notification record
         body_content = strip_tags(render_to_string(f"notifications/emails/{template_name}.html", context))
@@ -1662,7 +1677,11 @@ def create_email_verification_token(*, user_id: str, email: str) -> str:
     try:
         user = User.objects.get(id=user_id, email=email)
     except User.DoesNotExist:
-        raise ValueError("User not found")
+        raise NotFoundError(
+            user_message="User not found.",
+            developer_message=f"User {user_id} with email {email} not found",
+            context=ErrorContext().with_user_id(user_id).build(),
+        )
     
     # Delete any existing token
     EmailVerificationToken.objects.filter(user_id=user_id).delete()
@@ -1843,12 +1862,16 @@ def use_password_reset_token(*, token: str, new_password: str) -> bool:
     
     # Validate new password
     from django.contrib.auth.password_validation import validate_password
-    from django.core.exceptions import ValidationError
+    from django.core.exceptions import ValidationError as DjangoValidationError
     
     try:
         validate_password(new_password, user)
-    except ValidationError as e:
-        raise ValueError(f"Invalid password: {', '.join(e.messages)}")
+    except DjangoValidationError as e:
+        raise EduLinkValidationError(
+            user_message="Password does not meet security requirements.",
+            developer_message=f"Password validation failed: {', '.join(e.messages)}",
+            context=ErrorContext().with_user_id(str(user.id)).build(),
+        )
     
     # Change password
     user.set_password(new_password)
@@ -2322,6 +2345,8 @@ def send_internship_application_status_update_notification(*, application_id: st
             notif_type = Notification.TYPE_INTERNSHIP_ACCEPTED
         elif status.upper() == "REJECTED":
             notif_type = Notification.TYPE_INTERNSHIP_REJECTED
+        elif status.upper() == "WITHDRAWN":
+            notif_type = Notification.TYPE_INTERNSHIP_APPLICATION_WITHDRAWN
             
         create_notification(
             recipient_id=str(student.user.id),
@@ -2845,5 +2870,51 @@ def send_student_opportunity_deadline_alert_notification(
         actor_id=actor_id,
         idempotency_key=idempotency_key
     )
+
+
+def send_internship_application_withdrawn_to_employer_notification(*, application_id: str, employer_id: str, student_name: str, opportunity_title: str, reason: str = None, actor_id: Optional[str] = None) -> bool:
+    """
+    Send notification to employer when a student withdraws from an internship application.
+    
+    Context passed to template:
+    - student_name: Name of the student who withdrew
+    - opportunity_title: Title of the opportunity
+    - application_id: UUID of the application
+    - reason: Reason for withdrawal (optional)
+    - dashboard_url: Link to employer applications dashboard
+    - site_name: Site name
+    
+    Transaction model: send_email_notification with idempotency key.
+    """
+    from edulink.apps.employers.queries import get_employer_by_id
+    
+    employer = get_employer_by_id(uuid.UUID(employer_id))
+    if not employer:
+        return False
+    
+    # Get the employer's main contact email
+    recipient_email = employer.primary_contact_email if hasattr(employer, 'primary_contact_email') else employer.email
+    
+    context = {
+        "employer_name": employer.name,
+        "student_name": student_name,
+        "opportunity_title": opportunity_title,
+        "application_id": application_id,
+        "reason": reason or "Not provided",
+        "dashboard_url": f"{settings.FRONTEND_URL}/dashboard/employer/applications",
+        "site_name": "Edulink"
+    }
+    
+    success = send_email_notification(
+        recipient_email=recipient_email,
+        subject=f"Application Withdrawn: {student_name} - {opportunity_title}",
+        template_name="internship_application_withdrawn_employer",
+        context=context,
+        actor_id=actor_id,
+        idempotency_key=f"withdrawn-employer-{application_id}"
+    )
+    
+    return success
+
 
     return sent_count

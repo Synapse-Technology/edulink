@@ -318,6 +318,18 @@ class InternshipService {
     }
   }
 
+  async withdrawApplication(id: string, reason?: string): Promise<InternshipApplication> {
+    try {
+      const response = await this.client.post<InternshipApplication>(`/api/internships/applications/${id}/withdraw/`, {
+        reason: reason || null
+      });
+      return response;
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new Error('Failed to withdraw application');
+    }
+  }
+
   async bulkAssignSupervisors(institutionId: string, departmentId: string, cohortId?: string): Promise<{ assigned_count: number; supervisor_count: number; message: string }> {
     try {
       const response = await this.client.post<{ assigned_count: number; supervisor_count: number; message: string }>(

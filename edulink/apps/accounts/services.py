@@ -3,15 +3,23 @@ Authentication and user management services.
 Follows architecture rules: pure business logic, no HTTP handling, triggers events.
 """
 
+import logging
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import update_last_login
 from django.contrib.auth.password_validation import validate_password
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils import timezone
 from django.conf import settings
 from datetime import timedelta
 import uuid
 
+from edulink.apps.shared.error_handling import (
+    ValidationError,
+    AuthorizationError,
+    NotFoundError,
+    ConflictError,
+    ErrorContext,
+)
 from .models import User
 from edulink.apps.ledger.services import record_event
 from edulink.apps.students.services import preregister_student
@@ -25,6 +33,8 @@ from edulink.apps.notifications.services import (
     send_password_changed_notification
 )
 
+logger = logging.getLogger(__name__)
+
 
 def create_user(*, email: str, password: str, username: str = None, role: str = User.ROLE_STUDENT, **kwargs) -> User:
     """
@@ -34,7 +44,11 @@ def create_user(*, email: str, password: str, username: str = None, role: str = 
     Handles institution_id for student registration (passed to student service).
     """
     if not email:
-        raise ValueError("Email is required")
+        raise ValidationError(
+            user_message="Email address is required.",
+            developer_message="Email field is empty",
+            context=ErrorContext().build(),
+        )
     
     if not username:
         username = email.split('@')[0]  # Use email prefix as default username
@@ -47,8 +61,12 @@ def create_user(*, email: str, password: str, username: str = None, role: str = 
     # Validate password
     try:
         validate_password(password)
-    except ValidationError as e:
-        raise ValueError(f"Invalid password: {', '.join(e.messages)}")
+    except DjangoValidationError as e:
+        raise ValidationError(
+            user_message="Password does not meet security requirements.",
+            developer_message=f"Password validation failed: {e.messages}",
+            context=ErrorContext().build(),
+        )
     
     # Create user
     user = User.objects.create_user(
@@ -168,13 +186,21 @@ def create_activated_user(
     Records USER_CREATED event.
     """
     if not email:
-        raise ValueError("Email is required")
+        raise ValidationError(
+            user_message="Email address is required.",
+            developer_message="Email field is empty",
+            context=ErrorContext().build(),
+        )
         
     # Validate password
     try:
         validate_password(password)
-    except ValidationError as e:
-        raise ValueError(f"Invalid password: {', '.join(e.messages)}")
+    except DjangoValidationError as e:
+        raise ValidationError(
+            user_message="Password does not meet security requirements.",
+            developer_message=f"Password validation failed: {e.messages}",
+            context=ErrorContext().build(),
+        )
         
     user = User.objects.create_user(
         username=email,
@@ -258,7 +284,11 @@ def authenticate_user(*, email: str, password: str) -> User:
             # Don't record events for non-existent users (security)
             pass
         
-        raise ValueError("Invalid email or password")
+        raise AuthorizationError(
+            user_message="Invalid email or password.",
+            developer_message="Authentication failed",
+            context=ErrorContext().build(),
+        )
 
 
 def change_user_password(*, user_id: str, old_password: str, new_password: str) -> User:
@@ -270,17 +300,29 @@ def change_user_password(*, user_id: str, old_password: str, new_password: str) 
     try:
         user = User.objects.get(id=user_id)
     except User.DoesNotExist:
-        raise ValueError("User not found")
+        raise NotFoundError(
+            user_message="User not found.",
+            developer_message="User does not exist in database",
+            context=ErrorContext().build(),
+        )
     
     # Validate old password
     if not user.check_password(old_password):
-        raise ValueError("Current password is incorrect")
+        raise AuthorizationError(
+            user_message="Current password is incorrect.",
+            developer_message="Password verification failed",
+            context=ErrorContext().build(),
+        )
     
     # Validate new password
     try:
         validate_password(new_password, user)
-    except ValidationError as e:
-        raise ValueError(f"Invalid new password: {', '.join(e.messages)}")
+    except DjangoValidationError as e:
+        raise ValidationError(
+            user_message="Password does not meet security requirements.",
+            developer_message=f"Invalid new password: {", ".join(e.messages)}",
+            context=ErrorContext().build(),
+        )
     
     # Change password
     user.set_password(new_password)
@@ -399,7 +441,11 @@ def update_user_profile(*, user_id: str, actor_id: str | None = None, **kwargs) 
     try:
         user = User.objects.get(id=user_id)
     except User.DoesNotExist:
-        raise ValueError("User not found")
+        raise NotFoundError(
+            user_message="User not found.",
+            developer_message="User does not exist in database",
+            context=ErrorContext().build(),
+        )
     
     allowed_fields = ["first_name", "last_name", "phone_number", "avatar_url", "email"]
     updated_fields = []
@@ -410,7 +456,11 @@ def update_user_profile(*, user_id: str, actor_id: str | None = None, **kwargs) 
                 new_email = kwargs[field]
                 if new_email and new_email != user.email:
                     if User.objects.filter(email=new_email).exclude(id=user.id).exists():
-                        raise ValueError("Email already in use")
+                        raise ConflictError(
+            user_message="Email address is already in use.",
+            developer_message="Duplicate email in database",
+            context=ErrorContext().build(),
+        )
                     user.email = new_email
                     updated_fields.append("email")
                 continue
@@ -445,12 +495,20 @@ def assign_user_role(*, user_id: str, new_role: str) -> User:
     try:
         user = User.objects.get(id=user_id)
     except User.DoesNotExist:
-        raise ValueError("User not found")
+        raise NotFoundError(
+            user_message="User not found.",
+            developer_message="User does not exist in database",
+            context=ErrorContext().build(),
+        )
     
     # Validate role
     valid_roles = [choice[0] for choice in User.ROLE_CHOICES]
     if new_role not in valid_roles:
-        raise ValueError(f"Invalid role. Valid roles: {valid_roles}")
+        raise ValidationError(
+            user_message="Invalid role specified.",
+            developer_message=f"Invalid role. Valid roles: {valid_roles}",
+            context=ErrorContext().build(),
+        )
     
     old_role = user.role
     if old_role == new_role:
@@ -484,7 +542,11 @@ def get_user_by_id(*, user_id: str) -> User:
     try:
         return User.objects.get(id=user_id)
     except User.DoesNotExist:
-        raise ValueError("User not found")
+        raise NotFoundError(
+            user_message="User not found.",
+            developer_message="User does not exist in database",
+            context=ErrorContext().build(),
+        )
 
 
 def get_user_by_email(*, email: str) -> User:
@@ -495,7 +557,11 @@ def get_user_by_email(*, email: str) -> User:
     try:
         return User.objects.get(email=email)
     except User.DoesNotExist:
-        raise ValueError("User not found")
+        raise NotFoundError(
+            user_message="User not found.",
+            developer_message="User does not exist in database",
+            context=ErrorContext().build(),
+        )
 
 
 def list_users(*, role: str = None, is_active: bool = None) -> list[User]:
@@ -521,7 +587,11 @@ def deactivate_own_account(*, user_id: str, reason: str = "") -> User:
     try:
         user = User.objects.get(id=user_id)
     except User.DoesNotExist:
-        raise ValueError("User not found")
+        raise NotFoundError(
+            user_message="User not found.",
+            developer_message="User does not exist in database",
+            context=ErrorContext().build(),
+        )
         
     if not user.is_active:
         return user

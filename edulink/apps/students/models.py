@@ -64,8 +64,14 @@ class Student(BaseModel):
     # Documents
     profile_picture = models.ImageField(upload_to='students/profile_pictures/', null=True, blank=True)
     cv = models.FileField(upload_to='students/cvs/', blank=True)
+    cv_verified = models.BooleanField(default=False, help_text="CV verified by institution admin")
+    cv_verified_at = models.DateTimeField(null=True, blank=True)
     admission_letter = models.FileField(upload_to='students/admission_letters/', blank=True)
+    admission_letter_verified = models.BooleanField(default=False, help_text="Admission letter verified")
+    admission_letter_verified_at = models.DateTimeField(null=True, blank=True)
     id_document = models.FileField(upload_to='students/id_documents/', blank=True)
+    id_document_verified = models.BooleanField(default=False, help_text="ID document verified")
+    id_document_verified_at = models.DateTimeField(null=True, blank=True)
     
     class Meta:
         app_label = "students"

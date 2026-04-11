@@ -2,6 +2,10 @@ import logging
 from django.db import transaction
 from .models import ContactSubmission
 from edulink.apps.ledger.services import record_event
+from edulink.apps.shared.error_handling import (
+    NotFoundError,
+    ErrorContext,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -77,4 +81,8 @@ def process_contact_submission(*, submission_id: str, processed_by_id: str, inte
 
         return submission
     except ContactSubmission.DoesNotExist:
-        raise ValueError(f"Contact submission {submission_id} not found")
+        raise NotFoundError(
+            user_message="Contact submission not found.",
+            developer_message=f"ContactSubmission with ID {submission_id} not found",
+            context=ErrorContext().build(),
+        )

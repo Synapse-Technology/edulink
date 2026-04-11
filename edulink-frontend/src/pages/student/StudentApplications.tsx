@@ -32,8 +32,14 @@ const ApplicationStatusBadge = ({ status }: { status: string }) => {
         return { color: 'bg-success', icon: CheckCircle, text: 'Accepted' };
       case 'REJECTED':
         return { color: 'bg-danger', icon: XCircle, text: 'Rejected' };
+      case 'WITHDRAWN':
+        return { color: 'bg-warning', icon: AlertCircle, text: 'Withdrawn' };
       case 'ACTIVE':
         return { color: 'bg-success', icon: Briefcase, text: 'Active' };
+      case 'COMPLETED':
+        return { color: 'bg-dark', icon: CheckCircle, text: 'Completed' };
+      case 'CERTIFIED':
+        return { color: 'bg-success', icon: CheckCircle, text: 'Certified' };
       default:
         return { color: 'bg-secondary', icon: AlertCircle, text: status };
     }
@@ -71,16 +77,31 @@ const StudentApplications: React.FC = () => {
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  // Handle real-time updates via Pusher
+  // Handle real-time updates via Pusher with fallback polling
   const handleStatusUpdate = useCallback((data: any) => {
     console.log('Real-time application update:', data);
     queryClient.invalidateQueries({ queryKey: ['applications'] });
   }, [queryClient]);
 
-  usePusher(
+  const fallbackPollApplications = useCallback(async () => {
+    try {
+      await studentService.getApplications();
+      return null; // Handle refresh via TanStack Query
+    } catch (error) {
+      console.warn('Fallback poll failed:', error);
+      return null;
+    }
+  }, []);
+
+  const { isPolling } = usePusher(
     user ? `user-${user.id}` : undefined,
     'application-status-updated',
-    handleStatusUpdate
+    handleStatusUpdate,
+    {
+      fallbackPoll: fallbackPollApplications,
+      fallbackDelay: 10000, // 10 seconds before fallback
+      pollingInterval: 3000, // Poll every 3 seconds
+    }
   );
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -132,6 +153,13 @@ const StudentApplications: React.FC = () => {
               <ArrowLeft size={16} />
             </Link>
             <h1 className={`h3 fw-bold mb-0 ${isDarkMode ? 'text-info' : ''}`}>My Applications</h1>
+
+            {isPolling && (
+              <div className={`alert alert-warning mt-3 d-flex align-items-center gap-2 ${isDarkMode ? 'bg-dark border-warning-subtle' : ''}`} role="alert">
+                <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                <span>Connection latency detected. Updates may be delayed.</span>
+              </div>
+            )}
           </div>
 
           {loading ? (

@@ -1,0 +1,37 @@
+{% extends "notifications/emails/base.html" %}
+
+{% block title %}Application Withdrawn - {{ opportunity_title }}{% endblock %}
+
+{% block content %}
+<div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+    <h2 style="color: #d9534f;">Application Withdrawn</h2>
+    
+    <p>Dear {{ employer_name }},</p>
+    
+    <p><strong>{{ student_name }}</strong> has withdrawn their application for <strong>{{ opportunity_title }}</strong>.</p>
+    
+    <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #d9534f;">
+        <h3 style="margin-top: 0; color: #d9534f;">Withdrawal Details</h3>
+        <p><strong>Student:</strong> {{ student_name }}</p>
+        <p><strong>Opportunity:</strong> {{ opportunity_title }}</p>
+        {% if reason %}
+        <p><strong>Reason:</strong> {{ reason }}</p>
+        {% endif %}
+    </div>
+    
+    <p>You may now review other applications for this opportunity or close the position if you've found a suitable candidate through other means.</p>
+    
+    <p style="text-align: center; margin: 25px 0;">
+        <a href="{{ dashboard_url }}" 
+           style="background-color: #2c5aa0; color: white; padding: 12px 24px; 
+                  text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
+            View Applications
+        </a>
+    </p>
+    
+    <p style="margin-top: 30px; font-size: 14px; color: #666;">
+        Best regards,<br>
+        The {{ site_name }} Team
+    </p>
+</div>
+{% endblock %}

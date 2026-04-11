@@ -167,6 +167,15 @@ class ArtifactViewSet(viewsets.ReadOnlyModelViewSet):
         serializer = ArtifactSerializer(artifact)
         safe_filename = serializer.data['download_filename']
 
-        response = HttpResponse(artifact.file.read(), content_type='application/pdf')
+        try:
+            file_content = artifact.file.read()
+        except Exception as e:
+            logger.error(f"Failed to read artifact file {artifact.id}: {e}")
+            return Response(
+                {"error": "File access failed. Please contact support if this persists."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        response = HttpResponse(file_content, content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="{safe_filename}"'
         return response

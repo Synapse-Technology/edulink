@@ -5,6 +5,7 @@ import { authService } from '../../services/auth/authService';
 import { institutionService } from '../../services/institution/institutionService';
 import { apiClient } from '../../services/api/client';
 import { ApiError } from '../../services/errors';
+import { useRegisterErrorHandler } from '../../hooks/useAuthErrorHandler';
 
 // CSS Animations and Keyframes
 const styles = `
@@ -303,6 +304,8 @@ interface RegisterFormData {
 }
 
 const Register: React.FC = () => {
+  const errorHandler = useRegisterErrorHandler({ portal: 'student' });
+  
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<RegisterFormData>({
     email: '',
@@ -641,12 +644,24 @@ const Register: React.FC = () => {
       );
       setCurrentStep(0);
     } catch (error) {
-      let errorMessage = 'Registration failed. Please try again.';
-      if (error instanceof ApiError) {
-        errorMessage = error.message;
+      // Use new error handler for structured error parsing
+      await errorHandler.handleError(error);
+      
+      // Get field-level errors if available
+      const fieldErrors = errorHandler.getAllFieldErrors();
+      if (fieldErrors.length > 0) {
+        // Show field errors
+        const errorMsg = fieldErrors
+          .map((f: { field: string; errors: string[] }) => `${f.field}: ${f.errors.join(', ')}`)
+          .join('; ');
+        showToastMessage(errorMsg, 'error');
+      } else {
+        // Show general error message
+        const errorMessage = error instanceof ApiError 
+          ? error.message 
+          : 'Registration failed. Please try again.';
+        showToastMessage(errorMessage, 'error');
       }
-      setMessage(errorMessage);
-      showToastMessage(errorMessage, 'error');
     } finally {
       setIsSubmitting(false);
       // Remove loading overlay

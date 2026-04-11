@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MapPin, Briefcase, Calendar, Building2, CheckCircle, Clock, XCircle, FileText, Maximize2 } from 'lucide-react';
+import { ArrowLeft, MapPin, Briefcase, Calendar, Building2, CheckCircle, Clock, XCircle, FileText, Maximize2, AlertCircle, Trash2 } from 'lucide-react';
 import StudentHeader from '../../components/dashboard/StudentHeader';
 import StudentSidebar from '../../components/dashboard/StudentSidebar';
 import { DocumentPreviewModal } from '../../components/common';
@@ -13,6 +13,9 @@ const StudentApplicationDetail: React.FC = () => {
   const navigate = useNavigate();
   const [application, setApplication] = useState<InternshipApplication | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
+  const [withdrawReason, setWithdrawReason] = useState('');
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   
   // Theme state from context
   const { isDarkMode } = useTheme();
@@ -41,6 +44,31 @@ const StudentApplicationDetail: React.FC = () => {
     }
   };
 
+  const handleWithdraw = async () => {
+    if (!application) return;
+    
+    try {
+      setIsWithdrawing(true);
+      await internshipService.withdrawApplication(application.id, withdrawReason);
+      
+      // Refresh application data
+      await fetchApplication(application.id);
+      setShowWithdrawModal(false);
+      setWithdrawReason('');
+      
+      // Show success message (you could use a toast here)
+      alert('Application withdrawn successfully');
+    } catch (error: any) {
+      console.error('Failed to withdraw application:', error);
+      alert(error.message || 'Failed to withdraw application. Please try again.');
+    } finally {
+      setIsWithdrawing(false);
+    }
+  };
+
+  const canWithdraw = application && 
+    ['APPLIED', 'SHORTLISTED', 'ACCEPTED'].includes(application.status);
+
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
@@ -50,9 +78,11 @@ const StudentApplicationDetail: React.FC = () => {
       'APPLIED': { color: 'warning', icon: <Clock size={16} />, text: 'Pending Review' },
       'SHORTLISTED': { color: 'info', icon: <CheckCircle size={16} />, text: 'Shortlisted' },
       'ACCEPTED': { color: 'primary', icon: <CheckCircle size={16} />, text: 'Accepted' },
+      'WITHDRAWN': { color: 'secondary', icon: <AlertCircle size={16} />, text: 'Withdrawn' },
       'ACTIVE': { color: 'success', icon: <Briefcase size={16} />, text: 'Active Internship' },
       'REJECTED': { color: 'danger', icon: <XCircle size={16} />, text: 'Not Selected' },
-      'COMPLETED': { color: 'dark', icon: <CheckCircle size={16} />, text: 'Completed' }
+      'COMPLETED': { color: 'dark', icon: <CheckCircle size={16} />, text: 'Completed' },
+      'CERTIFIED': { color: 'success', icon: <CheckCircle size={16} />, text: 'Certified' }
     };
     
     const config = badges[status as keyof typeof badges] || { color: 'secondary', icon: null, text: status };
@@ -253,6 +283,19 @@ const StudentApplicationDetail: React.FC = () => {
                       {getTimelineSteps(application.status)}
                     </div>
                   </div>
+
+                  {/* Action Buttons */}
+                  {canWithdraw && (
+                    <div className="py-3 mt-4 border-top border-light">
+                      <button
+                        className="btn btn-sm btn-outline-danger d-flex align-items-center gap-2"
+                        onClick={() => setShowWithdrawModal(true)}
+                      >
+                        <Trash2 size={16} />
+                        Withdraw Application
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -330,6 +373,77 @@ const StudentApplicationDetail: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Withdrawal Modal */}
+        {showWithdrawModal && (
+          <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} role="dialog">
+            <div className="modal-dialog modal-dialog-centered">
+              <div className={`modal-content ${isDarkMode ? 'bg-secondary text-white' : ''}`}>
+                <div className="modal-header border-bottom-0">
+                  <h5 className="modal-title fw-bold">Withdraw Application</h5>
+                  <button 
+                    type="button" 
+                    className={`btn-close ${isDarkMode ? 'btn-close-white' : ''}`}
+                    onClick={() => {
+                      setShowWithdrawModal(false);
+                      setWithdrawReason('');
+                    }}
+                    disabled={isWithdrawing}
+                  ></button>
+                </div>
+                <div className="modal-body">
+                  <p className={isDarkMode ? 'text-light' : 'text-muted'}>
+                    Are you sure you want to withdraw from this application? This action cannot be undone.
+                  </p>
+                  <div className="mb-3">
+                    <label className={`form-label fw-semibold mb-2 ${isDarkMode ? 'text-light' : ''}`}>
+                      Reason for withdrawal (optional)
+                    </label>
+                    <textarea
+                      className={`form-control ${isDarkMode ? 'bg-dark text-white border-secondary' : ''}`}
+                      rows={4}
+                      placeholder="Tell us why you're withdrawing..."
+                      value={withdrawReason}
+                      onChange={(e) => setWithdrawReason(e.target.value)}
+                      disabled={isWithdrawing}
+                    ></textarea>
+                    <small className={isDarkMode ? 'text-light opacity-75' : 'text-muted'}>
+                      Your feedback helps us improve
+                    </small>
+                  </div>
+                </div>
+                <div className="modal-footer border-top-0">
+                  <button
+                    type="button"
+                    className={`btn ${isDarkMode ? 'btn-outline-light' : 'btn-outline-secondary'}`}
+                    onClick={() => {
+                      setShowWithdrawModal(false);
+                      setWithdrawReason('');
+                    }}
+                    disabled={isWithdrawing}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-danger"
+                    onClick={handleWithdraw}
+                    disabled={isWithdrawing}
+                  >
+                    {isWithdrawing ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        Withdrawing...
+                      </>
+                    ) : (
+                      'Withdraw Application'
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <DocumentPreviewModal 
           show={previewOpen}

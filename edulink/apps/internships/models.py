@@ -16,6 +16,7 @@ class ApplicationStatus(models.TextChoices):
     COMPLETED = "COMPLETED", _("Completed")
     TERMINATED = "TERMINATED", _("Terminated")
     CERTIFIED = "CERTIFIED", _("Certified")
+    WITHDRAWN = "WITHDRAWN", _("Withdrawn by Student")
 
 class InternshipOpportunity(BaseModel):
     """
@@ -102,6 +103,9 @@ class InternshipApplication(BaseModel):
         default=ApplicationStatus.APPLIED
     )
     
+    # Optimistic locking: prevents concurrent state corruption
+    version = models.PositiveIntegerField(default=1, help_text="Version for optimistic locking")
+    
     # Snapshot of student profile at time of application
     application_snapshot = models.JSONField(default=dict, blank=True, help_text="Snapshot of student profile at time of application")
     
@@ -111,6 +115,10 @@ class InternshipApplication(BaseModel):
     # Final Feedback (Authored by supervisors upon completion)
     final_feedback = models.TextField(blank=True, help_text="Authoritative feedback from supervisor(s)")
     final_rating = models.PositiveIntegerField(null=True, blank=True, help_text="Numeric rating (1-5)")
+    
+    # Withdrawal metadata
+    withdrawn_at = models.DateTimeField(null=True, blank=True, help_text="When student withdrew")
+    withdrawal_reason = models.TextField(blank=True, help_text="Why student withdrew")
 
     class Meta:
         app_label = "internships"
@@ -186,13 +194,21 @@ class InternshipEvidence(BaseModel):
 class Incident(BaseModel):
     """
     Represents a misconduct flag or issue raised during an internship.
+    Workflow: OPEN → ASSIGNED → INVESTIGATING → PENDING_APPROVAL → RESOLVED
+                                                                  ↘ DISMISSED
     """
     STATUS_OPEN = "OPEN"
+    STATUS_ASSIGNED = "ASSIGNED"
+    STATUS_INVESTIGATING = "INVESTIGATING"
+    STATUS_PENDING_APPROVAL = "PENDING_APPROVAL"
     STATUS_RESOLVED = "RESOLVED"
     STATUS_DISMISSED = "DISMISSED"
     
     STATUS_CHOICES = [
-        (STATUS_OPEN, "Open"),
+        (STATUS_OPEN, "Open / Reported"),
+        (STATUS_ASSIGNED, "Assigned to Investigator"),
+        (STATUS_INVESTIGATING, "Under Investigation"),
+        (STATUS_PENDING_APPROVAL, "Pending Resolution Approval"),
         (STATUS_RESOLVED, "Resolved"),
         (STATUS_DISMISSED, "Dismissed"),
     ]
@@ -206,13 +222,94 @@ class Incident(BaseModel):
     
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_OPEN)
     
-    resolution_notes = models.TextField(blank=True)
+    # Investigation tracking
+    investigator_id = models.UUIDField(null=True, blank=True, help_text="Who is investigating this incident")
+    assigned_at = models.DateTimeField(null=True, blank=True, help_text="When investigator was assigned")
+    
+    resolution_notes = models.TextField(blank=True, help_text="Public resolution notes visible to all parties")
+    investigation_notes = models.TextField(blank=True, help_text="Private investigation notes")
+    
     resolved_at = models.DateTimeField(null=True, blank=True)
     resolved_by = models.UUIDField(null=True, blank=True)
+    
+    # Audit metadata
+    metadata = models.JSONField(default=dict, blank=True, help_text="History and tracking data")
     
     class Meta:
         app_label = "internships"
         db_table = "internship_incidents"
+
+class SupervisorAssignment(BaseModel):
+    """
+    Represents the assignment of a supervisor to an internship application.
+    Workflow: PENDING → ACCEPTED or REJECTED
+    
+    Separation of concerns:
+    - Admin assigns supervisor (creates assignment in PENDING state)
+    - Supervisor reviews and accepts/rejects
+    - Acceptance converts to final supervisor on the application
+    """
+    STATUS_PENDING = "PENDING"
+    STATUS_ACCEPTED = "ACCEPTED"
+    STATUS_REJECTED = "REJECTED"
+    
+    STATUS_CHOICES = [
+        (STATUS_PENDING, "Pending Supervisor Review"),
+        (STATUS_ACCEPTED, "Supervisor Accepted"),
+        (STATUS_REJECTED, "Supervisor Rejected"),
+    ]
+    
+    ASSIGNMENT_EMPLOYER = "EMPLOYER"
+    ASSIGNMENT_INSTITUTION = "INSTITUTION"
+    
+    ASSIGNMENT_TYPE_CHOICES = [
+        (ASSIGNMENT_EMPLOYER, "Employer Supervisor"),
+        (ASSIGNMENT_INSTITUTION, "Institution Supervisor"),
+    ]
+    
+    # Core references
+    application = models.ForeignKey(
+        InternshipApplication,
+        on_delete=models.CASCADE,
+        related_name="supervisor_assignments",
+        help_text="The internship application being assigned"
+    )
+    supervisor_id = models.UUIDField(help_text="The supervisor being assigned")
+    assigned_by_id = models.UUIDField(help_text="Who assigned this supervisor (admin)")
+    
+    # Assignment metadata
+    assignment_type = models.CharField(
+        max_length=20,
+        choices=ASSIGNMENT_TYPE_CHOICES,
+        help_text="Whether this is employer or institution supervisor"
+    )
+    
+    # Workflow state
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=STATUS_PENDING,
+        help_text="Current state: PENDING (assigned but not reviewed), ACCEPTED (supervisor accepted), REJECTED (supervisor rejected)"
+    )
+    
+    # Timestamps
+    assigned_at = models.DateTimeField(auto_now_add=True, help_text="When supervisor was assigned by admin")
+    accepted_at = models.DateTimeField(null=True, blank=True, help_text="When supervisor accepted the assignment")
+    rejected_at = models.DateTimeField(null=True, blank=True, help_text="When supervisor rejected the assignment")
+    rejection_reason = models.TextField(blank=True, help_text="Why supervisor rejected (optional)")
+    
+    # Audit metadata
+    metadata = models.JSONField(default=dict, blank=True, help_text="Audit trail and tracking data")
+    
+    class Meta:
+        app_label = "internships"
+        db_table = "internship_supervisor_assignments"
+        unique_together = [("application", "supervisor_id", "assignment_type")]
+        indexes = [
+            models.Index(fields=["status"]),
+            models.Index(fields=["application", "assignment_type"]),
+            models.Index(fields=["supervisor_id"]),
+        ]
 
 class SuccessStory(BaseModel):
     """

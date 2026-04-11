@@ -68,6 +68,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "edulink.apps.shared.middleware.ErrorHandlingMiddleware",  # Global exception handler
 ]
 
 ROOT_URLCONF = "edulink.config.urls"
@@ -167,7 +168,9 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {
         "anon": "100/day",
         "user": "1000/day",
+        "application_submissions": "10/hour",
     },
+    "EXCEPTION_HANDLER": "edulink.apps.shared.exceptions.edulink_exception_handler",
 }
 
 # Django Q2 Configuration (Background Tasks)

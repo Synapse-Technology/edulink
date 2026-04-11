@@ -5,15 +5,21 @@ Following the platform admin blueprint for controlled authority management.
 
 import secrets
 import uuid
+import logging
 from datetime import timedelta
 from django.utils import timezone
 from django.db import transaction
 from django.contrib.auth import get_user_model
-from django.core.exceptions import ValidationError
 
-import logging
 from edulink.apps.ledger.services import record_event
 from edulink.apps.notifications.services import send_staff_invite_notification
+from edulink.apps.shared.error_handling import (
+    ValidationError,
+    AuthorizationError,
+    NotFoundError,
+    ConflictError,
+    ErrorContext,
+)
 from .models import PlatformStaffProfile, AdminActionLog, StaffInvite
 
 logger = logging.getLogger(__name__)
@@ -31,7 +37,11 @@ def create_genesis_super_admin(*, email: str, password: str) -> User:
         role=PlatformStaffProfile.ROLE_SUPER_ADMIN,
         is_active=True
     ).exists():
-        raise ValidationError("Genesis super admin profile already exists")
+        raise ConflictError(
+                    user_message="Genesis super admin profile already exists.",
+                    developer_message="PlatformStaffProfile with super admin role exists",
+                    context=ErrorContext().build(),
+        )
     
     # Get or create the user
     user = User.objects.filter(email=email).first()
@@ -92,20 +102,36 @@ def create_staff_invite(*, email: str, role: str, created_by: User, note: str = 
     ).first()
     
     if not creator_profile:
-        raise ValidationError("Only super admins can create staff invites")
+        raise AuthorizationError(
+                    user_message="Only super admins can create staff invites.",
+                    developer_message="User lacks SUPER_ADMIN role",
+                    context=ErrorContext().build(),
+        )
     
     # Validate role is not super admin (genesis only)
     if role == PlatformStaffProfile.ROLE_SUPER_ADMIN:
-        raise ValidationError("Super admin role can only be assigned via genesis creation")
+        raise AuthorizationError(
+                    user_message="Super admin role can only be assigned via genesis creation.",
+                    developer_message="Cannot assign SUPER_ADMIN role after genesis",
+                    context=ErrorContext().build(),
+        )
     
     # Check for existing invites
     existing_invite = StaffInvite.objects.filter(email=email).first()
     if existing_invite:
         if existing_invite.is_accepted:
-            raise ValidationError("User has already accepted an invitation")
+            raise ConflictError(
+                        user_message="User has already accepted an invitation.",
+                        developer_message="StaffInvite already accepted",
+                        context=ErrorContext().build(),
+            )
         
         if not existing_invite.is_expired:
-            raise ValidationError("A valid invitation already exists for this email")
+            raise ConflictError(
+                        user_message="A valid invitation already exists for this email.",
+                        developer_message="Pending StaffInvite already exists",
+                        context=ErrorContext().build(),
+            )
             
         # Delete expired invite to allow re-invitation
         # This is safe because it's expired and not accepted
@@ -169,17 +195,29 @@ def accept_staff_invite(*, token: str, password: str, first_name: str = "", last
     ).first()
     
     if not invite:
-        raise ValidationError("Invalid or already accepted invite")
+        raise ConflictError(
+                    user_message="Invalid or already accepted invite.",
+                    developer_message="StaffInvite not valid or already accepted",
+                    context=ErrorContext().build(),
+        )
     
     if invite.is_expired:
-        raise ValidationError("Invite has expired")
+        raise ConflictError(
+                    user_message="Invite has expired.",
+                    developer_message="StaffInvite past expiration",
+                    context=ErrorContext().build(),
+        )
     
     # Check if user already exists
     user = User.objects.filter(email=invite.email).first()
     if user:
         # If user exists, we verify if they are already staff
         if hasattr(user, 'platform_staff_profile') and user.platform_staff_profile.is_active:
-             raise ValidationError("User is already a platform staff member")
+             raise ConflictError(
+                         user_message="User is already a platform staff member.",
+                         developer_message="PlatformStaffProfile already exists",
+                         context=ErrorContext().build(),
+             )
              
         # If user exists but not staff, we just link them. 
         # We do NOT update password for existing users here for security.
@@ -252,7 +290,11 @@ def revoke_staff_authority(*, staff_user: User, revoked_by: User, reason: str = 
     ).first()
     
     if not revoker_profile:
-        raise ValidationError("Only super admins can revoke staff authority")
+        raise AuthorizationError(
+                    user_message="Only super admins can revoke staff authority.",
+                    developer_message="User lacks SUPER_ADMIN role",
+                    context=ErrorContext().build(),
+        )
     
     # Get the staff profile
     profile = PlatformStaffProfile.objects.filter(
@@ -262,11 +304,19 @@ def revoke_staff_authority(*, staff_user: User, revoked_by: User, reason: str = 
     ).first()
     
     if not profile:
-        raise ValidationError("Staff member not found or already revoked")
+        raise NotFoundError(
+                    user_message="Staff member not found or already revoked.",
+                    developer_message="PlatformStaffProfile not found or revoked",
+                    context=ErrorContext().build(),
+        )
     
     # Cannot revoke self
     if staff_user.id == revoked_by.id:
-        raise ValidationError("Cannot revoke your own authority")
+        raise ValidationError(
+                    user_message="You cannot revoke your own authority.",
+                    developer_message="User attempted self-revocation",
+                    context=ErrorContext().build(),
+        )
     
     # Revoke authority
     profile.is_active = False
@@ -309,7 +359,11 @@ def verify_institution(*, institution_id: uuid.UUID, verified_by: User, reason: 
     ).first()
     
     if not verifier_profile:
-        raise ValidationError("Only platform admins can verify institutions")
+        raise AuthorizationError(
+                    user_message="Only platform admins can verify institutions.",
+                    developer_message="User lacks PLATFORM_ADMIN role",
+                    context=ErrorContext().build(),
+        )
     
     # Execute verification through institutions service layer
     from edulink.apps.institutions import services as institution_services
@@ -359,16 +413,28 @@ def suspend_user(*, user_id: uuid.UUID, suspended_by: User, reason: str = "") ->
     ).first()
     
     if not suspender_profile:
-        raise ValidationError("Only platform admins can suspend users")
+        raise AuthorizationError(
+                    user_message="Only platform admins can suspend users.",
+                    developer_message="User lacks PLATFORM_ADMIN role",
+                    context=ErrorContext().build(),
+        )
     
     # Get the target user
     target_user = User.objects.filter(id=user_id).first()
     if not target_user:
-        raise ValidationError("User not found")
+        raise NotFoundError(
+                    user_message="User not found.",
+                    developer_message="User does not exist",
+                    context=ErrorContext().build(),
+        )
     
     # Cannot suspend self
     if user_id == suspended_by.id:
-        raise ValidationError("Cannot suspend yourself")
+        raise ValidationError(
+                    user_message="You cannot suspend your own account.",
+                    developer_message="User attempted self-suspension",
+                    context=ErrorContext().build(),
+        )
     
     # Suspend the user
     target_user.is_active = False
@@ -409,12 +475,20 @@ def reactivate_user(*, user_id: uuid.UUID, reactivated_by: User, reason: str = "
     ).first()
     
     if not reactivator_profile:
-        raise ValidationError("Only platform admins can reactivate users")
+        raise AuthorizationError(
+                    user_message="Only platform admins can reactivate users.",
+                    developer_message="User lacks PLATFORM_ADMIN role",
+                    context=ErrorContext().build(),
+        )
     
     # Get the target user
     target_user = User.objects.filter(id=user_id).first()
     if not target_user:
-        raise ValidationError("User not found")
+        raise NotFoundError(
+                    user_message="User not found.",
+                    developer_message="User does not exist",
+                    context=ErrorContext().build(),
+        )
     
     # Reactivate the user
     target_user.is_active = True
@@ -449,10 +523,18 @@ def send_institution_interest_outreach(*, interest_id: str, actor: User) -> bool
     
     interest = get_institution_interest_by_id(interest_id)
     if not interest:
-        raise ValidationError("Interest record not found")
+        raise NotFoundError(
+                    user_message="Interest record not found.",
+                    developer_message="Interest record does not exist",
+                    context=ErrorContext().build(),
+        )
         
     if not interest.user_email:
-        raise ValidationError("No email associated with this interest request")
+        raise ValidationError(
+                    user_message="Email address is required for this interest.",
+                    developer_message="Interest record missing email",
+                    context=ErrorContext().build(),
+        )
             
     try:
         success = send_institution_interest_outreach_notification(
@@ -487,4 +569,8 @@ def send_institution_interest_outreach(*, interest_id: str, actor: User) -> bool
         return success
         
     except Exception as e:
-        raise ValidationError(f"Failed to send outreach: {str(e)}")
+        raise ValidationError(
+                    user_message="Failed to send outreach message.",
+                    developer_message=f"Outreach error: {str(e)}",
+                    context=ErrorContext().build(),
+        )

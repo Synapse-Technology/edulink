@@ -9,6 +9,13 @@ logger = logging.getLogger(__name__)
 
 from edulink.apps.students.queries import get_student_for_user
 from edulink.shared.pusher_utils import trigger_pusher_event
+from edulink.apps.shared.error_handling import (
+    AuthorizationError,
+    ConflictError,
+    ValidationError,
+    NotFoundError,
+    ErrorContext,
+)
 from .models import InternshipOpportunity, InternshipApplication, OpportunityStatus, ApplicationStatus, InternshipEvidence, Incident
 from .workflows import opportunity_workflow, application_workflow
 from .policies import (
@@ -100,7 +107,14 @@ def create_internship_opportunity(
     Institution Admins or Employer Admins can do this.
     """
     if not can_create_internship(actor, institution_id, employer_id):
-        raise PermissionError("User not authorized to create internship")
+        ctx = (ErrorContext()
+               .with_user_id(actor.id)
+               .with_reason(f"User role {getattr(actor, 'role', 'unknown')} lacks permission to create internship"))
+        raise AuthorizationError(
+            user_message="You are not authorized to create internship opportunities",
+            developer_message="User lacks INTERNSHIP_CREATE permission",
+            context=ctx.build(),
+        )
     
     if skills is None:
         skills = []
@@ -150,9 +164,27 @@ def apply_for_internship(actor, opportunity_id: UUID, cover_letter: str = "") ->
     """
     Student applies for an OPEN opportunity.
     Creates a new InternshipApplication instance in APPLIED state.
+    
+    Enforces:
+    - Email must be verified
+    - Student must have CV uploaded
+    - Opportunity must be OPEN and not past deadline
+    - Student cannot apply twice to same opportunity
+    - Trust tier graduated restrictions (Level 0: 3/month, Level 1: 5/month, Level 2+: unlimited)
     """
     if not actor.is_student:
-        raise PermissionError("Only students can apply")
+        raise AuthorizationError(
+            user_message="Only students can apply for internships",
+            developer_message=f"User {actor.id} with role {getattr(actor, 'role', 'unknown')} attempted to apply",
+        )
+    
+    # ✅ NEW: Require email verification
+    if not actor.is_verified:
+        raise ConflictError(
+            user_message="Please verify your email before applying. Check your inbox for verification link.",
+            developer_message=f"User {actor.id} email not verified",
+            context=ErrorContext().with_user_id(actor.id).build(),
+        )
     
     student = get_student_for_user(str(actor.id))
     if not student:
@@ -160,35 +192,101 @@ def apply_for_internship(actor, opportunity_id: UUID, cover_letter: str = "") ->
         student = preregister_student(user_id=actor.id, email=actor.email)
     
     if not student:
-        raise ValueError("Student profile could not be initialized")
+        raise ConflictError(
+            user_message="Your student profile could not be initialized. Please contact support.",
+            developer_message=f"Failed to initialize student profile for user {actor.id}",
+        )
         
     # Check for CV
     if not student.cv:
-        raise ValueError("You must upload a CV to your profile before applying.")
+        raise ConflictError(
+            user_message="You must upload a CV to your profile before applying.",
+            developer_message=f"Student {student.id} has no CV",
+            context=ErrorContext().with_resource("student", student.id).build(),
+        )
 
     opportunity = InternshipOpportunity.objects.get(id=opportunity_id)
     if opportunity.status != OpportunityStatus.OPEN:
-        raise ValueError("Internship opportunity is not open")
+        raise ConflictError(
+            user_message=f"This internship opportunity is {opportunity.status.lower()} and is not accepting applications.",
+            developer_message=f"Opportunity {opportunity_id} status: {opportunity.status}",
+            context=ErrorContext().with_resource("opportunity", opportunity_id).with_current_state(opportunity.status).build(),
+        )
         
-    # Check application deadline (using computed property for consistency)
+    # Check for duplicate application
+    existing_application = InternshipApplication.objects.filter(
+        student_id=student.id,
+        opportunity_id=opportunity_id,
+        status__in=[
+            ApplicationStatus.APPLIED,
+            ApplicationStatus.SHORTLISTED,
+            ApplicationStatus.ACCEPTED,
+            ApplicationStatus.ACTIVE
+        ]
+    ).first()
+    
+    if existing_application:
+        raise ConflictError(
+            user_message=f"You have already applied for this opportunity. Your current status is: {existing_application.get_status_display()}",
+            developer_message=f"Duplicate application from student {student.id} to opportunity {opportunity_id}",
+            context=ErrorContext().with_resource("application", existing_application.id).build(),
+        )
+    
+    # Check application deadline
     if opportunity.is_deadline_expired:
-        raise ValueError("The application deadline for this opportunity has passed.")
+        raise ConflictError(
+            user_message="The application deadline for this opportunity has passed.",
+            developer_message=f"Deadline {opportunity.application_deadline} has passed",
+            context=ErrorContext().with_resource("opportunity", opportunity_id).build(),
+        )
+    
+    # ✅ NEW: Trust-gated graduated restrictions
+    # Trust Level 0: 3 applications per month
+    # Trust Level 1: 5 applications per month
+    # Trust Level 2+: unlimited
+    if student.trust_level <= 1:
+        from django.utils import timezone
+        month_start = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        applications_this_month = InternshipApplication.objects.filter(
+            student_id=student.id,
+            created_at__gte=month_start,
+            status__in=[
+                ApplicationStatus.APPLIED,
+                ApplicationStatus.SHORTLISTED,
+                ApplicationStatus.ACCEPTED,
+                ApplicationStatus.ACTIVE,
+                ApplicationStatus.COMPLETED,
+                ApplicationStatus.CERTIFIED
+            ]
+        ).count()
         
-    # Check duplicate application
-    if InternshipApplication.objects.filter(opportunity=opportunity, student_id=student.id).exists():
-        raise ValueError("You have already applied to this internship.")
+        max_applications = 3 if student.trust_level == 0 else 5
+        if applications_this_month >= max_applications:
+            raise ConflictError(
+                user_message=f"You've reached your monthly application limit ({max_applications}). Your limit increases as your trust tier improves. Current tier: Level {student.trust_level}",
+                developer_message=f"Student {student.id} trust level {student.trust_level} has {applications_this_month} applications this month",
+                context=ErrorContext().with_user_id(actor.id).with_reason(f"Trust level {student.trust_level} limits to {max_applications} applications/month").build(),
+            )
 
     # Check for overlapping engagements (Double Booking Prevention)
     if InternshipApplication.objects.filter(
         student_id=student.id,
         status__in=[ApplicationStatus.ACCEPTED, ApplicationStatus.ACTIVE]
     ).exists():
-        raise ValueError("You already have an active or accepted internship.")
+        raise ConflictError(
+            user_message="You already have an active or accepted internship engagement.",
+            developer_message=f"Student {student.id} already has active/accepted internship",
+            context=ErrorContext().with_user_id(actor.id).with_reason("Double booking prevention").build(),
+        )
 
     # Check institution restriction
     if opportunity.is_institution_restricted:
         if not student.institution_id or str(opportunity.institution_id) != str(student.institution_id):
-            raise PermissionError("This internship is restricted to students from the hosting institution.")
+            raise AuthorizationError(
+                user_message="This internship is restricted to students from the hosting institution.",
+                developer_message=f"Student {student.id} institution {student.institution_id} does not match opportunity {opportunity.institution_id}",
+                context=ErrorContext().with_user_id(actor.id).with_resource("opportunity", opportunity_id).build(),
+            )
         
     # Create snapshot of student profile
     snapshot = {
@@ -198,7 +296,7 @@ def apply_for_internship(actor, opportunity_id: UUID, cover_letter: str = "") ->
         "course_of_study": student.course_of_study,
         "current_year": student.current_year,
         "skills": student.skills,
-        "cv": str(student.cv) if student.cv else None,
+        "cv": student.cv.url if student.cv else None,
         "institution_id": str(student.institution_id) if student.institution_id else None
     }
     
@@ -255,7 +353,11 @@ def apply_for_internship(actor, opportunity_id: UUID, cover_letter: str = "") ->
 def submit_evidence(actor, application_id: UUID, title: str, file: any, description: str = "", evidence_type: str = InternshipEvidence.TYPE_OTHER, metadata: dict = None) -> InternshipEvidence:
     application = InternshipApplication.objects.get(id=application_id)
     if not can_submit_evidence(actor, application):
-        raise PermissionError("User not authorized to submit evidence")
+        raise AuthorizationError(
+            user_message="You are not authorized to submit evidence for this application.",
+            developer_message=f"User {actor.id} lacks permission for application {application_id}",
+            context=ErrorContext().with_user_id(actor.id).with_resource("application", application_id).build(),
+        )
     
     if metadata is None:
         metadata = {}
@@ -309,7 +411,14 @@ def create_incident(actor, application_id: UUID, title: str, description: str) -
     application = InternshipApplication.objects.get(id=application_id)
     
     if not can_flag_misconduct(actor, application):
-        raise PermissionError("User not authorized to report incidents")
+        raise AuthorizationError(
+            user_message="You are not authorized to report incidents for this application.",
+            developer_message=f"User {actor.id} lacks permission to flag misconduct for application {application.id}",
+            context=ErrorContext()
+                .with_user_id(actor.id)
+                .with_resource("application", application.id)
+                .build(),
+        )
         
     incident = Incident.objects.create(
         application=application,
@@ -349,37 +458,270 @@ def create_incident(actor, application_id: UUID, title: str, description: str) -
         
     return incident
 
-def resolve_incident(actor, incident_id: UUID, status: str, notes: str) -> Incident:
+def assign_incident_investigator(actor, incident_id: UUID, investigator_id: UUID) -> Incident:
+    """
+    Assign an investigator to an incident.
+    Transitions incident from OPEN → ASSIGNED
+    """
+    from .workflows import incident_workflow
+    
+    incident = Incident.objects.select_for_update().get(id=incident_id)
+    
+    # Only admins can assign investigators
+    if not (actor.is_employer_admin or actor.is_institution_admin or actor.is_system_admin):
+        raise AuthorizationError(
+            user_message="Only administrators can assign incident investigators.",
+            developer_message=f"User {actor.id} is not an admin. Required: employer_admin, institution_admin, or system_admin.",
+            context=ErrorContext()
+                .with_user_id(actor.id)
+                .with_resource("incident", incident_id)
+                .build(),
+        )
+    
+    # Transition via workflow
+    incident = incident_workflow.transition(
+        incident=incident,
+        target_state=Incident.STATUS_ASSIGNED,
+        actor=actor,
+        payload={"investigator_id": str(investigator_id)}
+    )
+    
+    # Send notification to investigator
+    try:
+        from edulink.apps.notifications.services import send_incident_assigned_notification
+        send_incident_assigned_notification(
+            incident_id=str(incident.id),
+            investigator_id=str(investigator_id),
+            incident_title=incident.title,
+            application_id=str(incident.application.id) if incident.application else None,
+            assigned_by_name=actor.get_full_name() or actor.username,
+            actor_id=str(actor.id)
+        )
+    except Exception as e:
+        logger.error(f"Failed to send incident assignment notification: {e}")
+    
+    return incident
+
+def start_incident_investigation(actor, incident_id: UUID, investigation_plan: str = None) -> Incident:
+    """
+    Start investigation on an assigned incident.
+    Transitions incident from ASSIGNED → INVESTIGATING
+    """
+    from .workflows import incident_workflow
     from django.utils import timezone
-    incident = Incident.objects.get(id=incident_id)
     
-    if not (actor.is_employer_admin or actor.is_institution_admin):
-         raise PermissionError("User not authorized to resolve incidents")
+    incident = Incident.objects.select_for_update().get(id=incident_id)
     
-    incident.status = status
+    # Only the assigned investigator or admin can start investigation
+    if not (
+        actor.id == incident.investigator_id 
+        or actor.is_employer_admin 
+        or actor.is_institution_admin
+        or actor.is_system_admin
+    ):
+        raise AuthorizationError(
+            user_message="Only the assigned investigator or an administrator can start this investigation.",
+            developer_message=f"User {actor.id} is not the assigned investigator (expected: {incident.investigator_id}) and is not an admin.",
+            context=ErrorContext()
+                .with_user_id(actor.id)
+                .with_resource("incident", incident_id)
+                .build(),
+        )
+    
+    # Transition via workflow
+    incident = incident_workflow.transition(
+        incident=incident,
+        target_state=Incident.STATUS_INVESTIGATING,
+        actor=actor,
+        payload={"investigation_started_by": str(actor.id), "plan": investigation_plan}
+    )
+    
+    # Record investigation notes
+    if investigation_plan:
+        incident.investigation_notes = investigation_plan
+        incident.save()
+    
+    return incident
+
+def propose_incident_resolution(actor, incident_id: UUID, resolution_notes: str) -> Incident:
+    """
+    Propose a resolution for an incident.
+    Transitions incident from INVESTIGATING → PENDING_APPROVAL
+    """
+    from .workflows import incident_workflow
+    
+    incident = Incident.objects.select_for_update().get(id=incident_id)
+    
+    # Only investigators can propose resolutions
+    if not (
+        actor.id == incident.investigator_id 
+        or actor.is_employer_admin 
+        or actor.is_institution_admin
+    ):
+        raise AuthorizationError(
+            user_message="Only the assigned investigator or an administrator can propose a resolution.",
+            developer_message=f"User {actor.id} is not the assigned investigator (expected: {incident.investigator_id}) and is not an admin.",
+            context=ErrorContext()
+                .with_user_id(actor.id)
+                .with_resource("incident", incident_id)
+                .build(),
+        )
+    
+    # Store proposed resolution
+    incident.resolution_notes = resolution_notes
+    
+    # Transition via workflow
+    incident = incident_workflow.transition(
+        incident=incident,
+        target_state=Incident.STATUS_PENDING_APPROVAL,
+        actor=actor,
+        payload={"proposed_by": str(actor.id)}
+    )
+    
+    # Send notification for approval
+    try:
+        from edulink.apps.notifications.services import send_incident_resolution_proposed_notification
+        send_incident_resolution_proposed_notification(
+            incident_id=str(incident.id),
+            incident_title=incident.title,
+            resolution_notes=resolution_notes,
+            proposed_by=actor.get_full_name() or actor.username,
+            actor_id=str(actor.id)
+        )
+    except Exception as e:
+        logger.error(f"Failed to send incident resolution proposal notification: {e}")
+    
+    return incident
+
+def approve_incident_resolution(actor, incident_id: UUID, approval_notes: str = None) -> Incident:
+    """
+    Approve a proposed incident resolution.
+    Transitions incident from PENDING_APPROVAL → RESOLVED
+    """
+    from .workflows import incident_workflow
+    
+    incident = Incident.objects.select_for_update().get(id=incident_id)
+    
+    # Only admins can approve resolutions (different from investigator)
+    if not (actor.is_employer_admin or actor.is_institution_admin or actor.is_system_admin):
+        raise AuthorizationError(
+            user_message="Only administrators can approve incident resolutions.",
+            developer_message=f"User {actor.id} is not an admin. Required: employer_admin, institution_admin, or system_admin.",
+            context=ErrorContext()
+                .with_user_id(actor.id)
+                .with_resource("incident", incident_id)
+                .build(),
+        )
+    
+    # Transition via workflow
+    incident = incident_workflow.transition(
+        incident=incident,
+        target_state=Incident.STATUS_RESOLVED,
+        actor=actor,
+        payload={"approval_notes": approval_notes or ""}
+    )
+    
+    # Send notification to reporter and supervisors
+    try:
+        from edulink.apps.notifications.services import send_incident_resolved_notification
+        send_incident_resolved_notification(
+            incident_id=str(incident.id),
+            recipient_id=str(incident.reported_by),
+            incident_title=incident.title,
+            resolution_notes=incident.resolution_notes,
+            actor_id=str(actor.id)
+        )
+    except Exception as e:
+        logger.error(f"Failed to send incident resolution notification: {e}")
+    
+    return incident
+
+def dismiss_incident(actor, incident_id: UUID, dismissal_reason: str = None) -> Incident:
+    """
+    Dismiss an incident (from OPEN, ASSIGNED, or INVESTIGATING states).
+    Can only be done by admins with justification.
+    """
+    from .workflows import incident_workflow
+    
+    incident = Incident.objects.select_for_update().get(id=incident_id)
+    
+    # Only admins can dismiss
+    if not (actor.is_employer_admin or actor.is_institution_admin or actor.is_system_admin):
+        raise AuthorizationError(
+            user_message="Only administrators can dismiss incidents.",
+            developer_message=f"User {actor.id} lacks admin role",
+            context=ErrorContext().with_user_id(actor.id).with_resource("incident", incident_id).build(),
+        )
+    
+    # Store dismissal reason
+    if dismissal_reason:
+        incident.resolution_notes = f"Dismissed: {dismissal_reason}"
+    
+    # Transition via workflow
+    incident = incident_workflow.transition(
+        incident=incident,
+        target_state=Incident.STATUS_DISMISSED,
+        actor=actor,
+        payload={"reason": dismissal_reason or "No reason provided"}
+    )
+    
+    return incident
+
+def resolve_incident(actor, incident_id: UUID, status: str, notes: str) -> Incident:
+    """
+    Legacy resolve_incident function - redirects to workflow-based functions.
+    Kept for backward compatibility.
+    """
+    from .workflows import incident_workflow
+    
+    incident = Incident.objects.select_for_update().get(id=incident_id)
+    
+    # Map old status values to new workflow states
+    status_map = {
+        "RESOLVED": Incident.STATUS_RESOLVED,
+        "DISMISSED": Incident.STATUS_DISMISSED,
+    }
+    
+    target_state = status_map.get(status, status)
+    
+    # Validate target state
+    if target_state not in [Incident.STATUS_RESOLVED, Incident.STATUS_DISMISSED]:
+        raise ValidationError(
+            user_message=f"Invalid incident resolution status: {status}",
+            developer_message=f"Status {status} not in allowed values",
+        )
+    
+    if not (actor.is_employer_admin or actor.is_institution_admin or actor.is_system_admin):
+        raise AuthorizationError(
+            user_message="Only administrators can resolve incidents.",
+            developer_message=f"User {actor.id} lacks admin role",
+            context=ErrorContext().with_user_id(actor.id).with_resource("incident", incident_id).build(),
+        )
+    
+    # Transition via workflow
+    incident = incident_workflow.transition(
+        incident=incident,
+        target_state=target_state,
+        actor=actor,
+        payload={"legacy_call": True}
+    )
+    
+    # Update resolution fields
     incident.resolution_notes = notes
-    incident.resolved_by = actor.id
-    incident.resolved_at = timezone.now()
     incident.save()
     
-    from edulink.apps.ledger.services import record_event
-    record_event(
-        event_type="INCIDENT_RESOLVED",
-        actor_id=actor.id,
-        entity_id=incident.id,
-        entity_type="incident",
-        payload={"application_id": str(incident.application.id), "status": status}
-    )
-
-    # Send Notification
-    from edulink.apps.notifications.services import send_incident_resolved_notification
-    send_incident_resolved_notification(
-        incident_id=str(incident.id),
-        recipient_id=str(incident.reported_by),
-        incident_title=incident.title,
-        resolution_notes=notes,
-        actor_id=str(actor.id)
-    )
+    # Send notification
+    try:
+        from edulink.apps.notifications.services import send_incident_resolved_notification
+        send_incident_resolved_notification(
+            incident_id=str(incident.id),
+            recipient_id=str(incident.reported_by),
+            incident_title=incident.title,
+            resolution_notes=notes,
+            actor_id=str(actor.id)
+        )
+    except Exception as e:
+        logger.error(f"Failed to send incident resolution notification: {e}")
 
     return incident
 
@@ -390,7 +732,11 @@ def submit_final_feedback(actor, application_id: UUID, feedback: str, rating: in
     application = InternshipApplication.objects.get(id=application_id)
     
     if not can_submit_final_feedback(actor, application):
-        raise PermissionError("User not authorized to submit final feedback")
+        raise AuthorizationError(
+            user_message="You are not authorized to submit final feedback for this application.",
+            developer_message=f"User {actor.id} lacks permission for application {application_id}",
+            context=ErrorContext().with_user_id(actor.id).with_resource("application", application_id).build(),
+        )
 
     application.final_feedback = feedback
     if rating:
@@ -448,11 +794,19 @@ def create_success_story(
     
     # Only allow if internship is COMPLETED or CERTIFIED
     if application.status not in [ApplicationStatus.COMPLETED, ApplicationStatus.CERTIFIED]:
-        raise ValueError("Internship must be completed or certified to add a success story.")
+        raise ValidationError(
+            user_message="Internship must be completed or certified before adding a success story.",
+            developer_message=f"Application {application_id} status: {application.status}",
+            context=ErrorContext().with_resource("application", application_id).build(),
+        )
         
     # Check if story already exists
     if hasattr(application, 'success_story'):
-        raise ValueError("Success story already exists for this internship.")
+        raise ValidationError(
+            user_message="A success story already exists for this internship.",
+            developer_message=f"Success story already exists for application {application_id}",
+            context=ErrorContext().with_resource("application", application_id).build(),
+        )
         
     from .models import SuccessStory
     story = SuccessStory.objects.create(
@@ -477,13 +831,21 @@ def create_success_story(
     return story
 
 def assign_supervisors(actor, application_id: UUID, supervisor_id: UUID, type: str) -> InternshipApplication:
-    application = InternshipApplication.objects.get(id=application_id)
+    application = InternshipApplication.objects.select_for_update().get(id=application_id)
     
     if application.status in [ApplicationStatus.COMPLETED, ApplicationStatus.CERTIFIED, ApplicationStatus.TERMINATED]:
-        raise ValueError("Cannot assign supervisors to a completed or certified internship")
+        raise ConflictError(
+            user_message="Cannot assign supervisors to a completed, certified, or terminated internship.",
+            developer_message=f"Application {application_id} status: {application.status}",
+            context=ErrorContext().with_resource("application", application_id).build(),
+        )
         
     if not can_assign_supervisor(actor, application.opportunity):
-         raise PermissionError("User not authorized to assign supervisors")
+        raise AuthorizationError(
+            user_message="You are not authorized to assign supervisors for this application.",
+            developer_message=f"User {actor.id} lacks permission for opportunity {application.opportunity_id}",
+            context=ErrorContext().with_user_id(actor.id).with_resource("application", application_id).build(),
+        )
 
     if type == 'employer':
         application.employer_supervisor_id = supervisor_id
@@ -540,7 +902,11 @@ def bulk_assign_institution_supervisors(
     """
     # 1. Permission check
     if not can_bulk_assign_supervisors(actor):
-        raise PermissionError("Only institution admins can perform bulk assignment")
+        raise AuthorizationError(
+            user_message="Only institution administrators can perform bulk supervisor assignment.",
+            developer_message=f"User {actor.id} lacks BULK_ASSIGN_SUPERVISORS permission",
+            context=ErrorContext().with_user_id(actor.id).build(),
+        )
     
     # 2. Get department/cohort names
     from edulink.apps.institutions.queries import get_department_by_id, get_cohort_by_id, get_supervisors_by_affiliation
@@ -549,7 +915,11 @@ def bulk_assign_institution_supervisors(
         dept = get_department_by_id(department_id=department_id)
     except Exception as e:
         logger.error(f"Failed to get department {department_id}: {e}")
-        raise ValueError("Department not found")
+        raise NotFoundError(
+            user_message="The specified department could not be found.",
+            developer_message=f"Department {department_id} not found",
+            context=ErrorContext().with_resource("department", department_id).build(),
+        )
         
     cohort_name = ""
     if cohort_id:
@@ -558,7 +928,11 @@ def bulk_assign_institution_supervisors(
             cohort_name = coh.name
         except Exception as e:
             logger.error(f"Failed to get cohort {cohort_id}: {e}")
-            raise ValueError("Cohort not found")
+            raise NotFoundError(
+                user_message="The specified cohort could not be found.",
+                developer_message=f"Cohort {cohort_id} not found",
+                context=ErrorContext().with_resource("cohort", cohort_id).build(),
+            )
         
     # 3. Get students in this affiliation
     from edulink.apps.students.queries import get_verified_student_ids_by_affiliation
@@ -573,13 +947,14 @@ def bulk_assign_institution_supervisors(
     
     # 4. Find applications without supervisor
     # Include all applications for these students, regardless of who posted the opportunity
-    applications = InternshipApplication.objects.filter(
+    # Use select_for_update() to prevent concurrent modification during bulk assignment
+    applications = list(InternshipApplication.objects.select_for_update().filter(
         student_id__in=student_ids,
         institution_supervisor_id__isnull=True,
         status__in=[ApplicationStatus.SHORTLISTED, ApplicationStatus.ACCEPTED, ApplicationStatus.ACTIVE]
-    )
+    ))
     
-    if not applications.exists():
+    if not applications:
         return {"assigned_count": 0, "message": "No unassigned applications found for this department/cohort."}
 
     # 5. Find available supervisors
@@ -590,7 +965,11 @@ def bulk_assign_institution_supervisors(
     ))
     
     if not supervisors:
-        raise ValueError(f"No supervisors found for department '{dept.name}'" + (f" and cohort '{cohort_name}'" if cohort_name else ""))
+        raise NotFoundError(
+            user_message=f"No supervisors found for department '{dept.name}'" + (f" and cohort '{cohort_name}'" if cohort_name else "") + ". Please assign supervisors first.",
+            developer_message=f"No supervisors found for dept {dept.name}, cohort {cohort_name}",
+            context=ErrorContext().with_data(department=dept.name, cohort=cohort_name).build(),
+        )
 
     # 6. Assign (Round-Robin)
     from edulink.apps.notifications.services import send_supervisor_assigned_notification
@@ -651,11 +1030,18 @@ def bulk_assign_institution_supervisors(
 
 def review_evidence(actor, evidence_id: UUID, status: str, notes: str = "", private_notes: str = "") -> InternshipEvidence:
     from django.utils import timezone
-    evidence = InternshipEvidence.objects.get(id=evidence_id)
+    from .workflows import evidence_workflow
+    
+    evidence = InternshipEvidence.objects.select_for_update().get(id=evidence_id)
     application = evidence.application
+    old_status = evidence.status
     
     if not can_review_evidence(actor, application):
-        raise PermissionError("User not authorized to review evidence")
+        raise AuthorizationError(
+            user_message="You are not authorized to review evidence for this application.",
+            developer_message=f"User {actor.id} lacks permission for application {application.id}",
+            context=ErrorContext().with_user_id(actor.id).with_resource("application", application.id).build(),
+        )
         
     valid_statuses = [
         InternshipEvidence.STATUS_ACCEPTED, 
@@ -664,7 +1050,10 @@ def review_evidence(actor, evidence_id: UUID, status: str, notes: str = "", priv
         InternshipEvidence.STATUS_REVISION_REQUIRED
     ]
     if status not in valid_statuses:
-        raise ValueError("Invalid evidence status")
+        raise ValidationError(
+            user_message=f"Invalid evidence status: {status}",
+            developer_message=f"Status {status} not in valid statuses",
+        )
         
     # Determine which supervisor is reviewing
     is_employer_supervisor = str(application.employer_supervisor_id) == str(actor.id)
@@ -701,11 +1090,11 @@ def review_evidence(actor, evidence_id: UUID, status: str, notes: str = "", priv
 
     # 1. Any REJECTED -> REJECTED (Immediate failure)
     if emp_status == InternshipEvidence.STATUS_REJECTED or inst_status == InternshipEvidence.STATUS_REJECTED:
-        evidence.status = InternshipEvidence.STATUS_REJECTED
+        new_status = InternshipEvidence.STATUS_REJECTED
     
     # 2. Any REVISION_REQUIRED -> REVISION_REQUIRED (Needs student action)
     elif emp_status == InternshipEvidence.STATUS_REVISION_REQUIRED or inst_status == InternshipEvidence.STATUS_REVISION_REQUIRED:
-        evidence.status = InternshipEvidence.STATUS_REVISION_REQUIRED
+        new_status = InternshipEvidence.STATUS_REVISION_REQUIRED
     
     # 3. Handle successful reviews
     else:
@@ -714,50 +1103,69 @@ def review_evidence(actor, evidence_id: UUID, status: str, notes: str = "", priv
         institution_ok = not has_institution or inst_status == InternshipEvidence.STATUS_ACCEPTED
         
         if employer_ok and institution_ok:
-            evidence.status = InternshipEvidence.STATUS_ACCEPTED
+            new_status = InternshipEvidence.STATUS_ACCEPTED
         elif emp_status or inst_status:
             # At least one has reviewed but not all required are finished
-            evidence.status = InternshipEvidence.STATUS_REVIEWED
+            new_status = InternshipEvidence.STATUS_REVIEWED
         else:
-            evidence.status = InternshipEvidence.STATUS_SUBMITTED
+            new_status = InternshipEvidence.STATUS_SUBMITTED
 
-    evidence.save()
-    
-    from edulink.apps.ledger.services import record_event
-    record_event(
-        event_type="EVIDENCE_REVIEWED",
-        actor_id=actor.id,
-        entity_id=evidence.id,
-        entity_type="evidence",
-        payload={
-            "application_id": str(application.id), 
-            "status": status, 
-            "notes": notes,
-            "has_private_notes": bool(private_notes),
-            "reviewer_type": "employer" if is_employer_supervisor else "institution" if is_institution_supervisor else "admin",
-            "aggregate_status": evidence.status
-        }
-    )
+    # Transition aggregate status via workflow if it changed
+    if new_status != old_status:
+        evidence = evidence_workflow.transition(
+            evidence=evidence,
+            target_state=new_status,
+            actor=actor,
+            payload={
+                "application_id": str(application.id),
+                "reviewer_type": "employer" if is_employer_supervisor else "institution" if is_institution_supervisor else "admin",
+                "notes": notes,
+                "has_private_notes": bool(private_notes)
+            }
+        )
+    else:
+        # No status change, but still save reviewer annotations
+        try:
+            evidence.save()
+        except Exception as e:
+            logger.error(f"Failed to save evidence review for {evidence_id} by {actor.id}: {e}")
+            raise ConflictError(
+                user_message="Failed to save evidence review. Please try again.",
+                developer_message=f"Failed to save InternshipEvidence {evidence_id} after review by {actor.id}: {str(e)}",
+                context=ErrorContext()
+                    .with_user_id(actor.id)
+                    .with_resource("evidence", evidence_id)
+                    .with_resource("application", application.id)
+                    .build(),
+            )
 
     # Recalculate Student Trust Tier
     # The student gains points if the evidence is approved
     if evidence.status == InternshipEvidence.STATUS_ACCEPTED:
-        from edulink.apps.trust.services import compute_student_trust_tier
-        compute_student_trust_tier(student_id=str(application.student_id))
+        try:
+            from edulink.apps.trust.services import compute_student_trust_tier
+            compute_student_trust_tier(student_id=str(application.student_id))
+        except Exception as e:
+            logger.error(f"Failed to compute trust tier for student {application.student_id} after evidence acceptance: {e}")
+            # Don't fail the evidence review if trust computation fails - log and continue
     
     # Send notification if status changed to something final or revision required
     if evidence.status in [InternshipEvidence.STATUS_ACCEPTED, InternshipEvidence.STATUS_REJECTED, InternshipEvidence.STATUS_REVISION_REQUIRED]:
-        from edulink.apps.notifications.services import send_evidence_reviewed_notification
-        reviewer_name = actor.get_full_name() or actor.username
-        
-        send_evidence_reviewed_notification(
-            evidence_id=str(evidence.id),
-            student_id=str(application.student_id),
-            evidence_title=evidence.title,
-            status=evidence.get_status_display(),
-            reviewer_name=reviewer_name,
-            actor_id=str(actor.id)
-        )
+        try:
+            from edulink.apps.notifications.services import send_evidence_reviewed_notification
+            reviewer_name = actor.get_full_name() or actor.username
+            
+            send_evidence_reviewed_notification(
+                evidence_id=str(evidence.id),
+                student_id=str(application.student_id),
+                evidence_title=evidence.title,
+                status=evidence.get_status_display(),
+                reviewer_name=reviewer_name,
+                actor_id=str(actor.id)
+            )
+        except Exception as e:
+            logger.error(f"Failed to send evidence reviewed notification for evidence {evidence.id}: {e}")
+            # Don't fail the review if notification fails - log and continue
     
     return evidence
 
@@ -784,7 +1192,10 @@ def process_application(actor, application_id: UUID, action: str) -> InternshipA
         )
         status_label = "Rejected"
     else:
-        raise ValueError(f"Invalid action: {action}")
+        raise ValidationError(
+            user_message=f"Invalid application action: {action}",
+            developer_message=f"Action '{action}' is not 'shortlist' or 'reject'",
+        )
         
     # Send notification
     from edulink.apps.notifications.services import send_internship_application_status_update_notification
@@ -815,7 +1226,14 @@ def accept_offer(actor, application_id: UUID) -> InternshipApplication:
     ).count()
     
     if accepted_count >= opportunity.capacity:
-        raise ValueError(f"Opportunity capacity ({opportunity.capacity}) reached.")
+        raise ValidationError(
+            user_message=f"This opportunity has reached its capacity ({opportunity.capacity} spots). No more applications can be accepted.",
+            developer_message=f"Opportunity {opportunity.id} capacity ({opportunity.capacity}) reached",
+            context=ErrorContext()
+                .with_resource("opportunity", opportunity.id)
+                .with_resource("application", application.id)
+                .build(),
+        )
         
     app = application_workflow.transition(
         application=application,
@@ -834,6 +1252,82 @@ def accept_offer(actor, application_id: UUID) -> InternshipApplication:
     
     # Trigger Real-time Pusher event
     _trigger_application_update_pusher(app, "Accepted")
+    
+    return app
+
+def withdraw_application(actor, application_id: UUID, reason: str = None) -> InternshipApplication:
+    """
+    Allow student to withdraw from an internship application at any point before it starts.
+    
+    Can transition from: APPLIED, SHORTLISTED, ACCEPTED  
+    Cannot transition from: ACTIVE (ongoing), COMPLETED, REJECTED, TERMINATED, WITHDRAWN, CERTIFIED
+    
+    Withdrawal records audit trail and notifies student and employer.
+    Reason is stored in metadata for historical record.
+    """
+    from edulink.apps.notifications.services import (
+        send_internship_application_status_update_notification,
+        send_internship_application_withdrawn_to_employer_notification
+    )
+    from edulink.apps.employers.queries import get_employer_by_id
+    
+    application = InternshipApplication.objects.get(id=application_id)
+    
+    # Check authorization (student or admin only)
+    if not (actor.id == application.student_id or actor.is_system_admin):
+        raise AuthorizationError(
+            user_message="Only the student or a system administrator can withdraw this application.",
+            developer_message=f"User {actor.id} is not the student ({application.student_id}) and is not a system admin",
+            context=ErrorContext()
+                .with_user_id(actor.id)
+                .with_resource("application", application.id)
+                .build(),
+        )
+    
+    # Transition to WITHDRAWN via workflow (handles state validation and event recording)
+    app = application_workflow.transition(
+        application=application,
+        target_state=ApplicationStatus.WITHDRAWN,
+        actor=actor
+    )
+    
+    # Store withdrawal metadata (reason, actor type, timestamp)
+    if app.metadata is None:
+        app.metadata = {}
+    if reason:
+        app.metadata['withdrawal_reason'] = reason
+    app.metadata['withdrawn_by'] = 'student' if actor.id == application.student_id else 'admin'
+    app.metadata['withdrawn_at'] = timezone.now().isoformat()
+    app.save()
+    
+    # Notify student of withdrawal
+    send_internship_application_status_update_notification(
+        application_id=str(app.id),
+        student_id=str(app.student_id),
+        opportunity_title=app.opportunity.title,
+        status="Withdrawn",
+        actor_id=str(actor.id)
+    )
+    
+    # Notify employer (with reason) if this is an employer opportunity
+    if app.opportunity.employer_id:
+        employer = get_employer_by_id(app.opportunity.employer_id)
+        if employer:
+            try:
+                send_internship_application_withdrawn_to_employer_notification(
+                    application_id=str(app.id),
+                    employer_id=str(app.opportunity.employer_id),
+                    student_name=f"{app.student.first_name} {app.student.last_name}",
+                    opportunity_title=app.opportunity.title,
+                    reason=reason,
+                    actor_id=str(actor.id)
+                )
+            except Exception as e:
+                # Log but don't block withdrawal - async safe
+                logger.error(f"Failed to send withdrawal notification to employer: {e}")
+    
+    # Trigger Real-time Pusher event for live updates
+    _trigger_application_update_pusher(app, "Withdrawn")
     
     return app
 
@@ -879,13 +1373,25 @@ def complete_internship(actor, application_id: UUID) -> InternshipApplication:
         InternshipEvidence.STATUS_REVISION_REQUIRED
     ]
     if application.evidence.filter(status__in=pending_statuses).exists():
-        raise ValueError("Cannot complete internship with pending evidence reviews. All logbooks must be approved or rejected.")
+        raise ValidationError(
+            user_message="Cannot complete internship. All logbooks must be reviewed and either approved or rejected before completion.",
+            developer_message=f"Application {application.id} has pending evidence reviews",
+            context=ErrorContext()
+                .with_resource("application", application.id)
+                .build(),
+        )
         
     # 2. Check for Final Feedback/Assessment
     # We assume 'final_feedback' or 'final_rating' indicates assessment.
     # Or strict check: if application.final_feedback is empty.
     if not application.final_feedback:
-        raise ValueError("Final assessment/feedback is required before completing the internship.")
+        raise ValidationError(
+            user_message="Final feedback or assessment is required before completing the internship.",
+            developer_message=f"Application {application.id} is missing final_feedback",
+            context=ErrorContext()
+                .with_resource("application", application.id)
+                .build(),
+        )
 
     app = application_workflow.transition(
         application=application,
@@ -1163,4 +1669,215 @@ def get_deadline_analytics(employer_id):
         "period_end": now,
         "generated_at": now
     }
+
+
+# ==================== Phase 2.4: Supervisor Acceptance Workflow ====================
+
+def create_supervisor_assignment(*, actor, application_id: UUID, supervisor_id: UUID, assignment_type: str) -> "SupervisorAssignment":
+    """
+    Create a supervisor assignment in PENDING state.
+    Admin calls this when assigning a supervisor.
+    Supervisor must then accept or reject.
+    
+    Args:
+        actor: Admin performing the assignment
+        application_id: The internship application
+        supervisor_id: The supervisor being assigned
+        assignment_type: "EMPLOYER" or "INSTITUTION"
+    
+    Returns:
+        SupervisorAssignment in PENDING state
+    """
+    from .models import SupervisorAssignment
+    from .policies import can_assign_supervisor
+    
+    application = InternshipApplication.objects.get(id=application_id)
+    
+    # Authorization: Only admins can create assignments
+    if not (actor.is_employer_admin or actor.is_institution_admin or actor.is_system_admin):
+        raise AuthorizationError(
+            user_message="Only administrators can create supervisor assignments.",
+            developer_message=f"User {actor.id} is not an admin. Required: employer_admin, institution_admin, or system_admin.",
+            context=ErrorContext()
+                .with_user_id(actor.id)
+                .with_resource("application", application.id)
+                .build(),
+        )
+    
+    # Check if supervisor can be assigned to this opportunity
+    if not can_assign_supervisor(actor, application.opportunity):
+        raise AuthorizationError(
+            user_message="You are not authorized to assign supervisors to this opportunity.",
+            developer_message=f"User {actor.id} lacks permission to assign supervisors to opportunity {application.opportunity.id}",
+            context=ErrorContext()
+                .with_user_id(actor.id)
+                .with_resource("opportunity", application.opportunity.id)
+                .with_resource("application", application.id)
+                .build(),
+        )
+    
+    # Create assignment in PENDING state (supervisor must accept)
+    with transaction.atomic():
+        assignment = SupervisorAssignment.objects.create(
+            application=application,
+            supervisor_id=supervisor_id,
+            assigned_by_id=actor.id,
+            assignment_type=assignment_type,
+            status=SupervisorAssignment.STATUS_PENDING
+        )
+        
+        # Record event
+        record_event(
+            event_type="SUPERVISOR_ASSIGNMENT_CREATED",
+            actor_id=actor.id,
+            entity_id=assignment.id,
+            entity_type="supervisor_assignment",
+            payload={
+                "application_id": str(application.id),
+                "supervisor_id": str(supervisor_id),
+                "assignment_type": assignment_type,
+                "assigned_by": str(actor.id)
+            }
+        )
+        
+        # Send notification to supervisor
+        try:
+            from edulink.apps.notifications.services import send_supervisor_assignment_notification
+            from edulink.apps.students.queries import get_student_by_id
+            
+            student = get_student_by_id(application.student_id)
+            student_name = student.user.get_full_name() or student.user.username if student else "Student"
+            
+            send_supervisor_assignment_notification(
+                supervisor_id=str(supervisor_id),
+                student_name=student_name,
+                opportunity_title=application.opportunity.title,
+                assignment_type=assignment_type,
+                assignment_id=str(assignment.id),
+                actor_id=str(actor.id)
+            )
+        except Exception as e:
+            logger.error(f"Failed to send supervisor assignment notification: {e}")
+    
+    return assignment
+
+
+def accept_supervisor_assignment(actor, assignment_id: UUID) -> "SupervisorAssignment":
+    """
+    Supervisor accepts a supervisor assignment.
+    Transitions: PENDING → ACCEPTED
+    Updates the application to point to this supervisor.
+    
+    Args:
+        actor: The supervisor accepting the assignment
+        assignment_id: The assignment being accepted
+    
+    Returns:
+        SupervisorAssignment in ACCEPTED state
+    """
+    from .models import SupervisorAssignment
+    from .workflows import supervisor_assignment_workflow
+    
+    assignment = SupervisorAssignment.objects.select_for_update().get(id=assignment_id)
+    
+    # Only the assigned supervisor can accept
+    if actor.id != assignment.supervisor_id:
+        raise AuthorizationError(
+            user_message="Only the assigned supervisor can accept this assignment.",
+            developer_message=f"User {actor.id} is not the assigned supervisor (expected: {assignment.supervisor_id})",
+            context=ErrorContext()
+                .with_user_id(actor.id)
+                .with_resource("assignment", assignment_id)
+                .build(),
+        )
+    
+    # Transition via workflow (PENDING → ACCEPTED)
+    assignment = supervisor_assignment_workflow.transition(
+        assignment=assignment,
+        target_state=SupervisorAssignment.STATUS_ACCEPTED,
+        actor=actor,
+        payload={"accepted_by": str(actor.id)}
+    )
+    
+    # Send notification to admin
+    try:
+        from edulink.apps.notifications.services import send_supervisor_accepted_notification
+        from edulink.apps.students.queries import get_student_by_id
+        
+        student = get_student_by_id(assignment.application.student_id)
+        student_name = student.user.get_full_name() or student.user.username if student else "Student"
+        
+        send_supervisor_accepted_notification(
+            assigned_by_id=str(assignment.assigned_by_id),
+            student_name=student_name,
+            supervisor_name=actor.get_full_name() or actor.username,
+            opportunity_title=assignment.application.opportunity.title,
+            assignment_type=assignment.assignment_type,
+            actor_id=str(actor.id)
+        )
+    except Exception as e:
+        logger.error(f"Failed to send supervisor accepted notification: {e}")
+    
+    return assignment
+
+
+def reject_supervisor_assignment(actor, assignment_id: UUID, reason: str = None) -> "SupervisorAssignment":
+    """
+    Supervisor rejects a supervisor assignment.
+    Transitions: PENDING → REJECTED
+    Does NOT update the application (supervisor still needs to be assigned).
+    
+    Args:
+        actor: The supervisor rejecting the assignment
+        assignment_id: The assignment being rejected
+        reason: Optional reason for rejection
+    
+    Returns:
+        SupervisorAssignment in REJECTED state
+    """
+    from .models import SupervisorAssignment
+    from .workflows import supervisor_assignment_workflow
+    
+    assignment = SupervisorAssignment.objects.select_for_update().get(id=assignment_id)
+    
+    # Only the assigned supervisor can reject
+    if actor.id != assignment.supervisor_id:
+        raise AuthorizationError(
+            user_message="Only the assigned supervisor can reject this assignment.",
+            developer_message=f"User {actor.id} is not the assigned supervisor (expected: {assignment.supervisor_id})",
+            context=ErrorContext()
+                .with_user_id(actor.id)
+                .with_resource("assignment", assignment_id)
+                .build(),
+        )
+    
+    # Transition via workflow (PENDING → REJECTED)
+    assignment = supervisor_assignment_workflow.transition(
+        assignment=assignment,
+        target_state=SupervisorAssignment.STATUS_REJECTED,
+        actor=actor,
+        payload={"reason": reason or "No reason provided", "rejected_by": str(actor.id)}
+    )
+    
+    # Send notification to admin
+    try:
+        from edulink.apps.notifications.services import send_supervisor_rejected_notification
+        from edulink.apps.students.queries import get_student_by_id
+        
+        student = get_student_by_id(assignment.application.student_id)
+        student_name = student.user.get_full_name() or student.user.username if student else "Student"
+        
+        send_supervisor_rejected_notification(
+            assigned_by_id=str(assignment.assigned_by_id),
+            student_name=student_name,
+            supervisor_name=actor.get_full_name() or actor.username,
+            opportunity_title=assignment.application.opportunity.title,
+            assignment_type=assignment.assignment_type,
+            rejection_reason=reason,
+            actor_id=str(actor.id)
+        )
+    except Exception as e:
+        logger.error(f"Failed to send supervisor rejected notification: {e}")
+    
+    return assignment
 

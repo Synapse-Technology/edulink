@@ -1,5 +1,14 @@
+import logging
+from uuid import UUID
 from edulink.apps.institutions.queries import get_institution_by_domain
 from edulink.apps.ledger.services import record_event
+from edulink.apps.shared.error_handling import (
+    AuthorizationError,
+    NotFoundError,
+    ValidationError,
+    ConflictError,
+    ErrorContext,
+)
 from edulink.apps.notifications.services import (
     send_student_profile_updated_notification,
     send_student_profile_completed_notification,
@@ -8,7 +17,8 @@ from edulink.apps.notifications.services import (
     send_document_uploaded_notification,
 )
 from .models import Student, StudentInstitutionAffiliation, TRUST_EVENT_POINTS, TRUST_TIER_THRESHOLDS
-from uuid import UUID
+
+logger = logging.getLogger(__name__)
 
 
 def get_or_create_student_profile(*, user) -> Student:
@@ -135,7 +145,14 @@ def update_student_affiliation(
             status=StudentInstitutionAffiliation.STATUS_APPROVED
         )
     except StudentInstitutionAffiliation.DoesNotExist:
-        raise ValueError("Approved affiliation not found")
+        raise NotFoundError(
+            user_message="No approved affiliation found for this student at the specified institution.",
+            developer_message=f"StudentInstitutionAffiliation not found: student_id={student_id}, institution_id={institution_id}",
+            context=ErrorContext()
+                .with_user_id(student_id)
+                .with_resource("institution", institution_id)
+                .build(),
+        )
 
     updated_fields = []
     if department_id:
@@ -260,7 +277,14 @@ def verify_student_affiliation(*, affiliation_id: str, actor_id: str, review_not
     affiliation = StudentInstitutionAffiliation.objects.get(id=affiliation_id)
     
     if affiliation.status != StudentInstitutionAffiliation.STATUS_PENDING:
-        raise ValueError("Affiliation is not pending")
+        raise ValidationError(
+            user_message="This affiliation request is not pending approval.",
+            developer_message=f"StudentInstitutionAffiliation {affiliation_id} status={affiliation.status}, not PENDING",
+            context=ErrorContext()
+                .with_resource("affiliation", affiliation_id)
+                .with_user_id(actor_id)
+                .build(),
+        )
 
     with transaction.atomic():
         # 1. Update Affiliation
@@ -337,7 +361,14 @@ def reject_student_affiliation(*, affiliation_id: str, reason: str, actor_id: st
     affiliation = StudentInstitutionAffiliation.objects.get(id=affiliation_id)
     
     if affiliation.status != StudentInstitutionAffiliation.STATUS_PENDING:
-        raise ValueError("Affiliation is not pending")
+        raise ValidationError(
+            user_message="This affiliation request is not pending approval.",
+            developer_message=f"StudentInstitutionAffiliation {affiliation_id} status={affiliation.status}, not PENDING",
+            context=ErrorContext()
+                .with_resource("affiliation", affiliation_id)
+                .with_user_id(actor_id)
+                .build(),
+        )
         
     affiliation.status = StudentInstitutionAffiliation.STATUS_REJECTED
     affiliation.reviewed_by = UUID(actor_id)

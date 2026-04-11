@@ -23,6 +23,7 @@ class Notification(BaseModel):
     TYPE_INTERNSHIP_APPLICATION_REVIEWED = "internship_application_reviewed"
     TYPE_INTERNSHIP_ACCEPTED = "internship_accepted"
     TYPE_INTERNSHIP_REJECTED = "internship_rejected"
+    TYPE_INTERNSHIP_APPLICATION_WITHDRAWN = "internship_application_withdrawn"
     TYPE_LOGBOOK_SUBMITTED = "logbook_submitted"
     TYPE_LOGBOOK_REVIEWED = "logbook_reviewed"
     TYPE_TRUST_TIER_CHANGED = "trust_tier_changed"
@@ -55,6 +56,7 @@ class Notification(BaseModel):
         (TYPE_INTERNSHIP_APPLICATION_REVIEWED, "Internship Application Reviewed"),
         (TYPE_INTERNSHIP_ACCEPTED, "Internship Accepted"),
         (TYPE_INTERNSHIP_REJECTED, "Internship Rejected"),
+        (TYPE_INTERNSHIP_APPLICATION_WITHDRAWN, "Internship Application Withdrawn"),
         (TYPE_LOGBOOK_SUBMITTED, "Logbook Submitted"),
         (TYPE_LOGBOOK_REVIEWED, "Logbook Reviewed"),
         (TYPE_TRUST_TIER_CHANGED, "Trust Tier Changed"),

@@ -1,4 +1,6 @@
 import { ApiError } from '../services';
+import type { ParsedErrorResponse } from '../services/errorHandling';
+import { parseErrorResponse } from '../services/errorHandling';
 
 type LoginPortal = 'student' | 'employer' | 'institution' | 'admin';
 
@@ -13,6 +15,35 @@ const portalLabel: Record<LoginPortal, string> = {
   admin: 'admin',
 };
 
+/**
+ * Get parsed error response with portal-specific messaging
+ * Ensures consistent error messages across all login portals (student/employer/institution/admin)
+ */
+export const getLoginErrorResponse = (
+  error: unknown,
+  options: LoginErrorMessageOptions = {}
+): ParsedErrorResponse => {
+  const _portal = options.portal ?? 'student';
+  
+  // Parse the error using the new system
+  const parsed = parseErrorResponse(error);
+  
+  // Override user message with portal-specific message
+  if (error instanceof ApiError) {
+    const portalSpecificMessage = getLoginErrorMessage(error, options);
+    return {
+      ...parsed,
+      userMessage: portalSpecificMessage,
+    };
+  }
+  
+  return parsed;
+};
+
+/**
+ * Get user-friendly error message for login specific to portal
+ * Preserves backward compatibility with existing Login/Register components
+ */
 export const getLoginErrorMessage = (
   error: unknown,
   options: LoginErrorMessageOptions = {}

@@ -1,4 +1,5 @@
 import os
+import logging
 from uuid import UUID
 from datetime import datetime
 from io import BytesIO
@@ -7,6 +8,14 @@ from django.template.loader import render_to_string
 from django.core.files.base import ContentFile
 from django.db import transaction
 from xhtml2pdf import pisa
+from edulink.apps.shared.error_handling import (
+    ValidationError,
+    NotFoundError,
+    ConflictError,
+    ErrorContext,
+)
+
+logger = logging.getLogger(__name__)
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.units import mm, inch, pica
@@ -663,10 +672,18 @@ def generate_completion_certificate(*, application_id: UUID, actor_id: UUID) -> 
     """
     application = get_application_by_id(application_id)
     if not application:
-        raise ValueError("Application not found")
+        raise NotFoundError(
+            user_message="Application not found.",
+            developer_message=f"Application with ID {application_id} not found",
+            context=ErrorContext().build(),
+        )
         
     if application.status != "CERTIFIED":
-        raise ValueError("Internship must be CERTIFIED by the institution to generate a certificate")
+        raise ConflictError(
+            user_message="Internship must be CERTIFIED by the institution to generate a certificate.",
+            developer_message=f"Application status is {application.status}, expected CERTIFIED",
+            context=ErrorContext().build(),
+        )
 
     student = get_student_by_id(str(application.student_id))
     opportunity = application.opportunity
@@ -815,7 +832,11 @@ def generate_performance_summary(*, application_id: UUID, actor_id: UUID) -> Art
     """
     application = get_application_by_id(application_id)
     if not application:
-        raise ValueError("Application not found")
+        raise NotFoundError(
+            user_message="Application not found.",
+            developer_message=f"Application with ID {application_id} not found",
+            context=ErrorContext().build(),
+        )
 
     student = get_student_by_id(str(application.student_id))
     opportunity = application.opportunity
@@ -928,7 +949,11 @@ def generate_logbook_report(*, application_id: UUID, actor_id: UUID) -> Artifact
     """
     application = get_application_by_id(application_id)
     if not application:
-        raise ValueError("Application not found")
+        raise NotFoundError(
+            user_message="Application not found.",
+            developer_message=f"Application with ID {application_id} not found",
+            context=ErrorContext().build(),
+        )
 
     student = get_student_by_id(str(application.student_id))
     opportunity = application.opportunity

@@ -13,6 +13,35 @@ class StudentSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at'
         ]
         read_only_fields = ['trust_level', 'trust_points']
+    
+    def validate_registration_number(self, value):
+        """registration_number is required for profile completion."""
+        if not value:
+            raise serializers.ValidationError("Registration number is required.")
+        return value
+    
+    def validate_course_of_study(self, value):
+        """course_of_study is required for profile completion."""
+        if not value or not value.strip():
+            raise serializers.ValidationError("Course of study is required.")
+        return value
+    
+    def validate_current_year(self, value):
+        """current_year must be in valid range if provided."""
+        if value:
+            try:
+                year = int(value)
+                if year < 1 or year > 8:
+                    raise serializers.ValidationError("Current year must be between 1 and 8.")
+            except (ValueError, TypeError):
+                raise serializers.ValidationError("Current year must be a valid number.")
+        return value
+    
+    def validate_skills(self, value):
+        """skills list must be non-empty for profile completion."""
+        if isinstance(value, list) and not value:
+            raise serializers.ValidationError("You must add at least one skill.")
+        return value
 
 
 class TrustTierSerializer(serializers.Serializer):

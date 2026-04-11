@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAuthStore } from '../../stores/authStore';
 import { Eye, EyeOff } from 'lucide-react';
-import { getLoginErrorMessage } from '../../utils/loginErrorMessage';
+import { useLoginErrorHandler } from '../../hooks/useAuthErrorHandler';
 
 // CSS Animations and Keyframes
 const styles = `
@@ -151,6 +151,8 @@ interface LoginFormData {
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const errorHandler = useLoginErrorHandler({ portal: 'student' });
+  
   const [loginForm, setLoginForm] = useState<LoginFormData>({
     email: '',
     password: '',
@@ -224,7 +226,9 @@ const Login: React.FC = () => {
         await useAuthStore.getState().logout();
       }
     } catch (error) {
-      showToastMessage(getLoginErrorMessage(error, { portal: 'student' }), 'error');
+      // Use new error handler for parsed errors with portal-specific messaging
+      const errorMessage = await errorHandler.handleLoginError(error);
+      showToastMessage(errorMessage, 'error');
     } finally {
       setIsSubmitting(false);
     }

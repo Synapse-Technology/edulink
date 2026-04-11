@@ -1,12 +1,20 @@
 from uuid import UUID
 from typing import Dict, Any, Optional, List
 import secrets
+import logging
 from django.db import transaction
 from django.utils import timezone
 from django.conf import settings
 from django.contrib.auth.hashers import make_password, check_password
 from django.contrib.auth import get_user_model
 from edulink.apps.ledger.services import record_event
+from edulink.apps.shared.error_handling import (
+    ValidationError,
+    AuthorizationError,
+    NotFoundError,
+    ConflictError,
+    ErrorContext,
+)
 from edulink.apps.notifications.services import (
     send_employer_request_confirmation,
     send_employer_approval_notification,
@@ -18,6 +26,8 @@ from edulink.apps.notifications.services import (
 )
 from .models import Employer, Supervisor, EmployerRequest, EmployerInvite, EmployerStaffProfileRequest
 from .tracking_helpers import generate_tracking_code
+
+logger = logging.getLogger(__name__)
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from edulink.apps.accounts.models import User as UserType
@@ -161,10 +171,18 @@ def review_employer_request(
     try:
         request = EmployerRequest.objects.get(id=request_id)
     except EmployerRequest.DoesNotExist:
-        raise ValueError("Request not found")
+        raise NotFoundError(
+            user_message="Employer request not found.",
+            developer_message="EmployerRequest not found in database",
+            context=ErrorContext().build(),
+        )
     
     if request.status != EmployerRequest.STATUS_PENDING:
-        raise ValueError("Request is not pending.")
+        raise ConflictError(
+            user_message="Employer request is not in pending state.",
+            developer_message="EmployerRequest status is not PENDING",
+            context=ErrorContext().build(),
+        )
         
     if action == "approve":
         request.status = EmployerRequest.STATUS_APPROVED
@@ -228,7 +246,11 @@ def review_employer_request(
         
     elif action == "reject":
         if not rejection_reason_code:
-            raise ValueError("Rejection reason code required.")
+            raise ValidationError(
+            user_message="Rejection reason code is required.",
+            developer_message="Rejection reason code not provided",
+            context=ErrorContext().build(),
+        )
             
         request.status = EmployerRequest.STATUS_REJECTED
         request.rejection_reason_code = rejection_reason_code
@@ -252,7 +274,11 @@ def review_employer_request(
             pass
         
     else:
-        raise ValueError("Invalid action")
+        raise ValidationError(
+            user_message="Invalid action specified.",
+            developer_message="Action not in valid values",
+            context=ErrorContext().build(),
+        )
         
     return request
 
@@ -298,18 +324,34 @@ def validate_employer_invite_token(invite_id: str, token: str) -> EmployerInvite
     try:
         invite = EmployerInvite.objects.get(id=invite_id)
     except EmployerInvite.DoesNotExist:
-        raise ValueError("Invalid invitation link")
+        raise ValidationError(
+            user_message="Invalid invitation link.",
+            developer_message="Invitation link format invalid",
+            context=ErrorContext().build(),
+        )
         
     if invite.status != EmployerInvite.STATUS_PENDING:
-        raise ValueError("Invitation is no longer valid")
+        raise ConflictError(
+            user_message="Invitation is no longer valid.",
+            developer_message="Invitation expired or revoked",
+            context=ErrorContext().build(),
+        )
         
     if timezone.now() > invite.expires_at:
         invite.status = EmployerInvite.STATUS_EXPIRED
         invite.save()
-        raise ValueError("Invitation has expired")
+        raise ConflictError(
+            user_message="Invitation has expired.",
+            developer_message="Invitation token expired",
+            context=ErrorContext().build(),
+        )
         
     if not check_password(token, invite.token_hash):
-        raise ValueError("Invalid invitation token")
+        raise ValidationError(
+            user_message="Invalid invitation token.",
+            developer_message="Invitation token format invalid",
+            context=ErrorContext().build(),
+        )
         
     return invite
 
@@ -332,7 +374,11 @@ def invite_supervisor(
     
     # Check if user is already a supervisor for this employer
     if Supervisor.objects.filter(employer=employer, user__email=email, is_active=True).exists():
-        raise ValueError(f"User with email {email} is already a supervisor for this employer.")
+        raise ConflictError(
+            user_message="User is already a supervisor for this employer.",
+            developer_message=f"User {email} already supervisor",
+            context=ErrorContext().build(),
+        )
 
     # Check for pending invites
     if EmployerInvite.objects.filter(
@@ -341,7 +387,11 @@ def invite_supervisor(
         status=EmployerInvite.STATUS_PENDING,
         expires_at__gt=timezone.now()
     ).exists():
-        raise ValueError(f"A pending invitation already exists for {email}.")
+        raise ConflictError(
+            user_message="An invitation is already pending for this email.",
+            developer_message=f"Pending invitation exists for {email}",
+            context=ErrorContext().build(),
+        )
 
     # Create secure token
     raw_token = secrets.token_urlsafe(32)
@@ -513,10 +563,18 @@ def remove_supervisor(
     try:
         supervisor = Supervisor.objects.get(id=supervisor_id)
     except Supervisor.DoesNotExist:
-        raise ValueError("Supervisor not found")
+        raise NotFoundError(
+            user_message="Supervisor not found.",
+            developer_message="Supervisor not found in database",
+            context=ErrorContext().build(),
+        )
         
     if str(supervisor.user.id) == str(actor_id):
-        raise ValueError("Cannot remove your own account. Use Deactivate Account in settings.")
+        raise ValidationError(
+            user_message="You cannot remove your own account. Use Deactivate Account in settings.",
+            developer_message="User attempted to remove own account",
+            context=ErrorContext().build(),
+        )
 
     if not supervisor.is_active:
         return # Already removed

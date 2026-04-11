@@ -138,21 +138,24 @@ class ApiClient {
     const { status, data } = error.response;
     const errorMessage = this.extractErrorMessage(data);
 
+    // Preserve full backend response in data for ParsedErrorResponse
+    const fullErrorData = typeof data === 'object' ? data : { message: errorMessage };
+
     switch (status) {
       case 400:
-        return new ValidationError(errorMessage, data);
+        return new ValidationError(errorMessage, fullErrorData);
       case 401:
         return new AuthenticationError(errorMessage);
       case 403:
         return new AuthenticationError(errorMessage || 'Access forbidden. Insufficient permissions.');
       case 404:
-        return new ApiError(errorMessage, status);
+        return new ApiError(errorMessage, status, fullErrorData);
       case 422:
-        return new ValidationError(errorMessage, data);
+        return new ValidationError(errorMessage, fullErrorData);
       case 500:
-        return new ApiError('Internal server error. Please try again later.', status);
+        return new ApiError('Internal server error. Please try again later.', status, fullErrorData);
       default:
-        return new ApiError(errorMessage, status);
+        return new ApiError(errorMessage, status, fullErrorData);
     }
   }
 

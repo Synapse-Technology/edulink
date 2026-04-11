@@ -6,6 +6,13 @@ from django.conf import settings
 
 from django.contrib.auth import get_user_model
 from edulink.apps.ledger.services import record_event
+from edulink.apps.shared.error_handling import (
+    ValidationError,
+    AuthorizationError,
+    NotFoundError,
+    ConflictError,
+    ErrorContext,
+)
 from edulink.apps.notifications.services import (
     send_institution_request_confirmation,
     send_institution_approval_notification,
@@ -52,7 +59,11 @@ def update_institution_staff_details(
     try:
         staff = InstitutionStaff.objects.get(id=staff_id, institution_id=institution_id)
     except InstitutionStaff.DoesNotExist:
-        raise ValueError("Staff member not found or does not belong to your institution")
+        raise NotFoundError(
+            user_message="Staff member not found in your institution.",
+            developer_message="Staff member not found or does not belong to institution",
+            context=ErrorContext().build(),
+        )
     
     # Update user profile
     update_user_profile(
@@ -90,7 +101,11 @@ def remove_institution_staff(
     try:
         staff = InstitutionStaff.objects.get(id=staff_id)
     except InstitutionStaff.DoesNotExist:
-        raise ValueError("Staff member not found")
+        raise NotFoundError(
+            user_message="Staff member not found.",
+            developer_message="Staff member not found in database",
+            context=ErrorContext().build(),
+        )
 
     if not staff.is_active:
         return # Already removed
@@ -127,7 +142,11 @@ def update_institution_staff_personal_details(
             .get(id=staff_id, is_active=True)
         )
     except InstitutionStaff.DoesNotExist:
-        raise ValueError("Staff member not found")
+        raise NotFoundError(
+            user_message="Staff member not found.",
+            developer_message="Staff member not found in database",
+            context=ErrorContext().build(),
+        )
 
     update_data: dict[str, str] = {}
     if first_name is not None:
@@ -163,19 +182,35 @@ def submit_institution_staff_profile_request(
             .get(id=staff_id, is_active=True)
         )
     except InstitutionStaff.DoesNotExist:
-        raise ValueError("Staff member not found")
+        raise NotFoundError(
+            user_message="Staff member not found.",
+            developer_message="Staff member not found in database",
+            context=ErrorContext().build(),
+        )
 
     if str(staff.user.id) != str(actor_id):
-        raise PermissionError("Only the staff member can submit a profile update request")
+        raise AuthorizationError(
+            user_message="Only the staff member can submit a profile update request.",
+            developer_message="Staff member does not have permission to submit profile update",
+            context=ErrorContext().build(),
+        )
 
     if staff.role != InstitutionStaff.ROLE_SUPERVISOR:
-        raise PermissionError("Only supervisors can submit profile update requests")
+        raise AuthorizationError(
+            user_message="Only supervisors can submit profile update requests.",
+            developer_message="User is not a supervisor",
+            context=ErrorContext().build(),
+        )
 
     if InstitutionStaffProfileRequest.objects.filter(
         staff=staff,
         status=InstitutionStaffProfileRequest.STATUS_PENDING,
     ).exists():
-        raise ValueError("There is already a pending profile update request")
+        raise ConflictError(
+            user_message="A profile update request is already pending review.",
+            developer_message="Duplicate profile update request exists",
+            context=ErrorContext().build(),
+        )
 
     cleaned_changes: dict[str, str] = {}
     for field in ["first_name", "last_name", "email"]:
@@ -185,7 +220,11 @@ def submit_institution_staff_profile_request(
                 cleaned_changes[field] = value
 
     if not cleaned_changes:
-        raise ValueError("No valid changes provided")
+        raise ValidationError(
+            user_message="No changes were provided to update.",
+            developer_message="Profile update request has no valid changes",
+            context=ErrorContext().build(),
+        )
 
     request = InstitutionStaffProfileRequest.objects.create(
         staff=staff,
@@ -223,13 +262,25 @@ def review_institution_staff_profile_request(
             .get(id=request_id)
         )
     except InstitutionStaffProfileRequest.DoesNotExist:
-        raise ValueError("Profile update request not found")
+        raise NotFoundError(
+            user_message="Profile update request not found.",
+            developer_message="ProfileUpdateRequest not found in database",
+            context=ErrorContext().build(),
+        )
 
     if request.status != InstitutionStaffProfileRequest.STATUS_PENDING:
-        raise ValueError("Profile update request is not pending")
+        raise ConflictError(
+            user_message="Profile update request is not in pending state.",
+            developer_message="Profile update request status is not PENDING",
+            context=ErrorContext().build(),
+        )
 
     if action not in ["approve", "reject"]:
-        raise ValueError("Action must be 'approve' or 'reject'")
+        raise ValidationError(
+            user_message="Action must be either approve or reject.",
+            developer_message="Invalid action value",
+            context=ErrorContext().build(),
+        )
 
     if not InstitutionStaff.objects.filter(
         user__id=reviewer_id,
@@ -237,7 +288,11 @@ def review_institution_staff_profile_request(
         is_active=True,
         institution=request.institution,
     ).exists():
-        raise PermissionError("Only institution admins can review profile update requests")
+        raise AuthorizationError(
+            user_message="Only institution administrators can review profile update requests.",
+            developer_message="User is not an institution admin",
+            context=ErrorContext().build(),
+        )
 
     if action == "approve":
         update_institution_staff_personal_details(
@@ -538,7 +593,11 @@ def get_institution_by_id(*, institution_id: UUID) -> Institution:
     try:
         return Institution.objects.get(id=institution_id)
     except Institution.DoesNotExist:
-        raise ValueError("Institution not found")
+        raise NotFoundError(
+            user_message="Institution not found.",
+            developer_message="Institution not found in database",
+            context=ErrorContext().build(),
+        )
 
 
 def record_institution_interest(
@@ -701,7 +760,11 @@ def get_institution_contact_info(*, institution_id: UUID) -> dict:
             "source": "approved_request"
         }
     except Institution.DoesNotExist:
-        raise ValueError(f"Institution with ID {institution_id} not found")
+        raise NotFoundError(
+            user_message="Institution not found.",
+            developer_message=f"Institution {institution_id} not found",
+            context=ErrorContext().build(),
+        )
     except Exception as e:
         logger.error(f"Error retrieving institution contact info for {institution_id}: {e}")
         # Return empty/null data instead of raising to allow serialization to continue
@@ -866,21 +929,41 @@ def review_institution_request(
     try:
         institution_request = InstitutionRequest.objects.get(id=request_id)
     except InstitutionRequest.DoesNotExist:
-        raise ValueError(f"Institution request {request_id} not found")
+        raise NotFoundError(
+            user_message="Institution request not found.",
+            developer_message=f"InstitutionRequest {request_id} not found",
+            context=ErrorContext().build(),
+        )
     
     if institution_request.status != InstitutionRequest.STATUS_PENDING:
-        raise ValueError(f"Institution request {request_id} is not pending review")
+        raise ConflictError(
+            user_message="Request is not pending review.",
+            developer_message=f"InstitutionRequest {request_id} status not PENDING_REVIEW",
+            context=ErrorContext().build(),
+        )
     
     if action not in ['approve', 'reject']:
-        raise ValueError("Action must be 'approve' or 'reject'")
+        raise ValidationError(
+            user_message="Action must be either approve or reject.",
+            developer_message="Invalid action value",
+            context=ErrorContext().build(),
+        )
     
     if action == 'reject' and not rejection_reason_code:
-        raise ValueError("Rejection reason code is required when rejecting a request")
+        raise ValidationError(
+            user_message="Rejection reason code is required.",
+            developer_message="Missing rejection_reason_code",
+            context=ErrorContext().build(),
+        )
     
     if rejection_reason_code and rejection_reason_code not in [
         code for code, _ in InstitutionRequest.REJECTION_REASON_CHOICES
     ]:
-        raise ValueError(f"Invalid rejection reason code: {rejection_reason_code}")
+        raise ValidationError(
+            user_message="Invalid rejection reason code.",
+            developer_message=f"Invalid rejection_reason_code: {rejection_reason_code}",
+            context=ErrorContext().build(),
+        )
     
     # Update the request status
     institution_request.status = (
@@ -984,18 +1067,34 @@ def validate_institution_invite_token(invite_id: str, token: str) -> Institution
     try:
         invite = InstitutionInvite.objects.get(id=invite_id)
     except InstitutionInvite.DoesNotExist:
-        raise ValueError("Invalid invitation link")
+        raise ValidationError(
+            user_message="Invalid invitation link.",
+            developer_message="Invitation link format invalid",
+            context=ErrorContext().build(),
+        )
         
     if invite.status != InstitutionInvite.STATUS_PENDING:
-        raise ValueError("Invitation is no longer valid")
+        raise ConflictError(
+            user_message="Invitation is no longer valid.",
+            developer_message="Invitation expired or already used",
+            context=ErrorContext().build(),
+        )
         
     if timezone.now() > invite.expires_at:
         invite.status = InstitutionInvite.STATUS_EXPIRED
         invite.save()
-        raise ValueError("Invitation has expired")
+        raise ConflictError(
+            user_message="Invitation has expired.",
+            developer_message="InstitutionInvite status is EXPIRED",
+            context=ErrorContext().build(),
+        )
         
     if not check_password(token, invite.token_hash):
-        raise ValueError("Invalid invitation token")
+        raise ValidationError(
+            user_message="Invalid invitation token.",
+            developer_message="Token hash does not match",
+            context=ErrorContext().build(),
+        )
         
     return invite
 
@@ -1029,7 +1128,11 @@ def activate_institution_admin_from_invite(
         # we might want to error or handle carefully.
         # Blueprint says: "System does NOT: Create a usable login... until activation"
         # So user shouldn't exist.
-        raise ValueError("User with this email already exists")
+        raise ConflictError(
+            user_message="User with this email already exists.",
+            developer_message="User email conflict during institution staff invite",
+            context=ErrorContext().build(),
+        )
 
     # Create User
     # Note: AbstractUser requires username, we use email as username
@@ -1144,7 +1247,11 @@ def update_institution_profile(
     try:
         institution = Institution.objects.get(id=institution_id)
     except Institution.DoesNotExist:
-        raise ValueError("Institution not found")
+        raise NotFoundError(
+            user_message="Institution not found.",
+            developer_message="Institution not found in database",
+            context=ErrorContext().build(),
+        )
 
     updated_fields = []
     allowed_fields = ['website_url', 'contact_email', 'contact_phone', 'address', 'description']
@@ -1187,7 +1294,11 @@ def create_institution_supervisor_invite(
     try:
         dept = Department.objects.get(id=department_id, institution=institution)
     except Department.DoesNotExist:
-        raise ValueError("Invalid department or not found in this institution")
+        raise NotFoundError(
+            user_message="Department not found in this institution.",
+            developer_message=f"Department {department_id} not found",
+            context=ErrorContext().build(),
+        )
     
     department_name = dept.name
     
@@ -1197,12 +1308,20 @@ def create_institution_supervisor_invite(
         try:
             coh = Cohort.objects.get(id=cohort_id, department=dept)
         except Cohort.DoesNotExist:
-             raise ValueError("Invalid cohort or not found in this department")
+             raise NotFoundError(
+                user_message="Cohort not found in this department.",
+                developer_message=f"Cohort {cohort_id} not found",
+                context=ErrorContext().build(),
+            )
         cohort_name = coh.name
     
     # Check if user already exists
     if User.objects.filter(email=email).exists():
-        raise ValueError("User with this email already exists")
+        raise ConflictError(
+                    user_message="User with this email already exists.",
+                    developer_message="Email already registered",
+                    context=ErrorContext().build(),
+        )
 
     # Check if invite already exists
     if InstitutionInvite.objects.filter(
@@ -1210,7 +1329,11 @@ def create_institution_supervisor_invite(
         email=email,
         status=InstitutionInvite.STATUS_PENDING
     ).exists():
-        raise ValueError("An active invitation already exists for this email")
+        raise ConflictError(
+                    user_message="An active invitation already exists for this email.",
+                    developer_message="Pending invitation exists",
+                    context=ErrorContext().build(),
+        )
 
     raw_token = secrets.token_urlsafe(32)
     token_hash = make_password(raw_token)
@@ -1276,10 +1399,18 @@ def activate_institution_supervisor_from_invite(
     invite = validate_institution_invite_token(invite_id, token)
     
     if invite.role != InstitutionStaff.ROLE_SUPERVISOR:
-        raise ValueError("Invalid invite role for supervisor activation")
+        raise ValidationError(
+                    user_message="Invalid invite role.",
+                    developer_message="Invite role not SUPERVISOR",
+                    context=ErrorContext().build(),
+        )
 
     if User.objects.filter(email=invite.email).exists():
-        raise ValueError("User with this email already exists")
+        raise ConflictError(
+                    user_message="User with this email already exists.",
+                    developer_message="Email already registered",
+                    context=ErrorContext().build(),
+        )
 
     # Create User
     user = create_activated_user(
@@ -1360,7 +1491,11 @@ def complete_institution_admin_setup(
     """
     admin_user = get_user_by_id(user_id=admin_user_id)
     if admin_user.role != User.ROLE_INSTITUTION_ADMIN:
-        raise ValueError("User must be an institution admin to complete setup")
+        raise AuthorizationError(
+                    user_message="Only institution admins can complete setup.",
+                    developer_message="User role is not admin",
+                    context=ErrorContext().build(),
+        )
 
     staff_record = InstitutionStaff.objects.filter(
         user=admin_user, 
@@ -1377,7 +1512,11 @@ def complete_institution_admin_setup(
         ).order_by('-created_at').first()
         
         if not invite:
-            raise ValueError("No institution association found for this user.")
+            raise NotFoundError(
+                        user_message="No institution association found.",
+                        developer_message="InstitutionStaff not found",
+                        context=ErrorContext().build(),
+            )
         
         institution = invite.institution
         
@@ -1519,7 +1658,11 @@ def create_department(
     Create a new department for an institution.
     """
     if Department.objects.filter(institution_id=institution_id, name__iexact=name).exists():
-        raise ValueError(f"Department with name '{name}' already exists.")
+        raise ConflictError(
+                    user_message=f"Department '{name}' already exists.",
+                    developer_message=f"Department name conflict: {name}",
+                    context=ErrorContext().build(),
+        )
     
     department = Department.objects.create(
         institution_id=institution_id,
@@ -1565,7 +1708,11 @@ def update_department(
 
     if name and name.lower() != department.name.lower():
         if Department.objects.filter(institution_id=department.institution_id, name__iexact=name).exclude(id=department_id).exists():
-            raise ValueError(f"Department with name '{name}' already exists.")
+            raise ConflictError(
+                        user_message=f"Department '{name}' already exists.",
+                        developer_message=f"Department name conflict: {name}",
+                        context=ErrorContext().build(),
+            )
         department.name = name
 
     if code is not None:
@@ -1637,7 +1784,11 @@ def create_cohort(
     Create a new cohort for a department.
     """
     if Cohort.objects.filter(department_id=department_id, name__iexact=name).exists():
-        raise ValueError(f"Cohort with name '{name}' already exists in this department.")
+        raise ConflictError(
+                    user_message=f"Cohort '{name}' already exists in this department.",
+                    developer_message=f"Cohort name conflict: {name}",
+                    context=ErrorContext().build(),
+        )
     
     cohort = Cohort.objects.create(
         department_id=department_id,
@@ -1687,7 +1838,11 @@ def update_cohort(
 
     if name and name.lower() != cohort.name.lower():
         if Cohort.objects.filter(department_id=cohort.department_id, name__iexact=name).exclude(id=cohort_id).exists():
-            raise ValueError(f"Cohort with name '{name}' already exists in this department.")
+            raise ConflictError(
+                        user_message=f"Cohort '{name}' already exists in this department.",
+                        developer_message=f"Cohort name conflict: {name}",
+                        context=ErrorContext().build(),
+            )
         cohort.name = name
 
     if start_year is not None:
@@ -1778,7 +1933,11 @@ def process_bulk_verification_csv(*, institution_id: str, file) -> dict:
             rows=rows
         )
     except Exception as e:
-        raise ValueError(f"Failed to process CSV file: {str(e)}")
+        raise ValidationError(
+                    user_message="Failed to process CSV file.",
+                    developer_message=f"CSV parse error: {str(e)}",
+                    context=ErrorContext().build(),
+        )
 
 
 @transaction.atomic

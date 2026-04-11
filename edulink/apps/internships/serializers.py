@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import InternshipOpportunity, InternshipApplication, InternshipEvidence, Incident, SuccessStory, OpportunityStatus, ApplicationStatus
+from .models import InternshipOpportunity, InternshipApplication, InternshipEvidence, Incident, SuccessStory, SupervisorAssignment, OpportunityStatus, ApplicationStatus
 
 class SuccessStorySerializer(serializers.ModelSerializer):
     student_name = serializers.SerializerMethodField()
@@ -266,6 +266,27 @@ class InternshipEvidenceSerializer(serializers.ModelSerializer):
             'employer_review_status', 'employer_reviewed_by', 'employer_reviewed_at', 'employer_review_notes', 'employer_private_notes',
             'institution_review_status', 'institution_reviewed_by', 'institution_reviewed_at', 'institution_review_notes', 'institution_private_notes'
         ]
+    
+    def validate_description(self, value):
+        """description: must be 10-500 characters for logbook entries."""
+        evidence_type = self.initial_data.get('evidence_type', InternshipEvidence.TYPE_OTHER)
+        if evidence_type == InternshipEvidence.TYPE_LOGBOOK:
+            if not value or len(value.strip()) < 10:
+                raise serializers.ValidationError(
+                    "Logbook entry description must be at least 10 characters."
+                )
+            if len(value) > 500:
+                raise serializers.ValidationError(
+                    "Logbook entry description must not exceed 500 characters."
+                )
+        return value
+    
+    def validate_file(self, value):
+        """file: max 5MB."""
+        if value:
+            if value.size > 5 * 1024 * 1024:  # 5MB
+                raise serializers.ValidationError("File size must not exceed 5MB.")
+        return value
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
@@ -382,7 +403,27 @@ class SubmitFinalFeedbackSerializer(serializers.Serializer):
 
 
 class InternshipApplySerializer(serializers.Serializer):
-    cover_letter = serializers.CharField(required=False, allow_blank=True, default="")
+    cover_letter = serializers.CharField(
+        required=False, 
+        allow_blank=True, 
+        default="",
+        max_length=1000,
+        help_text="Optional cover letter (max 1000 characters)"
+    )
+    
+    def validate_cover_letter(self, value):
+        """cover_letter: if provided, must be 50-1000 characters."""
+        if value and len(value.strip()) > 0:
+            cleaned = value.strip()
+            if len(cleaned) < 50:
+                raise serializers.ValidationError(
+                    "Cover letter must be at least 50 characters if provided."
+                )
+            if len(cleaned) > 1000:
+                raise serializers.ValidationError(
+                    "Cover letter must not exceed 1000 characters."
+                )
+        return value
 
 
 class CreateSuccessStorySerializer(serializers.Serializer):
@@ -450,3 +491,64 @@ class DeadlineAnalyticsSerializer(serializers.Serializer):
     period_start = serializers.DateTimeField()
     period_end = serializers.DateTimeField()
     generated_at = serializers.DateTimeField()
+
+
+# ==================== Phase 2.4: Supervisor Assignment Serializers ====================
+
+class SupervisorAssignmentSerializer(serializers.ModelSerializer):
+    """
+    Serialize supervisor assignment (read).
+    Shows assignment status and timeline.
+    """
+    supervisor_id = serializers.UUIDField()
+    assigned_by_id = serializers.UUIDField()
+    application = InternshipApplicationSerializer(read_only=True)
+    
+    class Meta:
+        model = SupervisorAssignment
+        fields = [
+            'id',
+            'application',
+            'supervisor_id',
+            'assigned_by_id',
+            'assignment_type',
+            'status',
+            'assigned_at',
+            'accepted_at',
+            'rejected_at',
+            'rejection_reason',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = [
+            'id',
+            'application',
+            'assigned_by_id',
+            'assigned_at',
+            'accepted_at',
+            'rejected_at',
+            'created_at',
+            'updated_at',
+        ]
+
+
+class AcceptSupervisorAssignmentSerializer(serializers.Serializer):
+    """
+    Accept a supervisor assignment (write).
+    Supervisor confirms they will supervise this internship.
+    """
+    # No additional fields needed - just basic confirmation
+    pass
+
+
+class RejectSupervisorAssignmentSerializer(serializers.Serializer):
+    """
+    Reject a supervisor assignment (write).
+    Supervisor declines with optional reason.
+    """
+    reason = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=500,
+        help_text="Optional reason for rejection"
+    )

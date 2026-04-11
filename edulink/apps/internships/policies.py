@@ -336,3 +336,129 @@ def can_bulk_assign_supervisors(actor) -> bool:
     Only Institution Admins can perform bulk assignment.
     """
     return actor.is_institution_admin
+
+def can_withdraw_application(actor, application: InternshipApplication) -> bool:
+    """
+    Define authorization rules for withdrawing an application.
+    
+    Rules:
+    - Students can withdraw their own applications at any time (except ACTIVE/COMPLETED)
+    - System admins can withdraw any application
+    - Supervisors cannot withdraw applications
+    """
+    # System admin can withdraw any application
+    if actor.is_system_admin:
+        return True
+    
+    # Students can only withdraw their own applications
+    if actor.is_student:
+        student = get_student_for_user(str(actor.id))
+        if student and student.id == application.student_id:
+            # Check if withdrawal is allowed from current state
+            allowed_states = [
+                ApplicationStatus.APPLIED,
+                ApplicationStatus.REVIEWED,
+                ApplicationStatus.SHORTLISTED,
+                ApplicationStatus.ACCEPTED
+            ]
+            return application.status in allowed_states
+    
+    return False
+
+
+# Incident Authorization Policies
+
+def can_assign_incident_investigator(actor, incident) -> bool:
+    """
+    Determine if actor can assign an investigator to an incident.
+    Allowed: Employer Admin, Institution Admin, System Admin
+    """
+    return actor.is_employer_admin or actor.is_institution_admin or actor.is_system_admin
+
+
+def can_investigate_incident(actor, incident) -> bool:
+    """
+    Determine if actor can conduct investigation on an incident.
+    Allowed: Assigned investigator, Admins
+    """
+    # Assigned investigator can investigate
+    if incident.investigator_id and actor.id == incident.investigator_id:
+        return True
+    
+    # Admins can investigate any incident
+    return actor.is_employer_admin or actor.is_institution_admin or actor.is_system_admin
+
+
+def can_propose_incident_resolution(actor, incident) -> bool:
+    """
+    Determine if actor can propose resolution for an incident.
+    Allowed: Assigned investigator, Admins (not just anyone)
+    """
+    # Only the investigator or admins can propose
+    is_investigator = incident.investigator_id and actor.id == incident.investigator_id
+    is_admin = actor.is_employer_admin or actor.is_institution_admin or actor.is_system_admin
+    
+    return is_investigator or is_admin
+
+
+def can_approve_incident_resolution(actor, incident) -> bool:
+    """
+    Determine if actor can approve a proposed incident resolution.
+    Allowed: Admins only (not the investigator)
+    
+    This enforces separation of concerns: investigator proposes, admin approves.
+    """
+    return actor.is_employer_admin or actor.is_institution_admin or actor.is_system_admin
+
+
+def can_dismiss_incident(actor, incident) -> bool:
+    """
+    Determine if actor can dismiss an incident.
+    Allowed: Admins only (requires justification)
+    """
+    return actor.is_employer_admin or actor.is_institution_admin or actor.is_system_admin
+
+
+# ==================== Phase 2.4: Supervisor Assignment Acceptance Policies ====================
+
+def can_accept_supervisor_assignment(actor, assignment) -> bool:
+    """
+    Determine if actor can accept a supervisor assignment.
+    Allowed: Only the assigned supervisor
+    
+    Enforcement: Only the person named in the assignment can accept it.
+    This prevents admins or others from auto-accepting on their behalf.
+    """
+    return actor.id == assignment.supervisor_id
+
+
+def can_reject_supervisor_assignment(actor, assignment) -> bool:
+    """
+    Determine if actor can reject a supervisor assignment.
+    Allowed: Only the assigned supervisor
+    
+    Enforcement: Only the assigned supervisor can reject their own assignment.
+    Admin cannot force rejection; supervisor has agency.
+    """
+    return actor.id == assignment.supervisor_id
+
+
+def can_view_supervisor_assignment(actor, assignment) -> bool:
+    """
+    Determine if actor can view a supervisor assignment details.
+    Allowed: The assigned supervisor, admins, or related students/supervisors
+    """
+    # Supervisor can view their own assignment
+    if actor.id == assignment.supervisor_id:
+        return True
+    
+    # Admins can view any assignment
+    if actor.is_employer_admin or actor.is_institution_admin or actor.is_system_admin:
+        return True
+    
+    # Student can view assignments for their own application
+    if actor.id == assignment.application.student_id:
+        return True
+    
+    return False
+
