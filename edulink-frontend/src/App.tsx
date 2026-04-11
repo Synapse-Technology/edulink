@@ -87,7 +87,7 @@ import ContactManagement from './pages/admin/SystemAdmin/ContactManagement';
 import { AdminAuthProvider } from './contexts/AdminAuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
-import { ToastProvider } from './utils/toast';
+import { ToastProvider } from './components/providers/ToastProvider';
 import NotFound from './pages/NotFound';
 import './App.css';
 import './styles/admin-dashboard.css';

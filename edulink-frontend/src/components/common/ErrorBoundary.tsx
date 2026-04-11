@@ -4,7 +4,8 @@
  * Prevents entire app from crashing on component-level errors
  */
 
-import React, { ReactNode } from 'react';
+import React from 'react';
+import type { ReactNode } from 'react';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -42,7 +43,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
     // Log to console in development
-    if (process.env.NODE_ENV === 'development') {
+    if (typeof window !== 'undefined' && (window as any).__DEV__) {
       console.error('Error caught by boundary:', error);
       console.error('Error info:', errorInfo);
     }
@@ -95,7 +96,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
               We encountered an unexpected error. Please try reloading the page.
             </p>
 
-            {process.env.NODE_ENV === 'development' && this.state.error && (
+            {typeof window !== 'undefined' && (window as any).__DEV__ && this.state.error && (
               <div className="mt-4 p-3 bg-gray-100 rounded text-left overflow-auto max-h-32">
                 <p className="text-xs font-mono text-gray-700 break-words">
                   {this.state.error.toString()}
