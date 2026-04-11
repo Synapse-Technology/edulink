@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { Building2, Mail, Globe, Phone, User, FileText, Save, X, Image as ImageIcon } from 'lucide-react';
 import { EmployerLayout } from '../../../components/admin/employer';
 import { employerService, type Employer } from '../../../services/employer/employerService';
-import { toast } from 'react-hot-toast';
+import { showToast } from '../../../utils/toast';
 
 const EmployerProfile: React.FC = () => {
   const [employer, setEmployer] = useState<Employer | null>(null);
@@ -27,8 +27,7 @@ const EmployerProfile: React.FC = () => {
       setLogoPreview(data.logo || null);
       reset(data); // Initialize form with data
     } catch (error) {
-      console.error('Failed to fetch employer profile:', error);
-      toast.error('Failed to load company profile');
+      console.error("Error:", error); showToast.error("An error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -70,10 +69,10 @@ const EmployerProfile: React.FC = () => {
       setLogoPreview(updatedEmployer.logo || null);
       setLogoFile(null);
       setIsEditing(false);
-      toast.success('Profile updated successfully');
+      showToast.success('Profile updated successfully');
     } catch (error) {
-      console.error('Failed to update profile:', error);
-      toast.error('Failed to update profile');
+      console.error("Error:", error); showToast.error("An error occurred. Please try again.");
+      showToast.error('Failed to update profile');
     } finally {
       setIsSaving(false);
     }

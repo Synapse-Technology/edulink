@@ -4,7 +4,7 @@ import { Search, Plus, Mail, Trash2, AlertCircle, CheckCircle, Edit3, Zap } from
 import { institutionService } from '../../../services/institution/institutionService';
 import { internshipService } from '../../../services/internship/internshipService';
 import { useAuth } from '../../../contexts/AuthContext';
-import { toast } from 'react-hot-toast';
+import { showToast } from '../../../utils/toast';
 import { FeedbackModal } from '../../../components/common';
 import { useFeedbackModal } from '../../../hooks/useFeedbackModal';
 import type {
@@ -262,7 +262,7 @@ const InstitutionStaff: React.FC = () => {
       onConfirm: async () => {
         try {
             await institutionService.removeStaff(staffId);
-            toast.success('Staff member removed successfully');
+            showToast.success('Staff member removed successfully');
             fetchStaff();
         } catch (err: any) {
             showError('Removal Failed', "Failed to remove staff member", err.message);

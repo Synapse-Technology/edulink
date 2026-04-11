@@ -11,7 +11,6 @@ import StudentSidebar from '../../components/dashboard/StudentSidebar';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { studentService } from '../../services/student/studentService';
-import { useErrorHandler } from '../../hooks/useErrorHandler';
 import { showToast } from '../../utils/toast';
 import type { Affiliation, Institution } from '../../services/student/studentService';
 import StudentAffiliationSkeleton from '../../components/student/skeletons/StudentAffiliationSkeleton';
@@ -23,12 +22,6 @@ const StudentAffiliation: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [affiliations, setAffiliations] = useState<Affiliation[]>([]);
   const [studentId, setStudentId] = useState('');
-  
-  const handleAffiliationError = useErrorHandler({
-    onNotFound: () => showToast.error('Profile or affiliations not found.'),
-    onAuthError: () => showToast.error('Session expired. Please log in again.'),
-    onUnexpected: (error) => showToast.error(error.message || 'Failed to load affiliation status.')
-  });
   
   // Search State
   const [query, setQuery] = useState('');
@@ -46,7 +39,8 @@ const StudentAffiliation: React.FC = () => {
         const data = await studentService.getAffiliations(profile.id);
         setAffiliations(data);
       } catch (err) {
-        await handleAffiliationError(err);
+        console.error('Failed to load affiliations:', err);
+        showToast.error('Failed to load affiliation status.');
       } finally {
         setLoading(false);
       }
@@ -69,7 +63,8 @@ const StudentAffiliation: React.FC = () => {
       const results = await studentService.searchInstitutions(val);
       setSearchResults(results);
     } catch (err) {
-      await handleAffiliationError(err);
+      console.error('Search failed:', err);
+      showToast.error('Search failed. Please try again.');
     } finally {
       setIsSearching(false);
     }

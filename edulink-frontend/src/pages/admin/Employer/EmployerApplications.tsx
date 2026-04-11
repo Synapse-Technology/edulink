@@ -17,10 +17,7 @@ const EmployerApplications: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [trustFilter, setTrustFilter] = useState<string>('ALL');
 
-  const handleApplicationError = useErrorHandler({
-    onAuthError: () => showToast.error('Session expired. Please log in again.'),
-    onUnexpected: (error) => showToast.error(error.message || 'Failed to load applications.')
-  });
+  useErrorHandler({});
 
   useEffect(() => {
     // Check for query param filters on mount
@@ -39,7 +36,7 @@ const EmployerApplications: React.FC = () => {
       const recruitmentApps = apps.filter(app => !['ACTIVE', 'COMPLETED'].includes(app.status));
       setApplications(recruitmentApps);
     } catch (error) {
-      await handleApplicationError(error);
+      console.error("Error:", error); showToast.error("An error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }

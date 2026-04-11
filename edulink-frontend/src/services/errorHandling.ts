@@ -10,7 +10,6 @@ import type {
 import {
   getUserMessageForStatus,
   getTitleForStatus,
-  STATUS_CODE_MESSAGE_MAP,
 } from '../types/errors';
 import { ApiError } from './errors';
 

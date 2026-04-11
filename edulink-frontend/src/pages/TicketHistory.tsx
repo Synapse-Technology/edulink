@@ -7,7 +7,6 @@ import { FeedbackModal } from '../components/common';
 import { usePusher } from '../hooks/usePusher';
 import { useAuth } from '../contexts/AuthContext';
 import { useErrorHandler } from '../hooks/useErrorHandler';
-import { showToast } from '../utils/toast';
 import { format } from 'date-fns';
 
 const TicketHistory: React.FC = () => {
@@ -15,11 +14,7 @@ const TicketHistory: React.FC = () => {
   const queryClient = useQueryClient();
   const { feedbackProps } = useFeedbackModal();
   
-  const handleHistoryError = useErrorHandler({
-    onNotFound: () => showToast.error('Support history not found.'),
-    onAuthError: () => showToast.error('Session expired. Please log in again.'),
-    onUnexpected: (error) => showToast.error(error.message || 'Failed to load support history.')
-  });
+  useErrorHandler({});
 
   // Fetch tickets with TanStack Query
   const { data: tickets, isLoading: loading, isError } = useQuery({

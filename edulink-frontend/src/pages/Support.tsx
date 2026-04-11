@@ -11,15 +11,15 @@ import { showToast } from '../utils/toast';
 const Support: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { feedbackProps, showError, showSuccess } = useFeedbackModal();
+  const { feedbackProps, showSuccess } = useFeedbackModal();
   
-  const handleSupportError = useErrorHandler({
+  const { handleError: handleSupportError } = useErrorHandler({
     onValidationError: () => showToast.error('Please check your form entries.'),
     onAuthError: () => showToast.error('Session expired. Please log in again.'),
     onUnexpected: (error) => showToast.error(error.message || 'Failed to create support ticket.')
   });
 
-  const handleFeedbackError = useErrorHandler({
+  const { handleError: handleFeedbackError } = useErrorHandler({
     onValidationError: () => showToast.error('Please enter your feedback.'),
     onUnexpected: (error) => showToast.error(error.message || 'Failed to submit feedback.')
   });

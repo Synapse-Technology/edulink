@@ -11,7 +11,6 @@ import type { Notification } from '../../services/notifications/notificationServ
 import { usePusher } from '../../hooks/usePusher';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useErrorHandler } from '../../hooks/useErrorHandler';
 import { showToast } from '../../utils/toast';
 import StudentSidebar from '../../components/dashboard/StudentSidebar';
 import StudentHeader from '../../components/dashboard/StudentHeader';
@@ -22,11 +21,6 @@ const StudentNotifications: React.FC = () => {
   const { isDarkMode } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const queryClient = useQueryClient();
-
-  const handleNotificationError = useErrorHandler({
-    onAuthError: () => showToast.error('Session expired. Please log in again.'),
-    onUnexpected: (error) => showToast.error(error.message || 'Failed to load notifications.')
-  });
 
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
 

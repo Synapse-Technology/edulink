@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, Table, Form, Row, Col, Badge, Button, Modal, Spinner } from 'react-bootstrap';
 import { institutionService, type Department, type Cohort, type AffiliatedStudent, type InstitutionStaffMember } from '../../../services/institution/institutionService';
 import { internshipService, type InternshipApplication } from '../../../services/internship/internshipService';
-import { toast } from 'react-hot-toast';
+import { showToast } from '../../../utils/toast';
 import TrustBadge, { type TrustLevel } from '../../../components/common/TrustBadge';
 import InstitutionTableSkeleton from '../../../components/admin/skeletons/InstitutionTableSkeleton';
 import { Search, Filter, Users, UserPlus, ShieldCheck, Edit2, Settings } from 'lucide-react';
@@ -49,8 +49,7 @@ const InstitutionStudents: React.FC = () => {
       setDepartments(depts);
       setCohorts(cohs);
     } catch (error) {
-      console.error(error);
-      toast.error('Failed to load students data');
+      console.error("Error:", error); showToast.error("An error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -90,8 +89,7 @@ const InstitutionStudents: React.FC = () => {
         setSelectedSupervisorId(targetApp.institution_supervisor_id);
       }
     } catch (error) {
-      console.error(error);
-      toast.error('Failed to load assignment data');
+      showToast.error('Failed to load assignment data');
     } finally {
       setIsLoadingAppData(false);
     }
@@ -113,11 +111,11 @@ const InstitutionStudents: React.FC = () => {
         department_id: editDeptId || undefined,
         cohort_id: editCohortId || undefined
       });
-      toast.success('Student affiliation updated');
+      showToast.success('Student affiliation updated');
       setShowEditModal(false);
       fetchData();
     } catch (error: any) {
-      toast.error(error.message || 'Failed to update affiliation');
+      showToast.error(error.message || 'Failed to update affiliation');
     } finally {
       setIsUpdatingAffiliation(false);
     }
@@ -133,11 +131,11 @@ const InstitutionStudents: React.FC = () => {
         selectedSupervisorId,
         'institution'
       );
-      toast.success('Supervisor assigned successfully');
+      showToast.success('Supervisor assigned successfully');
       setShowAssignModal(false);
       fetchData(); // Refresh list
     } catch (error: any) {
-      toast.error(error.message || 'Failed to assign supervisor');
+      showToast.error(error.message || 'Failed to assign supervisor');
     } finally {
       setIsAssigning(false);
     }

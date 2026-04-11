@@ -14,10 +14,7 @@ const InstitutionApplications: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   
-  const handleApplicationError = useErrorHandler({
-    onAuthError: () => showToast.error('Session expired. Please log in again.'),
-    onUnexpected: (error) => showToast.error(error.message || 'Failed to load applications.')
-  });
+  useErrorHandler({});
   
   // Modal states
   const [selectedApp, setSelectedApp] = useState<InternshipApplication | null>(null);
@@ -36,7 +33,7 @@ const InstitutionApplications: React.FC = () => {
       const apps = await internshipService.getApplications({ is_institutional: true });
       setApplications(apps);
     } catch (err) {
-      await handleApplicationError(err);
+      console.error("Error:", err); showToast.error("An error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -53,7 +50,7 @@ const InstitutionApplications: React.FC = () => {
       setRejectionReason('');
       fetchApplications();
     } catch (error) {
-      await handleApplicationError(error);
+      console.error("Error:", error); showToast.error("An error occurred. Please try again.");
     } finally {
       setProcessing(false);
     }

@@ -14,6 +14,8 @@ import type { Employer } from '../../../services/employer/employerService';
 import TrustTimeline from '../../../components/student/dashboard/TrustTimeline';
 import { ledgerService } from '../../../services/ledger/ledgerService';
 import type { LedgerEvent } from '../../../services/ledger/ledgerService';
+import { useErrorHandler } from '../../../hooks/useErrorHandler';
+import { showToast } from '../../../utils/toast';
 
 const EmployerDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -32,6 +34,8 @@ const EmployerDashboard: React.FC = () => {
   const [ledgerEvents, setLedgerEvents] = useState<LedgerEvent[]>([]);
   const [pendingLogbooks, setPendingLogbooks] = useState<InternshipEvidence[]>([]);
 
+  useErrorHandler({});
+
   const fetchData = async () => {
     try {
       setIsLoading(true);
@@ -41,7 +45,9 @@ const EmployerDashboard: React.FC = () => {
           employer = await employerService.getCurrentEmployer();
           setCurrentEmployer(employer);
       } catch (e) {
-          console.warn("Could not fetch employer details", e);
+          if (e instanceof Error && !e.message.includes('warnings')) {
+            showToast.error('Could not fetch employer details');
+          }
       }
 
       // Fetch Trust Stats
@@ -49,7 +55,9 @@ const EmployerDashboard: React.FC = () => {
           const trustData = await employerService.getTrustProgress();
           setTrustStats(trustData);
       } catch (e) {
-          console.warn("Failed to fetch trust stats", e);
+          if (e instanceof Error && !e.message.includes('warnings')) {
+            showToast.error('Could not fetch trust stats');
+          }
       }
 
       // 2. Fetch Applications (Engagements)
@@ -73,7 +81,9 @@ const EmployerDashboard: React.FC = () => {
         supervisorList = await employerService.getSupervisors();
         setSupervisors(supervisorList);
       } catch (e) {
-        console.warn("Failed to fetch supervisors", e);
+        if (e instanceof Error && !e.message.includes('warnings')) {
+          showToast.error('Could not fetch supervisors');
+        }
       }
 
       setStats({
@@ -92,7 +102,7 @@ const EmployerDashboard: React.FC = () => {
       setRecentApplications(recent);
 
     } catch (error) {
-      console.error('Failed to fetch dashboard data:', error);
+      console.error("Error:", error); showToast.error("An error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -105,11 +115,12 @@ const EmployerDashboard: React.FC = () => {
   const handleAssignSupervisor = async (internId: string, supervisorId: string) => {
     try {
       await internshipService.assignSupervisor(internId, supervisorId, 'employer');
+      showToast.success('Supervisor assigned successfully');
       // Refresh data
       await fetchData();
     } catch (error) {
-      console.error('Failed to assign supervisor:', error);
-      alert('Failed to assign supervisor. Please try again.');
+      console.error("Error:", error); showToast.error("An error occurred. Please try again.");
+      showToast.error('Failed to assign supervisor. Please try again.');
     }
   };
 

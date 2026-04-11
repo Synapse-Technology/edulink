@@ -19,17 +19,9 @@ const TicketDetail: React.FC = () => {
   const { feedbackProps } = useFeedbackModal();
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  const handleDetailError = useErrorHandler({
-    onNotFound: () => showToast.error('Ticket not found.'),
-    onAuthError: () => showToast.error('Session expired. Please log in again.'),
-    onUnexpected: (error) => showToast.error(error.message || 'Failed to load ticket.')
-  });
+  useErrorHandler({});
 
-  const handleReplyError = useErrorHandler({
-    onValidationError: () => showToast.error('Please enter a valid message.'),
-    onAuthError: () => showToast.error('Session expired. Please log in again.'),
-    onUnexpected: (error) => showToast.error(error.message || 'Failed to send message')
-  });
+  useErrorHandler({});
 
   // Fetch ticket with TanStack Query
   const { data: ticket, isLoading: loading } = useQuery({
@@ -277,7 +269,7 @@ const TicketDetail: React.FC = () => {
                       className="btn btn-link btn-sm text-muted p-0 ms-2"
                       onClick={() => {
                         navigator.clipboard.writeText(ticket.tracking_code);
-                        toast.success('Code copied!');
+                        showToast.success('Code copied!');
                       }}
                     >
                       <i className="bi bi-clipboard"></i>

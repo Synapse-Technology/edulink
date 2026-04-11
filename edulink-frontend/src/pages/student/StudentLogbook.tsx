@@ -20,7 +20,7 @@ import { studentService } from '../../services/student/studentService';
 import { artifactService } from '../../services/reports/artifactService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useErrorHandler } from '../../hooks/useErrorHandler';
+
 import { showToast } from '../../utils/toast';
 import { Link } from 'react-router-dom';
 import { Badge } from 'react-bootstrap';
@@ -42,12 +42,6 @@ const StudentLogbook: React.FC = () => {
   const [submissionHistory, setSubmissionHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const handleLogbookError = useErrorHandler({
-    onNotFound: () => showToast.error('Internship or logbook not found.'),
-    onAuthError: () => showToast.error('Session expired. Please log in again.'),
-    onUnexpected: (error) => showToast.error(error.message || 'Failed to load logbook.')
-  });
 
   // Suppress unused warning
   useEffect(() => {
@@ -187,7 +181,7 @@ const StudentLogbook: React.FC = () => {
     }
     
     if (!isCurrent && !isPast) {
-      toast.error("Future dates are locked.");
+      showToast.error("Future dates are locked.");
       return;
     }
 
@@ -201,7 +195,7 @@ const StudentLogbook: React.FC = () => {
   const handleSaveEntry = () => {
     if (!currentEntry.trim()) {
       setEntryError("Log entry content cannot be empty.");
-      toast.error("Log entry content cannot be empty.");
+      showToast.error("Log entry content cannot be empty.");
       return;
     }
     if (selectedDate) {
@@ -215,13 +209,13 @@ const StudentLogbook: React.FC = () => {
     
     // Check if internship is completed
     if (['COMPLETED', 'CERTIFIED', 'TERMINATED'].includes(internship.status)) {
-      toast.error("This internship is completed. No further logbook entries can be submitted.");
+      showToast.error("This internship is completed. No further logbook entries can be submitted.");
       return;
     }
     
     // Validate: At least one entry?
     if (Object.keys(logbookEntries).length === 0) {
-      toast.error("Please add at least one entry before submitting.");
+      showToast.error("Please add at least one entry before submitting.");
       return;
     }
 
@@ -243,14 +237,14 @@ const StudentLogbook: React.FC = () => {
       // Clear draft
       const key = `logbook_draft_${internship.id}_${getLocalDateString(currentWeekStart)}`;
       localStorage.removeItem(key);
-      toast.success("Logbook submitted successfully!");
+      showToast.success("Logbook submitted successfully!");
       
       // Refresh history
       const history = await studentService.getEvidence(internship.id);
       setSubmissionHistory(history.filter(e => e.evidence_type === 'LOGBOOK'));
     } catch (err) {
       console.error(err);
-      toast.error("Failed to submit logbook. Please try again.");
+      showToast.error("Failed to submit logbook. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -258,12 +252,12 @@ const StudentLogbook: React.FC = () => {
 
   const handleDownloadPDF = async () => {
     if (!internship) {
-      toast.error("No active internship found to generate report.");
+      showToast.error("No active internship found to generate report.");
       return;
     }
 
     if (Object.keys(logbookEntries).length === 0) {
-      toast.error("Please add some log entries before downloading the PDF.");
+      showToast.error("Please add some log entries before downloading the PDF.");
       return;
     }
 
@@ -301,19 +295,19 @@ const StudentLogbook: React.FC = () => {
     
     try {
       setGeneratingReport(true);
-      toast.loading('Generating full internship report...', { id: 'report-gen' });
+      showToast.loading('Generating full internship report...');
       
       const artifact = await artifactService.generateArtifact(internship.id, 'LOGBOOK_REPORT');
       await artifactService.downloadArtifact(artifact);
       
-      toast.dismiss('report-gen');
+      showToast.dismiss('report-gen');
       showSuccess(
         'Report Downloaded',
         'Full internship report downloaded successfully!'
       );
     } catch (err: any) {
       console.error(err);
-      toast.dismiss('report-gen');
+      showToast.dismiss('report-gen');
       showError(
         'Download Failed',
         'Failed to generate report. Ensure you have accepted logbook entries.',
@@ -332,12 +326,12 @@ const StudentLogbook: React.FC = () => {
     
     // Check if internship is completed
     if (internship && ['COMPLETED', 'CERTIFIED', 'TERMINATED'].includes(internship.status)) {
-      toast.error("This internship is completed. You cannot edit logbook entries.");
+      showToast.error("This internship is completed. You cannot edit logbook entries.");
       return;
     }
 
     if (!isCurrent) {
-      toast.error("Today's date is not in the current logbook week. Please check your logbook period.");
+      showToast.error("Today's date is not in the current logbook week. Please check your logbook period.");
       return;
     }
 
@@ -840,7 +834,7 @@ const StudentLogbook: React.FC = () => {
                                               message: "Are you sure you want to load this week's logs into the calendar for revision? This will overwrite your current drafts for this week.",
                                               onConfirm: () => {
                                                 setLogbookEntries(sub.metadata.entries);
-                                                toast.success("Logs loaded into calendar. You can now edit and resubmit.");
+                                                showToast.success("Logs loaded into calendar. You can now edit and resubmit.");
                                               }
                                             });
                                           }}

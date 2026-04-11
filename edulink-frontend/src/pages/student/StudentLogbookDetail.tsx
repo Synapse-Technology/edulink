@@ -15,7 +15,6 @@ import StudentHeader from '../../components/dashboard/StudentHeader';
 import { studentService } from '../../services/student/studentService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useErrorHandler } from '../../hooks/useErrorHandler';
 import { showToast } from '../../utils/toast';
 import LogbookDetailSkeleton from '../../components/student/skeletons/LogbookDetailSkeleton';
 import { Badge, Card, Button } from 'react-bootstrap';
@@ -31,15 +30,6 @@ const StudentLogbookDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const { isDarkMode } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  const handleLogbookDetailError = useErrorHandler({
-    onNotFound: () => {
-      showToast.error('Logbook entry not found.');
-      navigate('/student/logbook');
-    },
-    onAuthError: () => showToast.error('Session expired. Please log in again.'),
-    onUnexpected: (error) => showToast.error(error.message || 'Failed to load logbook entry.')
-  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -58,7 +48,8 @@ const StudentLogbookDetail: React.FC = () => {
           setEvidence(found);
         }
       } catch (err) {
-        await handleLogbookDetailError(err);
+        console.error('Failed to load logbook detail:', err);
+        showToast.error('Failed to load logbook entry.');
       } finally {
         setLoading(false);
       }
@@ -128,10 +119,10 @@ const StudentLogbookDetail: React.FC = () => {
         institutionFeedback: evidence.institution_review_notes
       });
       
-      toast.success("PDF report generated successfully!");
+      showToast.success("PDF report generated successfully!");
     } catch (err) {
       console.error(err);
-      toast.error("Failed to generate PDF. Please try again.");
+      showToast.error("Failed to generate PDF. Please try again.");
     }
   };
 

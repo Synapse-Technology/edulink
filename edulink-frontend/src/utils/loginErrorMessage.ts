@@ -23,8 +23,6 @@ export const getLoginErrorResponse = (
   error: unknown,
   options: LoginErrorMessageOptions = {}
 ): ParsedErrorResponse => {
-  const _portal = options.portal ?? 'student';
-  
   // Parse the error using the new system
   const parsed = parseErrorResponse(error);
   

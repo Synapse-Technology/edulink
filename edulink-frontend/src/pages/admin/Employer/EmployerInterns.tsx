@@ -7,7 +7,7 @@ import { employerService } from '../../../services/employer/employerService';
 import { internshipService } from '../../../services/internship/internshipService';
 import type { InternshipApplication } from '../../../services/internship/internshipService';
 import TrustBadge, { type TrustLevel } from '../../../components/common/TrustBadge';
-import { toast } from 'react-hot-toast';
+import { showToast } from '../../../utils/toast';
 import { FeedbackModal } from '../../../components/common';
 import { useFeedbackModal } from '../../../hooks/useFeedbackModal';
 
@@ -37,8 +37,7 @@ const EmployerInterns: React.FC = () => {
       const interns = apps.filter(app => ['ACTIVE', 'COMPLETED'].includes(app.status));
       setApplications(interns);
     } catch (error) {
-      console.error('Failed to fetch interns:', error);
-      toast.error('Failed to load interns data');
+      console.error("Error:", error); showToast.error("An error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -50,7 +49,7 @@ const EmployerInterns: React.FC = () => {
       const data = await employerService.getSupervisors();
       setSupervisors(data);
     } catch (error) {
-      console.error('Failed to fetch supervisors:', error);
+      showToast.error('Failed to fetch supervisors');
     }
   };
 

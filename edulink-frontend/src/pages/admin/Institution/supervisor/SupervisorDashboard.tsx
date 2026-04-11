@@ -6,6 +6,7 @@ import { institutionService, type SupervisorProfile } from '../../../../services
 import { internshipService, type InternshipApplication, type InternshipEvidence, type Incident } from '../../../../services/internship/internshipService';
 import SupervisorLayout from '../../../../components/admin/institution/supervisor/SupervisorLayout';
 import SupervisorDashboardSkeleton from '../../../../components/admin/skeletons/SupervisorDashboardSkeleton';
+import { showToast } from '../../../../utils/toast';
 
 export interface SupervisorDashboardContext {
   user: any;
@@ -43,7 +44,7 @@ const SupervisorDashboard: React.FC = () => {
         setRecentEvidence(evidenceData);
         setIncidents(incidentsData);
       } catch (err: any) {
-        console.error("Failed to fetch supervisor data", err);
+        console.error("Error:", err); showToast.error("An error occurred. Please try again.");
         setError("Failed to load dashboard data.");
       } finally {
         setLoading(false);

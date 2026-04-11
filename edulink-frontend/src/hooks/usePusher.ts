@@ -37,7 +37,10 @@ export const usePusher = <T = any>(
   } = options;
   
   const { pusher, subscribe, unsubscribe } = usePusherContext();
-  const channelRef = useRef<Channel | null>(null);\n  const callbackRef = useRef(onEvent);\n  const fallbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);\n  const pollingIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const channelRef = useRef<Channel | null>(null);
+  const callbackRef = useRef(onEvent);
+  const fallbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pollingIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isPolling, setIsPolling] = useState(false);
 
   // Update the ref whenever onEvent changes so the listener always uses the latest logic

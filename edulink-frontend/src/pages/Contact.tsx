@@ -4,7 +4,7 @@ import { useErrorHandler } from '../hooks/useErrorHandler';
 import { showToast } from '../utils/toast';
 
 const Contact: React.FC = () => {
-  const handleContactError = useErrorHandler({
+  useErrorHandler({
     onValidationError: () => showToast.error('Please check your form entries.'),
     onAuthError: () => showToast.error('Session expired. Please refresh and try again.'),
     onUnexpected: (error) => showToast.error(error.message || 'Failed to send message.')
@@ -23,7 +23,7 @@ const Contact: React.FC = () => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]:value
     }));
   };
 
@@ -45,7 +45,8 @@ const Contact: React.FC = () => {
       showToast.success('Message sent successfully!');
       setFormData({ name: '', email: '', subject: '', message: '' });
     } catch (error) {
-      await handleContactError(error);
+      console.error('Failed to send message:', error);
+      showToast.error('Failed to send message. Please try again.');
     } finally {
       setIsSubmitting(false);
       setTimeout(() => setMessage(''), 5000);

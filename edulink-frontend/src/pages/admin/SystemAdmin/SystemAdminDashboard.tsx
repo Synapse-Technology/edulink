@@ -23,6 +23,7 @@ import { useAdminAuth } from '../../../contexts/AdminAuthContext';
 import AdminLayout from '../../../components/admin/AdminLayout';
 import AdminDashboardSkeleton from '../../../components/admin/skeletons/AdminDashboardSkeleton';
 import { SEO } from '../../../components/common';
+import { showToast } from '../../../utils/toast';
 
 const SystemAdminDashboard: React.FC = () => {
   const { admin } = useAdminAuth();
@@ -45,7 +46,7 @@ const SystemAdminDashboard: React.FC = () => {
       setStats(response);
       setError('');
     } catch (err) {
-      console.error('Dashboard fetch error:', err);
+      console.error("Error:", err); showToast.error("An error occurred. Please try again.");
       if (err instanceof Error) {
         if (err.message.includes('401')) {
           setError('Session expired. Please log in again.');

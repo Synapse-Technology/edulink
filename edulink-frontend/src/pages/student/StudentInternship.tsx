@@ -18,7 +18,6 @@ import { studentService } from '../../services/student/studentService';
 import { artifactService } from '../../services/reports/artifactService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useErrorHandler } from '../../hooks/useErrorHandler';
 import { showToast } from '../../utils/toast';
 import StudentInternshipSkeleton from '../../components/student/skeletons/StudentInternshipSkeleton';
 import ReportIncidentModal from '../../components/student/ReportIncidentModal';
@@ -30,12 +29,6 @@ const StudentInternship: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showIncidentModal, setShowIncidentModal] = useState(false);
-
-  const handleInternshipError = useErrorHandler({
-    onNotFound: () => showToast.error('No active internship found.'),
-    onAuthError: () => showToast.error('Session expired. Please log in again.'),
-    onUnexpected: (error) => showToast.error(error.message || 'Failed to load internship.')
-  });
 
   // Suppress unused warning
   useEffect(() => {
@@ -52,7 +45,8 @@ const StudentInternship: React.FC = () => {
         const data = await studentService.getActiveInternship();
         setInternship(data);
       } catch (err) {
-        await handleInternshipError(err);
+        console.error('Failed to load internship:', err);
+        showToast.error('Failed to load internship.');
       } finally {
         setLoading(false);
       }
@@ -66,15 +60,15 @@ const StudentInternship: React.FC = () => {
     
     try {
       setGeneratingCert(true);
-      toast.loading('Generating your certificate...', { id: 'cert-gen' });
+      showToast.loading('Generating your certificate...');
       
       const artifact = await artifactService.generateArtifact(internship.id, 'CERTIFICATE');
       await artifactService.downloadArtifact(artifact);
       
-      toast.success('Certificate downloaded successfully!', { id: 'cert-gen' });
+      showToast.success('Certificate downloaded successfully!');
     } catch (err) {
       console.error(err);
-      toast.error('Failed to generate certificate. Please ensure your internship is fully completed.', { id: 'cert-gen' });
+      showToast.error('Failed to generate certificate. Please ensure your internship is fully completed.');
     } finally {
       setGeneratingCert(false);
     }

@@ -304,7 +304,7 @@ interface RegisterFormData {
 }
 
 const Register: React.FC = () => {
-  const errorHandler = useRegisterErrorHandler({ portal: 'student' });
+  const errorHandler = useRegisterErrorHandler();
   
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<RegisterFormData>({

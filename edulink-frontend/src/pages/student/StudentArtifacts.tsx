@@ -15,7 +15,6 @@ import StudentHeader from '../../components/dashboard/StudentHeader';
 import { useTheme } from '../../contexts/ThemeContext';
 import { artifactService, type Artifact } from '../../services/reports/artifactService';
 import { studentService } from '../../services/student/studentService';
-import { useErrorHandler } from '../../hooks/useErrorHandler';
 import { showToast } from '../../utils/toast';
 import StudentDashboardSkeleton from '../../components/student/skeletons/StudentDashboardSkeleton';
 
@@ -26,12 +25,6 @@ const StudentArtifacts: React.FC = () => {
   const [internship, setInternship] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState<string | null>(null);
-
-  const handleArtifactError = useErrorHandler({
-    onNotFound: () => showToast.error('Internship or artifacts not found.'),
-    onAuthError: () => showToast.error('Session expired. Please log in again.'),
-    onUnexpected: (error) => showToast.error(error.message || 'Failed to load artifacts.')
-  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -44,7 +37,8 @@ const StudentArtifacts: React.FC = () => {
         setArtifacts(artifactData);
         setInternship(internshipData);
       } catch (err) {
-        await handleArtifactError(err);
+        console.error('Failed to load artifacts:', err);
+        showToast.error('Failed to load artifacts.');
       } finally {
         setLoading(false);
       }
@@ -59,7 +53,7 @@ const StudentArtifacts: React.FC = () => {
       await artifactService.downloadArtifact(artifact);
       showToast.success('Download started!');
     } catch (err) {
-      await handleArtifactError(err);
+      console.error("Error:", err); showToast.error("An error occurred. Please try again.");
     }
   };
 
