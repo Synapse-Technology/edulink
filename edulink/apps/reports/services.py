@@ -4,10 +4,8 @@ from uuid import UUID
 from datetime import datetime
 from io import BytesIO
 from django.conf import settings
-from django.template.loader import render_to_string
 from django.core.files.base import ContentFile
 from django.db import transaction
-from xhtml2pdf import pisa
 from edulink.apps.shared.error_handling import (
     ValidationError,
     NotFoundError,
@@ -43,17 +41,6 @@ from edulink.apps.notifications.services import (
     send_performance_summary_generated_notification,
     send_logbook_report_generated_notification
 )
-
-def _render_pdf(template_path, context):
-    """
-    Internal helper to render a PDF from an HTML template.
-    """
-    html = render_to_string(template_path, context)
-    result = BytesIO()
-    pdf = pisa.pisaDocument(BytesIO(html.encode("UTF-8")), result)
-    if not pdf.err:
-        return result.getvalue()
-    return None
 
 def _draw_chess_pattern(c, x, y, size=8, color=colors.HexColor("#1ab8aa")):
     """Draws a 3x3 chess pattern at (x,y)"""

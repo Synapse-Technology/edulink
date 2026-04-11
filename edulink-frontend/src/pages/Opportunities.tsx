@@ -5,6 +5,7 @@ import { employerService, type Employer } from '../services/employer/employerSer
 import { useAuth } from '../contexts/AuthContext';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { showToast } from '../utils/toast';
+import { canApplyForInternship } from '../utils/permissions';
 import { Building2, Code, Megaphone, LineChart, Stethoscope, Wrench, Briefcase, MapPin } from 'lucide-react';
 import { SEO } from '../components/common';
 
@@ -127,7 +128,7 @@ const Opportunities: React.FC = () => {
       return;
     }
 
-    if (user.role !== 'student') {
+    if (!canApplyForInternship(user)) {
       showToast.error('Only students can apply for internships');
       return;
     }
