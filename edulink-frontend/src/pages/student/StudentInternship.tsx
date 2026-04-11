@@ -10,43 +10,62 @@ import {
   Mail,
   ShieldCheck,
   FileText,
-  AlertTriangle
+  AlertTriangle,
+  Download,
+  Share2,
+  Check,
+  Loader
 } from 'lucide-react';
 import StudentSidebar from '../../components/dashboard/StudentSidebar';
 import StudentHeader from '../../components/dashboard/StudentHeader';
 import { studentService } from '../../services/student/studentService';
+import type { Artifact } from '../../services/reports/artifactService';
 import { artifactService } from '../../services/reports/artifactService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { showToast } from '../../utils/toast';
+import { getErrorMessage, logError } from '../../utils/errorMapper';
+import { dateFormatter } from '../../utils/dateFormatter';
+import type { Internship } from '../../types/internship';
 import StudentInternshipSkeleton from '../../components/student/skeletons/StudentInternshipSkeleton';
 import ReportIncidentModal from '../../components/student/ReportIncidentModal';
 
 const StudentInternship: React.FC = () => {
   const { user } = useAuth();
   const { isDarkMode } = useTheme();
-  const [internship, setInternship] = useState<any | null>(null);
+  const [internship, setInternship] = useState<Internship | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [showIncidentModal, setShowIncidentModal] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
+  // Artifact state management
+  const [generatingArtifacts, setGeneratingArtifacts] = useState<Record<string, boolean>>({});
+  const [artifacts, setArtifacts] = useState<Artifact[]>([]);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [selectedArtifactForShare, setSelectedArtifactForShare] = useState<Artifact | null>(null);
 
   // Suppress unused warning
   useEffect(() => {
     void user;
-    void error;
-    void setError;
-  }, [user, error]);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [generatingCert, setGeneratingCert] = useState(false);
+  }, [user]);
 
   useEffect(() => {
     const fetchActiveInternship = async () => {
       try {
         const data = await studentService.getActiveInternship();
-        setInternship(data);
+        if (data) {
+          // Extract Internship from InternshipApplication
+          const internshipData = (data as any).internship || (data as any);
+          setInternship(internshipData);
+        }
+        
+        // Also fetch existing artifacts
+        const existingArtifacts = await artifactService.getArtifacts();
+        setArtifacts(existingArtifacts);
       } catch (err) {
-        console.error('Failed to load internship:', err);
-        showToast.error('Failed to load internship.');
+        const message = getErrorMessage(err, { action: 'Load Internship' });
+        showToast.error(message);
+        logError(err, { action: 'Load Internship' });
       } finally {
         setLoading(false);
       }
@@ -55,22 +74,92 @@ const StudentInternship: React.FC = () => {
     fetchActiveInternship();
   }, []);
 
-  const handleDownloadCertificate = async () => {
+  const handleGenerateArtifact = async (artifactType: string) => {
     if (!internship) return;
     
+    const genKey = artifactType;
+    setGeneratingArtifacts(prev => ({ ...prev, [genKey]: true }));
+    
     try {
-      setGeneratingCert(true);
-      showToast.loading('Generating your certificate...');
+      showToast.loading(`Generating ${artifactType.replace('_', ' ').toLowerCase()}...`);
       
-      const artifact = await artifactService.generateArtifact(internship.id, 'CERTIFICATE');
-      await artifactService.downloadArtifact(artifact);
+      // Generate the artifact
+      const artifact = await artifactService.generateArtifact(internship.id, artifactType);
       
-      showToast.success('Certificate downloaded successfully!');
+      // Poll for completion
+      const finalStatus = await artifactService.pollArtifactStatus(artifact.id);
+      
+      if (finalStatus.status === 'SUCCESS') {
+        // Refresh artifacts list
+        const updatedArtifacts = await artifactService.getArtifacts();
+        setArtifacts(updatedArtifacts);
+        showToast.success(`${artifactType.replace('_', ' ')} generated successfully!`);
+        
+        // Auto-download certificate
+        if (artifactType === 'CERTIFICATE') {
+          const generatedArtifact = updatedArtifacts.find(a => a.artifact_type === 'CERTIFICATE' && a.id === artifact.id);
+          if (generatedArtifact) {
+            setTimeout(() => artifactService.downloadArtifact(generatedArtifact), 500);
+          }
+        }
+      } else if (finalStatus.status === 'FAILED') {
+        showToast.error(`Failed to generate ${artifactType.replace('_', ' ')}: ${finalStatus.error_message || 'Unknown error'}`);
+      }
     } catch (err) {
-      console.error(err);
-      showToast.error('Failed to generate certificate. Please ensure your internship is fully completed.');
+      const message = getErrorMessage(err, { action: 'Generate Artifact' });
+      showToast.error(message);
+      logError(err, { action: 'Generate Artifact', data: { artifactType } });
     } finally {
-      setGeneratingCert(false);
+      setGeneratingArtifacts(prev => ({ ...prev, [genKey]: false }));
+    }
+  };
+
+  const handleShareArtifact = (artifact: Artifact) => {
+    setSelectedArtifactForShare(artifact);
+    setShowShareModal(true);
+  };
+
+  const copyVerificationLink = async (artifactId: string) => {
+    // Validate input
+    if (!artifactId || typeof artifactId !== 'string') {
+      showToast.error('Invalid artifact. Please refresh and try again.');
+      return;
+    }
+
+    const link = `${window.location.origin}/verify/${artifactId}`;
+
+    try {
+      // Try modern Clipboard API first
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(link);
+        showToast.success('Verification link copied to clipboard!');
+        return;
+      }
+
+      // Fallback: Manual copy using textarea
+      const textArea = document.createElement('textarea');
+      textArea.value = link;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+
+      if (document.execCommand('copy')) {
+        showToast.success('Verification link copied to clipboard!');
+      } else {
+        throw new Error('Copy command not supported');
+      }
+
+      document.body.removeChild(textArea);
+    } catch (err) {
+      console.error('Clipboard error:', err);
+
+      if (err instanceof Error && err.name === 'NotAllowedError') {
+        showToast.error('Browser clipboard access denied. Please copy manually from the modal.');
+      } else {
+        showToast.error('Could not copy link. Please copy manually from the modal.');
+      }
     }
   };
 
@@ -198,7 +287,7 @@ const StudentInternship: React.FC = () => {
                             <Calendar size={14} className="me-1" /> Started On
                           </div>
                           <div className={`fw-semibold ${isDarkMode ? 'text-white' : 'text-dark'}`}>
-                            {new Date(internship.start_date || internship.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                            {dateFormatter.shortDate(internship.start_date || internship.created_at)}
                           </div>
                         </div>
                       </div>
@@ -321,22 +410,151 @@ const StudentInternship: React.FC = () => {
                        </div>
 
                        {/* Professional Artifacts Actions */}
-                       {internship.status === 'CERTIFIED' ? (
+                       {['COMPLETED', 'CERTIFIED'].includes(internship.status) ? (
                          <div className="mt-4 pt-3 border-top border-success border-opacity-25">
                            <h6 className="fw-bold mb-3 small text-success-emphasis text-uppercase" style={{ letterSpacing: '0.05em' }}>Professional Artifacts</h6>
                            <div className="d-grid gap-2">
-                             <button 
-                               className="btn btn-success btn-sm py-2 fw-bold d-flex align-items-center justify-content-center gap-2 shadow-sm transition-all hover-lift"
-                               onClick={handleDownloadCertificate}
-                               disabled={generatingCert}
-                             >
-                               {generatingCert ? (
-                                 <span className="spinner-border spinner-border-sm" role="status"></span>
+                             {/* Certificate */}
+                             <div className={`p-3 rounded-3 border ${isDarkMode ? 'bg-dark border-secondary' : 'bg-light border-light shadow-sm'}`}>
+                               <div className="d-flex align-items-center justify-content-between mb-2">
+                                 <div className="d-flex align-items-center gap-2">
+                                   <FileText size={16} className="text-primary" />
+                                   <span className="fw-bold small">Completion Certificate</span>
+                                 </div>
+                                 {artifacts.some(a => a.artifact_type === 'CERTIFICATE') && (
+                                   <Check size={16} className="text-success" />
+                                 )}
+                               </div>
+                               <button
+                                 className="btn btn-sm btn-primary w-100 py-1 fw-bold d-flex align-items-center justify-content-center gap-2"
+                                 onClick={() => handleGenerateArtifact('CERTIFICATE')}
+                                 disabled={generatingArtifacts['CERTIFICATE']}
+                                 aria-busy={generatingArtifacts['CERTIFICATE']}
+                                 aria-label={generatingArtifacts['CERTIFICATE'] ? 'Generating completion certificate, please wait' : 'Generate your completion certificate'}
+                                 title={generatingArtifacts['CERTIFICATE'] ? 'Generating certificate...' : 'Generate your professional completion certificate'}
+                               >
+                                 {generatingArtifacts['CERTIFICATE'] ? (
+                                   <>
+                                     <Loader size={14} className="spinner-animation" aria-hidden="true" />
+                                     <span className="ms-2">Generating...</span>
+                                   </>
+                                 ) : (
+                                   <>
+                                     <FileText size={14} aria-hidden="true" />
+                                     <span className="ms-2">Generate Certificate</span>
+                                   </>
+                                 )}
+                               </button>
+                             </div>
+
+                             {/* Logbook Report */}
+                             <div className={`p-3 rounded-3 border ${isDarkMode ? 'bg-dark border-secondary' : 'bg-light border-light shadow-sm'}`}>
+                               <div className="d-flex align-items-center justify-content-between mb-2">
+                                 <div className="d-flex align-items-center gap-2">
+                                   <FileText size={16} className="text-info" />
+                                   <span className="fw-bold small">Logbook Report</span>
+                                 </div>
+                                 {artifacts.some(a => a.artifact_type === 'LOGBOOK_REPORT') && (
+                                   <Check size={16} className="text-success" />
+                                 )}
+                               </div>
+                               <button
+                                 className="btn btn-sm btn-info w-100 py-1 fw-bold d-flex align-items-center justify-content-center gap-2"
+                                 onClick={() => handleGenerateArtifact('LOGBOOK_REPORT')}
+                                 disabled={generatingArtifacts['LOGBOOK_REPORT']}
+                                 aria-busy={generatingArtifacts['LOGBOOK_REPORT']}
+                                 aria-label={generatingArtifacts['LOGBOOK_REPORT'] ? 'Generating logbook report, please wait' : 'Generate your logbook report'}
+                                 title={generatingArtifacts['LOGBOOK_REPORT'] ? 'Generating report...' : 'Generates a comprehensive report of your logbook entries'}
+                               >
+                                 {generatingArtifacts['LOGBOOK_REPORT'] ? (
+                                   <>
+                                     <Loader size={14} className="spinner-animation" aria-hidden="true" />
+                                     <span className="ms-2">Generating...</span>
+                                   </>
+                                 ) : (
+                                   <>
+                                     <FileText size={14} aria-hidden="true" />
+                                     <span className="ms-2">Generate Logbook Report</span>
+                                   </>
+                                 )}
+                               </button>
+                             </div>
+
+                             {/* Performance Summary */}
+                             <div className={`p-3 rounded-3 border ${isDarkMode ? 'bg-dark border-secondary' : 'bg-light border-light shadow-sm'}`}>
+                               <div className="d-flex align-items-center justify-content-between mb-2">
+                                 <div className="d-flex align-items-center gap-2">
+                                   <Award size={16} className="text-warning" />
+                                   <span className="fw-bold small">Performance Summary</span>
+                                 </div>
+                                 {artifacts.some(a => a.artifact_type === 'PERFORMANCE_SUMMARY') && (
+                                   <Check size={16} className="text-success" />
+                                 )}
+                               </div>
+                               <button
+                                 className="btn btn-sm btn-warning w-100 py-1 fw-bold d-flex align-items-center justify-content-center gap-2"
+                                 onClick={() => handleGenerateArtifact('PERFORMANCE_SUMMARY')}
+                                 disabled={generatingArtifacts['PERFORMANCE_SUMMARY']}
+                                 aria-busy={generatingArtifacts['PERFORMANCE_SUMMARY']}
+                                 aria-label={generatingArtifacts['PERFORMANCE_SUMMARY'] ? 'Generating performance summary, please wait' : 'Generate your performance summary'}
+                                 title={generatingArtifacts['PERFORMANCE_SUMMARY'] ? 'Generating summary...' : 'Generate a summary of your performance during the internship'}
+                               >
+                                 {generatingArtifacts['PERFORMANCE_SUMMARY'] ? (
+                                   <>
+                                     <Loader size={14} className="spinner-animation" aria-hidden="true" />
+                                     <span className="ms-2">Generating...</span>
+                                   </>
+                                 ) : (
+                                   <>
+                                     <Award size={14} aria-hidden="true" />
+                                     <span className="ms-2">Generate Performance Summary</span>
+                                   </>
+                                 )}
+                               </button>
+                             </div>
+
+                             {/* Existing Artifacts Download Section */}
+                             <div className="mt-3 pt-3 border-top border-secondary border-opacity-25">
+                               {artifacts.length > 0 ? (
+                                 <>
+                                   <h6 className="small fw-bold mb-2">Your Generated Artifacts</h6>
+                                   {artifacts.map((artifact) => (
+                                   <div key={artifact.id} className={`p-2 rounded-2 mb-2 d-flex align-items-center justify-content-between ${isDarkMode ? 'bg-secondary bg-opacity-10' : 'bg-light'}`}>
+                                     <div className="d-flex align-items-center gap-2 flex-grow-1">
+                                       <FileText size={14} />
+                                       <div>
+                                         <div className="small fw-bold">{artifact.artifact_type_display}</div>
+                                       <small className="text-muted">{dateFormatter.shortDate(artifact.created_at)}</small>
+                                       </div>
+                                     </div>
+                                     <div className="d-flex gap-1">
+                                       <button
+                                         className="btn btn-sm btn-outline-primary"
+                                         onClick={() => artifactService.downloadArtifact(artifact)}
+                                         title="Download"
+                                       >
+                                         <Download size={14} />
+                                       </button>
+                                       <button
+                                         className="btn btn-sm btn-outline-secondary"
+                                         onClick={() => handleShareArtifact(artifact)}
+                                         title="Share"
+                                       >
+                                         <Share2 size={14} />
+                                       </button>
+                                     </div>
+                                   </div>
+                                 ))}
+                                 </>
                                ) : (
-                                 <FileText size={16} />
+                                 <div className={`p-4 rounded-3 text-center ${isDarkMode ? 'bg-secondary bg-opacity-10' : 'bg-light'}`}>
+                                   <FileText size={24} className="text-muted mb-2 d-block" />
+                                   <p className="text-muted mb-0 small">
+                                     No artifacts generated yet. Generate your first certificate above to get started!
+                                   </p>
+                                 </div>
                                )}
-                               Download Certificate
-                             </button>
+                             </div>
                            </div>
                        </div>
                      ) : internship.status === 'COMPLETED' ? (
@@ -359,6 +577,69 @@ const StudentInternship: React.FC = () => {
                      </button>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Share Modal */}
+      {showShareModal && selectedArtifactForShare && (
+        <div 
+          className="modal d-block" 
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}
+          onClick={() => setShowShareModal(false)}
+        >
+          <div className="modal-dialog modal-dialog-centered" onClick={(e) => e.stopPropagation()}>
+            <div className={`modal-content ${isDarkMode ? 'bg-dark text-white border-secondary' : ''}`}>
+              <div className="modal-header border-0 pb-0">
+                <h5 className="modal-title">Share Verification Link</h5>
+                <button 
+                  type="button" 
+                  className={`btn-close ${isDarkMode ? 'btn-close-white' : ''}`}
+                  onClick={() => setShowShareModal(false)}
+                ></button>
+              </div>
+              <div className="modal-body">
+                <p className="mb-3 text-muted">Share this link with others to verify the authenticity of your artifact. No login required for verification.</p>
+                
+                <div className={`p-3 rounded-3 mb-3 ${isDarkMode ? 'bg-secondary bg-opacity-10' : 'bg-light'}`}>
+                  <small className={`d-block mb-2 fw-bold ${isDarkMode ? 'text-light' : 'text-dark'}`}>Verification Link</small>
+                  <div className="d-flex gap-2">
+                    <input
+                      type="text"
+                      className={`form-control form-control-sm ${isDarkMode ? 'bg-dark text-white border-secondary' : ''}`}
+                      value={`${window.location.origin}/verify/${selectedArtifactForShare.id}`}
+                      readOnly
+                    />
+                    <button
+                      className="btn btn-sm btn-primary"
+                      onClick={() => copyVerificationLink(selectedArtifactForShare.id)}
+                      title="Copy link"
+                    >
+                      <FileText size={14} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className={`p-3 rounded-3 small ${isDarkMode ? 'bg-info bg-opacity-10 border border-info border-opacity-25' : 'bg-info bg-opacity-10'}`}>
+                  <strong>What can verifiers see?</strong>
+                  <ul className="mb-0 ps-3 mt-2">
+                    <li>Your name</li>
+                    <li>Document type</li>
+                    <li>Generation date & ledger confirmation</li>
+                    <li>Tracking code for authenticity</li>
+                  </ul>
+                </div>
+              </div>
+              <div className="modal-footer border-0 pt-0">
+                <button 
+                  type="button" 
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setShowShareModal(false)}
+                >
+                  Close
+                </button>
               </div>
             </div>
           </div>

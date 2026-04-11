@@ -189,3 +189,5 @@ export function isValidationError(statusCode: number, errorCode?: string): boole
 export function isNotFoundError(statusCode: number, errorCode?: string): boolean {
   return statusCode === 404 || errorCode === 'NOT_FOUND';
 }
+
+

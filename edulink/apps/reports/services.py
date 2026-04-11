@@ -711,7 +711,7 @@ def generate_completion_certificate(*, application_id: UUID, actor_id: UUID) -> 
         "tracking_code": None
     }
 
-    # Create the artifact record first to get the ID
+    # Create the artifact record first with PENDING status
     tracking_code = _generate_tracking_code(ArtifactType.CERTIFICATE)
     artifact = Artifact.objects.create(
         application_id=application_id,
@@ -719,24 +719,37 @@ def generate_completion_certificate(*, application_id: UUID, actor_id: UUID) -> 
         artifact_type=ArtifactType.CERTIFICATE,
         generated_by=actor_id,
         metadata=context,
-        tracking_code=tracking_code
+        tracking_code=tracking_code,
+        status=ArtifactStatus.PENDING  # Explicitly set to PENDING
     )
     
     context["artifact_id"] = str(artifact.id)
     context["tracking_code"] = tracking_code
+    
+    # Update status to PROCESSING before generation
+    artifact.status = ArtifactStatus.PROCESSING
+    artifact.save(update_fields=['status', 'updated_at'])
     
     # Generate PDF
     # We use the native ReportLab generator for Certificates to ensure perfect layout
     try:
         pdf_content = _generate_certificate_native(context)
     except Exception as e:
-        artifact.delete()
+        # Mark as FAILED with error message
+        artifact.status = ArtifactStatus.FAILED
+        artifact.error_message = f"PDF generation failed: {str(e)}"
+        artifact.save(update_fields=['status', 'error_message', 'updated_at'])
         raise Exception(f"Failed to generate PDF: {str(e)}")
 
     # Save file
     safe_name = student.user.first_name.lower() if student else "intern"
     filename = f"certificate_{safe_name}_{tracking_code}.pdf"
     artifact.file.save(filename, ContentFile(pdf_content))
+    
+    # Mark as SUCCESS with completion timestamp
+    from django.utils import timezone
+    artifact.status = ArtifactStatus.SUCCESS
+    artifact.completed_at = timezone.now()
     artifact.save()
 
     # Record Ledger Event

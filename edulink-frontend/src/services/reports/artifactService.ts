@@ -13,6 +13,28 @@ export interface Artifact {
   created_at: string;
   tracking_code: string;
   download_filename: string;
+  status?: 'PENDING' | 'PROCESSING' | 'SUCCESS' | 'FAILED';
+  error_message?: string;
+  completed_at?: string;
+}
+
+export interface ArtifactStatus {
+  id: string;
+  status: 'PENDING' | 'PROCESSING' | 'SUCCESS' | 'FAILED';
+  completed_at: string | null;
+  error_message: string | null;
+  artifact_type: string;
+}
+
+export interface VerificationResult {
+  verified: boolean;
+  artifact_type?: string;
+  student_name?: string;
+  generated_at?: string;
+  tracking_code?: string;
+  ledger_hash?: string;
+  ledger_timestamp?: string;
+  error?: string;
 }
 
 class ArtifactService {
@@ -51,6 +73,66 @@ class ArtifactService {
     }
   }
 
+  async getArtifactStatus(artifactId: string): Promise<ArtifactStatus> {
+    try {
+      const response = await this.client.get<ArtifactStatus>(
+        `/api/reports/artifacts/status/${artifactId}`
+      );
+      return response;
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new Error('Failed to get artifact status');
+    }
+  }
+
+  async pollArtifactStatus(
+    artifactId: string,
+    maxAttempts: number = 60,
+    intervalMs: number = 1000
+  ): Promise<ArtifactStatus> {
+    let attempts = 0;
+    
+    while (attempts < maxAttempts) {
+      try {
+        const status = await this.getArtifactStatus(artifactId);
+        
+        if (status.status === 'SUCCESS' || status.status === 'FAILED') {
+          return status;
+        }
+        
+        // Wait before polling again
+        await new Promise(resolve => setTimeout(resolve, intervalMs));
+        attempts++;
+      } catch (error) {
+        console.error('Error polling artifact status:', error);
+        throw error;
+      }
+    }
+    
+    throw new Error('Artifact generation timeout - please refresh to check status');
+  }
+
+  async verifyArtifact(artifactId: string): Promise<VerificationResult> {
+    try {
+      const response = await this.client.get<VerificationResult>(
+        `/api/reports/artifacts/verify/${artifactId}`,
+        { skipAuth: true } // Allow unauthenticated verification
+      );
+      return response;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        return {
+          verified: false,
+          error: error.message
+        };
+      }
+      return {
+        verified: false,
+        error: 'Failed to verify artifact'
+      };
+    }
+  }
+
   async downloadArtifact(artifact: Artifact): Promise<void> {
     try {
       const response = await this.client.get(`/api/reports/artifacts/${artifact.id}/download/`, {
@@ -71,6 +153,17 @@ class ArtifactService {
       if (error instanceof ApiError) throw error;
       throw new Error('Failed to download artifact');
     }
+  }
+
+  getVerificationLink(artifactId: string): string {
+    // Generate a shareable verification link
+    const baseUrl = window.location.origin;
+    return `${baseUrl}/verify-artifact/${artifactId}`;
+  }
+
+  getDownloadLink(artifactId: string): string {
+    // Generate download link (requires authentication)
+    return `/api/reports/artifacts/${artifactId}/download/`;
   }
 }
 

@@ -116,6 +116,34 @@ class ArtifactViewSet(viewsets.ReadOnlyModelViewSet):
             logger.exception("Artifact generation failed")
             return Response({"error": "Failed to generate artifact"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+    @action(detail=False, methods=['get'], url_path='status/(?P<artifact_id>[^/.]+)')
+    def status(self, request, artifact_id=None):
+        """
+        Check the current status of an artifact during generation.
+        Used for polling during async operations.
+        """
+        if not artifact_id:
+            return Response({"error": "artifact_id required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            artifact = Artifact.objects.get(id=artifact_id)
+            # Verify permission
+            if artifact.student_id != request.user.student.id:
+                return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
+            
+            return Response({
+                "id": str(artifact.id),
+                "status": artifact.status,
+                "completed_at": artifact.completed_at,
+                "error_message": artifact.error_message,
+                "artifact_type": artifact.artifact_type
+            })
+        except Artifact.DoesNotExist:
+            return Response({"error": "Artifact not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.exception("Status check failed")
+            return Response({"error": "Failed to check status"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     @action(detail=False, methods=['get'], url_path='verify/(?P<artifact_id>[^/.]+)', permission_classes=[permissions.AllowAny])
     def verify(self, request, artifact_id=None):
         """
