@@ -847,55 +847,69 @@ const Register: React.FC = () => {
                 className={`${messageType === 'error' ? 'error-toast' : 'success-toast'} ${toastClosing ? 'toast-exit' : 'toast-enter'}`}
                 style={{
                   position: 'relative',
-                  borderRadius: '16px',
-                  padding: '20px 55px 20px 24px',
-                  marginBottom: '15px',
+                  borderRadius: '1.25rem',
+                  padding: '16px 56px 16px 24px',
+                  marginBottom: '20px',
                   boxShadow: messageType === 'error' 
-                    ? '0 12px 40px rgba(220, 38, 38, 0.12), 0 4px 16px rgba(220, 38, 38, 0.08)'
-                    : '0 12px 40px rgba(17, 204, 173, 0.15), 0 4px 16px rgba(17, 204, 173, 0.1)',
+                    ? '0 20px 40px rgba(220, 38, 38, 0.15), 0 0 0 1px rgba(220, 38, 38, 0.2)' 
+                    : '0 20px 40px rgba(13, 148, 136, 0.15), 0 0 0 1px rgba(13, 148, 136, 0.2)',
                   fontSize: '14px',
-                  lineHeight: '1.6',
+                  fontWeight: '600',
+                  lineHeight: '1.5',
                   display: 'flex',
-                  alignItems: 'flex-start',
-                  minHeight: '60px',
+                  alignItems: 'center',
+                  minHeight: '56px',
                   zIndex: 1000,
-                  backdropFilter: 'blur(20px)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  backdropFilter: 'blur(16px)',
                   background: messageType === 'error'
-                    ? 'linear-gradient(135deg, rgba(255, 245, 245, 0.95) 0%, rgba(254, 242, 242, 0.95) 100%)'
-                    : 'linear-gradient(135deg, rgba(17, 204, 173, 0.15) 0%, rgba(6, 165, 165, 0.15) 100%)',
-                  color: messageType === 'error' ? '#dc2626' : '#0d9488',
-                  borderLeft: messageType === 'error' ? '4px solid #dc2626' : '4px solid rgb(17, 204, 173)'
+                    ? 'rgba(28, 15, 15, 0.95)'
+                    : 'rgba(15, 28, 22, 0.95)',
+                  color: messageType === 'error' ? '#ffb3b3' : '#bbf7d0',
+                  border: messageType === 'error' ? '1.5px solid #dc2626' : '1.5px solid #0d9488',
                 }}
                 role="alert"
                 aria-live="polite"
               >
-                <div>{message}</div>
+                <div style={{
+                  marginRight: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '24px',
+                  height: '24px',
+                  borderRadius: '50%',
+                  backgroundColor: messageType === 'error' ? 'rgba(220, 38, 38, 0.2)' : 'rgba(13, 148, 136, 0.2)',
+                  color: messageType === 'error' ? '#dc2626' : '#0d9488',
+                  flexShrink: 0
+                }}>
+                  {messageType === 'error' ? '!' : '✓'}
+                </div>
+                <div style={{ lineHeight: '1.5' }}>{message}</div>
                 <button 
                   onClick={hideToast}
                   className="close-btn"
                   style={{
                     position: 'absolute',
-                    right: '18px',
-                    top: '18px',
-                    width: '28px',
-                    height: '28px',
-                    borderRadius: '50%',
-                    background: messageType === 'error' 
-                      ? 'rgba(220, 38, 38, 0.1)'
-                      : 'rgba(17, 204, 173, 0.1)',
-                    color: messageType === 'error' ? '#dc2626' : 'rgb(17, 204, 173)',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '10px',
+                    background: 'transparent',
+                    color: 'inherit',
                     border: 'none',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '18px',
-                    fontWeight: 'bold',
-                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    flexShrink: 0,
-                    backdropFilter: 'blur(10px)'
+                    fontSize: '20px',
+                    opacity: '0.6',
+                    transition: 'all 0.2s ease',
+                    flexShrink: 0
                   }}
+                  onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                  onMouseLeave={(e) => e.currentTarget.style.opacity = '0.6'}
                   aria-label="Close notification"
                   type="button"
                 >

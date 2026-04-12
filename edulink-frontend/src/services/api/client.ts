@@ -23,7 +23,8 @@ class ApiClient {
   private config: ApiClientConfig;
   private isRefreshing: boolean = false;
   private accessToken: string | null = null;
-  private onTokenUpdate?: (access: string, refresh: string | null) => void;
+  private csrfToken: string | null = null;
+  private csrfTokenPromise: Promise<string | null> | null = null;
   private failedQueue: Array<{
     resolve: (value: any) => void;
     reject: (reason: any) => void;
@@ -34,12 +35,15 @@ class ApiClient {
     this.config = clientConfig;
     this.client = this.createClient();
     this.setupInterceptors();
+    // Fetch CSRF token on initialization
+    this.initializeCsrfToken();
   }
 
   private createClient(): AxiosInstance {
     return axios.create({
       baseURL: this.config.baseURL,
       timeout: this.config.timeout,
+      withCredentials: true,
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -47,31 +51,71 @@ class ApiClient {
     });
   }
 
+  private initializeCsrfToken(): void {
+    // Fetch CSRF token from server since CSRF_COOKIE_HTTPONLY=True prevents JS from reading it
+    // This is a GET request, which doesn't require CSRF protection
+    if (!this.csrfTokenPromise) {
+      this.csrfTokenPromise = this.client
+        .get('/api/auth/users/get_csrf_token/')
+        .then((response) => {
+          this.csrfToken = response.data.csrf_token;
+          return this.csrfToken;
+        })
+        .catch(() => {
+          return null;
+        });
+    }
+  }
+
+  private async getCsrfToken(): Promise<string | null> {
+    // If token already in memory, return immediately
+    if (this.csrfToken) {
+      return this.csrfToken;
+    }
+
+    // If fetch hasn't started, start it now
+    if (!this.csrfTokenPromise) {
+      this.initializeCsrfToken();
+    }
+    
+    // Wait for the fetch to complete
+    if (this.csrfTokenPromise) {
+      try {
+        const token = await this.csrfTokenPromise;
+        return token;
+      } catch (err) {
+        return null;
+      }
+    }
+    
+    return null;
+  }
+
   private setupInterceptors(): void {
-    // Request interceptor
+    // Request interceptor - handle CSRF token injection
     this.client.interceptors.request.use(
-      (config) => {
-        // Handle FormData - Remove Content-Type to let browser/axios set it with boundary
-        if (config.data instanceof FormData) {
-          if (config.headers) {
+      async (config) => {
+        // For POST/PUT/PATCH/DELETE requests, add CSRF token
+        if (config.method && ['post', 'put', 'patch', 'delete'].includes(config.method.toLowerCase())) {
+          const csrfToken = await this.getCsrfToken();
+          if (csrfToken) {
+            config.headers = config.headers || {};
+            config.headers['X-CSRFToken'] = csrfToken;
+          }
+
+          // For FormData, remove Content-Type to let browser set it with boundary
+          if (config.data instanceof FormData && config.headers) {
             delete config.headers['Content-Type'];
           }
         }
 
-        const token = this.getToken();
-        // Skip auth for login/register endpoints and when explicitly skipped
-        const isAuthEndpoint = config.url?.includes('/login/') || config.url?.includes('/register/');
-        
-        // Check for skipAuth property or skip-auth header and remove it so it's not sent to the server
-        const skipAuth = (config as RequestConfig).skipAuth || config.headers?.['skip-auth'];
+        // Check for skipAuth header and remove it so it's not sent to the server
         if (config.headers && 'skip-auth' in config.headers) {
           delete config.headers['skip-auth'];
         }
         
-        if (token && !skipAuth && !isAuthEndpoint) {
-          config.headers = config.headers || {};
-          config.headers.Authorization = `Bearer ${token}`;
-        }
+        // Authentication is handled via HttpOnly cookies (sent automatically via withCredentials: true)
+        // No Bearer token injection - cookies are the single source of truth
 
         // Add custom headers if provided
         if (config.headers?.['custom-headers']) {
@@ -91,6 +135,7 @@ class ApiClient {
       async (error: AxiosError) => {
         const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
 
+        // Handle 401 Unauthorized - refresh session
         if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url?.includes('/login/')) {
           if (this.isRefreshing) {
             return new Promise((resolve, reject) => {
@@ -102,8 +147,15 @@ class ApiClient {
           this.isRefreshing = true;
 
           try {
-            await this.refreshToken();
+            // Use cookies only - no fallback to localStorage
+            // Server reads refresh_token cookie, returns new access_token cookie
+            await this.client.post(
+              '/api/auth/token/refresh/',
+              {},
+              { headers: { 'skip-auth': 'true' } }
+            );
             this.processQueue(null);
+            // Access token cookie has been updated by server; retry original request
             return this.client(originalRequest);
           } catch (refreshError) {
             this.processQueue(refreshError);
@@ -111,6 +163,27 @@ class ApiClient {
             throw new AuthenticationError('Session expired. Please log in again.');
           } finally {
             this.isRefreshing = false;
+          }
+        }
+
+        // Handle 403 CSRF token invalid - refresh CSRF token and retry
+        if (error.response?.status === 403 && !originalRequest._retry) {
+          const errorMsg = this.extractErrorMessage(error.response.data);
+          if (errorMsg.includes('CSRF')) {
+            originalRequest._retry = true;
+            try {
+              // Fetch fresh CSRF token
+              await this.client.get('/api/auth/users/get_csrf_token/');
+              // getCsrfToken() will now return the fresh token
+              this.csrfTokenPromise = null; // Reset promise to force refetch
+              this.initializeCsrfToken(); // Fetch new token
+              // Wait for new token to be available
+              await new Promise(resolve => setTimeout(resolve, 50));
+              // Retry original request with new token
+              return this.client(originalRequest);
+            } catch (csrfError) {
+              return Promise.reject(this.handleError(error));
+            }
           }
         }
 
@@ -186,170 +259,27 @@ class ApiClient {
   }
 
   private getToken(): string | null {
-    // Return in-memory token if available
+    // Try in-memory token first
     if (this.accessToken) {
       return this.accessToken;
     }
 
-    // Check for admin token first, then regular user token
-    const adminToken = localStorage.getItem('adminToken');
-    if (adminToken) {
-      return adminToken;
-    }
-    
-    // For regular users, try getting from Zustand store first
+    // Fallback: Try to get from localStorage (response-body tokens from login)
     try {
-      const authStorage = localStorage.getItem('auth-storage');
-      if (authStorage) {
-        const { state } = JSON.parse(authStorage);
-        if (state && state.accessToken) {
-          this.accessToken = state.accessToken; // Sync to memory
-          return state.accessToken;
-        }
+      const token = localStorage.getItem('access_token');
+      if (token) {
+        this.accessToken = token; // Sync to memory
+        return token;
       }
     } catch (e) {
       // Fallback
     }
 
     return null;
-  }
-
-  private getRefreshToken(): string | null {
-    try {
-      const authStorage = localStorage.getItem('auth-storage');
-      if (authStorage) {
-        const { state } = JSON.parse(authStorage);
-        if (state && state.refreshToken) {
-          return state.refreshToken;
-        }
-      }
-    } catch (e) {
-      // Fallback
-    }
-    return null;
-  }
-
-  private async refreshToken(): Promise<void> {
-    if (typeof navigator !== 'undefined' && 'locks' in navigator) {
-      const preLockRefreshToken = this.getRefreshToken();
-      const preLockAdminRefreshToken = localStorage.getItem('adminRefreshToken');
-
-      // @ts-ignore
-      return navigator.locks.request('auth_refresh_lock', async () => {
-        // Admin check
-        if (localStorage.getItem('adminToken')) {
-          const currentAdminRef = localStorage.getItem('adminRefreshToken');
-          if (preLockAdminRefreshToken && currentAdminRef !== preLockAdminRefreshToken) {
-            return; // Already refreshed by another tab
-          }
-        } else {
-          // User check
-          const currentRef = this.getRefreshToken();
-          if (preLockRefreshToken && currentRef !== preLockRefreshToken) {
-            // Already refreshed by another tab - update local state
-            this.accessToken = null;
-            this.getToken(); // Will read from storage
-            return; 
-          }
-        }
-        
-        await this._performRefreshCall();
-      });
-    } else {
-      await this._performRefreshCall();
-    }
-  }
-
-  private async _performRefreshCall(): Promise<void> {
-    // Check if we have an admin token - use admin refresh endpoint
-    const adminToken = localStorage.getItem('adminToken');
-    if (adminToken) {
-      const adminRefreshToken = localStorage.getItem('adminRefreshToken');
-      if (adminRefreshToken) {
-        try {
-          const response = await this.client.post('/api/admin/auth/token/refresh/', {
-            refresh: adminRefreshToken,
-          }, {
-            headers: { 'skip-auth': 'true' }
-          });
-          
-          const { access, refresh } = response.data;
-          localStorage.setItem('adminToken', access);
-          
-          // Update refresh token if rotated
-          if (refresh) {
-            localStorage.setItem('adminRefreshToken', refresh);
-          }
-          return;
-        } catch (error) {
-          this.clearAuth();
-          throw new AuthenticationError('Admin session expired. Please log in again.');
-        }
-      } else {
-        this.clearAuth();
-        throw new AuthenticationError('Admin session expired. Please log in again.');
-      }
-    }
-
-    // Regular user token refresh
-    const refreshToken = this.getRefreshToken();
-    if (!refreshToken) {
-      throw new AuthenticationError('No refresh token available');
-    }
-
-    // We need to update the store, but we can't import store here easily due to circular deps (store imports authService -> client).
-    // So we will perform the request and update the store via the storage event or manual write.
-    // Actually, writing to localStorage 'auth-storage' manually is risky.
-    // Ideally, we should let the store handle refresh.
-    // But this interceptor logic is inside the client.
-    
-    // Compromise: We fetch the new token, and write it to localStorage in the format Zustand expects.
-    // This allows the store to sync up on next reload or storage event.
-    // BUT the running store instance in memory won't know unless we use the store instance.
-    
-    // To solve circular dependency: 
-    // We can inject the store or a "setToken" callback into the client after initialization.
-    // For now, let's just do the manual write to localStorage AND legacy keys as fallback, 
-    // and maybe the store will pick it up on reload.
-    // A better way is if the store handles the refresh logic entirely, but Axios interceptors are lower level.
-    
-    const response = await this.client.post('/api/auth/token/refresh/', {
-      refresh: refreshToken,
-    }, {
-      headers: { 'skip-auth': 'true' }
-    });
-
-    const { access, refresh } = response.data;
-    
-    // Update in-memory token immediately
-    this.accessToken = access;
-    
-    // Update Zustand storage via callback if registered
-    if (this.onTokenUpdate) {
-      this.onTokenUpdate(access, refresh || null);
-    } else {
-      // Fallback: Update Zustand storage manually (legacy behavior)
-      try {
-        const authStorageStr = localStorage.getItem('auth-storage');
-        if (authStorageStr) {
-          const authStorage = JSON.parse(authStorageStr);
-          if (authStorage.state) {
-            authStorage.state.accessToken = access;
-            if (refresh) authStorage.state.refreshToken = refresh;
-            localStorage.setItem('auth-storage', JSON.stringify(authStorage));
-          }
-        }
-      } catch (e) {
-        // ignore
-      }
-    }
   }
 
   private clearAuth(): void {
     this.accessToken = null;
-    localStorage.removeItem('adminToken');
-    localStorage.removeItem('adminRefreshToken');
-    localStorage.removeItem('adminUser');
     
     // Clear Zustand storage
     try {
@@ -358,17 +288,16 @@ class ApiClient {
             const authStorage = JSON.parse(authStorageStr);
             if (authStorage.state) {
                 authStorage.state.user = null;
+                authStorage.state.admin = null;
                 authStorage.state.accessToken = null;
                 authStorage.state.refreshToken = null;
                 authStorage.state.isAuthenticated = false;
+                authStorage.state.isAdmin = false;
+                authStorage.state.currentPortal = null;
                 localStorage.setItem('auth-storage', JSON.stringify(authStorage));
             }
         }
     } catch (e) {}
-  }
-
-  public registerTokenUpdateCallback(callback: (access: string, refresh: string | null) => void) {
-    this.onTokenUpdate = callback;
   }
 
   // Public API methods
@@ -432,11 +361,14 @@ class ApiClient {
   }
 
   setAdminToken(token: string): void {
-    localStorage.setItem('adminToken', token);
+    // Admin tokens are now stored in HttpOnly cookies by the backend
+    // This method is kept for backward compatibility but does nothing
+    void token;
   }
 
   setAdminUser(user: any): void {
-    localStorage.setItem('adminUser', JSON.stringify(user));
+    // Admin user data is managed by the store, not stored here
+    void user;
   }
 
   getClient(): AxiosInstance {

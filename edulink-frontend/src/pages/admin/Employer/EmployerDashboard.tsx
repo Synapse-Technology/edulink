@@ -61,19 +61,28 @@ const EmployerDashboard: React.FC = () => {
       }
 
       // 2. Fetch Applications (Engagements)
-      const [applications, ledgerData, evidence] = await Promise.all([
+      const [applicationsResponse, ledgerData, evidence] = await Promise.all([
         internshipService.getApplications(),
         ledgerService.getEvents({ page_size: 5 }),
         internshipService.getPendingEvidence()
       ]);
+      
+      // Handle paginated response - extract array from { results: [...] } if needed
+      const applications = Array.isArray(applicationsResponse) 
+        ? applicationsResponse 
+        : (applicationsResponse as any)?.results || [];
+      
       setAllApplications(applications);
       setLedgerEvents(ledgerData.results);
-      setPendingLogbooks(evidence.filter(e => e.evidence_type === 'LOGBOOK'));
+      
+      // Handle paginated evidence response
+      const evidenceList = Array.isArray(evidence) ? evidence : (evidence as any)?.results || [];
+      setPendingLogbooks(evidenceList.filter((e: any) => e.evidence_type === 'LOGBOOK'));
 
       // Calculate stats based on Applications
-      const active = applications.filter(a => a.status === 'ACTIVE').length;
-      const pending = applications.filter(a => a.status === 'APPLIED').length;
-      const shortlisted = applications.filter(a => a.status === 'SHORTLISTED').length;
+      const active = applications.filter((a: any) => a.status === 'ACTIVE').length;
+      const pending = applications.filter((a: any) => a.status === 'APPLIED').length;
+      const shortlisted = applications.filter((a: any) => a.status === 'SHORTLISTED').length;
       
       // Supervisors
       let supervisorList: any[] = [];
@@ -95,8 +104,8 @@ const EmployerDashboard: React.FC = () => {
 
       // Recent Applications (Recruitment only)
       const recent = applications
-        .filter(a => !['ACTIVE', 'COMPLETED'].includes(a.status))
-        .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
+        .filter((a: any) => !['ACTIVE', 'COMPLETED'].includes(a.status))
+        .sort((a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
         .slice(0, 5);
       
       setRecentApplications(recent);

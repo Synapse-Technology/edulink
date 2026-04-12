@@ -79,11 +79,16 @@ const StudentApplications: React.FC = () => {
   });
 
   // Fetch applications using TanStack Query
-  const { data: applications, isLoading: loading, isError, error } = useQuery({
+  const { data: applicationsResponse, isLoading: loading, isError, error } = useQuery({
     queryKey: ['applications'],
     queryFn: () => studentService.getApplications(),
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
+
+  // Handle paginated response - extract array from { results: [...] } if needed
+  const applications = Array.isArray(applicationsResponse) 
+    ? applicationsResponse 
+    : (applicationsResponse as any)?.results || [];
 
   // Handle query errors
   if (isError && error) {
@@ -192,7 +197,7 @@ const StudentApplications: React.FC = () => {
             </div>
           ) : (
             <div className="row g-4">
-              {applications?.map((app) => (
+              {applications?.map((app: any) => (
                 <div key={app.id} className="col-12">
                   <div className="card border-0 shadow-sm rounded-4">
                     <div className="card-body p-4">

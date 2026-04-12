@@ -3,6 +3,9 @@ Authentication and user management views.
 Follows architecture rules: thin views, no business logic, call services only.
 """
 
+import logging
+from django.conf import settings
+from django.contrib.auth import logout as django_logout  # Use Django's built-in session logout
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -37,6 +40,10 @@ from .services import (
     deactivate_own_account
 )
 
+# Module-level logger and DEBUG config
+logger = logging.getLogger(__name__)
+DEBUG = settings.DEBUG
+
 
 class UserViewSet(viewsets.ModelViewSet):
     """
@@ -45,13 +52,14 @@ class UserViewSet(viewsets.ModelViewSet):
     """
     queryset = User.objects.all()
     serializer_class = UserSerializer
+    logger = logging.getLogger(__name__)
     
     def get_permissions(self):
         """
         Set permissions based on action.
         """
         action = getattr(self, 'action', None)
-        if action in ['register', 'login', 'reset_password_request', 'reset_password_confirm', 'token_refresh', 'token_obtain_pair']:
+        if action in ['register', 'login', 'reset_password_request', 'reset_password_confirm', 'token_refresh', 'token_obtain_pair', 'get_csrf_token']:
             return [AllowAny()]
         elif action in ['list', 'retrieve', 'assign_role']:
             return [IsAuthenticated()]  # Additional role-based checks can be added
@@ -107,7 +115,8 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'])
     def login(self, request):
         """
-        User login endpoint using JWT tokens.
+        User login endpoint with HttpOnly cookies.
+        Tokens are returned via Set-Cookie headers, NOT in response body.
         """
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -118,18 +127,48 @@ class UserViewSet(viewsets.ModelViewSet):
             # Generate JWT tokens
             refresh = RefreshToken.for_user(user)
             
-            # Return tokens and user data
+            # Prepare response (tokens NOT in body for security)
             user_serializer = UserSerializer(user)
-            return Response({
+            response = Response({
                 'message': 'Login successful',
                 'user': user_serializer.data,
-                'tokens': {
-                    'refresh': str(refresh),
-                    'access': str(refresh.access_token)
-                }
             }, status=status.HTTP_200_OK)
+            
+            # Set tokens as HttpOnly cookies
+            response.set_cookie(
+                key='access_token',
+                value=str(refresh.access_token),
+                max_age=7200,  # 2 hours (match JWT_ACCESS_TOKEN_LIFETIME)
+                secure=not DEBUG,  # HTTPS only in production
+                httponly=True,
+                samesite='Lax',
+                path='/',
+            )
+            
+            response.set_cookie(
+                key='refresh_token',
+                value=str(refresh),
+                max_age=1209600,  # 14 days (match JWT_REFRESH_TOKEN_LIFETIME)
+                secure=not DEBUG,
+                httponly=True,
+                samesite='Lax',
+                path='/',
+            )
+            
+            # Set CSRF token for state-changing requests
+            from django.middleware.csrf import get_token
+            csrf_token = get_token(request)
+            response['X-CSRFToken'] = csrf_token
+            
+            return response
         except ValueError as e:
-            return Response({'error': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response(
+                {
+                    'error_code': 'INVALID_CREDENTIALS',
+                    'message': 'Invalid email or password'
+                },
+                status=status.HTTP_401_UNAUTHORIZED
+            )
     
     @action(detail=False, methods=['post'])
     def token_obtain_pair(self, request):
@@ -145,29 +184,100 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'])
     def token_refresh(self, request):
         """
-        Refresh JWT token endpoint.
+        Refresh JWT token endpoint - get token from cookie, set in cookie.
         """
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
-        # The serializer will validate and return new tokens with user data
-        return Response(serializer.validated_data, status=status.HTTP_200_OK)
+        try:
+            # Get refresh token from cookie
+            refresh_token = request.COOKIES.get('refresh_token')
+            
+            if not refresh_token:
+                return Response(
+                    {
+                        'error_code': 'NO_REFRESH_TOKEN',
+                        'message': 'Refresh token not found'
+                    },
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+            
+            # Create new token pair
+            token = RefreshToken(refresh_token)
+            new_access = str(token.access_token)
+            new_refresh = str(token)
+            
+            # Prepare response
+            response = Response({
+                'message': 'Token refreshed successfully'
+            }, status=status.HTTP_200_OK)
+            
+            # Update cookies with new tokens
+            response.set_cookie(
+                key='access_token',
+                value=new_access,
+                max_age=7200,
+                secure=not DEBUG,
+                httponly=True,
+                samesite='Lax',
+                path='/',
+            )
+            
+            response.set_cookie(
+                key='refresh_token',
+                value=new_refresh,
+                max_age=1209600,
+                secure=not DEBUG,
+                httponly=True,
+                samesite='Lax',
+                path='/',
+            )
+            
+            return response
+            
+        except Exception as e:
+            logger.error(f"Token refresh error: {str(e)}")
+            return Response(
+                {
+                    'error_code': 'INVALID_TOKEN',
+                    'message': 'Invalid or expired token'
+                },
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+    
+    @action(detail=False, methods=['get'], permission_classes=[AllowAny])
+    def get_csrf_token(self, request):
+        """
+        Get CSRF token for frontend requests.
+        GET requests don't require CSRF protection, so this endpoint is safe.
+        Frontend calls this to get the token since CSRF_COOKIE_HTTPONLY=True
+        prevents JavaScript from reading the CSRF cookie directly.
+        """
+        from django.middleware.csrf import get_token
+        csrf_token = get_token(request)
+        return Response({
+            'csrf_token': csrf_token
+        }, status=status.HTTP_200_OK)
     
     @action(detail=False, methods=['post'])
     def logout(self, request):
         """
-        User logout endpoint. Blacklists the refresh token.
+        User logout endpoint - clear session (HttpOnly cookie handled by Django).
         """
         try:
-            refresh_token = request.data.get("refresh")
-            if refresh_token:
-                token = RefreshToken(refresh_token)
-                token.blacklist()
-            return Response({'message': 'Logout successful'}, status=status.HTTP_200_OK)
+            # Clear Django session (removes sessionid cookie)
+            django_logout(request)
+            
+            return Response(
+                {'message': 'Logout successful'},
+                status=status.HTTP_200_OK
+            )
+            
         except Exception as e:
-            # Even if blacklisting fails (e.g. invalid token), we want to return 200 to client
-            # so they can clear local storage
-            return Response({'message': 'Logout successful'}, status=status.HTTP_200_OK)
+            logger.error(f"Logout error: {str(e)}")
+            # Still clear session even if error occurs
+            django_logout(request)
+            return Response(
+                {'message': 'Logout successful'},
+                status=status.HTTP_200_OK
+            )
     
     @action(detail=False, methods=['post'])
     def change_password(self, request):

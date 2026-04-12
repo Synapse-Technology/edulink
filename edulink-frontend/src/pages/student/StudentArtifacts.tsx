@@ -37,6 +37,7 @@ const StudentArtifacts: React.FC = () => {
           artifactService.getArtifacts(),
           studentService.getActiveInternship()
         ]);
+        // artifactService.getArtifacts() now returns array directly
         setArtifacts(artifactData);
         // Extract Internship from InternshipApplication
         if (internshipData) {
@@ -56,11 +57,14 @@ const StudentArtifacts: React.FC = () => {
   }, []);
 
   const handleDownload = async (artifact: Artifact) => {
+    let toastId: string | undefined;
     try {
-      showToast.loading('Preparing download...');
+      toastId = showToast.loading('Preparing download...');
       await artifactService.downloadArtifact(artifact);
+      if (toastId) showToast.dismiss(toastId);
       showToast.success('Download started!');
     } catch (err) {
+      if (toastId) showToast.dismiss(toastId);
       const message = getErrorMessage(err, { action: 'Download Artifact' });
       showToast.error(message);
       logError(err, { action: 'Download Artifact', data: { artifactId: artifact.id } });
@@ -68,23 +72,33 @@ const StudentArtifacts: React.FC = () => {
   };
 
   const handleGenerate = async (type: 'CERTIFICATE' | 'LOGBOOK_REPORT' | 'PERFORMANCE_SUMMARY') => {
-    if (!internship) return;
+    if (!internship) {
+      showToast.error('No active internship found');
+      return;
+    }
     
     const label = type === 'CERTIFICATE' ? 'Certificate' : type === 'LOGBOOK_REPORT' ? 'Logbook Report' : 'Performance Summary';
+    let toastId: string | undefined;
     
     try {
       setGenerating(type);
-      showToast.loading(`Generating ${label}...`);
+      toastId = showToast.loading(`Generating ${label}...`);
       
       const newArtifact = await artifactService.generateArtifact(internship.id, type);
       setArtifacts([newArtifact, ...artifacts]);
       
+      // Dismiss loading toast and show success
+      if (toastId) showToast.dismiss(toastId);
       showToast.success(`${label} generated successfully!`);
     } catch (err) {
+      // Dismiss loading toast
+      if (toastId) showToast.dismiss(toastId);
+      
       const message = getErrorMessage(err, { action: `Generate ${label}` });
       showToast.error(message);
-      logError(err, { action: 'Generate Artifact', data: { type } });
+      logError(err, { action: 'Generate Artifact', data: { type, internshipId: internship.id } });
     } finally {
+      // Ensure generating state is always cleared
       setGenerating(null);
     }
   };

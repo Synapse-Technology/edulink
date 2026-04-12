@@ -44,8 +44,7 @@ class TestDomainErrorSerialization(TestCase):
             context=ErrorContext().with_user_id(self.user_id).build(),
         )
         
-        result = edulink_exception_handler(exc, {})
-        response, _ = result
+        response = edulink_exception_handler(exc, {})
         
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.data["error_code"], "NOT_FOUND")
@@ -61,8 +60,7 @@ class TestDomainErrorSerialization(TestCase):
             context=ErrorContext().build(),
         )
         
-        result = edulink_exception_handler(exc, {})
-        response, _ = result
+        response = edulink_exception_handler(exc, {})
         
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data["error_code"], "VALIDATION_ERROR")
@@ -77,8 +75,7 @@ class TestDomainErrorSerialization(TestCase):
             context=ErrorContext().with_resource("Assignment", self.resource_id).build(),
         )
         
-        result = edulink_exception_handler(exc, {})
-        response, _ = result
+        response = edulink_exception_handler(exc, {})
         
         self.assertEqual(response.status_code, 409)
         self.assertEqual(response.data["error_code"], "CONFLICT")
@@ -93,8 +90,7 @@ class TestDomainErrorSerialization(TestCase):
             context=ErrorContext().with_user_id(self.user_id).build(),
         )
         
-        result = edulink_exception_handler(exc, {})
-        response, _ = result
+        response = edulink_exception_handler(exc, {})
         
         self.assertEqual(response.status_code, 403)
         self.assertEqual(response.data["error_code"], "UNAUTHORIZED")
@@ -113,8 +109,7 @@ class TestDomainErrorSerialization(TestCase):
             context=context_data,
         )
         
-        result = edulink_exception_handler(exc, {})
-        response, _ = result
+        response = edulink_exception_handler(exc, {})
         
         self.assertIn("context", response.data)
         self.assertEqual(response.data["context"]["user_id"], str(self.user_id))
@@ -128,8 +123,7 @@ class TestDomainErrorSerialization(TestCase):
             developer_message="Validation failed",
         )
         
-        result = edulink_exception_handler(exc, {})
-        response, _ = result
+        response = edulink_exception_handler(exc, {})
         
         self.assertIn("timestamp", response.data)
         # Verify ISO format
@@ -151,8 +145,7 @@ class TestDRFExceptionConversion(TestCase):
         
         # Call DRF's default handler first (as our handler does)
         request = self.factory.get('/')
-        result = edulink_exception_handler(exc, {"request": request})
-        response_obj, _ = result
+        response_obj = edulink_exception_handler(exc, {"request": request})
         
         # Should be converted with our format
         self.assertEqual(response_obj.status_code, 404)
@@ -166,8 +159,7 @@ class TestDRFExceptionConversion(TestCase):
         exc = PermissionDenied("You do not have access")
         
         request = self.factory.get('/')
-        result = edulink_exception_handler(exc, {"request": request})
-        response_obj, _ = result
+        response_obj = edulink_exception_handler(exc, {"request": request})
         
         self.assertEqual(response_obj.status_code, 403)
         self.assertEqual(response_obj.data["status_code"], 403)
@@ -178,8 +170,7 @@ class TestDRFExceptionConversion(TestCase):
         exc = DRFValidationError({"email": ["Email is required"]})
         
         request = self.factory.get('/')
-        result = edulink_exception_handler(exc, {"request": request})
-        response_obj, _ = result
+        response_obj = edulink_exception_handler(exc, {"request": request})
         
         self.assertEqual(response_obj.status_code, 400)
         self.assertEqual(response_obj.data["status_code"], 400)
@@ -202,8 +193,7 @@ class TestResponseStructure(TestCase):
         ]
         
         for exc in errors:
-            result = edulink_exception_handler(exc, {})
-            response, _ = result
+            response = edulink_exception_handler(exc, {})
             
             # Required fields
             self.assertIn("error_code", response.data)
@@ -227,8 +217,7 @@ class TestResponseStructure(TestCase):
         ]
         
         for exc, expected_status in errors:
-            result = edulink_exception_handler(exc, {})
-            response, _ = result
+            response = edulink_exception_handler(exc, {})
             
             self.assertEqual(response.status_code, expected_status)
             self.assertEqual(response.data["status_code"], expected_status)

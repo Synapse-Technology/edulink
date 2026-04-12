@@ -47,15 +47,15 @@ class AdminUserSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'email', 'username', 'date_joined', 'last_login']
     
     def get_institution_id(self, obj):
-        """Resolve institution ID based on user role."""
-        from .queries import get_user_institution_info
-        info = get_user_institution_info(str(obj.id), obj.role)
+        """Resolve institution ID based on user role (from context, not service call)."""
+        institution_map = self.context.get('institution_map', {})
+        info = institution_map.get(str(obj.id), {"id": None, "name": None})
         return info["id"]
 
     def get_institution_name(self, obj):
-        """Resolve institution name based on user role."""
-        from .queries import get_user_institution_info
-        info = get_user_institution_info(str(obj.id), obj.role)
+        """Resolve institution name based on user role (from context, not service call)."""
+        institution_map = self.context.get('institution_map', {})
+        info = institution_map.get(str(obj.id), {"id": None, "name": None})
         return info["name"]
 
     def get_is_platform_staff(self, obj):
@@ -247,35 +247,34 @@ class InstitutionAdminSerializer(serializers.Serializer):
         return getattr(obj, attr_name, None)
 
     def get_total_users(self, obj):
-        """Get total users associated with this institution (Verified Students + All Active Staff)."""
-        from edulink.apps.institutions import queries as inst_queries
-        inst_id = self._get_attr(obj, 'id')
-        total_staff = inst_queries.get_staff_count_for_institution(str(inst_id))
-        return self.get_student_count(obj) + total_staff
+        """Get total users - fetch from context, not via service call."""
+        analytics_map = self.context.get('analytics_map', {})
+        analytics = analytics_map.get(str(self._get_attr(obj, 'id')), {})
+        return analytics.get('total_users', 0)
     
     def get_student_count(self, obj):
-        """Get student count for this institution."""
-        from edulink.apps.students import queries as student_queries
-        inst_id = self._get_attr(obj, 'id')
-        return student_queries.get_total_students_count(str(inst_id))
+        """Get student count - fetch from context."""
+        analytics_map = self.context.get('analytics_map', {})
+        analytics = analytics_map.get(str(self._get_attr(obj, 'id')), {})
+        return analytics.get('student_count', 0)
     
     def get_admin_count(self, obj):
-        """Get admin count for this institution."""
-        from edulink.apps.institutions import queries as inst_queries
-        inst_id = self._get_attr(obj, 'id')
-        return inst_queries.get_staff_count_for_institution(str(inst_id), role='admin')
+        """Get admin count - fetch from context."""
+        analytics_map = self.context.get('analytics_map', {})
+        analytics = analytics_map.get(str(self._get_attr(obj, 'id')), {})
+        return analytics.get('admin_count', 0)
     
     def get_employer_count(self, obj):
-        """Get count of unique employers with engagements."""
-        from edulink.apps.internships import queries as internship_queries
-        inst_id = self._get_attr(obj, 'id')
-        return internship_queries.get_unique_employer_count_for_institution(str(inst_id))
+        """Get unique employer count - fetch from context."""
+        analytics_map = self.context.get('analytics_map', {})
+        analytics = analytics_map.get(str(self._get_attr(obj, 'id')), {})
+        return analytics.get('employer_count', 0)
 
     def get_internship_count(self, obj):
-        """Get total internship opportunities posted by institution."""
-        from edulink.apps.internships import queries as internship_queries
-        inst_id = self._get_attr(obj, 'id')
-        return internship_queries.get_internship_count_for_institution(str(inst_id))
+        """Get total internship count - fetch from context."""
+        analytics_map = self.context.get('analytics_map', {})
+        analytics = analytics_map.get(str(self._get_attr(obj, 'id')), {})
+        return analytics.get('internship_count', 0)
     
     def get_verification_status(self, obj):
         """Get human-readable verification status."""
@@ -290,54 +289,34 @@ class InstitutionAdminSerializer(serializers.Serializer):
             return "Inactive"
     
     def get_tracking_code(self, obj):
-        """Get tracking code from associated institution request (if any)."""
-        try:
-            from edulink.apps.institutions import services as institution_services
-            inst_id = self._get_attr(obj, 'id')
-            contact_info = institution_services.get_institution_contact_info(institution_id=inst_id)
-            return contact_info.get("tracking_code")
-        except Exception:
-            return None
+        """Get tracking code - fetch from context."""
+        analytics_map = self.context.get('analytics_map', {})
+        analytics = analytics_map.get(str(self._get_attr(obj, 'id')), {})
+        return analytics.get('tracking_code')
 
     def get_contact_email(self, obj):
-        """Get contact email from associated institution request (if any)."""
-        try:
-            from edulink.apps.institutions import services as institution_services
-            inst_id = self._get_attr(obj, 'id')
-            contact_info = institution_services.get_institution_contact_info(institution_id=inst_id)
-            return contact_info.get("representative_email")
-        except Exception:
-            return None
+        """Get contact email - fetch from context."""
+        analytics_map = self.context.get('analytics_map', {})
+        analytics = analytics_map.get(str(self._get_attr(obj, 'id')), {})
+        return analytics.get('contact_email')
     
     def get_contact_phone(self, obj):
-        """Get contact phone from associated institution request (if any)."""
-        try:
-            from edulink.apps.institutions import services as institution_services
-            inst_id = self._get_attr(obj, 'id')
-            contact_info = institution_services.get_institution_contact_info(institution_id=inst_id)
-            return contact_info.get("representative_phone")
-        except Exception:
-            return None
+        """Get contact phone - fetch from context."""
+        analytics_map = self.context.get('analytics_map', {})
+        analytics = analytics_map.get(str(self._get_attr(obj, 'id')), {})
+        return analytics.get('contact_phone')
     
     def get_contact_website(self, obj):
-        """Get website URL from associated institution request (if any)."""
-        try:
-            from edulink.apps.institutions import services as institution_services
-            inst_id = self._get_attr(obj, 'id')
-            contact_info = institution_services.get_institution_contact_info(institution_id=inst_id)
-            return contact_info.get("website_url")
-        except Exception:
-            return None
+        """Get website URL - fetch from context."""
+        analytics_map = self.context.get('analytics_map', {})
+        analytics = analytics_map.get(str(self._get_attr(obj, 'id')), {})
+        return analytics.get('contact_website')
     
     def get_contact_address(self, obj):
-        """Get address/department info from associated institution request (if any)."""
-        try:
-            from edulink.apps.institutions import services as institution_services
-            inst_id = self._get_attr(obj, 'id')
-            contact_info = institution_services.get_institution_contact_info(institution_id=inst_id)
-            return contact_info.get("department")
-        except Exception:
-            return None
+        """Get address/department info - fetch from context."""
+        analytics_map = self.context.get('analytics_map', {})
+        analytics = analytics_map.get(str(self._get_attr(obj, 'id')), {})
+        return analytics.get('contact_address')
 
 
 class AdminActionLogSerializer(serializers.ModelSerializer):
@@ -494,12 +473,10 @@ class ReviewInstitutionRequestSerializer(serializers.Serializer):
         if data['action'] == 'reject' and not data.get('rejection_reason'):
             raise serializers.ValidationError("Rejection reason is required when rejecting a request")
         
-        # Validate rejection reason code if provided
+        # Validate rejection reason code if provided (from context, not service call)
         if data.get('rejection_reason_code'):
-            from edulink.apps.institutions import services as institution_services
-            valid_choices = institution_services.get_rejection_reason_choices()
-            valid_codes = [code for code, _ in valid_choices]
-            if data['rejection_reason_code'] not in valid_codes:
+            valid_codes = self.context.get('valid_rejection_codes', [])
+            if valid_codes and data['rejection_reason_code'] not in valid_codes:
                 raise serializers.ValidationError(f"Invalid rejection reason code: {data['rejection_reason_code']}")
         
         return data

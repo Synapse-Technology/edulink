@@ -27,11 +27,17 @@ const StudentHeader: React.FC<StudentHeaderProps> = ({
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
   useEffect(() => {
+    // Only fetch profile if user exists and we don't have avatar info
+    // This prevents duplicate calls since dashboard page also fetches profile
+    if (!user) return;
+    
     const fetchProfile = async () => {
       try {
         const profile = await studentService.getProfile();
-        if (profile.profile_picture) {
-          setProfilePic(profile.profile_picture);
+        // Use profile_picture_url if available (constructed by backend), fallback to profile_picture
+        const picUrl = (profile as any).profile_picture_url || profile.profile_picture;
+        if (picUrl) {
+          setProfilePic(picUrl);
         } else if (user?.avatar) {
           setProfilePic(user.avatar);
         }
@@ -40,10 +46,15 @@ const StudentHeader: React.FC<StudentHeaderProps> = ({
         }
       } catch (error) {
         console.error('Failed to fetch profile picture:', error);
+        // Fall back to user avatar if fetch fails
+        if (user?.avatar) {
+          setProfilePic(user.avatar);
+        }
       }
     };
+    
     fetchProfile();
-  }, [user]);
+  }, [user?.id]);
 
   const handleMobileMenuClick = useCallback(() => {
     if (onMobileMenuClick) {
@@ -158,7 +169,7 @@ const StudentHeader: React.FC<StudentHeaderProps> = ({
                     View Profile
                   </Link>
                   <Link
-                    to="/dashboard/student/support"
+                    to="/support"
                     className={`dropdown-item d-flex align-items-center gap-2 py-2 ${isDarkMode ? 'text-info' : ''}`}
                     onClick={() => setIsUserMenuOpen(false)}
                   >

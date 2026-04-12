@@ -33,9 +33,20 @@ const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({ show, onHid
           setContentType(fetchedContentType);
           currentBlobUrl = fetchedBlobUrl;
         } catch (err: any) {
-          if (err.response && err.response.status === 404) {
-            setError('Document not found. The file may have been deleted or moved.');
+          // Extract status code from different error formats
+          const status = err?.status || err?.response?.status || err?.originalError?.response?.status;
+          
+          // Match specific error codes to user-friendly messages
+          if (status === 404) {
+            setError('Document not found. This file may not have been uploaded yet or has been removed.');
             setIsNotFound(true);
+          } else if (status === 403) {
+            setError('You do not have permission to view this document.');
+            setIsNotFound(true);
+          } else if (status >= 500) {
+            setError('Server error occurred while loading the document. Please try again later.');
+          } else if (status >= 400) {
+            setError('Could not load document. Please check if the file is still available.');
           } else {
             setError('Failed to load document preview. You can still try opening it in a new tab.');
           }
@@ -78,8 +89,17 @@ const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({ show, onHid
       return (
         <div className="text-center py-5 px-4">
           <FileText size={48} className="text-muted mb-3 opacity-25" />
-          <p className="mb-4">{error}</p>
-          {!isNotFound && (
+          <p className="mb-3 text-muted fw-medium">{error}</p>
+          {isNotFound ? (
+            <div>
+              <Button variant="outline-secondary" size="sm" className="mb-3" onClick={onHide}>
+                Close
+              </Button>
+              <p className="small text-muted mt-3">
+                💡 Tip: You may need to upload this document first or contact support if you believe this is an error.
+              </p>
+            </div>
+          ) : (
             <Button variant="primary" onClick={handleOpenInNewTab}>
               Open in New Tab
             </Button>

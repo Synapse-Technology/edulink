@@ -299,21 +299,22 @@ const StudentLogbook: React.FC = () => {
   const handleDownloadFullReport = async () => {
     if (!internship) return;
     
+    let toastId: string | undefined;
     try {
       setGeneratingReport(true);
-      showToast.loading('Generating full internship report...');
+      toastId = showToast.loading('Generating full internship report...');
       
       const artifact = await artifactService.generateArtifact(internship.id, 'LOGBOOK_REPORT');
       await artifactService.downloadArtifact(artifact);
       
-      showToast.dismiss('report-gen');
+      if (toastId) showToast.dismiss(toastId);
       showSuccess(
         'Report Downloaded',
         'Full internship report downloaded successfully!'
       );
     } catch (err: any) {
       console.error(err);
-      showToast.dismiss('report-gen');
+      if (toastId) showToast.dismiss(toastId);
       showError(
         'Download Failed',
         'Failed to generate report. Ensure you have accepted logbook entries.',

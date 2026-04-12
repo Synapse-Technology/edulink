@@ -18,6 +18,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.db.models import Q
 from django.core.exceptions import ValidationError
+from django.conf import settings
 
 from .models import PlatformStaffProfile, AdminActionLog, StaffInvite
 from edulink.apps.ledger.queries import get_recent_ledger_events
@@ -158,8 +159,19 @@ class UserListView(APIView):
         paginator = AdminUserPagination()
         paginated_users = paginator.paginate_queryset(users, request)
         
-        # Serialize
-        serializer = serializers.AdminUserSerializer(paginated_users, many=True)
+        # Prepare institution data in view layer to avoid serializer N+1
+        institution_map = {}
+        for user in paginated_users:
+            institution_map[str(user.id)] = queries.get_user_institution_info(
+                str(user.id), user.role
+            )
+        
+        # Serialize with context
+        serializer = serializers.AdminUserSerializer(
+            paginated_users,
+            many=True,
+            context={'institution_map': institution_map}
+        )
         return paginator.get_paginated_response(serializer.data)
 
 
@@ -185,8 +197,14 @@ class UserDetailView(APIView):
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        # Serialize
-        serializer = serializers.AdminUserSerializer(user)
+        # Prepare institution data in view layer
+        institution_info = queries.get_user_institution_info(str(user.id), user.role)
+        
+        # Serialize with context
+        serializer = serializers.AdminUserSerializer(
+            user,
+            context={'institution_map': {str(user.id): institution_info}}
+        )
         return Response(serializer.data)
 
 
@@ -720,11 +738,13 @@ class AdminLoginView(APIView):
     
     def post(self, request):
         """
-        Authenticate platform staff and return JWT tokens.
+        Authenticate platform staff and return JWT tokens via HttpOnly cookies.
         Only users with PlatformStaffProfile can login through this endpoint.
+        Tokens are set as HttpOnly cookies (NOT in response body) for security.
         """
         from edulink.apps.accounts.serializers import UserLoginSerializer
         from edulink.apps.accounts.services import authenticate_user
+        from django.middleware.csrf import get_token
         
         serializer = UserLoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -743,7 +763,7 @@ class AdminLoginView(APIView):
             # Generate JWT tokens
             refresh = RefreshToken.for_user(user)
             
-            # Get user data with platform staff role
+            # Get user data with platform staff role (NO TOKENS IN BODY)
             user_data = {
                 'id': user.id,
                 'email': user.email,
@@ -754,14 +774,38 @@ class AdminLoginView(APIView):
                 'is_platform_staff': True
             }
             
-            return Response({
+            # Prepare response (tokens in HttpOnly cookies, not body)
+            response = Response({
                 'message': 'Admin login successful',
-                'user': user_data,
-                'tokens': {
-                    'refresh': str(refresh),
-                    'access': str(refresh.access_token)
-                }
+                'user': user_data
             }, status=status.HTTP_200_OK)
+            
+            # Set tokens as HttpOnly cookies (same pattern as regular user login)
+            response.set_cookie(
+                key='access_token',
+                value=str(refresh.access_token),
+                max_age=7200,  # 2 hours
+                secure=not settings.DEBUG,
+                httponly=True,
+                samesite='Lax',
+                path='/',
+            )
+            
+            response.set_cookie(
+                key='refresh_token',
+                value=str(refresh),
+                max_age=1209600,  # 14 days
+                secure=not settings.DEBUG,
+                httponly=True,
+                samesite='Lax',
+                path='/',
+            )
+            
+            # Set CSRF token for state-changing requests
+            csrf_token = get_token(request)
+            response['X-CSRFToken'] = csrf_token
+            
+            return response
             
         except ValueError as e:
             return Response({'error': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
@@ -774,15 +818,22 @@ class AdminTokenRefreshView(APIView):
     def post(self, request):
         """
         Refresh JWT token for authenticated platform staff.
+        Tokens are returned via HttpOnly cookies, not in response body.
         """
         from edulink.apps.accounts.serializers import TokenRefreshSerializer
         from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
         
         # Validate refresh token and get user
         try:
-            refresh_token = request.data.get('refresh')
+            refresh_token = request.COOKIES.get('refresh_token')
             if not refresh_token:
-                return Response({"refresh": ["This field is required."]}, status=status.HTTP_400_BAD_REQUEST)
+                # Fallback: accept refresh_token from request body for compatibility
+                refresh_token = request.data.get('refresh')
+                if not refresh_token:
+                    return Response(
+                        {"error_code": "NO_REFRESH_TOKEN", "message": "Refresh token not found"},
+                        status=status.HTTP_401_UNAUTHORIZED
+                    )
             
             token = RefreshToken(refresh_token)
             user_id = token['user_id']
@@ -795,24 +846,49 @@ class AdminTokenRefreshView(APIView):
                     status=status.HTTP_403_FORBIDDEN
                 )
                 
-            # Use the standard token refresh logic
-            refresh_serializer = TokenRefreshSerializer(data=request.data)
-            refresh_serializer.is_valid(raise_exception=True)
+            # Create new tokens with rotation (old refresh token invalidated)
+            new_refresh = RefreshToken.for_user(user)
             
-            response_data = {
-                'access': refresh_serializer.validated_data['access'],
-                'message': 'Token refreshed successfully'
-            }
+            # Prepare response (NO tokens in body)
+            response = Response(
+                {'message': 'Token refreshed successfully'},
+                status=status.HTTP_200_OK
+            )
             
-            if 'refresh' in refresh_serializer.validated_data:
-                response_data['refresh'] = refresh_serializer.validated_data['refresh']
+            # Set new access token in cookie
+            response.set_cookie(
+                key='access_token',
+                value=str(new_refresh.access_token),
+                max_age=7200,
+                secure=not settings.DEBUG,
+                httponly=True,
+                samesite='Lax',
+                path='/',
+            )
             
-            return Response(response_data, status=status.HTTP_200_OK)
+            # Set new refresh token in cookie (rotation)
+            response.set_cookie(
+                key='refresh_token',
+                value=str(new_refresh),
+                max_age=1209600,
+                secure=not settings.DEBUG,
+                httponly=True,
+                samesite='Lax',
+                path='/',
+            )
+            
+            return response
             
         except (TokenError, InvalidToken):
-            return Response({"error": "Invalid or expired refresh token"}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response(
+                {"error_code": "INVALID_TOKEN", "message": "Invalid or expired refresh token"},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
         except User.DoesNotExist:
-            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"error_code": "USER_NOT_FOUND", "message": "User not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
 
 class AcceptStaffInviteView(APIView):

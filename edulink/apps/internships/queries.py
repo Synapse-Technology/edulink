@@ -9,6 +9,30 @@ from edulink.apps.employers.queries import get_employer_for_user, get_supervisor
 from edulink.apps.students.queries import get_student_for_user, get_total_students_count
 from .models import InternshipOpportunity, InternshipApplication, OpportunityStatus, ApplicationStatus, InternshipEvidence, SuccessStory, Incident
 
+
+def check_supervisor_assigned_to_application(supervisor_id: str, application_id: str) -> bool:
+    """
+    Checks if a supervisor is assigned to a specific application.
+    Used for object-level permission checks.
+    
+    Returns True if supervisor is either institution or employer supervisor for the application.
+    """
+    try:
+        return InternshipApplication.objects.filter(
+            id=application_id,
+            status__in=[
+                ApplicationStatus.ACTIVE,
+                ApplicationStatus.COMPLETED,
+                ApplicationStatus.ACCEPTED
+            ]
+        ).filter(
+            Q(employer_supervisor_id=supervisor_id) | 
+            Q(institution_supervisor_id=supervisor_id)
+        ).exists()
+    except:
+        return False
+
+
 def get_opportunities_for_user(user) -> QuerySet[InternshipOpportunity]:
     """
     Returns opportunities visible to the user.

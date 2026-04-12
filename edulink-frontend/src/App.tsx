@@ -6,6 +6,7 @@ import About from './pages/About';
 import Contact from './pages/Contact';
 import Search from './pages/Search';
 import Support from './pages/Support';
+import SuccessStories from './pages/SuccessStories';
 import TicketHistory from './pages/TicketHistory';
 import TicketDetail from './pages/TicketDetail';
 import Opportunities from './pages/Opportunities';
@@ -88,12 +89,15 @@ import { AdminAuthProvider } from './contexts/AdminAuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { ToastProvider } from './components/providers/ToastProvider';
+import { useSessionTimeout } from './hooks/useSessionTimeout';
 import NotFound from './pages/NotFound';
 import './App.css';
 import './styles/admin-dashboard.css';
 import './styles/admin-landing.css';
 
 function App() {
+  useSessionTimeout();
+  
   return (
     <ErrorBoundary>
       <ToastProvider>
@@ -107,6 +111,7 @@ function App() {
           <Route path="why-us" element={<WhyUs />} />
           <Route path="contact" element={<Contact />} />
           <Route path="search" element={<Search />} />
+          <Route path="success-stories" element={<SuccessStories />} />
         </Route>
 
         <Route path="/verify/:artifactId" element={<VerifyArtifact />} />

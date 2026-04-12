@@ -80,8 +80,9 @@ const StudentInternship: React.FC = () => {
     const genKey = artifactType;
     setGeneratingArtifacts(prev => ({ ...prev, [genKey]: true }));
     
+    let toastId: string | undefined;
     try {
-      showToast.loading(`Generating ${artifactType.replace('_', ' ').toLowerCase()}...`);
+      toastId = showToast.loading(`Generating ${artifactType.replace('_', ' ').toLowerCase()}...`);
       
       // Generate the artifact
       const artifact = await artifactService.generateArtifact(internship.id, artifactType);
@@ -106,10 +107,12 @@ const StudentInternship: React.FC = () => {
         showToast.error(`Failed to generate ${artifactType.replace('_', ' ')}: ${finalStatus.error_message || 'Unknown error'}`);
       }
     } catch (err) {
+      if (toastId) showToast.dismiss(toastId);
       const message = getErrorMessage(err, { action: 'Generate Artifact' });
       showToast.error(message);
       logError(err, { action: 'Generate Artifact', data: { artifactType } });
     } finally {
+      if (toastId) showToast.dismiss(toastId);
       setGeneratingArtifacts(prev => ({ ...prev, [genKey]: false }));
     }
   };

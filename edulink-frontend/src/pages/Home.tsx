@@ -1,9 +1,31 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { SEO } from '../components/common';
+import { usePublicStats } from '../hooks/usePublicStats';
+import { internshipService, type SuccessStory } from '../services/internship/internshipService';
+import SuccessStoryCard from '../components/internship/SuccessStoryCard';
 
 const Home: React.FC = () => {
+  const stats = usePublicStats();
+  const [featuredStories, setFeaturedStories] = useState<SuccessStory[]>([]);
+  const [loadingStories, setLoadingStories] = useState(true);
+
   useEffect(() => {
+    const fetchFeaturedStories = async () => {
+      try {
+        setLoadingStories(true);
+        const stories = await internshipService.getSuccessStories();
+        // Take top 3 featured/published stories
+        setFeaturedStories(stories.filter(s => s.is_published).slice(0, 3));
+      } catch (error) {
+        console.error('Failed to fetch featured stories:', error);
+      } finally {
+        setLoadingStories(false);
+      }
+    };
+
+    fetchFeaturedStories();
+
     function animateCounter(element: HTMLElement, start: number, end: number, duration: number) {
       let startTimestamp: number | null = null;
       const step = (timestamp: number) => {
@@ -40,8 +62,10 @@ const Home: React.FC = () => {
     }
 
     // Initialize counters
-    initCounters();
-  }, []);
+    if (!stats.loading) {
+      initCounters();
+    }
+  }, [stats.loading]);
 
   return (
     <div className="home-page">
@@ -105,28 +129,28 @@ const Home: React.FC = () => {
           <div className="row gy-4">
             <div className="col-lg-3 col-md-6">
               <div className="stats-item text-center w-100 h-100">
-                <span data-purecounter-start="0" data-purecounter-end="1500" data-purecounter-duration="1" className="purecounter">0</span>
+                <span data-purecounter-start="0" data-purecounter-end={stats.students} data-purecounter-duration="1" className="purecounter">{stats.students}</span>
                 <p>Students</p>
               </div>
             </div>
 
             <div className="col-lg-3 col-md-6">
               <div className="stats-item text-center w-100 h-100">
-                <span data-purecounter-start="0" data-purecounter-end="75" data-purecounter-duration="1" className="purecounter">0</span>
+                <span data-purecounter-start="0" data-purecounter-end={stats.opportunities} data-purecounter-duration="1" className="purecounter">{stats.opportunities}</span>
                 <p>Opportunities</p>
               </div>
             </div>
 
             <div className="col-lg-3 col-md-6">
               <div className="stats-item text-center w-100 h-100">
-                <span data-purecounter-start="0" data-purecounter-end="30" data-purecounter-duration="1" className="purecounter">0</span>
+                <span data-purecounter-start="0" data-purecounter-end={stats.institutions} data-purecounter-duration="1" className="purecounter">{stats.institutions}</span>
                 <p>Partner Institutions</p>
               </div>
             </div>
 
             <div className="col-lg-3 col-md-6">
               <div className="stats-item text-center w-100 h-100">
-                <span data-purecounter-start="0" data-purecounter-end="45" data-purecounter-duration="1" className="purecounter">0</span>
+                <span data-purecounter-start="0" data-purecounter-end={stats.employers} data-purecounter-duration="1" className="purecounter">{stats.employers}</span>
                 <p>Verified Employers</p>
               </div>
             </div>
@@ -275,6 +299,57 @@ const Home: React.FC = () => {
           
           <div className="text-center mt-5">
             <Link to="/register" className="btn btn-primary rounded-pill px-5 py-3 fw-bold shadow-sm">Start Your Journey</Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Success Stories Preview Section */}
+      <section id="success-stories" className="section success-stories light-background">
+        <div className="container" data-aos="fade-up">
+          <div className="section-title text-center">
+            <h2>Student Success Stories</h2>
+            <p>Real stories from students who transformed their career trajectories through EduLink verified internships and graduate placements.</p>
+          </div>
+          
+          <div className="row gy-4">
+            {loadingStories ? (
+              [1, 2, 3].map((i) => (
+                <div key={i} className="col-lg-4">
+                  <div className="card border-0 shadow-sm h-100 w-100 p-4 animate-pulse bg-white">
+                    <div className="h-4 bg-slate-100 rounded w-3/4 mb-4"></div>
+                    <div className="h-4 bg-slate-100 rounded w-1/2 mb-4"></div>
+                    <div className="h-32 bg-slate-50 rounded mb-4"></div>
+                  </div>
+                </div>
+              ))
+            ) : featuredStories.length > 0 ? (
+              featuredStories.map((story) => (
+                <div key={story.id} className="col-lg-4 d-flex" data-aos="zoom-in" data-aos-delay={featuredStories.indexOf(story) * 100}>
+                  <SuccessStoryCard story={story} />
+                </div>
+              ))
+            ) : (
+              <div className="col-12" data-aos="fade-up">
+                <div className="text-center p-5 bg-white rounded-3 shadow-sm border">
+                  <div className="mb-4">
+                    <i className="bi bi-chat-quote text-primary display-4"></i>
+                  </div>
+                  <h3 className="h4 fw-bold text-dark mb-3">Crafting New Success Stories</h3>
+                  <p className="text-muted max-w-md mx-auto mb-4">
+                    We're currently documenting the incredible journeys of our latest cohort. Your story could be the next one featured here!
+                  </p>
+                  <Link to="/register" className="btn btn-primary rounded-pill px-4 py-2">
+                    Start Your Story
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="text-center mt-5">
+            <Link to="/success-stories" className="btn btn-primary rounded-pill px-5 py-3 fw-bold shadow-sm">
+              Browse All Success Stories <i className="bi bi-arrow-right ms-2"></i>
+            </Link>
           </div>
         </div>
       </section>
@@ -595,6 +670,60 @@ const Home: React.FC = () => {
           font-size: 1.15rem;
         }
 
+        /* Success Stories Section Enhancements */
+        #success-stories {
+          padding: 60px 0;
+        }
+
+        #success-stories .card {
+          transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+          border-radius: 12px;
+          overflow: hidden;
+        }
+
+        #success-stories .hover-lift {
+          transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s ease;
+        }
+
+        #success-stories .hover-lift:hover {
+          transform: translateY(-12px);
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15) !important;
+        }
+
+        #success-stories .card .text-white {
+          color: #ffffff !important;
+        }
+
+        #success-stories .card .text-white-80 {
+          color: rgba(255, 255, 255, 0.8);
+        }
+
+        #success-stories .card .text-success {
+          color: #28a745 !important;
+        }
+
+        #success-stories .btn-primary {
+          background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+          border: none;
+          padding: 12px 40px;
+          font-weight: 600;
+          transition: all 0.3s ease;
+        }
+
+        #success-stories .btn-primary:hover {
+          background: linear-gradient(135deg, #45a049 0%, #3d8b40 100%);
+          transform: translateY(-2px);
+          box-shadow: 0 8px 16px rgba(76, 175, 80, 0.3);
+        }
+
+        #success-stories .card-body p {
+          line-height: 1.6;
+        }
+
+        #success-stories .card-body h6 {
+          font-size: 0.95rem;
+        }
+
         /* Enhanced Responsive Design */
         @media (max-width: 768px) {
           .hero h2 {
@@ -608,6 +737,14 @@ const Home: React.FC = () => {
           .hero {
             min-height: 60vh;
             padding: 60px 0;
+          }
+
+          #success-stories .card {
+            margin-bottom: 1.5rem;
+          }
+
+          #success-stories .container {
+            padding: 0 15px;
           }
         }
 
@@ -623,6 +760,15 @@ const Home: React.FC = () => {
           .hero .btn-get-started {
             font-size: 14px;
             padding: 6px 25px 8px 25px;
+          }
+
+          #success-stories .card p {
+            font-size: 0.9rem;
+          }
+
+          #success-stories .btn-primary {
+            padding: 10px 30px;
+            font-size: 0.9rem;
           }
         }
       `}</style>

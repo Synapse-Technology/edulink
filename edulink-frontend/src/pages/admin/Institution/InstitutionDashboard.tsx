@@ -60,14 +60,18 @@ const InstitutionDashboard: React.FC = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [data, trustData, evidence] = await Promise.all([
+        const [data, trustData, evidenceResponse] = await Promise.all([
           institutionService.getPlacementSuccessStats(),
           institutionService.getTrustProgress(),
           internshipService.getPendingEvidence()
         ]);
+        
+        // Handle paginated evidence response
+        const evidence = Array.isArray(evidenceResponse) ? evidenceResponse : (evidenceResponse as any)?.results || [];
+        
         setStats(data);
         setTrustStats(trustData);
-        setPendingLogbooks(evidence.filter(e => e.evidence_type === 'LOGBOOK'));
+        setPendingLogbooks(evidence.filter((e: any) => e.evidence_type === 'LOGBOOK'));
       } catch (error) {
         await handleDashboardError(error);
       } finally {

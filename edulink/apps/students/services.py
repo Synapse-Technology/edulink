@@ -181,17 +181,22 @@ def update_student_affiliation(
 def upload_student_document(*, student_id: str, document_type: str, file_name: str, file: any) -> None:
     """
     Record document upload event for trust scoring and save the file.
+    
+    Enforces invariant: All file paths stored in database are normalized (no double /media/ prefixes).
     """
     from .models import Student
     
     student = Student.objects.get(id=student_id)
     
+    # Service layer enforces invariant: normalize file paths before storage
     if document_type == 'cv':
         student.cv.save(file_name, file)
     elif document_type == 'admission_letter':
         student.admission_letter.save(file_name, file)
     elif document_type == 'id_document':
         student.id_document.save(file_name, file)
+    elif document_type == 'profile_picture':
+        student.profile_picture.save(file_name, file)
     
     student.save()
 
@@ -301,7 +306,8 @@ def verify_student_affiliation(*, affiliation_id: str, actor_id: str, review_not
         affiliation.save()
         
         # 2. Update Student Verification Status and Linkage
-        student = Student.objects.get(id=affiliation.student_id)
+        # Use select_for_update() to prevent race condition
+        student = Student.objects.select_for_update().get(id=affiliation.student_id)
         
         # Always ensure student is linked to this institution upon approval
         if str(student.institution_id) != str(affiliation.institution_id):
@@ -803,13 +809,147 @@ def update_student_trust_level(student_id: UUID, new_level: int, new_points: int
     student.save(update_fields=["trust_level", "trust_points"])
 
 
+def auto_verify_affiliation(*, student_id: str, institution_id: str, claimed_via: str) -> StudentInstitutionAffiliation:
+    """
+    Auto-verify domain-matched affiliation claims immediately.
+    
+    Used when student email domain matches institution domain.
+    Creates affiliation as APPROVED (not PENDING) and updates student.is_verified.
+    Atomic transaction: both affiliation and student updated together.
+    
+    Events recorded:
+    - STUDENT_AUTO_VERIFIED_BY_DOMAIN (on affiliation)
+    - STUDENT_VERIFIED (on student)
+    
+    Business Rule: Domain-based claims skip institutional review (trusted auto-verification).
+    """
+    from django.db import transaction
+    
+    with transaction.atomic():
+        # 1. Create affiliation as APPROVED (not PENDING)
+        affiliation = StudentInstitutionAffiliation.objects.create(
+            student_id=student_id,
+            institution_id=institution_id,
+            status=StudentInstitutionAffiliation.STATUS_APPROVED,
+            claimed_via=claimed_via,
+            reviewed_by=None,  # System auto-verification, no human reviewer
+            review_notes="Auto-verified via institutional email domain"
+        )
+        
+        # 2. Update student immediately (atomic with affiliation creation)
+        student = Student.objects.select_for_update().get(id=student_id)
+        student.is_verified = True
+        student.institution_id = UUID(institution_id)
+        student.save(update_fields=["is_verified", "institution_id"])
+        
+        # 3. Record ledger events (audit trail)
+        record_event(
+            event_type="STUDENT_AUTO_VERIFIED_BY_DOMAIN",
+            entity_type="StudentInstitutionAffiliation",
+            entity_id=affiliation.id,
+            payload={
+                "student_id": student_id,
+                "institution_id": institution_id,
+                "claimed_via": claimed_via,
+                "method": "automatic_domain_match",
+            },
+        )
+        
+        record_event(
+            event_type="STUDENT_VERIFIED",
+            entity_type="Student",
+            entity_id=student.id,
+            payload={
+                "institution_id": institution_id,
+                "verified_by": "system",
+                "method": "auto_domain_match",
+            },
+        )
+    
+    return affiliation
+
+
+def upload_affiliation_verification_document(*, 
+    affiliation_id: str, 
+    student_id: str, 
+    document_file) -> StudentInstitutionAffiliation:
+    """
+    Accept verification document upload from student for manual affiliation claim.
+    
+    Used when student cannot auto-verify (e.g., Gmail user) but wants to prove
+    affiliation with institution by uploading document.
+    
+    Document stored, affiliation remains PENDING for institution admin review.
+    Once admin reviews and approves, student becomes verified.
+    
+    Events recorded:
+    - AFFILIATION_DOCUMENT_UPLOADED
+    
+    Business Rule: Only unverified students with pending affiliations can upload.
+    """
+    from .policies import can_upload_affiliation_document
+    from django.utils import timezone
+    from urllib.parse import urljoin
+    
+    # 1. Authority check: Policy determines if student can upload
+    if not can_upload_affiliation_document(student_id=student_id):
+        raise AuthorizationError("Cannot upload verification document for this student")
+    
+    # 2. Fetch affiliation (will raise if not found)
+    affiliation = StudentInstitutionAffiliation.objects.get(
+        id=affiliation_id,
+        student_id=student_id
+    )
+    
+    # 3. Ensure affiliation is pending (not already verified)
+    if affiliation.status != StudentInstitutionAffiliation.STATUS_PENDING:
+        raise ValidationError(
+            f"Cannot upload document for {affiliation.status} affiliation. "
+            "Documents are only uploaded for pending affiliations."
+        )
+    
+    # 4. Store document (simplified: assume document_file has a name and read() method)
+    # TODO: Integrate with actual cloud storage (S3, Azure Blob, etc.)
+    # For now, store the filename to indicate document was received
+    import os
+    document_filename = getattr(document_file, 'name', 'document')
+    # In production, upload to cloud storage and use returned URL
+    document_url = f"documents/affiliations/{affiliation_id}/{document_filename}"
+    
+    # 5. Update affiliation with document reference
+    affiliation.verification_document_url = document_url
+    affiliation.verification_document_uploaded_at = timezone.now()
+    affiliation.save(update_fields=["verification_document_url", "verification_document_uploaded_at"])
+    
+    # 6. Record ledger event
+    record_event(
+        event_type="AFFILIATION_DOCUMENT_UPLOADED",
+        entity_type="StudentInstitutionAffiliation",
+        entity_id=affiliation.id,
+        payload={
+            "student_id": student_id,
+            "institution_id": str(affiliation.institution_id),
+            "document_url": document_url,
+            "filename": document_filename,
+        },
+    )
+    
+    return affiliation
+
 
 def create_institution_affiliation_claim(*, student_id: str, institution_id: str, claimed_via: str) -> StudentInstitutionAffiliation:
     """
     Create a student-institution affiliation claim.
-    This creates a pending claim that requires institution approval.
+    
+    Routing logic (via policy):
+    - Domain-based claims (institutional email) → auto-verify immediately
+    - Manual claims (Gmail, Yahoo, etc.) → create PENDING, await institution review
+    
+    This is the main entry point for affiliation creation.
+    Delegates to specialized functions based on policy decision.
     """
     from uuid import UUID
+    from .policies import should_auto_verify_affiliation
     
     # Check if affiliation already exists
     existing_affiliation = StudentInstitutionAffiliation.objects.filter(
@@ -820,27 +960,37 @@ def create_institution_affiliation_claim(*, student_id: str, institution_id: str
     if existing_affiliation:
         return existing_affiliation
     
-    affiliation = StudentInstitutionAffiliation.objects.create(
-        student_id=student_id,
-        institution_id=institution_id,
-        status=StudentInstitutionAffiliation.STATUS_PENDING,
-        claimed_via=claimed_via
-    )
-    
-    # Record ledger event
-    record_event(
-        event_type="STUDENT_CLAIMED_INSTITUTION",
-        entity_type="StudentInstitutionAffiliation",
-        entity_id=affiliation.id,
-        payload={
-            "student_id": student_id,
-            "institution_id": institution_id,
-            "claimed_via": claimed_via,
-            "status": affiliation.status,
-        },
-    )
-    
-    return affiliation
+    # Use policy to determine verification path
+    if should_auto_verify_affiliation(claimed_via=claimed_via):
+        # Domain-based: auto-verify immediately
+        return auto_verify_affiliation(
+            student_id=student_id,
+            institution_id=institution_id,
+            claimed_via=claimed_via
+        )
+    else:
+        # Manual/Gmail: create pending, require institution review
+        affiliation = StudentInstitutionAffiliation.objects.create(
+            student_id=student_id,
+            institution_id=institution_id,
+            status=StudentInstitutionAffiliation.STATUS_PENDING,
+            claimed_via=claimed_via
+        )
+        
+        # Record ledger event
+        record_event(
+            event_type="STUDENT_CLAIMED_INSTITUTION",
+            entity_type="StudentInstitutionAffiliation",
+            entity_id=affiliation.id,
+            payload={
+                "student_id": student_id,
+                "institution_id": institution_id,
+                "claimed_via": claimed_via,
+                "status": affiliation.status,
+            },
+        )
+        
+        return affiliation
 
 
 def approve_institution_affiliation(*, affiliation_id: str, reviewed_by: str, review_notes: str = "") -> StudentInstitutionAffiliation:

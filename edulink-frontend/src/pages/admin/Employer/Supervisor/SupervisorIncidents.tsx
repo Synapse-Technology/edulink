@@ -31,6 +31,7 @@ const SupervisorIncidents: React.FC = () => {
         internshipService.getIncidents(),
         internshipService.getApplications()
       ]);
+      
       setIncidents(incidentsData);
       setInternships(internshipsData);
     } catch (err: any) {

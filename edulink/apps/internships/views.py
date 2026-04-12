@@ -5,6 +5,11 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.throttling import UserRateThrottle
 from django_filters.rest_framework import DjangoFilterBackend
+from edulink.apps.shared.pagination import StandardResultsSetPagination, LargeResultsSetPagination
+from .permissions import (
+    CanViewApplication, CanSubmitApplication, CanWithdrawApplication,
+    CanSubmitEvidence, CanReviewEvidence, CanReportIncident, CanViewIncident
+)
 import logging
 
 from .models import InternshipOpportunity, InternshipApplication, InternshipEvidence, Incident, SupervisorAssignment, OpportunityStatus, ApplicationStatus
@@ -41,56 +46,7 @@ class ApplicationRateThrottle(UserRateThrottle):
     THROTTLE_RATES = {'application_submissions': '10/hour'}
 
 
-class CanViewApplication(permissions.BasePermission):
-    """
-    Permission: User can only view/edit applications they're authorized for.
-    - Students can only view their own applications
-    - Supervisors can only view applications assigned to them
-    - Admins can view all applications
-    
-    Follows architecture rule: authorization checked at object level, not just queryset.
-    """
-    
-    def has_object_permission(self, request, view, obj):
-        user = request.user
-        
-        # System admins can view everything
-        if user.is_system_admin:
-            return True
-        
-        # Students can only view their own applications
-        if user.is_student:
-            from edulink.apps.students.queries import get_student_for_user
-            student = get_student_for_user(str(user.id))
-            if student and obj.student_id == student.id:
-                return True
-            return False
-        
-        # Institution admins can view applications for their opportunities + affiliated students
-        if user.is_institution_admin:
-            from edulink.apps.institutions.queries import get_institution_for_user
-            from edulink.apps.students.queries import get_affiliated_student_ids
-            from django.db.models import Q
-            
-            inst = get_institution_for_user(str(user.id))
-            if inst:
-                affiliated_ids = get_affiliated_student_ids(str(inst.id))
-                return (obj.opportunity.institution_id == inst.id or 
-                        obj.student_id in affiliated_ids)
-        
-        # Employer admins can view applications for their opportunities
-        if user.is_employer_admin:
-            from edulink.apps.employers.queries import get_employer_for_user
-            employer = get_employer_for_user(user.id)
-            if employer and obj.opportunity.employer_id == employer.id:
-                return True
-        
-        # Supervisors can view applications assigned to them
-        if user.is_supervisor:
-            return (obj.employer_supervisor_id == user.id or 
-                    obj.institution_supervisor_id == user.id)
-        
-        return False
+
 
 
 class InternshipViewSet(viewsets.ReadOnlyModelViewSet):
@@ -98,6 +54,7 @@ class InternshipViewSet(viewsets.ReadOnlyModelViewSet):
     ViewSet for Internship Opportunities (Job Board).
     """
     serializer_class = InternshipOpportunitySerializer
+    pagination_class = StandardResultsSetPagination  # Add pagination
     filter_backends = [filters.SearchFilter, DjangoFilterBackend]
     search_fields = ['title', 'description', 'department', 'location']
     filterset_class = InternshipOpportunityFilter

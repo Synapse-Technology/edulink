@@ -128,3 +128,43 @@ def can_institution_certify_completion(*, institution_id: str, student_id: str) 
         
     except Student.DoesNotExist:
         return False
+
+
+def should_auto_verify_affiliation(*, claimed_via: str) -> bool:
+    """
+    Determine if an affiliation claim should be auto-verified immediately.
+    
+    Business Rule: Domain-based claims (institutional email) are auto-verified.
+    Manual claims (e.g., Gmail) require institution admin review.
+    
+    Args:
+        claimed_via: The claim method (DOMAIN | MANUAL | ADOPTION | BULK)
+    
+    Returns:
+        True if claim should auto-verify, False if should stay PENDING
+    """
+    from .models import StudentInstitutionAffiliation
+    return claimed_via == StudentInstitutionAffiliation.CLAIMED_VIA_DOMAIN
+
+
+def can_upload_affiliation_document(*, student_id: str) -> bool:
+    """
+    Check if a student can upload verification document for their affiliation.
+    
+    Business Rule: Only unverified students with pending affiliations can upload documents.
+    (Verified students don't need to provide documents.)
+    
+    Args:
+        student_id: The student's UUID
+    
+    Returns:
+        True if student can upload document, False otherwise
+    """
+    from .models import Student
+    
+    try:
+        student = Student.objects.get(id=student_id)
+        # Only unverified students can upload documents
+        return not student.is_verified
+    except Student.DoesNotExist:
+        return False

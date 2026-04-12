@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
 import { Modal, Button, Form, Alert } from 'react-bootstrap';
-import { Send, FileText, CheckCircle } from 'lucide-react';
+import { Send, FileText, CheckCircle, AlertCircle } from 'lucide-react';
+import RateLimitCountdown from '../../internship/RateLimitCountdown';
+import { 
+  isRateLimitError, 
+  parseRateLimitError,
+  type RateLimitInfo 
+} from '../../../services/internship/rateLimitingService';
 
 interface ApplyModalProps {
   show: boolean;
@@ -8,23 +14,44 @@ interface ApplyModalProps {
   onConfirm: (coverLetter: string) => Promise<void>;
   title: string;
   employerName?: string;
+  studentTrustLevel?: number;
 }
 
-const ApplyModal: React.FC<ApplyModalProps> = ({ show, onHide, onConfirm, title, employerName }) => {
+const ApplyModal: React.FC<ApplyModalProps> = ({ 
+  show, 
+  onHide, 
+  onConfirm, 
+  title, 
+  employerName,
+  studentTrustLevel = 0
+}) => {
   const [coverLetter, setCoverLetter] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [rateLimitInfo, setRateLimitInfo] = useState<RateLimitInfo | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError(null);
+    setRateLimitInfo(null);
     try {
       await onConfirm(coverLetter);
       setCoverLetter(''); // Reset on success
       onHide();
     } catch (err: any) {
-      setError(err.message || 'Failed to submit application');
+      // Check if it's a rate limit error
+      if (isRateLimitError(err)) {
+        const parsed = parseRateLimitError(err);
+        if (parsed) {
+          setRateLimitInfo(parsed);
+          setError(parsed.throttleMessage);
+        } else {
+          setError(err.message || 'Application limit reached. Please try again later.');
+        }
+      } else {
+        setError(err.message || 'Failed to submit application');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -42,44 +69,76 @@ const ApplyModal: React.FC<ApplyModalProps> = ({ show, onHide, onConfirm, title,
             <p className="text-muted small mb-0">at {employerName || 'Employer'}</p>
           </div>
 
-          <Alert variant="info" className="d-flex align-items-start gap-2">
-            <CheckCircle size={18} className="mt-1 flex-shrink-0" />
-            <div className="small">
-              <strong>Your Profile Snapshot:</strong> We will send your current verified profile (CV, Skills, Transcript) automatically.
-            </div>
-          </Alert>
+          {/* Rate Limit Error Display */}
+          {rateLimitInfo && (
+            <>
+              <RateLimitCountdown 
+                rateLimitInfo={rateLimitInfo}
+                trustLevel={studentTrustLevel}
+              />
+              <Alert variant="danger" className="d-flex align-items-start gap-2 mb-3">
+                <AlertCircle size={18} className="mt-1 flex-shrink-0" />
+                <div className="small">
+                  <strong>Cannot apply at this time:</strong> {error}
+                </div>
+              </Alert>
+            </>
+          )}
 
-          {error && <Alert variant="danger">{error}</Alert>}
+          {/* Generic Error Display */}
+          {error && !rateLimitInfo && (
+            <Alert variant="danger" className="d-flex align-items-start gap-2 mb-3">
+              <AlertCircle size={18} className="mt-1 flex-shrink-0" />
+              <div className="small">
+                <strong>Error:</strong> {error}
+              </div>
+            </Alert>
+          )}
 
-          <Form.Group className="mb-3">
-            <Form.Label className="d-flex align-items-center gap-2">
-              <FileText size={16} />
-              Cover Letter <span className="text-muted fw-normal">(Optional)</span>
-            </Form.Label>
-            <Form.Control
-              as="textarea"
-              rows={5}
-              placeholder="Tell the employer why you are a good fit for this role..."
-              value={coverLetter}
-              onChange={(e) => setCoverLetter(e.target.value)}
-            />
-            <Form.Text className="text-muted">
-              Keep it concise and relevant to the position.
-            </Form.Text>
-          </Form.Group>
+          {/* Profile Snapshot Info */}
+          {!rateLimitInfo && (
+            <Alert variant="info" className="d-flex align-items-start gap-2 mb-3">
+              <CheckCircle size={18} className="mt-1 flex-shrink-0" />
+              <div className="small">
+                <strong>Your Profile Snapshot:</strong> We will send your current verified profile (CV, Skills, Transcript) automatically.
+              </div>
+            </Alert>
+          )}
+
+          {/* Cover Letter Form */}
+          {!rateLimitInfo && (
+            <Form.Group className="mb-3">
+              <Form.Label className="d-flex align-items-center gap-2">
+                <FileText size={16} />
+                Cover Letter <span className="text-muted fw-normal">(Optional)</span>
+              </Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={5}
+                placeholder="Tell the employer why you are a good fit for this role..."
+                value={coverLetter}
+                onChange={(e) => setCoverLetter(e.target.value)}
+              />
+              <Form.Text className="text-muted">
+                Keep it concise and relevant to the position.
+              </Form.Text>
+            </Form.Group>
+          )}
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={onHide} disabled={isSubmitting}>
-            Cancel
+            {rateLimitInfo ? 'Close' : 'Cancel'}
           </Button>
-          <Button variant="primary" type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Sending...' : (
-              <>
-                <Send size={16} className="me-2" />
-                Submit Application
-              </>
-            )}
-          </Button>
+          {!rateLimitInfo && (
+            <Button variant="primary" type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Sending...' : (
+                <>
+                  <Send size={16} className="me-2" />
+                  Submit Application
+                </>
+              )}
+            </Button>
+          )}
         </Modal.Footer>
       </Form>
     </Modal>

@@ -6,6 +6,7 @@ import About from '../pages/About';
 import Contact from '../pages/Contact';
 import Support from '../pages/Support';
 import Search from '../pages/Search';
+import SuccessStories from '../pages/SuccessStories';
 import Login from '../pages/auth/Login';
 import Register from '../pages/auth/Register';
 import StudentDashboard from '../pages/student/StudentDashboardPage';
@@ -110,6 +111,7 @@ export const ROUTES = {
   CONTACT: '/contact',
   SUPPORT: '/support',
   SEARCH: '/search',
+  SUCCESS_STORIES: '/success-stories',
   
   // Auth routes
   LOGIN: '/login',
@@ -187,6 +189,7 @@ export const routeConfigs = [
       { path: ROUTES.CONTACT, element: <Contact /> },
       { path: ROUTES.SUPPORT, element: <Support /> },
       { path: ROUTES.SEARCH, element: <Search /> },
+      { path: ROUTES.SUCCESS_STORIES, element: <SuccessStories /> },
     ],
     isPublic: true,
     requiresLayout: true,

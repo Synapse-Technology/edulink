@@ -99,6 +99,120 @@ def get_all_staff_invites():
     return StaffInvite.objects.select_related('created_by').all().order_by('-created_at')
 
 
+def get_user_institution_info(user_id: str, role: str):
+    """
+    Get institution info for a user based on their role.
+    Aggregates info that would otherwise require cross-app queries.
+    
+    This function encapsulates cross-app query logic at the query layer
+    instead of scattering it across serializers.
+    
+    Args:
+        user_id: UUID of the user
+        role: User role to determine which app data to fetch from
+        
+    Returns:
+        dict with 'id' and 'name' keys
+    """
+    if role in ['institution', 'institution_admin']:
+        from edulink.apps.institutions import queries as inst_queries
+        try:
+            institution = inst_queries.get_institution_by_user_id(user_id)
+            if institution:
+                return {"id": institution.id, "name": institution.institution_name}
+        except Exception:
+            pass
+    elif role in ['employer', 'employer_admin']:
+        from edulink.apps.employers import queries as emp_queries
+        try:
+            employer = emp_queries.get_employer_by_user_id(user_id)
+            if employer:
+                return {"id": employer.id, "name": employer.company_name}
+        except Exception:
+            pass
+    
+    # Default fallback
+    return {"id": None, "name": None}
+
+
+def get_institution_analytics_data(institution_id: str):
+    """
+    Aggregate all analytics data for an institution that would be needed by serializer.
+    
+    Cross-app queries are executed here (query layer), not in serializer layer.
+    This avoids N+1 problems and keeps serializers pure.
+    
+    Args:
+        institution_id: UUID of the institution
+        
+    Returns:
+        dict with analytics data (student_count, admin_count, etc.)
+    """
+    analytics = {
+        'student_count': 0,
+        'admin_count': 0,
+        'employer_count': 0,
+        'internship_count': 0,
+        'total_users': 0,
+        'tracking_code': None,
+        'contact_email': None,
+        'contact_phone': None,
+        'contact_website': None,
+        'contact_address': None,
+    }
+    
+    try:
+        from edulink.apps.students import queries as student_queries
+        analytics['student_count'] = student_queries.get_total_students_count(institution_id)
+    except Exception:
+        pass
+    
+    try:
+        from edulink.apps.institutions import queries as inst_queries
+        analytics['admin_count'] = inst_queries.get_staff_count_for_institution(
+            institution_id, role='admin'
+        )
+    except Exception:
+        pass
+    
+    try:
+        from edulink.apps.internships import queries as internship_queries
+        analytics['employer_count'] = internship_queries.get_unique_employer_count_for_institution(
+            institution_id
+        )
+        analytics['internship_count'] = internship_queries.get_internship_count_for_institution(
+            institution_id
+        )
+    except Exception:
+        pass
+    
+    try:
+        from edulink.apps.institutions import services as institution_services
+        contact_info = institution_services.get_institution_contact_info(
+            institution_id=institution_id
+        )
+        if contact_info:
+            analytics.update({
+                'tracking_code': contact_info.get('tracking_code'),
+                'contact_email': contact_info.get('representative_email'),
+                'contact_phone': contact_info.get('representative_phone'),
+                'contact_website': contact_info.get('website_url'),
+                'contact_address': contact_info.get('department'),
+            })
+    except Exception:
+        pass
+    
+    # Calculate total (staff + students)
+    try:
+        from edulink.apps.institutions import queries as inst_queries
+        total_staff = inst_queries.get_staff_count_for_institution(institution_id)
+        analytics['total_users'] = analytics['student_count'] + total_staff
+    except Exception:
+        analytics['total_users'] = analytics['student_count']
+    
+    return analytics
+
+
 def get_expired_staff_invites():
     """Get all expired staff invites."""
     now = timezone.now()

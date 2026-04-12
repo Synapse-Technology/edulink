@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { Lock, ArrowLeft, Loader2, CheckCircle, Eye, EyeOff } from 'lucide-react';
-import authService from '../../services/auth/authService';
+import { authService } from '../../services/auth/authService';
 
 // CSS Animations and Keyframes (Reused for consistency)
 const styles = `
@@ -185,7 +185,7 @@ const ResetPasswordPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      await authService.resetPassword(token, password);
+      await authService.resetPassword(token, password, confirmPassword);
       setIsSuccess(true);
       showToastMessage('Password reset successful! Redirecting...', 'success');
       // Automatically redirect after a few seconds
@@ -205,56 +205,75 @@ const ResetPasswordPage: React.FC = () => {
       {/* Toast Notifications */}
       <div style={{
         position: 'fixed',
-        top: '20px',
+        top: '24px',
         left: 0,
         right: 0,
         display: 'flex',
         justifyContent: 'center',
         zIndex: 9999,
-        pointerEvents: 'none'
+        pointerEvents: 'none',
+        padding: '0 20px'
       }}>
         {showToast && (
           <div className={`toast ${toastClosing ? 'toast-exit' : 'toast-enter'}`} style={{
             pointerEvents: 'auto',
-            backgroundColor: messageType === 'error' ? 'rgba(255, 179, 179, 0.1)' : '#dcfce7',
-            color: messageType === 'error' ? '#ffb3b3' : '#16a34a',
-            padding: '16px 50px 16px 20px',
-            borderRadius: '12px',
-            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)',
+            backgroundColor: messageType === 'error' ? 'rgba(28, 15, 15, 0.95)' : 'rgba(15, 28, 22, 0.95)',
+            color: messageType === 'error' ? '#ffb3b3' : '#bbf7d0',
+            padding: '16px 56px 16px 24px',
+            borderRadius: '1.25rem',
+            boxShadow: messageType === 'error' 
+              ? '0 20px 40px rgba(239, 68, 68, 0.15), 0 0 0 1px rgba(239, 68, 68, 0.2)' 
+              : '0 20px 40px rgba(22, 163, 74, 0.15), 0 0 0 1px rgba(22, 163, 74, 0.2)',
             fontSize: '14px',
-            fontWeight: '500',
-            maxWidth: '350px',
+            fontWeight: '600',
+            maxWidth: '420px',
+            width: '100%',
             display: 'flex',
             alignItems: 'center',
-            backdropFilter: 'blur(10px)',
-            border: messageType === 'error' ? '1px solid rgba(255, 179, 179, 0.3)' : '1px solid #bbf7d0'
+            backdropFilter: 'blur(16px)',
+            border: messageType === 'error' ? '1.5px solid #ef4444' : '1.5px solid #16a34a',
+            position: 'relative'
           }}>
-            <div>{message}</div>
+            <div style={{
+              marginRight: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '24px',
+              height: '24px',
+              borderRadius: '50%',
+              backgroundColor: messageType === 'error' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(22, 163, 74, 0.2)',
+              color: messageType === 'error' ? '#ef4444' : '#16a34a',
+              flexShrink: 0
+            }}>
+              {messageType === 'error' ? '!' : '✓'}
+            </div>
+            <div style={{ lineHeight: '1.5' }}>{message}</div>
             <button 
               onClick={hideToast}
               className="close-btn"
               style={{
                 position: 'absolute',
-                right: '18px',
-                top: '18px',
-                width: '28px',
-                height: '28px',
-                borderRadius: '50%',
-                background: messageType === 'error' 
-                  ? 'rgba(220, 38, 38, 0.1)'
-                  : 'rgba(17, 204, 173, 0.1)',
-                color: messageType === 'error' ? '#dc2626' : 'rgb(17, 204, 173)',
+                right: '12px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: '32px',
+                height: '32px',
+                borderRadius: '10px',
+                background: 'transparent',
+                color: 'inherit',
                 border: 'none',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '18px',
-                fontWeight: 'bold',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                flexShrink: 0,
-                backdropFilter: 'blur(10px)'
+                fontSize: '20px',
+                opacity: '0.6',
+                transition: 'all 0.2s ease',
+                flexShrink: 0
               }}
+              onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+              onMouseLeave={(e) => e.currentTarget.style.opacity = '0.6'}
               aria-label="Close notification"
               type="button"
             >

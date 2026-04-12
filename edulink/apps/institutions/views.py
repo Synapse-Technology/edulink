@@ -4,6 +4,8 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.response import Response
+from django.conf import settings
+from django.contrib.auth import login as django_login  # Use Django's built-in session login
 
 from edulink.apps.accounts.permissions import IsSystemAdmin, IsStudent, IsInstitutionAdmin
 from .models import Institution, InstitutionSuggestion, InstitutionInterest, InstitutionRequest, InstitutionStaff, Department, Cohort
@@ -69,17 +71,20 @@ from .policies import (
     is_institution_staff,
 )
 
+# Module-level config
+DEBUG = settings.DEBUG
 
 class InstitutionLoginView(APIView):
     """
     Institution-specific login endpoint.
     Only allows Institution Admins and Supervisors to login.
+    Uses Django's session framework (HttpOnly cookies) instead of JWT.
     """
     permission_classes = [AllowAny]
     
     def post(self, request):
         """
-        Authenticate institution staff and return JWT tokens.
+        Authenticate institution staff and create session (HttpOnly cookie handled by Django).
         """
         from edulink.apps.accounts.serializers import UserLoginSerializer, UserSerializer
         from edulink.apps.accounts.services import authenticate_user
@@ -97,16 +102,17 @@ class InstitutionLoginView(APIView):
                     status=status.HTTP_403_FORBIDDEN
                 )
             
-            # Generate JWT tokens
-            refresh = RefreshToken.for_user(user)
+            # Authenticate in session (Django handles HttpOnly sessionid cookie automatically)
+            django_login(request, user, backend='django.contrib.auth.backends.ModelBackend')
             
+            # Force session persistence by accessing it (creates session in DB)
+            request.session.modified = True
+            
+            # Return user data
+            user_serializer = UserSerializer(user)
             return Response({
                 'message': 'Login successful',
-                'user': UserSerializer(user).data,
-                'tokens': {
-                    'refresh': str(refresh),
-                    'access': str(refresh.access_token)
-                }
+                'user': user_serializer.data,
             }, status=status.HTTP_200_OK)
             
         except ValueError as e:

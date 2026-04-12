@@ -41,8 +41,14 @@ export const fetchDocumentBlob = async (url: string): Promise<{ blobUrl: string;
     
     return { blobUrl, contentType };
   } catch (error: any) {
+    // Create enhanced error with status code for better error handling
+    const status = error?.response?.status || error?.status;
+    const enhancedError = new Error('Failed to fetch document');
+    (enhancedError as any).status = status;
+    (enhancedError as any).originalError = error;
+    
     console.error('Failed to fetch document blob:', error);
-    throw error;
+    throw enhancedError;
   }
 };
 

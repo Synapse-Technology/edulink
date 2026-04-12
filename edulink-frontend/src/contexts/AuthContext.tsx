@@ -2,26 +2,54 @@ import React, { createContext, useContext } from 'react';
 import type { ReactNode } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { ApiError } from '../services';
-import type { User, RegisterData } from '../types';
+import type { User } from '../types';
 
-interface AuthContextType {
-  user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (userData: RegisterData) => Promise<void>;
-  logout: () => void;
-  updateUser: (userData: Partial<User>) => void;
-  refreshToken: () => Promise<void>;
+// Extended AdminUser type - matches permissions.ts expectations
+interface AdminUser {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: 'SUPER_ADMIN' | 'PLATFORM_ADMIN' | 'MODERATOR' | 'AUDITOR';
+  permissions?: string[];
+  createdAt?: string;
+  lastLogin?: string;
 }
 
-// We don't really use the context provider anymore since we use Zustand
-// But to keep compatibility with existing code that wraps the app in AuthProvider
-// we'll keep the provider but it won't actually "provide" state down via context if we switch useAuth.
-// HOWEVER, to be safe and least invasive, we can make useAuth return values from the store directly.
-// But useAuth currently throws if used outside provider.
-// Let's implement useAuth to return store state.
-// And AuthProvider can just be a shell or perform initialization.
+interface RegisterData {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  role: 'student' | 'employer' | 'institution';
+  institution: string;
+  phone: string;
+  [key: string]: any;
+}
+
+interface AuthContextType {
+  // User-focused properties
+  user: User | null;
+  admin: AdminUser | null;
+  isAuthenticated: boolean;
+  isAdmin: boolean;
+  currentPortal: 'student' | 'employer' | 'institution' | 'admin' | null;
+  isLoading: boolean;
+  
+  // User-focused actions
+  login: (email: string, password: string) => Promise<void>;
+  loginEmployer: (email: string, password: string) => Promise<void>;
+  loginInstitution: (email: string, password: string) => Promise<void>;
+  register: (userData: RegisterData) => Promise<void>;
+  
+  // Admin-focused actions
+  loginAdmin: (email: string, password: string) => Promise<void>;
+  
+  // Common actions
+  logout: () => Promise<void>;
+  updateUser: (userData: Partial<User>) => void;
+  updateAdmin: (adminData: Partial<AdminUser>) => void;
+}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -29,73 +57,130 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+/**
+ * AuthProvider - Wraps the app and provides unified auth context
+ * Both regular users and admin users share the same underlying Zustand store
+ */
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  // We can use the store here to sync or initialize if needed.
-  // Zustand persist middleware handles hydration automatically.
-  
-  // We don't strictly need to pass values via Context anymore if we update useAuth
-  // But to strictly follow the interface, let's just render children.
-  // Or, we can pass the store state into the context value to keep the pattern valid.
-  
   const store = useAuthStore();
   
-  // Map store actions to match Context interface
+  // Wrapper for regular user login with error handling
   const login = async (email: string, password: string) => {
     try {
-        await store.login({ email, password });
+      await store.login({ email, password });
     } catch (error) {
-        if (error instanceof ApiError) {
+      if (error instanceof ApiError) {
         throw error;
-        }
-        console.error('Login failed:', error);
-        throw new Error('Invalid email or password');
+      }
+      console.error('Login failed:', error);
+      throw error;
+    }
+  };
+
+  const loginEmployer = async (email: string, password: string) => {
+    try {
+      await store.loginEmployer({ email, password });
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error;
+      }
+      console.error('Employer login failed:', error);
+      throw error;
+    }
+  };
+
+  const loginInstitution = async (email: string, password: string) => {
+    try {
+      await store.loginInstitution({ email, password });
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error;
+      }
+      console.error('Institution login failed:', error);
+      throw error;
     }
   };
 
   const register = async (userData: RegisterData) => {
-      // Forward to store register
-      // Cast userData to any to bypass strict type checking for now since we are migrating types
-      await store.register(userData as any);
+    try {
+      await store.register(userData);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error;
+      }
+      console.error('Registration failed:', error);
+      throw error;
+    }
   };
-  
-  const logout = () => {
-      store.logout();
+
+  // Wrapper for admin login with error handling
+  const loginAdmin = async (email: string, password: string) => {
+    try {
+      await store.loginAdmin(email, password);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error;
+      }
+      console.error('Admin login failed:', error);
+      throw error;
+    }
   };
-  
-  const updateUser = (userData: Partial<User>) => {
-      // Cast userData to any to bypass strict type checking for now
-      store.updateUser(userData as any);
-  };
-  
-  const refreshToken = async () => {
-      await store.refreshSession();
+
+  const logout = async () => {
+    try {
+      await store.logout();
+    } catch (error) {
+      console.error('Logout failed:', error);
+      throw error;
+    }
   };
 
   const value: AuthContextType = {
     user: store.user as User | null,
+    admin: store.admin as AdminUser | null,
     isAuthenticated: store.isAuthenticated,
+    isAdmin: store.isAdmin,
+    currentPortal: store.currentPortal,
     isLoading: store.isLoading,
     login,
+    loginEmployer,
+    loginInstitution,
     register,
+    loginAdmin,
     logout,
-    updateUser,
-    refreshToken
+    updateUser: (userData: Partial<User>) => store.updateUser(userData),
+    updateAdmin: (adminData: Partial<AdminUser>) => store.updateAdmin(adminData),
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
+/**
+ * Hook to use auth context
+ * Provides access to both user and admin auth state and methods
+ */
 export const useAuth = (): AuthContextType => {
-  // We can just return the store state directly if we want to bypass Context
-  // BUT existing code might rely on being inside AuthProvider (e.g. tests)
-  // Let's stick to using the context for now to minimize refactoring risk.
   const context = useContext(AuthContext);
   if (context === undefined) {
-     // If we really want to support usage outside provider, we could fallback to store here.
-     // But let's keep the constraint.
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 };
 
-export type { User, RegisterData };
+/**
+ * Hook specifically for interacting with current user (non-admin)
+ */
+export const useCurrentUser = () => {
+  const { user, isAuthenticated, updateUser } = useAuth();
+  return { user, isAuthenticated, updateUser };
+};
+
+/**
+ * Hook specifically for interacting with current admin
+ */
+export const useCurrentAdmin = () => {
+  const { admin, isAdmin, updateAdmin } = useAuth();
+  return { admin, isAdmin, updateAdmin };
+};
+
+export type { User, AdminUser, RegisterData };

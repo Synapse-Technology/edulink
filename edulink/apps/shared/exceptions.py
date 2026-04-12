@@ -21,7 +21,7 @@ from .error_handling import EduLinkError
 logger = logging.getLogger(__name__)
 
 
-def edulink_exception_handler(exc: Exception, context: dict) -> Optional[tuple[Response, int]]:
+def edulink_exception_handler(exc: Exception, context: dict) -> Optional[Response]:
     """
     Custom DRF exception handler that:
     1. Handles EduLinkError with proper JSON formatting
@@ -37,28 +37,26 @@ def edulink_exception_handler(exc: Exception, context: dict) -> Optional[tuple[R
         "context": {...}  # Optional, only if present
     }
     
-    Note: Returns (response, None) following DRF convention where:
-    - response: Response(data, status)
-    - None: (DRF doesn't use status_code in tuple, it's in Response object)
+    Note: Returns a DRF Response object following DRF custom exception handler convention.
     """
     
     # Handle domain errors (EduLink exceptions)
     if isinstance(exc, EduLinkError):
         response = _format_domain_error(exc)
-        return (response, None)
+        return response
     
     # Try default DRF exception handler for APIException
     if isinstance(exc, APIException):
         response = drf_exception_handler(exc, context)
         if response is not None:
             response = _format_api_error(exc, response)
-            return (response, None)
+            return response
         return response
     
     # Unhandled exception - log and return 500
     logger.exception("Unhandled exception in API request", extra={"path": context.get("request").path} if context.get("request") else {})
     response = _format_unhandled_error(exc)
-    return (response, None)
+    return response
 
 
 def _format_domain_error(exc: EduLinkError) -> Response:

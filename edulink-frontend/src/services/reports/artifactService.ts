@@ -42,8 +42,9 @@ class ArtifactService {
 
   async getArtifacts(): Promise<Artifact[]> {
     try {
-      const response = await this.client.get<Artifact[]>('/api/reports/artifacts/');
-      return response;
+      const response = await this.client.get<any>('/api/reports/artifacts/');
+      // Handle paginated response - extract array from { results: [...] } if needed
+      return Array.isArray(response) ? response : (response?.results || []);
     } catch (error) {
       if (error instanceof ApiError) throw error;
       throw new Error('Failed to fetch artifacts');

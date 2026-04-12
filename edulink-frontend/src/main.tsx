@@ -7,7 +7,6 @@ import 'bootstrap/dist/js/bootstrap.bundle.min.js'
 import App from './App.tsx'
 import { AuthProvider } from './contexts/AuthContext.tsx'
 import { PusherProvider } from './contexts/PusherContext.tsx'
-import { Toaster } from 'react-hot-toast'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 const queryClient = new QueryClient({
@@ -26,7 +25,6 @@ createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <PusherProvider>
-          <Toaster position="top-right" />
           <App />
         </PusherProvider>
       </AuthProvider>

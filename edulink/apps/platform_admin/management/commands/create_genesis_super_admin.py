@@ -89,9 +89,9 @@ class Command(BaseCommand):
                     f'User ID: {user.id}\n'
                     f'Role: Super Admin (Root Authority)\n'
                     f'\n'
-                    f'⚠️  IMPORTANT: Store this password securely. '
+                    f'IMPORTANT: Store this password securely. '
                     f'This is a root-level account with system ownership.\n'
-                    f'⚠️  This command cannot be run again.'
+                    f'This command cannot be run again.'
                 )
             )
             

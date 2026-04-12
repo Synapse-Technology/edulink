@@ -338,6 +338,7 @@ const OpportunityDetails: React.FC = () => {
         onConfirm={handleConfirmApply}
         title={opportunity.title}
         employerName={opportunity.employer_details?.name}
+        studentTrustLevel={user?.trustLevel || 0}
       />
 
       <LoginRequiredModal 

@@ -370,3 +370,25 @@ def get_institution_students_queryset(
         affiliations = affiliations.filter(cohort_id=cohort_id)
         
     return affiliations
+
+
+def get_affiliations_pending_document_review(*, institution_id: str):
+    """
+    Get all affiliations with uploaded documents pending institution admin review.
+    
+    Used by institution admin dashboard to see students who:
+    1. Have pending affiliations (not yet verified)
+    2. Have uploaded verification documents for review
+    3. Are waiting for admin approval
+    
+    Args:
+        institution_id: The institution UUID
+        
+    Returns:
+        QuerySet of StudentInstitutionAffiliation with document URLs
+    """
+    return StudentInstitutionAffiliation.objects.filter(
+        institution_id=institution_id,
+        status=StudentInstitutionAffiliation.STATUS_PENDING,
+        verification_document_url__isnull=False
+    ).select_related('student_id').order_by('-verification_document_uploaded_at')

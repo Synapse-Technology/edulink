@@ -1,5 +1,16 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { adminAuthService } from '../services/auth/adminAuthService';
+import React, { createContext, useContext } from 'react';
+import { useAuthStore } from '../stores/authStore';
+import { ApiError } from '../services';
+
+/**
+ * DEPRECATED: AdminAuthContext is now a thin wrapper around unified Zustand store
+ * 
+ * Migration path:
+ * - Old code using useAdminAuth() still works via this context
+ * - New code should use useAuth() from AuthContext instead
+ * - Admin tokens now use HttpOnly cookies (same as regular users)
+ * - No more localStorage token storage
+ */
 
 interface AdminUser {
   id: string;
@@ -37,85 +48,55 @@ interface AdminAuthProviderProps {
   children: React.ReactNode;
 }
 
+/**
+ * AdminAuthProvider - Thin wrapper around unified Zustand store
+ * Maintains backward compatibility while using the new unified auth system
+ */
 export const AdminAuthProvider: React.FC<AdminAuthProviderProps> = ({ children }) => {
-  const [admin, setAdmin] = useState<AdminUser | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    // Initialize auth state from localStorage
-    const storedToken = localStorage.getItem('adminToken');
-    const storedAdmin = localStorage.getItem('adminUser');
-    
-    if (storedToken && storedAdmin) {
-      try {
-        const parsedAdmin = JSON.parse(storedAdmin);
-        
-        // Fix for existing sessions: ensure role uses platform_staff_role if available
-        if (parsedAdmin.platform_staff_role && parsedAdmin.role !== parsedAdmin.platform_staff_role) {
-          parsedAdmin.role = parsedAdmin.platform_staff_role;
-          localStorage.setItem('adminUser', JSON.stringify(parsedAdmin));
-        }
-
-        setToken(storedToken);
-        setAdmin(parsedAdmin);
-      } catch (error) {
-        console.error('Error parsing stored admin data:', error);
-        localStorage.removeItem('adminToken');
-        localStorage.removeItem('adminUser');
-      }
-    }
-    
-    setIsLoading(false);
-  }, []);
+  const store = useAuthStore();
 
   const login = async (email: string, password: string) => {
     try {
-      const data = await adminAuthService.login({ email, password });
-      
-      const { tokens, user } = data;
-      const accessToken = tokens.access;
-
-      // Map platform_staff_role to role if present, ensuring RBAC works correctly
-      const adminUser = {
-        ...user,
-        role: (user as any).platform_staff_role || user.role
-      } as AdminUser;
-
-      // Store in state and localStorage (Service handles some storage, but we sync state here)
-      setToken(accessToken);
-      setAdmin(adminUser);
-      
-    } catch (error: any) {
+      await store.loginAdmin(email, password);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error;
+      }
       console.error('Admin login error:', error);
-      throw error;
+      throw new Error('Invalid admin email or password');
     }
   };
 
   const logout = () => {
-    adminAuthService.logout();
-    setToken(null);
-    setAdmin(null);
+    store.logout();
   };
 
   const refreshToken = async () => {
-    try {
-      const data = await adminAuthService.refreshToken();
-      const newToken = data.access;
-
-      setToken(newToken);
-    } catch (error) {
-      console.error('Token refresh error:', error);
-      logout();
-      throw error;
-    }
+    // Token refresh happens automatically via API client interceptors
+    // HttpOnly cookies handle refresh transparently
+    console.info('Token refresh is handled automatically via HttpOnly cookies');
   };
+
+  // Map store admin data to context interface for backward compatibility
+  const admin: AdminUser | null = store.admin
+    ? {
+        id: store.admin.id,
+        email: store.admin.email,
+        first_name: store.admin.firstName,
+        last_name: store.admin.lastName,
+        role: store.admin.role,
+        platform_staff_role: store.admin.role, // Consolidated to single role field
+        permissions: store.admin.permissions || [],
+        createdAt: new Date().toISOString(), // From store if available
+        lastLogin: new Date().toISOString(), // From store if available
+      }
+    : null;
 
   const value: AdminAuthContextType = {
     admin,
-    token,
-    isAuthenticated: !!token && !!admin,
-    isLoading,
+    token: store.isAdmin ? 'present-in-httponly-cookie' : null, // Token is in HttpOnly cookie, not accessible here
+    isAuthenticated: store.isAdmin,
+    isLoading: store.isLoading,
     login,
     logout,
     refreshToken,

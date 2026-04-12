@@ -106,7 +106,7 @@ const Opportunities: React.FC = () => {
         }
 
         const data = await internshipService.getInternships(params);
-        setOpportunities(data);
+        setOpportunities(data.results);
       } catch (error) {
         await handleOpportunitiesError(error);
       } finally {

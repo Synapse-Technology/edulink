@@ -18,11 +18,16 @@ const SupervisorDashboard: React.FC = () => {
   const { data: dashboardData, isLoading: loading } = useQuery({
     queryKey: ['supervisor-dashboard-data'],
     queryFn: async () => {
-      const [applications, pendingEvidence, incidents] = await Promise.all([
+      const [applicationsResponse, pendingEvidenceResponse, incidentsResponse] = await Promise.all([
         internshipService.getApplications(),
         internshipService.getPendingEvidence(),
         internshipService.getIncidents()
       ]);
+      
+      // Handle paginated responses
+      const applications = Array.isArray(applicationsResponse) ? applicationsResponse : (applicationsResponse as any)?.results || [];
+      const pendingEvidence = Array.isArray(pendingEvidenceResponse) ? pendingEvidenceResponse : (pendingEvidenceResponse as any)?.results || [];
+      const incidents = Array.isArray(incidentsResponse) ? incidentsResponse : (incidentsResponse as any)?.results || [];
       
       return {
         interns: applications.length,
@@ -193,7 +198,7 @@ const SupervisorDashboard: React.FC = () => {
                     </thead>
                     <tbody>
                       {stats.recentLogbooks.length > 0 ? (
-                        stats.recentLogbooks.map(evidence => (
+                        stats.recentLogbooks.map((evidence: any) => (
                           <tr key={evidence.id} className="border-top">
                             <td className="ps-4 py-3">
                               <div className="d-flex align-items-center">

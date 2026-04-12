@@ -12,24 +12,42 @@ def record_event(
     actor_id: Any = None,
     actor_role: str = None,
     payload: Dict[str, Any] = None
-) -> None:
+) -> LedgerEvent:
     """
-    Asynchronously records an immutable event in the ledger using Django Q.
-    Ensures the task is only enqueued after the current transaction commits.
-    """
-    # Create a wrapper to capture arguments
-    def enqueue():
-        async_task(
-            'edulink.apps.ledger.services._record_event_sync',
-            event_type=event_type,
-            entity_id=entity_id,
-            entity_type=entity_type,
-            actor_id=actor_id,
-            actor_role=actor_role,
-            payload=payload
-        )
+    Records an immutable event in the ledger synchronously.
     
-    transaction.on_commit(enqueue)
+    Then optionally queues async post-processing (e.g., notifications, dashboards).
+    
+    This ensures the audit trail is never lost, even if async tasks fail.
+    """
+    # 1. Record event synchronously (CRITICAL for audit trail)
+    event = _record_event_sync(
+        event_type=event_type,
+        entity_id=entity_id,
+        entity_type=entity_type,
+        actor_id=actor_id,
+        actor_role=actor_role,
+        payload=payload
+    )
+    
+    # 2. Queue async post-processing (notifications, etc)
+    # This is optional - if queue fails, the event is still recorded
+    def enqueue_post_processing():
+        try:
+            async_task(
+                'edulink.apps.ledger.services._post_process_event',
+                event_id=str(event.id),
+                event_type=event_type
+            )
+        except Exception as e:
+            # Log but don't fail - event is already recorded
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to queue post-processing for event {event.id}: {e}")
+    
+    transaction.on_commit(enqueue_post_processing)
+    
+    return event
 
 def _record_event_sync(
     *,
@@ -93,6 +111,42 @@ def _record_event_sync(
     event.save(update_fields=["hash"])
     
     return event
+
+def _post_process_event(*, event_id: str, event_type: str) -> None:
+    """
+    INTERNAL async hook for post-event processing.
+    
+    This is called AFTER the event is committed, so it can:
+    - Fetch the committed event from the DB
+    - Trigger notifications
+    - Update dashboards
+    - Trigger downstream workflows
+    
+    Failures here do NOT affect the audit trail.
+    """
+    try:
+        # Fetch the committed event
+        event = LedgerEvent.objects.get(id=event_id)
+        
+        # Example: Send notifications
+        # You'd add your notification logic here
+        # e.g., send_notification_for_event.delay(event_id)
+        
+        # Example: Update dashboards
+        # e.g., refresh_dashboard_cache(event_type)
+        
+    except LedgerEvent.DoesNotExist:
+        # Event was deleted or ID is wrong - this shouldn't happen
+        # but we log it and move on
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Event {event_id} not found during post-processing")
+    except Exception as e:
+        # Log unexpected errors but don't re-raise
+        # (async task failure shouldn't affect the system)
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.exception(f"Error post-processing event {event_id}: {e}")
 
 def validate_ledger_chain(*, entity_id: UUID, entity_type: str) -> dict:
     """

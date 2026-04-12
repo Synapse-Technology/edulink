@@ -34,7 +34,8 @@ const SupervisorLogbooks: React.FC = () => {
   const fetchEvidence = async () => {
     try {
       setLoading(true);
-      const data = await internshipService.getPendingEvidence();
+      const dataResponse = await internshipService.getPendingEvidence();
+      const data = Array.isArray(dataResponse) ? dataResponse : (dataResponse as any)?.results || [];
       // Filter for Logbooks
       const logbooks = data.filter((e: InternshipEvidence) => e.evidence_type === 'LOGBOOK');
       setEvidenceList(logbooks);

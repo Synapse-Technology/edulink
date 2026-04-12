@@ -23,13 +23,18 @@ const EmployerReviews: React.FC = () => {
       setLoading(true);
       
       // Parallel fetching for performance
-      const [profileRequests, allApplications] = await Promise.all([
+      const [profileRequests, applicationsResponse] = await Promise.all([
         employerService.getProfileUpdateRequests('pending'),
         internshipService.getApplications()
       ]);
 
+      // Handle paginated response - extract array from { results: [...] } if needed
+      const allApplications = Array.isArray(applicationsResponse) 
+        ? applicationsResponse 
+        : (applicationsResponse as any)?.results || [];
+      
       // Filter applications (APPLIED status)
-      const pendingApps = allApplications.filter(i => i.student_id && (i.status === 'APPLIED' || i.status === 'PENDING'));
+      const pendingApps = allApplications.filter((i: any) => i.student_id && (i.status === 'APPLIED' || i.status === 'PENDING'));
 
       setStats({
         profileRequests: profileRequests.length,

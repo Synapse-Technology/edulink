@@ -147,7 +147,8 @@ AUTH_USER_MODEL = "accounts.User"
 # REST Framework Configuration
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "rest_framework.authentication.SessionAuthentication",  # Django native HttpOnly cookies
+        "rest_framework_simplejwt.authentication.JWTAuthentication",  # Fallback for API/mobile clients
     ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
@@ -158,6 +159,7 @@ REST_FRAMEWORK = {
     "DEFAULT_PARSER_CLASSES": [
         "rest_framework.parsers.JSONParser",
     ],
+    "DEFAULT_PAGINATION_CLASS": "edulink.apps.shared.pagination.StandardResultsSetPagination",
     "DEFAULT_FILTER_BACKENDS": [
         "django_filters.rest_framework.DjangoFilterBackend",
     ],
@@ -217,6 +219,22 @@ SIMPLE_JWT = {
     "JTI_CLAIM": "jti",
 }
 
+# CORS Configuration - Enable credentials for HttpOnly cookies
+CORS_ALLOWED_ORIGINS = [
+    "https://edulink-frontend.com",
+    "https://edulink-frontend-mb63.onrender.com",
+    "http://localhost:3000",
+    "http://localhost:5173",
+]
+
+CORS_ALLOW_CREDENTIALS = True  # CRITICAL: Allow credentials (cookies) in CORS
+
+CORS_EXPOSE_HEADERS = [
+    "X-CSRFToken",
+    "Content-Length",
+    "X-Request-ID",
+]
+
 # Email Configuration
 EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "Edulink <noreply@edulink.com>")
@@ -238,6 +256,28 @@ SUPPORT_EMAIL = "support@edulink.com"
 # Security Settings
 PASSWORD_RESET_TOKEN_EXPIRE_HOURS = 1  # Token expires in 1 hour
 EMAIL_VERIFICATION_TOKEN_EXPIRE_HOURS = 24  # Token expires in 24 hours
+
+#CSRF & Session Cookie Security
+CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SECURE = os.getenv("CSRF_COOKIE_SECURE", "False").lower() == "true"  # True in production
+CSRF_COOKIE_SAMESITE = "Lax"
+CSRF_TRUSTED_ORIGINS = [
+    "https://edulink-frontend.com",
+    "https://edulink-frontend-mb63.onrender.com",
+    "http://localhost:3000",
+    "http://localhost:5173",
+]
+
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "False").lower() == "true"
+SESSION_COOKIE_SAMESITE = "Lax"
+
+#JWT Cookie Security
+JWT_COOKIE_SECURE = os.getenv("JWT_COOKIE_SECURE", "False").lower() == "true"
+JWT_COOKIE_HTTP_ONLY = True
+JWT_COOKIE_SAMESITE = "Lax"
+JWT_COOKIE_DOMAIN = os.getenv("JWT_COOKIE_DOMAIN", None)
+JWT_COOKIE_PATH = "/"
 
 # Logging Configuration
 LOGGING = {

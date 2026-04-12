@@ -4,6 +4,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.conf import settings
+from django.contrib.auth import login as django_login  # Use Django's built-in session login
 from django_filters.rest_framework import DjangoFilterBackend
 
 from .models import EmployerRequest, Employer, Supervisor
@@ -32,10 +34,14 @@ from .policies import (
     is_employer_staff
 )
 
+# Module-level config
+DEBUG = settings.DEBUG
+
 class EmployerLoginView(APIView):
     """
     Employer-specific login endpoint.
     Only allows Employer Admins and Supervisors to login.
+    Uses Django's session framework (HttpOnly cookies) instead of JWT.
     """
     permission_classes = [AllowAny]
 
@@ -56,16 +62,17 @@ class EmployerLoginView(APIView):
                     status=status.HTTP_403_FORBIDDEN
                 )
             
-            # Generate JWT tokens
-            refresh = RefreshToken.for_user(user)
+            # Authenticate in session (Django handles HttpOnly sessionid cookie automatically)
+            django_login(request, user, backend='django.contrib.auth.backends.ModelBackend')
             
+            # Force session persistence by accessing it (creates session in DB)
+            request.session.modified = True
+            
+            # Return user data
+            user_serializer = UserSerializer(user)
             return Response({
                 'message': 'Login successful',
-                'user': UserSerializer(user).data,
-                'tokens': {
-                    'refresh': str(refresh),
-                    'access': str(refresh.access_token)
-                }
+                'user': user_serializer.data,
             }, status=status.HTTP_200_OK)
             
         except ValueError as e:

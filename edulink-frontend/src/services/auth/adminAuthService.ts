@@ -15,17 +15,23 @@ interface AdminLoginCredentials {
   password: string;
 }
 
+/**
+ * Updated AdminAuthResponse - Backend now returns user data only
+ * Tokens are in HttpOnly cookies (not in response body)
+ * 
+ * IMPORTANT: This changed with Phase 1 of the auth refactor.
+ * Backend admin login endpoint (/api/admin/auth/login/) now matches
+ * regular user login pattern - returns user data, tokens in cookies.
+ */
 interface AdminAuthResponse {
-  tokens: {
-    access: string;
-    refresh: string;
-  };
   user: AdminUser;
+  message?: string;
 }
 
 interface AdminTokenRefreshResponse {
   access: string;
   refresh?: string;
+  message?: string;
 }
 
 interface CreateAdminUserData {
@@ -90,21 +96,31 @@ export interface InstitutionInterestStats {
 class AdminAuthService {
   private client = apiClient;
 
+  /**
+   * Admin login - tokens now stored in HttpOnly cookies by backend
+   * No need to manually manage tokens in localStorage anymore
+   */
   async login(credentials: AdminLoginCredentials): Promise<AdminAuthResponse> {
     try {
+      // Validate credentials before API call
+      const { validateEmail, validateRequired } = await import('../../utils/validation');
+
+      const emailValidation = validateEmail(credentials.email);
+      const passwordValidation = validateRequired(credentials.password, 'password');
+
+      if (!emailValidation.isValid) {
+        throw new AuthenticationError(emailValidation.errors[0].message);
+      }
+
+      if (!passwordValidation.isValid) {
+        throw new AuthenticationError(passwordValidation.errors[0].message);
+      }
+
+      // Backend sets HttpOnly cookies; response body contains only user data
       const response = await this.client.post<AdminAuthResponse>(
         '/api/admin/auth/login/',
         credentials
       );
-
-      // Store admin tokens
-      this.client.setAdminToken(response.tokens.access);
-      this.client.setAdminUser(response.user);
-      
-      // Also store admin refresh token for later use
-      if (response.tokens.refresh) {
-        localStorage.setItem('adminRefreshToken', response.tokens.refresh);
-      }
 
       return response;
     } catch (error) {
@@ -115,26 +131,18 @@ class AdminAuthService {
     }
   }
 
+  /**
+   * Refresh admin token - tokens obtained from HttpOnly cookies automatically
+   * No need to manually pass refresh token anymore
+   */
   async refreshToken(): Promise<AdminTokenRefreshResponse> {
     try {
-      const refreshToken = localStorage.getItem('adminRefreshToken');
-      if (!refreshToken) {
-        throw new AuthenticationError('No admin refresh token available');
-      }
-
+      // Backend reads refresh_token from HttpOnly cookie automatically
+      // No need to send it in request body
       const response = await this.client.post<AdminTokenRefreshResponse>(
         '/api/admin/auth/token/refresh/',
-        { refresh: refreshToken },
-        { headers: { 'skip-auth': 'true' } }
+        {}
       );
-
-      // Update admin token
-      this.client.setAdminToken(response.access);
-      
-      // Update stored refresh token if provided (rotation)
-      if (response.refresh) {
-        localStorage.setItem('adminRefreshToken', response.refresh);
-      }
 
       return response;
     } catch (error) {
@@ -145,21 +153,18 @@ class AdminAuthService {
     }
   }
 
+  /**
+   * Admin logout - clears HttpOnly cookies on backend
+   */
   async logout(): Promise<void> {
     try {
-      const token = localStorage.getItem('adminToken');
-      if (token) {
-        await this.client.post('/api/admin/auth/logout/', {}, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-      }
+      // Backend will use the refresh_token from HttpOnly cookie to blacklist it
+      await this.client.post('/api/admin/auth/logout/', {});
     } catch (error) {
-      // Logout should succeed even if the API call fails
+      // Logout should not block UI even if API call fails
       console.warn('Admin logout API call failed:', error);
     } finally {
-      // Clear admin tokens
+      // Remove legacy localStorage tokens from old sessions (Phase 1 migration)
       localStorage.removeItem('adminToken');
       localStorage.removeItem('adminRefreshToken');
       localStorage.removeItem('adminUser');

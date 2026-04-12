@@ -81,8 +81,8 @@ const SupervisorSettings: React.FC = () => {
       setLoading(true);
       await authService.changePassword({
         new_password: passwordData.newPassword,
-        re_new_password: passwordData.confirmPassword,
-        current_password: passwordData.currentPassword
+        new_password_confirm: passwordData.confirmPassword,
+        old_password: passwordData.currentPassword
       });
       setMessage({ type: 'success', text: 'Password updated successfully' });
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });

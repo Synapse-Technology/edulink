@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   CheckCircle, 
   Briefcase, 
@@ -43,8 +43,9 @@ interface EventItem {
 }
 
 const StudentDashboard: React.FC = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { isDarkMode } = useTheme();
+  const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showProfileWizard, setShowProfileWizard] = useState(false);
   const [studentId, setStudentId] = useState('');
@@ -59,12 +60,25 @@ const StudentDashboard: React.FC = () => {
   const [missingItems, setMissingItems] = useState<string[]>([]);
   const [trustLevel, setTrustLevel] = useState(0);
   const [ledgerEvents, setLedgerEvents] = useState<LedgerEvent[]>([]);
+  const [hasLoggedOut, setHasLoggedOut] = useState(false);  // Prevent infinite login loop
 
   useEffect(() => {
+    if (hasLoggedOut) return;  // Don't re-fetch after logout
+    
+    // Track if component is still mounted to prevent state updates after unmount
+    let isMounted = true;
+    const controller = new AbortController();
+    
     const fetchDashboardData = async () => {
       try {
+        if (!isMounted) return;
         setLoading(true);
+        
         const profileData = await studentService.getProfile();
+        
+        // Check if component is still mounted before continuing
+        if (!isMounted) return;
+        
         const [apps, active, allInternships, stats, ledgerData] = await Promise.all([
           studentService.getApplications(),
           studentService.getActiveInternship(),
@@ -73,17 +87,23 @@ const StudentDashboard: React.FC = () => {
           ledgerService.getEvents({ page_size: 5 })
         ]);
 
+        // Check if component is still mounted before setting state
+        if (!isMounted) return;
+        
+        // Handle paginated responses - extract array from { results: [...] } if needed
+        const appsList = Array.isArray(apps) ? apps : (apps as any).results || [];
+        
         setProfile(profileData);
         setStudentId(profileData.id);
-        setApplications(apps);
+        setApplications(appsList);
         setActiveInternship(active);
         setDashboardStats(stats);
         setLedgerEvents(ledgerData.results);
         
         // Calculate dynamic trust level based on profile and applications
         let calculatedLevel = Math.floor(profileData.trust_level || 0);
-        const hasCompleted = apps.some((a: any) => a.status === 'COMPLETED');
-        const hasCertified = apps.some((a: any) => a.status === 'CERTIFIED');
+        const hasCompleted = appsList.some((a: any) => a.status === 'COMPLETED');
+        const hasCertified = appsList.some((a: any) => a.status === 'CERTIFIED');
         
         if (hasCertified) {
           calculatedLevel = Math.max(calculatedLevel, 4);
@@ -94,7 +114,7 @@ const StudentDashboard: React.FC = () => {
         
         // Derive upcoming events from applications
         const events: EventItem[] = [];
-        apps.forEach((app: any) => {
+        appsList.forEach((app: any) => {
           if (app.status === 'SHORTLISTED') {
             events.push({
               title: `Interview: ${app.title}`,
@@ -106,7 +126,9 @@ const StudentDashboard: React.FC = () => {
         });
         setUpcomingEvents(events);
         
-        const openOpportunities = allInternships.filter((i: Internship) => i.status === 'OPEN' && !i.student_has_applied);
+        // Handle paginated internships response
+        const internshipsList = Array.isArray(allInternships) ? allInternships : (allInternships as any).results || [];
+        const openOpportunities = internshipsList.filter((i: Internship) => i.status === 'OPEN' && !i.student_has_applied);
         setOpportunitiesCount(openOpportunities.length);
 
         if (stats && stats.profile && typeof stats.profile.score === 'number') {
@@ -132,18 +154,45 @@ const StudentDashboard: React.FC = () => {
           setShowProfileWizard(true);
         }
       } catch (error) {
-        const message = getErrorMessage(error, { action: 'Load Dashboard Data' });
-        showToast.error(message);
+        // Don't process errors if component unmounted
+        if (!isMounted) return;
+        
+        const is401 = (error as any)?.status === 401 || 
+                     (error as any)?.response?.status === 401 ||
+                     (error as any)?.message?.includes('Unauthorized') ||
+                     (error as any)?.message?.includes('Session expired');
+        
+        if (is401) {
+          // Session expired - set flag first to prevent re-fetch, then logout
+          setHasLoggedOut(true);
+          await logout();
+          showToast.error('Session expired. Please log in again.');
+          navigate('/login', { replace: true });
+        } else {
+          // Use error mapper to convert technical errors to user-friendly messages
+          const message = getErrorMessage(error, { action: 'Load Dashboard Data' });
+          // Always show user-friendly message, never technical details
+          showToast.error(message || 'Failed to load dashboard. Please refresh the page.');
+        }
         logError(error, { action: 'Load Dashboard Data' });
       } finally {
-        setLoading(false);
+        // Only update loading state if component is still mounted
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
-    if (user) {
+    if (user && !hasLoggedOut) {
       fetchDashboardData();
     }
-  }, [user]);
+
+    // Cleanup function: mark as unmounted and abort requests
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
+  }, [user, hasLoggedOut, logout, navigate]);
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);

@@ -127,6 +127,9 @@ export interface InternshipParams {
   duration?: string;
   employer__organization_type?: string;
   // employer__is_featured?: boolean; // Removed from backend filter
+  // Add pagination support
+  limit?: number;
+  offset?: number;
 }
 
 export interface ApplicationParams {
@@ -135,6 +138,9 @@ export interface ApplicationParams {
   opportunity_id?: string;
   student__trust_level?: number;
   is_institutional?: boolean;
+  // Add pagination support
+  limit?: number;
+  offset?: number;
 }
 
 export interface InternshipEvidence {
@@ -193,12 +199,19 @@ export interface Incident {
   };
 }
 
+export interface PaginatedResponse<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+}
+
 class InternshipService {
   private client = apiClient;
 
   // --- Opportunities ---
 
-  async getInternships(params?: InternshipParams): Promise<InternshipOpportunity[]> {
+  async getInternships(params?: InternshipParams): Promise<PaginatedResponse<InternshipOpportunity>> {
     try {
       const cleanParams: Record<string, any> = {};
       if (params) {
@@ -209,13 +222,13 @@ class InternshipService {
         });
       }
       
-      const response = await this.client.get<InternshipOpportunity[]>('/api/internships/', { 
+      const response = await this.client.get<PaginatedResponse<InternshipOpportunity>>('/api/internships/', { 
         params: cleanParams
       });
       return response;
     } catch (error) {
-      if (error instanceof ApiError) throw error;
-      throw new Error('Failed to fetch internships');
+      // Rethrow all errors to preserve ApiError status codes
+      throw error;
     }
   }
 
@@ -224,8 +237,8 @@ class InternshipService {
       const response = await this.client.get<InternshipOpportunity>(`/api/internships/${id}/`);
       return response;
     } catch (error) {
-      if (error instanceof ApiError) throw error;
-      throw new Error('Failed to fetch internship details');
+      // Rethrow all errors to preserve ApiError status codes
+      throw error;
     }
   }
 
@@ -234,8 +247,8 @@ class InternshipService {
       const response = await this.client.post<InternshipOpportunity>('/api/internships/create_opportunity/', data);
       return response;
     } catch (error) {
-      if (error instanceof ApiError) throw error;
-      throw new Error('Failed to create internship opportunity');
+      // Rethrow all errors to preserve ApiError status codes
+      throw error;
     }
   }
 
@@ -244,8 +257,8 @@ class InternshipService {
       const response = await this.client.post<InternshipOpportunity>(`/api/internships/${id}/publish/`);
       return response;
     } catch (error) {
-      if (error instanceof ApiError) throw error;
-      throw new Error('Failed to publish internship');
+      // Rethrow all errors to preserve ApiError status codes
+      throw error;
     }
   }
 
@@ -256,8 +269,8 @@ class InternshipService {
       });
       return response;
     } catch (error) {
-      if (error instanceof ApiError) throw error;
-      throw new Error('Failed to apply for internship');
+      // Rethrow all errors to preserve ApiError status codes
+      throw error;
     }
   }
 
@@ -274,8 +287,9 @@ class InternshipService {
         });
       }
       
-      const response = await this.client.get<InternshipApplication[]>('/api/internships/applications/', { params: cleanParams });
-      return response;
+      const response = await this.client.get<any>('/api/internships/applications/', { params: cleanParams });
+      // Handle paginated response - extract array from { results: [...] } if needed
+      return Array.isArray(response) ? response : (response?.results || []);
     } catch (error) {
       if (error instanceof ApiError) throw error;
       throw new Error('Failed to fetch applications');
@@ -287,8 +301,8 @@ class InternshipService {
       const response = await this.client.get<InternshipApplication>(`/api/internships/applications/${id}/`);
       return response;
     } catch (error) {
-      if (error instanceof ApiError) throw error;
-      throw new Error('Failed to fetch application details');
+      // Rethrow all errors to preserve ApiError status codes
+      throw error;
     }
   }
 
@@ -300,8 +314,8 @@ class InternshipService {
       });
       return response;
     } catch (error) {
-      if (error instanceof ApiError) throw error;
-      throw new Error('Failed to process application');
+      // Rethrow all errors to preserve ApiError status codes
+      throw error;
     }
   }
 
@@ -411,8 +425,9 @@ class InternshipService {
     // I'll skip it for now and fix backend if needed.
     
     try {
-      const response = await this.client.get<InternshipEvidence[]>('/api/internships/pending-evidence/');
-      return response;
+      const response = await this.client.get<any>('/api/internships/pending-evidence/');
+      // Handle paginated response - extract array from { results: [...] } if needed
+      return Array.isArray(response) ? response : (response?.results || []);
     } catch (error) {
       if (error instanceof ApiError) throw error;
       throw new Error('Failed to fetch pending evidence');
@@ -448,11 +463,10 @@ class InternshipService {
   }
 
   async getIncidents(): Promise<Incident[]> {
-     // Similar to pending-evidence, I might have dropped this from ViewSet.
-     // I'll leave as is for now.
     try {
-      const response = await this.client.get<Incident[]>('/api/internships/incidents/');
-      return response;
+      const response = await this.client.get<any>('/api/internships/incidents/');
+      // Handle paginated response - extract array from { results: [...] } if needed
+      return Array.isArray(response) ? response : (response?.results || []);
     } catch (error) {
       if (error instanceof ApiError) throw error;
       throw new Error('Failed to fetch incidents');

@@ -63,10 +63,11 @@ const EmployerOpportunities: React.FC = () => {
   const fetchOpportunities = async () => {
     try {
       setIsLoading(true);
-      const allInternships = await internshipService.getInternships({
+      const response = await internshipService.getInternships({
         status: statusFilter || undefined
       });
-      setOpportunities(allInternships);
+      // Extract results array from paginated response
+      setOpportunities(response.results || []);
     } catch (error) {
       console.error('Failed to fetch opportunities:', error);
     } finally {

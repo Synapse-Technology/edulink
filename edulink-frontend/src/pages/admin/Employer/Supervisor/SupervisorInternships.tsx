@@ -22,7 +22,8 @@ const SupervisorInternships: React.FC = () => {
   const fetchInternships = async () => {
     try {
       setLoading(true);
-      const data = await internshipService.getApplications();
+      const dataResponse = await internshipService.getApplications();
+      const data = Array.isArray(dataResponse) ? dataResponse : (dataResponse as any)?.results || [];
       setInternships(data);
     } catch (err: any) {
       console.error("Failed to fetch internships", err);

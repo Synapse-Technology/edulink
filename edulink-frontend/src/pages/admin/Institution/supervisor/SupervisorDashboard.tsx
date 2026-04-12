@@ -33,13 +33,19 @@ const SupervisorDashboard: React.FC = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [profileData, applicationsData, evidenceData, incidentsData] = await Promise.all([
+        const [applicationsResponse, evidenceResponse, incidentsResponse] = await Promise.all([
           institutionService.getSupervisorProfile(),
           internshipService.getApplications(),
           internshipService.getPendingEvidence(),
           internshipService.getIncidents()
         ]);
-        setProfile(profileData);
+        
+        // Handle paginated responses
+        const applicationsData = Array.isArray(applicationsResponse) ? applicationsResponse : (applicationsResponse as any)?.results || [];
+        const evidenceData = Array.isArray(evidenceResponse) ? evidenceResponse : (evidenceResponse as any)?.results || [];
+        const incidentsData = Array.isArray(incidentsResponse) ? incidentsResponse : (incidentsResponse as any)?.results || [];
+        
+        setProfile(applicationsResponse);
         setInternships(applicationsData);
         setRecentEvidence(evidenceData);
         setIncidents(incidentsData);

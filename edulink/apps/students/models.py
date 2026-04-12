@@ -36,6 +36,10 @@ class StudentInstitutionAffiliation(BaseModel):
     raw_department_input = models.CharField(max_length=255, blank=True)
     raw_cohort_input = models.CharField(max_length=255, blank=True)
     
+    # Document Verification (for manual affiliation claims)
+    verification_document_url = models.CharField(max_length=500, null=True, blank=True, help_text="URL to uploaded verification document")
+    verification_document_uploaded_at = models.DateTimeField(null=True, blank=True, help_text="When student uploaded verification document")
+    
     class Meta:
         app_label = "students"
         db_table = "student_institution_affiliations"

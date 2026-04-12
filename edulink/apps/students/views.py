@@ -1,12 +1,15 @@
 from rest_framework import viewsets, status, filters
 from rest_framework.views import APIView
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.shortcuts import get_object_or_404
+from django.conf import settings
+from django.contrib.auth import login as django_login  # Use Django's built-in session login
 from django_filters.rest_framework import DjangoFilterBackend
+from edulink.apps.shared.pagination import StandardResultsSetPagination, LargeResultsSetPagination
 from .models import Student, StudentInstitutionAffiliation
 from .serializers import (
     StudentSerializer, TrustTierSerializer, StudentTrustTierSerializer, StudentInstitutionAffiliationSerializer,
@@ -14,6 +17,10 @@ from .serializers import (
     StudentActivityApproveSerializer, StudentInternshipCertifySerializer
 )
 from .filters import StudentFilter
+from .permissions import (
+    IsStudentOwnerOrAdmin, CanUploadStudentDocuments,
+    CanManageAffiliation, CanViewStudentAffiliations
+)
 from .services import (
     upload_student_document, log_internship_activity, 
     approve_supervisor_activity, certify_internship_completion,
@@ -21,7 +28,8 @@ from .services import (
     verify_student_affiliation, reject_student_affiliation,
     update_student_profile,
     get_pending_affiliations_for_institution, get_student_affiliations,
-    preregister_student
+    preregister_student,
+    upload_affiliation_verification_document
 )
 from .queries import (
     get_institution_id_for_user, 
@@ -34,16 +42,20 @@ from edulink.apps.trust.services import compute_student_trust_tier
 from .policies import is_student
 from edulink.apps.institutions.permissions import IsActiveInstitutionAdmin
 
+# Module-level config
+DEBUG = settings.DEBUG
+
 class StudentLoginView(APIView):
     """
     Student-specific login endpoint.
     Only allows Students to login.
+    Uses Django's session framework (HttpOnly cookies) instead of JWT.
     """
     permission_classes = [AllowAny]
     
     def post(self, request):
         """
-        Authenticate student and return JWT tokens.
+        Authenticate student and create session (HttpOnly cookie handled by Django).
         """
         from edulink.apps.accounts.serializers import UserLoginSerializer, UserSerializer
         from edulink.apps.accounts.services import authenticate_user
@@ -61,31 +73,34 @@ class StudentLoginView(APIView):
                     status=status.HTTP_403_FORBIDDEN
                 )
             
-            # Generate JWT tokens
-            refresh = RefreshToken.for_user(user)
+            # Authenticate in session (Django handles HttpOnly sessionid cookie automatically)
+            django_login(request, user, backend='django.contrib.auth.backends.ModelBackend')
             
+            # Force session persistence by accessing it (creates session in DB)
+            request.session.modified = True
+            
+            # Return user data
+            user_serializer = UserSerializer(user)
             return Response({
                 'message': 'Login successful',
-                'user': UserSerializer(user).data,
-                'tokens': {
-                    'refresh': str(refresh),
-                    'access': str(refresh.access_token)
-                }
+                'user': user_serializer.data,
             }, status=status.HTTP_200_OK)
             
         except ValueError as e:
             return Response({'detail': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
 
 class StudentViewSet(viewsets.ModelViewSet):
-    def get_queryset(self):
-        from .queries import get_student_queryset
-        return get_student_queryset(self.request.user)
-
-    queryset = Student.objects.none() # Default to safe
+    queryset = Student.objects.none()
     serializer_class = StudentSerializer
+    pagination_class = StandardResultsSetPagination
     filter_backends = [filters.SearchFilter, DjangoFilterBackend]
     search_fields = ['email', 'registration_number']
     filterset_class = StudentFilter
+    permission_classes = [IsAuthenticated, IsStudentOwnerOrAdmin]
+    
+    def get_queryset(self):
+        from .queries import get_student_queryset
+        return get_student_queryset(self.request.user)
 
     @action(detail=False, methods=['get'])
     def current(self, request):
@@ -204,6 +219,64 @@ class StudentViewSet(viewsets.ModelViewSet):
         affiliations = get_student_affiliations(student_id=str(student.id))
         return Response({'affiliations': StudentInstitutionAffiliationSerializer(affiliations, many=True).data})
 
+    @action(detail=True, methods=['post'], parser_classes=[MultiPartParser, FormParser])
+    def upload_affiliation_document(self, request, pk=None):
+        """
+        Student uploads verification document for manual affiliation claim.
+        
+        Endpoint: POST /students/{student_id}/upload_affiliation_document/
+        
+        Request:
+        - affiliation_id (UUID, required): The affiliation to upload document for
+        - document (file, required): The verification document (PDF, image, etc.)
+        
+        Response:
+        - affiliation (object): Updated affiliation with document_url set
+        
+        Business Rules:
+        - Only unverified students with pending affiliations can upload
+        - Only uploads for manual claims (not auto-verified domain claims)
+        - Document URL stored for institution admin review
+        """
+        from edulink.apps.shared.error_handling import ErrorContext, ValidationError as CustomValidationError
+        from .services import upload_affiliation_verification_document
+        
+        student = self.get_object()
+        
+        # Validate required fields
+        if 'affiliation_id' not in request.data:
+            return Response(
+                {'error': 'Missing required field: affiliation_id'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if 'document' not in request.FILES:
+            return Response(
+                {'error': 'Missing required file: document'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            affiliation = upload_affiliation_verification_document(
+                affiliation_id=str(request.data['affiliation_id']),
+                student_id=str(student.id),
+                document_file=request.FILES['document']
+            )
+            return Response(
+                StudentInstitutionAffiliationSerializer(affiliation).data,
+                status=status.HTTP_201_CREATED
+            )
+        except CustomValidationError as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
     @action(detail=True, methods=['post'])
     def approve_activity(self, request, pk=None):
         """Approve student activity (supervisor action)"""
@@ -316,10 +389,33 @@ class StudentViewSet(viewsets.ModelViewSet):
 class StudentInstitutionAffiliationViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         from .queries import get_student_affiliation_queryset
-        return get_student_affiliation_queryset(self.request.user)
+        # Optimize with select_related to avoid N+1
+        return get_student_affiliation_queryset(self.request.user).select_related(
+            'student_id', 'institution_id'
+        )
 
     queryset = StudentInstitutionAffiliation.objects.none()
     serializer_class = StudentInstitutionAffiliationSerializer
+    pagination_class = StandardResultsSetPagination  # Add pagination
+    
+    def get_serializer_context(self):
+        """Pass batch-loaded data to serializer to prevent N+1"""
+        context = super().get_serializer_context()
+        
+        # Batch-load students and institutions to pass to serializer
+        queryset = self.get_queryset()
+        student_ids = set(aff.student_id for aff in queryset)
+        institution_ids = set(aff.institution_id for aff in queryset)
+        
+        from edulink.apps.students.queries import Student
+        from edulink.apps.institutions.queries import Institution
+        
+        students = {str(s.id): s for s in Student.objects.filter(id__in=student_ids)}
+        institutions = {str(i.id): i for i in Institution.objects.filter(id__in=institution_ids)}
+        
+        context['students_map'] = students
+        context['institutions_map'] = institutions
+        return context
     
     @action(detail=False, methods=['get'])
     def pending(self, request):

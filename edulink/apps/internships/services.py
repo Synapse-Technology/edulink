@@ -181,7 +181,7 @@ def apply_for_internship(actor, opportunity_id: UUID, cover_letter: str = "") ->
             developer_message=f"User {actor.id} with role {getattr(actor, 'role', 'unknown')} attempted to apply",
         )
     
-    # ✅ NEW: Require email verification
+    # Require email verification
     if not actor.is_verified:
         raise ConflictError(
             user_message="Please verify your email before applying. Check your inbox for verification link.",
@@ -243,7 +243,7 @@ def apply_for_internship(actor, opportunity_id: UUID, cover_letter: str = "") ->
             context=ErrorContext().with_resource("opportunity", opportunity_id).build(),
         )
     
-    # ✅ NEW: Trust-gated graduated restrictions
+    # Trust-gated graduated restrictions
     # Trust Level 0: 3 applications per month
     # Trust Level 1: 5 applications per month
     # Trust Level 2+: unlimited

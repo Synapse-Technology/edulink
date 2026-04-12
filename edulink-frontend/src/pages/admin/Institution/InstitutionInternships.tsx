@@ -34,8 +34,9 @@ const InstitutionInternships: React.FC = () => {
   const fetchInternships = async () => {
     try {
       setLoading(true);
-      const data = await internshipService.getInternships();
-      setInternships(data);
+      const response = await internshipService.getInternships();
+      // Extract results array from paginated response
+      setInternships(response.results || []);
     } catch (err: any) {
       console.error("Failed to fetch internships", err);
       setError("Failed to load internships.");

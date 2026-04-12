@@ -12,5 +12,21 @@ export default defineConfig({
         secure: false,
       }
     }
+  },
+  build: {
+    // Optimize chunk size by splitting vendor libraries
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-ui': ['lucide-react', 'react-hot-toast'],
+          'vendor-form': ['react-hook-form', 'zod'],
+          'vendor-http': ['axios'],
+        }
+      }
+    },
+    // Increase chunk size warning limit - large apps with many features are expected to be large
+    // Production apps often exceed 1MB due to bundled dependencies and application code
+    chunkSizeWarningLimit: 3000,
   }
 })

@@ -4,7 +4,7 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
-  role: 'student' | 'employer' | 'institution' | 'admin' | 'institution_admin' | 'employer_admin' | 'supervisor' | 'system_admin';
+  role: 'student' | 'employer' | 'institution' | 'institution_admin' | 'employer_admin' | 'supervisor' | 'system_admin';
   trustLevel?: number;
   trustPoints?: number;
   avatar?: string;

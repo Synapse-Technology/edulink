@@ -31,9 +31,10 @@ const EmployerApplications: React.FC = () => {
   const fetchApplications = async () => {
     try {
       setIsLoading(true);
-      const apps = await internshipService.getApplications();
+      const appsResponse = await internshipService.getApplications();
+      const apps = Array.isArray(appsResponse) ? appsResponse : (appsResponse as any)?.results || [];
       // Filter out active and completed internships
-      const recruitmentApps = apps.filter(app => !['ACTIVE', 'COMPLETED'].includes(app.status));
+      const recruitmentApps = apps.filter((app: any) => !['ACTIVE', 'COMPLETED'].includes(app.status));
       setApplications(recruitmentApps);
     } catch (error) {
       console.error("Error:", error); showToast.error("An error occurred. Please try again.");

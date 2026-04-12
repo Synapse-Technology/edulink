@@ -12,4 +12,6 @@ urlpatterns = [
     path('token/', UserViewSet.as_view({'post': 'token_obtain_pair'}), name='token_obtain_pair'),
     path('token/refresh/', UserViewSet.as_view({'post': 'token_refresh'}), name='token_refresh'),
     path('token/verify/', TokenVerifyView.as_view(), name='token_verify'),
+    # Logout endpoint (alternative to /users/logout/)
+    path('logout/', UserViewSet.as_view({'post': 'logout'}), name='logout'),
 ]

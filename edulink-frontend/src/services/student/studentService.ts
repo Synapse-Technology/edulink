@@ -1,5 +1,4 @@
 import { apiClient as client } from '../api/client';
-import { ApiError } from '../errors';
 import { internshipService, type InternshipApplication, type InternshipEvidence } from '../internship/internshipService';
 
 export interface StudentProfile {
@@ -37,88 +36,100 @@ class StudentService {
       const response = await client.get<StudentProfile>('/api/students/current/');
       return response;
     } catch (error) {
-      if (error instanceof ApiError) throw error;
-      throw new Error('Failed to fetch profile');
+      // Rethrow all errors to preserve ApiError status codes
+      throw error;
     }
   }
 
   async updateProfile(id: string, data: UpdateProfileData): Promise<StudentProfile> {
     try {
-      let payload: any = data;
-      let headers = {};
-
       // Check if any file field is present
       const hasFiles = data.profile_picture || data.cv || data.admission_letter || data.id_document;
 
-      if (hasFiles) {
-        const formData = new FormData();
-        if (data.course_of_study) formData.append('course_of_study', data.course_of_study);
-        if (data.current_year) formData.append('current_year', data.current_year);
-        if (data.skills) {
-             formData.append('skills', JSON.stringify(data.skills));
-        }
-        if (data.registration_number) formData.append('registration_number', data.registration_number);
-        
-        // Append files
-        if (data.profile_picture) formData.append('profile_picture', data.profile_picture);
-        if (data.cv) formData.append('cv', data.cv);
-        if (data.admission_letter) formData.append('admission_letter', data.admission_letter);
-        if (data.id_document) formData.append('id_document', data.id_document);
-        
-        payload = formData;
-        headers = { 'Content-Type': 'multipart/form-data' };
+      // Separate file upload from other fields
+      // 1. First, update non-file fields and skills via JSON endpoint
+      const jsonData: any = {};
+      if (data.course_of_study) jsonData.course_of_study = data.course_of_study;
+      if (data.current_year) jsonData.current_year = data.current_year;
+      if (data.registration_number) jsonData.registration_number = data.registration_number;
+
+      // Only update non-file fields if any exist
+      if (Object.keys(jsonData).length > 0) {
+        await client.patch(`/api/students/${id}/update_profile/`, jsonData);
       }
 
-      const response = await client.post<StudentProfile>(`/api/students/${id}/update_profile/`, payload, {
-        headers
-      });
+      // 2. Update skills separately (always JSON, never in FormData)
+      if (data.skills && data.skills.length > 0) {
+        await client.patch(`/api/students/${id}/update_skills/`, { skills: data.skills });
+      }
+
+      // 3. Upload files separately using multipart if present
+      if (hasFiles) {
+        if (data.profile_picture) {
+          await this.uploadDocument(id, 'profile_picture', data.profile_picture);
+        }
+        if (data.cv) {
+          await this.uploadDocument(id, 'cv', data.cv);
+        }
+        if (data.admission_letter) {
+          await this.uploadDocument(id, 'admission_letter', data.admission_letter);
+        }
+        if (data.id_document) {
+          await this.uploadDocument(id, 'id_document', data.id_document);
+        }
+      }
+
+      // 4. Fetch and return updated profile
+      const response = await client.get<StudentProfile>(`/api/students/${id}/`);
       return response;
     } catch (error) {
-      if (error instanceof ApiError) throw error;
-      throw new Error('Failed to update profile');
+      // Rethrow all errors to preserve ApiError status codes
+      throw error;
     }
   }
 
-  async uploadDocument(id: string, type: 'cv' | 'admission_letter' | 'id_document', file: File): Promise<any> {
+  async uploadDocument(id: string, type: 'cv' | 'admission_letter' | 'id_document' | 'profile_picture', file: File): Promise<any> {
     try {
       const formData = new FormData();
       formData.append('document_type', type);
       formData.append('file_name', file.name);
       formData.append('file', file);
 
-      const response = await client.post(`/api/students/${id}/upload_document/`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      // Use the dedicated document upload endpoint
+      const response = await client.post(`/api/students/${id}/upload_document/`, formData);
       return response;
     } catch (error) {
-      if (error instanceof ApiError) throw error;
-      throw new Error('Failed to upload document');
+      // Rethrow all errors to preserve ApiError status codes
+      throw error;
     }
   }
 
   async getApplications(): Promise<InternshipApplication[]> {
     try {
       // Use internshipService to fetch applications
-      return await internshipService.getApplications();
+      const response = await internshipService.getApplications();
+      // Handle paginated response - extract array from { results: [...] } if needed
+      return Array.isArray(response) ? response : (response as any)?.results || [];
     } catch (error) {
-      if (error instanceof ApiError) throw error;
-      throw new Error('Failed to fetch applications');
+      // Rethrow all errors to preserve ApiError status codes
+      throw error;
     }
   }
 
   async getActiveInternship(): Promise<InternshipApplication | null> {
     try {
-      // Fetch all applications and find the current/most recent active or completed one
-      const applications = await internshipService.getApplications();
-      const engagement = applications.find(app => 
+      // getApplications returns paginated response { results: [...], count: X }
+      const response = await internshipService.getApplications();
+      const applications = Array.isArray(response) ? response : (response as any).results || [];
+      
+      // Find most recent active or completed internship
+      const engagement = applications.find((app: any) => 
         ['ACTIVE', 'COMPLETED', 'CERTIFIED'].includes(app.status)
       );
       return engagement || null;
     } catch (error) {
-      if (error instanceof ApiError) throw error;
-      throw new Error('Failed to fetch current internship engagement');
+      // Rethrow to preserve ApiError types
+      throw error;
     }
   }
 
@@ -151,8 +162,8 @@ class StudentService {
       });
       return response;
     } catch (error) {
-      if (error instanceof ApiError) throw error;
-      throw new Error('Failed to submit logbook');
+      // Rethrow all errors to preserve ApiError status codes
+      throw error;
     }
   }
 
@@ -179,8 +190,8 @@ class StudentService {
       });
       return response;
     } catch (error) {
-      if (error instanceof ApiError) throw error;
-      throw new Error('Failed to submit daily log');
+      // Rethrow all errors to preserve ApiError status codes
+      throw error;
     }
   }
 
@@ -188,8 +199,8 @@ class StudentService {
     try {
       return await internshipService.getEvidence(applicationId);
     } catch (error) {
-      if (error instanceof ApiError) throw error;
-      throw new Error('Failed to fetch evidence');
+      // Rethrow all errors to preserve ApiError status codes
+      throw error;
     }
   }
 
@@ -200,8 +211,8 @@ class StudentService {
       });
       return response;
     } catch (error) {
-      if (error instanceof ApiError) throw error;
-      throw new Error('Failed to claim affiliation');
+      // Rethrow all errors to preserve ApiError status codes
+      throw error;
     }
   }
 
@@ -210,8 +221,8 @@ class StudentService {
       const response = await client.get<any>(`/api/students/${studentId}/affiliations/`);
       return response.affiliations;
     } catch (error) {
-      if (error instanceof ApiError) throw error;
-      throw new Error('Failed to fetch affiliations');
+      // Rethrow all errors to preserve ApiError status codes
+      throw error;
     }
   }
 
@@ -220,8 +231,8 @@ class StudentService {
       const response = await client.get<{ score: number; breakdown: Record<string, boolean> }>(`/api/students/${studentId}/profile_readiness/`);
       return response;
     } catch (error) {
-      if (error instanceof ApiError) throw error;
-      throw new Error('Failed to fetch profile readiness');
+      // Rethrow all errors to preserve ApiError status codes
+      throw error;
     }
   }
 
@@ -230,20 +241,43 @@ class StudentService {
       const response = await client.get<any>(`/api/students/${studentId}/dashboard_stats/`);
       return response;
     } catch (error) {
-      if (error instanceof ApiError) throw error;
-      throw new Error('Failed to fetch dashboard stats');
+      // Rethrow all errors to preserve ApiError status codes
+      throw error;
     }
   }
 
   async searchInstitutions(query: string): Promise<Institution[]> {
     try {
-      const response = await client.get<Institution[]>('/api/institutions/institutions/', {
+      const response = await client.get<{ results: Institution[] }>('/api/institutions/institutions/', {
         params: { search: query }
       });
+      // Extract the results array from the paginated response
+      return response.results || [];
+    } catch (error) {
+      // Rethrow all errors to preserve ApiError status codes
+      throw error;
+    }
+  }
+
+  async uploadAffiliationDocument(studentId: string, affiliationId: string, file: File): Promise<Affiliation> {
+    try {
+      const formData = new FormData();
+      formData.append('affiliation_id', affiliationId);
+      formData.append('document', file);
+
+      const response = await client.post<Affiliation>(
+        `/api/students/${studentId}/upload_affiliation_document/`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
       return response;
     } catch (error) {
-      if (error instanceof ApiError) throw error;
-      throw new Error('Failed to search institutions');
+      // Rethrow all errors to preserve ApiError status codes
+      throw error;
     }
   }
 }
@@ -262,7 +296,10 @@ export interface Affiliation {
   institution?: Institution;
   institution_name?: string;
   status: 'pending' | 'approved' | 'rejected' | 'verified';
+  claimed_via?: 'domain' | 'manual' | 'adoption' | 'bulk';
   review_notes?: string;
+  verification_document_url?: string;
+  verification_document_uploaded_at?: string;
   created_at?: string;
   updated_at?: string;
 }
