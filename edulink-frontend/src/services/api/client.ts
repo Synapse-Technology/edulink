@@ -96,35 +96,70 @@ class ApiClient {
     this.client.interceptors.request.use(
       async (config) => {
         // Add JWT access token from memory if available
-        if (this.accessToken && !config.headers?.['skip-auth']) {
-          config.headers = config.headers || {};
-          config.headers['Authorization'] = `Bearer ${this.accessToken}`;
+        if (this.accessToken) {
+          const skipAuth = config.headers && typeof config.headers.has === 'function' 
+            ? config.headers.has('skip-auth') 
+            : config.headers?.['skip-auth'];
+            
+          if (!skipAuth) {
+            config.headers = config.headers || {};
+            if (typeof config.headers.set === 'function') {
+              config.headers.set('Authorization', `Bearer ${this.accessToken}`);
+            } else {
+              config.headers['Authorization'] = `Bearer ${this.accessToken}`;
+            }
+          }
         }
 
         // For POST/PUT/PATCH/DELETE requests, add CSRF token
         if (config.method && ['post', 'put', 'patch', 'delete'].includes(config.method.toLowerCase())) {
           const csrfToken = await this.getCsrfToken();
           if (csrfToken) {
-            config.headers = config.headers || {};
-            config.headers['X-CSRFToken'] = csrfToken;
+            if (config.headers && typeof config.headers.set === 'function') {
+              config.headers.set('X-CSRFToken', csrfToken);
+            } else {
+              config.headers = { ...config.headers, 'X-CSRFToken': csrfToken } as any;
+            }
           }
 
           // For FormData, remove Content-Type to let browser set it with boundary
           if (config.data instanceof FormData && config.headers) {
-            delete config.headers['Content-Type'];
+            if (typeof config.headers.delete === 'function') {
+              config.headers.delete('Content-Type');
+            } else {
+              delete (config.headers as any)['Content-Type'];
+            }
           }
         }
 
         // Check for skipAuth header and remove it so it's not sent to the server
-        if (config.headers && 'skip-auth' in config.headers) {
-          delete config.headers['skip-auth'];
+        if (config.headers) {
+          if (typeof config.headers.delete === 'function') {
+            config.headers.delete('skip-auth');
+          } else {
+            delete (config.headers as any)['skip-auth'];
+          }
         }
         
         // Add custom headers if provided
-        if (config.headers?.['custom-headers']) {
-          const customHeaders = config.headers['custom-headers'] as Record<string, string>;
-          Object.assign(config.headers, customHeaders);
-          delete config.headers['custom-headers'];
+        const customHdrs = config.headers && typeof config.headers.get === 'function'
+            ? config.headers.get('custom-headers')
+            : (config.headers as any)?.['custom-headers'];
+
+        if (customHdrs) {
+          const customHeaders = customHdrs as Record<string, string>;
+          Object.entries(customHeaders).forEach(([key, value]) => {
+            if (config.headers && typeof config.headers.set === 'function') {
+              config.headers.set(key, value);
+            } else if (config.headers) {
+              (config.headers as any)[key] = value;
+            }
+          });
+          if (config.headers && typeof config.headers.delete === 'function') {
+            config.headers.delete('custom-headers');
+          } else if (config.headers) {
+            delete (config.headers as any)['custom-headers'];
+          }
         }
 
         return config;
@@ -138,8 +173,9 @@ class ApiClient {
       async (error: AxiosError) => {
         const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
 
-        // Handle 401 Unauthorized - refresh JWT token
-        if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url?.includes('/login/')) {
+        // Handle 401 Unauthorized or 403 (when credentials missing) - refresh JWT token
+        const isAuthError = error.response?.status === 401 || (error.response?.status === 403 && this.extractErrorMessage(error.response.data as any)?.includes('credentials were not provided'));
+        if (isAuthError && !originalRequest._retry && !originalRequest.url?.includes('/login/')) {
           if (this.isRefreshing) {
             return new Promise((resolve, reject) => {
               this.failedQueue.push({ resolve, reject, config: originalRequest });
