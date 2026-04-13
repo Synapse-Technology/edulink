@@ -27,6 +27,7 @@ interface TokenRefreshResponse {
  * Frontend stores response-body tokens temporarily as fallback
  */
 interface AuthResponse {
+  message?: string;
   user: {
     id: string;
     email: string;
@@ -40,6 +41,8 @@ interface AuthResponse {
     institution_id?: string;
     employer_id?: string;
   };
+  access?: string;
+  refresh?: string;
   tokens?: {
     access: string;
     refresh: string;
@@ -150,6 +153,15 @@ class AuthService {
         this.client.setToken(response.access);
         console.log('✅ [AUTH] Access token stored from employer login');
       }
+
+      return response;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error;
+      }
+      throw new AuthenticationError('Login failed. Please check your credentials.');
+    }
+  }
 
   async register(userData: RegisterData): Promise<AuthResponse> {
     try {
