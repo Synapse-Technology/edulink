@@ -321,11 +321,6 @@ LOGGING = {
         },
     },
 }
-    "root": {
-        "handlers": ["console"],
-        "level": "INFO",
-    },
-}
 
 # Debug: Log cookie configuration at startup
 import sys
