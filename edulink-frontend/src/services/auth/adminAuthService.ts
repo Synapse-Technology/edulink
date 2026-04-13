@@ -26,6 +26,8 @@ interface AdminLoginCredentials {
 interface AdminAuthResponse {
   user: AdminUser;
   message?: string;
+  access?: string;
+  refresh?: string;
 }
 
 interface AdminTokenRefreshResponse {
@@ -122,6 +124,13 @@ class AdminAuthService {
         credentials
       );
 
+      if (response.access) {
+        this.client.setToken(response.access);
+      }
+      if (response.refresh) {
+        this.client.setRefreshToken(response.refresh);
+      }
+
       return response;
     } catch (error) {
       if (error instanceof ApiError) {
@@ -144,6 +153,13 @@ class AdminAuthService {
         {}
       );
 
+      if (response.access) {
+        this.client.setToken(response.access);
+      }
+      if (response.refresh) {
+        this.client.setRefreshToken(response.refresh);
+      }
+
       return response;
     } catch (error) {
       if (error instanceof ApiError) {
@@ -164,6 +180,8 @@ class AdminAuthService {
       // Logout should not block UI even if API call fails
       console.warn('Admin logout API call failed:', error);
     } finally {
+      this.client.clearToken();
+      this.client.setRefreshToken('');
       // Remove legacy localStorage tokens from old sessions (Phase 1 migration)
       localStorage.removeItem('adminToken');
       localStorage.removeItem('adminRefreshToken');

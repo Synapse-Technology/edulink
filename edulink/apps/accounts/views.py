@@ -179,15 +179,8 @@ class UserViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['post'])
     def token_refresh(self, request):
-        """
-        Refresh JWT token endpoint - get refresh token from HttpOnly cookie, return new access token in response body.
-        
-        HYBRID AUTH: Refresh token stays in HttpOnly cookie (can't be stolen by XSS)
-        New access token returned in response body for frontend to store in memory
-        """
         try:
-            # Get refresh token from cookie
-            refresh_token = request.COOKIES.get('refresh_token')
+            refresh_token = request.COOKIES.get('refresh_token') or request.data.get('refresh')
             
             if not refresh_token:
                 logger = logging.getLogger(__name__)
@@ -199,30 +192,24 @@ class UserViewSet(viewsets.ModelViewSet):
                     },
                     status=status.HTTP_401_UNAUTHORIZED
                 )
-            
-            # Create new token pair from refresh token
-            token = RefreshToken(refresh_token)
-            new_access = str(token.access_token)
-            new_refresh = str(token)
-            
-            # 🔐 HYBRID AUTH: Return new access token in response body
-            # Frontend stores in memory, refresh token stays in HttpOnly cookie
-            response = Response({
-                'message': 'Token refreshed successfully',
-                'access': new_access,  # NEW: Return in response body for memory storage
-            }, status=status.HTTP_200_OK)
-            
-            # Only update refresh token cookie (it's already set, but this creates a new one)
-            response.set_cookie(
-                key='refresh_token',
-                value=new_refresh,
-                max_age=1209600,  # 14 days
-                secure=not DEBUG,
-                httponly=True,
-                samesite='None' if not DEBUG else 'Lax',  # None for cross-site on production
-                path='/',
-            )
-            
+
+            serializer = TokenRefreshSerializer(data={'refresh': refresh_token})
+            serializer.is_valid(raise_exception=True)
+
+            response = Response(serializer.validated_data, status=status.HTTP_200_OK)
+
+            rotated_refresh = serializer.validated_data.get('refresh')
+            if rotated_refresh:
+                response.set_cookie(
+                    key='refresh_token',
+                    value=rotated_refresh,
+                    max_age=1209600,
+                    secure=not DEBUG,
+                    httponly=True,
+                    samesite='None' if not DEBUG else 'Lax',
+                    path='/',
+                )
+
             logger = logging.getLogger(__name__)
             logger.warning(f"✅ [TOKEN_REFRESH] Access token refreshed")
             return response
@@ -257,6 +244,13 @@ class UserViewSet(viewsets.ModelViewSet):
         User logout endpoint - clear session (HttpOnly cookie handled by Django).
         """
         try:
+            refresh_token = request.COOKIES.get('refresh_token') or request.data.get('refresh')
+            if refresh_token:
+                try:
+                    RefreshToken(refresh_token).blacklist()
+                except Exception:
+                    pass
+
             # Clear Django session (removes sessionid cookie)
             django_logout(request)
             

@@ -774,10 +774,11 @@ class AdminLoginView(APIView):
                 'is_platform_staff': True
             }
             
-            # Prepare response (tokens in HttpOnly cookies, not body)
             response = Response({
                 'message': 'Admin login successful',
-                'user': user_data
+                'user': user_data,
+                'access': str(refresh.access_token),
+                'refresh': str(refresh),
             }, status=status.HTTP_200_OK)
             
             # Set tokens as HttpOnly cookies (same pattern as regular user login)
@@ -820,8 +821,8 @@ class AdminTokenRefreshView(APIView):
         Refresh JWT token for authenticated platform staff.
         Tokens are returned via HttpOnly cookies, not in response body.
         """
-        from edulink.apps.accounts.serializers import TokenRefreshSerializer
         from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
+        from edulink.apps.accounts.serializers import TokenRefreshSerializer
         
         # Validate refresh token and get user
         try:
@@ -846,19 +847,25 @@ class AdminTokenRefreshView(APIView):
                     status=status.HTTP_403_FORBIDDEN
                 )
                 
-            # Create new tokens with rotation (old refresh token invalidated)
-            new_refresh = RefreshToken.for_user(user)
-            
-            # Prepare response (NO tokens in body)
+            serializer = TokenRefreshSerializer(data={'refresh': refresh_token})
+            serializer.is_valid(raise_exception=True)
+
+            new_access = serializer.validated_data.get('access')
+            new_rotated_refresh = serializer.validated_data.get('refresh')
+
             response = Response(
-                {'message': 'Token refreshed successfully'},
+                {
+                    'message': 'Token refreshed successfully',
+                    'access': new_access,
+                    'refresh': new_rotated_refresh,
+                },
                 status=status.HTTP_200_OK
             )
             
             # Set new access token in cookie
             response.set_cookie(
                 key='access_token',
-                value=str(new_refresh.access_token),
+                value=new_access,
                 max_age=7200,
                 secure=not settings.DEBUG,
                 httponly=True,
@@ -869,7 +876,7 @@ class AdminTokenRefreshView(APIView):
             # Set new refresh token in cookie (rotation)
             response.set_cookie(
                 key='refresh_token',
-                value=str(new_refresh),
+                value=new_rotated_refresh or refresh_token,
                 max_age=1209600,
                 secure=not settings.DEBUG,
                 httponly=True,

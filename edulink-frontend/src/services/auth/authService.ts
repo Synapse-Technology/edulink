@@ -101,13 +101,14 @@ class AuthService {
         credentials
       );
 
-      // 🔐 HYBRID AUTH: Store JWT access token in memory for API requests
-      // Backend returns JWT tokens in response (Cloudflare blocks SameSite=None cookies)
-      // Access token stored in memory (vulnerable to XSS but caught by CSP)
-      // Refresh token stored in HttpOnly cookie by backend (protected from XSS)
-      if (response.access) {
-        this.client.setToken(response.access);
-        console.log('✅ [AUTH] Access token stored from login response');
+      const accessToken = response.access ?? response.tokens?.access;
+      const refreshToken = response.refresh ?? response.tokens?.refresh;
+
+      if (accessToken) {
+        this.client.setToken(accessToken);
+      }
+      if (refreshToken) {
+        this.client.setRefreshToken(refreshToken);
       }
 
       return response;
@@ -126,10 +127,14 @@ class AuthService {
         credentials
       );
 
-      // 🔐 HYBRID AUTH: Store JWT access token in memory
-      if (response.access) {
-        this.client.setToken(response.access);
-        console.log('✅ [AUTH] Access token stored from institution login');
+      const accessToken = response.access ?? response.tokens?.access;
+      const refreshToken = response.refresh ?? response.tokens?.refresh;
+
+      if (accessToken) {
+        this.client.setToken(accessToken);
+      }
+      if (refreshToken) {
+        this.client.setRefreshToken(refreshToken);
       }
 
       return response;
@@ -148,10 +153,14 @@ class AuthService {
         credentials
       );
 
-      // 🔐 HYBRID AUTH: Store JWT access token in memory
-      if (response.access) {
-        this.client.setToken(response.access);
-        console.log('✅ [AUTH] Access token stored from employer login');
+      const accessToken = response.access ?? response.tokens?.access;
+      const refreshToken = response.refresh ?? response.tokens?.refresh;
+
+      if (accessToken) {
+        this.client.setToken(accessToken);
+      }
+      if (refreshToken) {
+        this.client.setRefreshToken(refreshToken);
       }
 
       return response;
@@ -217,15 +226,20 @@ class AuthService {
    */
   async logout(): Promise<void> {
     try {
-      // POST to logout endpoint - backend will clear HttpOnly cookies
-      await this.client.post('/api/auth/logout/', {});
+      let refresh: string | null = null;
+      try {
+        refresh = sessionStorage.getItem('refresh_token');
+      } catch (e) {
+        void e;
+      }
+
+      await this.client.post('/api/auth/logout/', refresh ? { refresh } : {});
     } catch (error) {
       console.warn('Logout API call failed:', error);
       // Even if logout endpoint fails, clear local state (cookies are separate)
     } finally {
-      // 🔐 HYBRID AUTH: Clear JWT access token from memory
       this.client.clearToken();
-      console.log('✅ [AUTH] Logged out, tokens cleared');
+      this.client.setRefreshToken('');
     }
   }
 

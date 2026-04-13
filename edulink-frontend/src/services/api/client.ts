@@ -23,6 +23,7 @@ class ApiClient {
   private config: ApiClientConfig;
   private isRefreshing: boolean = false;
   private accessToken: string | null = null;
+  private refreshToken: string | null = null;
   private csrfToken: string | null = null;
   private csrfTokenPromise: Promise<string | null> | null = null;
   private failedQueue: Array<{
@@ -84,6 +85,7 @@ class ApiClient {
         const token = await this.csrfTokenPromise;
         return token;
       } catch (err) {
+        void err;
         return null;
       }
     }
@@ -186,17 +188,25 @@ class ApiClient {
           this.isRefreshing = true;
 
           try {
-            // POST to refresh endpoint with refresh token in HttpOnly cookie
-            // Server validates refresh token and returns new access token in response
+            const refreshToken = this.getRefreshToken();
+            if (!refreshToken) {
+              this.processQueue(error);
+              this.clearAuth();
+              throw new AuthenticationError('Session expired. Please log in again.');
+            }
+
             const refreshResponse = await this.client.post(
-              '/api/token/refresh/',
-              {},
+              '/api/auth/token/refresh/',
+              { refresh: refreshToken },
               { headers: { 'skip-auth': 'true' } }
             );
             
             // Extract new access token from response
             if (refreshResponse.data.access) {
               this.accessToken = refreshResponse.data.access;
+              if (refreshResponse.data.refresh) {
+                this.setRefreshToken(refreshResponse.data.refresh);
+              }
               this.processQueue(null);
               // Retry original request with new token
               return this.client(originalRequest);
@@ -307,16 +317,22 @@ class ApiClient {
     if (this.accessToken) {
       return this.accessToken;
     }
+    return null;
+  }
 
-    // Fallback: Try to get from localStorage (response-body tokens from login)
+  private getRefreshToken(): string | null {
+    if (this.refreshToken) {
+      return this.refreshToken;
+    }
+
     try {
-      const token = localStorage.getItem('access_token');
+      const token = sessionStorage.getItem('refresh_token');
       if (token) {
-        this.accessToken = token; // Sync to memory
+        this.refreshToken = token;
         return token;
       }
     } catch (e) {
-      // Fallback
+      void e;
     }
 
     return null;
@@ -324,6 +340,13 @@ class ApiClient {
 
   private clearAuth(): void {
     this.accessToken = null;
+    this.refreshToken = null;
+
+    try {
+      sessionStorage.removeItem('refresh_token');
+    } catch (e) {
+      void e;
+    }
     
     // Clear Zustand storage
     try {
@@ -341,7 +364,9 @@ class ApiClient {
                 localStorage.setItem('auth-storage', JSON.stringify(authStorage));
             }
         }
-    } catch (e) {}
+    } catch (e) {
+      void e;
+    }
   }
 
   // Public API methods
@@ -402,10 +427,22 @@ class ApiClient {
   }
 
   setRefreshToken(token: string): void {
-    // We do not set legacy refresh token key anymore.
-    // Use token variable to satisfy linter or remove it if interface allows.
-    // Since this is a public method, we keep the signature but ignore the arg.
-    void token;
+    if (!token) {
+      this.refreshToken = null;
+      try {
+        sessionStorage.removeItem('refresh_token');
+      } catch (e) {
+        void e;
+      }
+      return;
+    }
+
+    this.refreshToken = token;
+    try {
+      sessionStorage.setItem('refresh_token', token);
+    } catch (e) {
+      void e;
+    }
   }
 
   setAdminToken(token: string): void {

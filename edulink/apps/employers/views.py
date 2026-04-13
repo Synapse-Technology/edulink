@@ -5,7 +5,6 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.conf import settings
-from django.contrib.auth import login as django_login  # Use Django's built-in session login
 from django_filters.rest_framework import DjangoFilterBackend
 
 from .models import EmployerRequest, Employer, Supervisor
@@ -61,18 +60,15 @@ class EmployerLoginView(APIView):
                     {"detail": "Access denied. This login is for employer staff only."},
                     status=status.HTTP_403_FORBIDDEN
                 )
-            
-            # Authenticate in session (Django handles HttpOnly sessionid cookie automatically)
-            django_login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-            
-            # Force session persistence by accessing it (creates session in DB)
-            request.session.modified = True
+            refresh = RefreshToken.for_user(user)
             
             # Return user data
             user_serializer = UserSerializer(user)
             return Response({
                 'message': 'Login successful',
                 'user': user_serializer.data,
+                'access': str(refresh.access_token),
+                'refresh': str(refresh),
             }, status=status.HTTP_200_OK)
             
         except ValueError as e:
