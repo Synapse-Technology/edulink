@@ -92,9 +92,15 @@ class ApiClient {
   }
 
   private setupInterceptors(): void {
-    // Request interceptor - handle CSRF token injection
+    // Request interceptor - handle JWT token and CSRF token injection
     this.client.interceptors.request.use(
       async (config) => {
+        // Add JWT access token from memory if available
+        if (this.accessToken && !config.headers?.['skip-auth']) {
+          config.headers = config.headers || {};
+          config.headers['Authorization'] = `Bearer ${this.accessToken}`;
+        }
+
         // For POST/PUT/PATCH/DELETE requests, add CSRF token
         if (config.method && ['post', 'put', 'patch', 'delete'].includes(config.method.toLowerCase())) {
           const csrfToken = await this.getCsrfToken();
@@ -114,9 +120,6 @@ class ApiClient {
           delete config.headers['skip-auth'];
         }
         
-        // Authentication is handled via HttpOnly cookies (sent automatically via withCredentials: true)
-        // No Bearer token injection - cookies are the single source of truth
-
         // Add custom headers if provided
         if (config.headers?.['custom-headers']) {
           const customHeaders = config.headers['custom-headers'] as Record<string, string>;
@@ -135,7 +138,7 @@ class ApiClient {
       async (error: AxiosError) => {
         const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
 
-        // Handle 401 Unauthorized - refresh session
+        // Handle 401 Unauthorized - refresh JWT token
         if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url?.includes('/login/')) {
           if (this.isRefreshing) {
             return new Promise((resolve, reject) => {
@@ -147,16 +150,21 @@ class ApiClient {
           this.isRefreshing = true;
 
           try {
-            // Use cookies only - no fallback to localStorage
-            // Server reads refresh_token cookie, returns new access_token cookie
-            await this.client.post(
-              '/api/auth/token/refresh/',
+            // POST to refresh endpoint with refresh token in HttpOnly cookie
+            // Server validates refresh token and returns new access token in response
+            const refreshResponse = await this.client.post(
+              '/api/token/refresh/',
               {},
               { headers: { 'skip-auth': 'true' } }
             );
-            this.processQueue(null);
-            // Access token cookie has been updated by server; retry original request
-            return this.client(originalRequest);
+            
+            // Extract new access token from response
+            if (refreshResponse.data.access) {
+              this.accessToken = refreshResponse.data.access;
+              this.processQueue(null);
+              // Retry original request with new token
+              return this.client(originalRequest);
+            }
           } catch (refreshError) {
             this.processQueue(refreshError);
             this.clearAuth();
@@ -349,8 +357,12 @@ class ApiClient {
   // Utility methods
   setToken(token: string): void {
     this.accessToken = token;
-    // We do not set legacy token key anymore.
-    // The store should manage persistence.
+    console.log('🔐 [TOKEN] Access token set');
+  }
+
+  clearToken(): void {
+    this.accessToken = null;
+    console.log('🔐 [TOKEN] Access token cleared');
   }
 
   setRefreshToken(token: string): void {

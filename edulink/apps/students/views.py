@@ -49,16 +49,22 @@ class StudentLoginView(APIView):
     """
     Student-specific login endpoint.
     Only allows Students to login.
-    Uses Django's session framework (HttpOnly cookies) instead of JWT.
+    Returns JWT tokens (not session cookies) for better cross-domain compatibility on Render.
+    
+    Cloudflare blocks cross-domain SameSite=None cookies, so we switched to JWT tokens
+    sent via Authorization headers instead of relying on cookie storage.
     """
     permission_classes = [AllowAny]
     
     def post(self, request):
         """
-        Authenticate student and create session (HttpOnly cookie handled by Django).
+        Authenticate student and return JWT tokens.
+        Frontend stores tokens and sends via Authorization: Bearer <token> header.
         """
         from edulink.apps.accounts.serializers import UserLoginSerializer, UserSerializer
         from edulink.apps.accounts.services import authenticate_user
+        import logging
+        logger = logging.getLogger(__name__)
         
         serializer = UserLoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -68,22 +74,24 @@ class StudentLoginView(APIView):
             
             # Check if user is a student
             if not is_student(user):
+                logger.warning(f"❌ [LOGIN] Non-student login attempt: {user.email}")
                 return Response(
                     {"detail": "Access denied. This login is for students only."},
                     status=status.HTTP_403_FORBIDDEN
                 )
             
-            # Authenticate in session (Django handles HttpOnly sessionid cookie automatically)
-            django_login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+            # Generate JWT tokens (access token for API calls, refresh for token renewal)
+            refresh = RefreshToken.for_user(user)
             
-            # Force session persistence by accessing it (creates session in DB)
-            request.session.modified = True
+            logger.warning(f"✅ [LOGIN] Student login successful: {user.email}, access_token_issued")
             
-            # Return user data
+            # Return user data with tokens
             user_serializer = UserSerializer(user)
             return Response({
                 'message': 'Login successful',
                 'user': user_serializer.data,
+                'access': str(refresh.access_token),
+                'refresh': str(refresh),
             }, status=status.HTTP_200_OK)
             
         except ValueError as e:

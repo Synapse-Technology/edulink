@@ -127,31 +127,23 @@ class UserViewSet(viewsets.ModelViewSet):
             # Generate JWT tokens
             refresh = RefreshToken.for_user(user)
             
-            # Prepare response (tokens NOT in body for security)
+            # Prepare response with tokens in body for HYBRID AUTH
             user_serializer = UserSerializer(user)
             response = Response({
                 'message': 'Login successful',
                 'user': user_serializer.data,
+                'access': str(refresh.access_token),  # Return access token in response body
+                'refresh': str(refresh),  # Return refresh token in response body
             }, status=status.HTTP_200_OK)
             
-            # Set tokens as HttpOnly cookies
-            response.set_cookie(
-                key='access_token',
-                value=str(refresh.access_token),
-                max_age=7200,  # 2 hours (match JWT_ACCESS_TOKEN_LIFETIME)
-                secure=not DEBUG,  # HTTPS only in production
-                httponly=True,
-                samesite='Lax',
-                path='/',
-            )
-            
+            # 🔐 HYBRID AUTH: Also set refresh token as HttpOnly cookie (access token in response body for memory storage)
             response.set_cookie(
                 key='refresh_token',
                 value=str(refresh),
                 max_age=1209600,  # 14 days (match JWT_REFRESH_TOKEN_LIFETIME)
                 secure=not DEBUG,
                 httponly=True,
-                samesite='Lax',
+                samesite='None' if not DEBUG else 'Lax',  # None for cross-site on production
                 path='/',
             )
             
@@ -159,6 +151,10 @@ class UserViewSet(viewsets.ModelViewSet):
             from django.middleware.csrf import get_token
             csrf_token = get_token(request)
             response['X-CSRFToken'] = csrf_token
+            
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"✅ [LOGIN] User {user.email} logged in with JWT tokens")
             
             return response
         except ValueError as e:
@@ -184,13 +180,18 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'])
     def token_refresh(self, request):
         """
-        Refresh JWT token endpoint - get token from cookie, set in cookie.
+        Refresh JWT token endpoint - get refresh token from HttpOnly cookie, return new access token in response body.
+        
+        HYBRID AUTH: Refresh token stays in HttpOnly cookie (can't be stolen by XSS)
+        New access token returned in response body for frontend to store in memory
         """
         try:
             # Get refresh token from cookie
             refresh_token = request.COOKIES.get('refresh_token')
             
             if not refresh_token:
+                logger = logging.getLogger(__name__)
+                logger.warning(f"🔐 [TOKEN_REFRESH] No refresh token in cookies")
                 return Response(
                     {
                         'error_code': 'NO_REFRESH_TOKEN',
@@ -199,37 +200,31 @@ class UserViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_401_UNAUTHORIZED
                 )
             
-            # Create new token pair
+            # Create new token pair from refresh token
             token = RefreshToken(refresh_token)
             new_access = str(token.access_token)
             new_refresh = str(token)
             
-            # Prepare response
+            # 🔐 HYBRID AUTH: Return new access token in response body
+            # Frontend stores in memory, refresh token stays in HttpOnly cookie
             response = Response({
-                'message': 'Token refreshed successfully'
+                'message': 'Token refreshed successfully',
+                'access': new_access,  # NEW: Return in response body for memory storage
             }, status=status.HTTP_200_OK)
             
-            # Update cookies with new tokens
-            response.set_cookie(
-                key='access_token',
-                value=new_access,
-                max_age=7200,
-                secure=not DEBUG,
-                httponly=True,
-                samesite='Lax',
-                path='/',
-            )
-            
+            # Only update refresh token cookie (it's already set, but this creates a new one)
             response.set_cookie(
                 key='refresh_token',
                 value=new_refresh,
-                max_age=1209600,
+                max_age=1209600,  # 14 days
                 secure=not DEBUG,
                 httponly=True,
-                samesite='Lax',
+                samesite='None' if not DEBUG else 'Lax',  # None for cross-site on production
                 path='/',
             )
             
+            logger = logging.getLogger(__name__)
+            logger.warning(f"✅ [TOKEN_REFRESH] Access token refreshed")
             return response
             
         except Exception as e:

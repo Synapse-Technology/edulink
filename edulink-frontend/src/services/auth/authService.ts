@@ -98,7 +98,15 @@ class AuthService {
         credentials
       );
 
-      // Backend sets HttpOnly cookies - no localStorage storage needed
+      // 🔐 HYBRID AUTH: Store JWT access token in memory for API requests
+      // Backend returns JWT tokens in response (Cloudflare blocks SameSite=None cookies)
+      // Access token stored in memory (vulnerable to XSS but caught by CSP)
+      // Refresh token stored in HttpOnly cookie by backend (protected from XSS)
+      if (response.access) {
+        this.client.setToken(response.access);
+        console.log('✅ [AUTH] Access token stored from login response');
+      }
+
       return response;
     } catch (error) {
       if (error instanceof ApiError) {
@@ -115,7 +123,12 @@ class AuthService {
         credentials
       );
 
-      // Backend sets HttpOnly cookies - no localStorage storage needed
+      // 🔐 HYBRID AUTH: Store JWT access token in memory
+      if (response.access) {
+        this.client.setToken(response.access);
+        console.log('✅ [AUTH] Access token stored from institution login');
+      }
+
       return response;
     } catch (error) {
       if (error instanceof ApiError) {
@@ -132,15 +145,11 @@ class AuthService {
         credentials
       );
 
-      // Backend sets HttpOnly cookies - no localStorage storage needed
-      return response;
-    } catch (error) {
-      if (error instanceof ApiError) {
-        throw error;
+      // 🔐 HYBRID AUTH: Store JWT access token in memory
+      if (response.access) {
+        this.client.setToken(response.access);
+        console.log('✅ [AUTH] Access token stored from employer login');
       }
-      throw new AuthenticationError('Login failed. Please check your credentials.');
-    }
-  }
 
   async register(userData: RegisterData): Promise<AuthResponse> {
     try {
@@ -201,6 +210,10 @@ class AuthService {
     } catch (error) {
       console.warn('Logout API call failed:', error);
       // Even if logout endpoint fails, clear local state (cookies are separate)
+    } finally {
+      // 🔐 HYBRID AUTH: Clear JWT access token from memory
+      this.client.clearToken();
+      console.log('✅ [AUTH] Logged out, tokens cleared');
     }
   }
 

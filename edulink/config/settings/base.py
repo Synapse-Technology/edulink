@@ -69,6 +69,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "edulink.apps.shared.middleware.ErrorHandlingMiddleware",  # Global exception handler
+    "edulink.config.middleware.session_debug.SessionDebugMiddleware",  # DEBUG: Session logging
 ]
 
 ROOT_URLCONF = "edulink.config.urls"
@@ -298,6 +299,28 @@ LOGGING = {
             "formatter": "verbose",
         },
     },
+    "root": {
+        "handlers": ["console"],
+        "level": "DEBUG",
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "edulink": {
+            "handlers": ["console"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "django.contrib.sessions": {
+            "handlers": ["console"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+    },
+}
     "root": {
         "handlers": ["console"],
         "level": "INFO",
