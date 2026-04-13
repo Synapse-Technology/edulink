@@ -260,7 +260,7 @@ EMAIL_VERIFICATION_TOKEN_EXPIRE_HOURS = 24  # Token expires in 24 hours
 #CSRF & Session Cookie Security
 CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SECURE = os.getenv("CSRF_COOKIE_SECURE", "False").lower() == "true"  # True in production
-CSRF_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "None"  # Changed from Lax to None for cross-site requests between subdomains
 CSRF_COOKIE_DOMAIN = os.getenv("CSRF_COOKIE_DOMAIN", None)  # Set to .onrender.com in production
 CSRF_TRUSTED_ORIGINS = [
     "https://edulink-frontend.com",
@@ -271,7 +271,7 @@ CSRF_TRUSTED_ORIGINS = [
 
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "False").lower() == "true"
-SESSION_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_SAMESITE = "None"  # Changed from Lax to None for cross-site requests between subdomains
 SESSION_COOKIE_DOMAIN = os.getenv("SESSION_COOKIE_DOMAIN", None)  # Set to .onrender.com or None for localhost
 SESSION_COOKIE_PATH = "/"
 
