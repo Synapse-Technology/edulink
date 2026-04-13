@@ -9,6 +9,8 @@ import { AuthProvider } from './contexts/AuthContext.tsx'
 import { PusherProvider } from './contexts/PusherContext.tsx'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
+// Force deploy: JWT Token Authentication Ready v1
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
