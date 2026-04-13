@@ -303,3 +303,15 @@ LOGGING = {
         "level": "INFO",
     },
 }
+
+# Debug: Log cookie configuration at startup
+import sys
+if "runserver" in sys.argv or "gunicorn" in sys.argv[0]:
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.warning(f"🔍 SESSION_COOKIE_DOMAIN={SESSION_COOKIE_DOMAIN}")
+    logger.warning(f"🔍 SESSION_COOKIE_SECURE={SESSION_COOKIE_SECURE}")
+    logger.warning(f"🔍 CSRF_COOKIE_DOMAIN={CSRF_COOKIE_DOMAIN}")
+    logger.warning(f"🔍 CSRF_COOKIE_SECURE={CSRF_COOKIE_SECURE}")
+    logger.warning(f"🔍 CORS_ALLOWED_ORIGINS={CORS_ALLOWED_ORIGINS}")
+    logger.warning(f"🔍 CORS_ALLOW_CREDENTIALS={CORS_ALLOW_CREDENTIALS}")
