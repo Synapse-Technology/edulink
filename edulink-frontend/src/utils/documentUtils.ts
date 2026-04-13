@@ -2,22 +2,15 @@ import { apiClient } from '../services/api/client';
 import { toast } from 'react-hot-toast';
 
 /**
- * Normalizes a document URL to ensure it has the correct media prefix
- * and points to the right backend location.
+ * Normalizes a document URL for API client usage without assuming a
+ * specific storage backend path (e.g. /media/).
  */
 export const normalizeDocumentUrl = (url: string): string => {
   if (!url) return '';
   if (url.startsWith('http') || url.startsWith('blob:') || url.startsWith('data:')) return url;
 
-  // Remove leading slash if present for consistent processing
-  const cleanPath = url.startsWith('/') ? url.substring(1) : url;
-  
-  // If it doesn't already have media/ prefix, add it
-  if (!cleanPath.startsWith('media/')) {
-    return `/media/${cleanPath}`;
-  }
-  
-  return `/${cleanPath}`;
+  // For relative paths, preserve backend-provided location and only normalize slash prefix.
+  return url.startsWith('/') ? url : `/${url}`;
 };
 
 /**

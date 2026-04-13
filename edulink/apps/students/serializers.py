@@ -1,6 +1,26 @@
 from rest_framework import serializers
 from .models import Student, StudentInstitutionAffiliation
-from django.conf import settings
+from urllib.parse import urlparse
+
+
+def _build_storage_file_url(field_file, request=None):
+    """Build URL from the field storage backend without hardcoding MEDIA_URL."""
+    if not field_file:
+        return None
+
+    try:
+        url = field_file.url
+    except Exception:
+        return None
+
+    if not request or not url:
+        return url
+
+    parsed = urlparse(url)
+    if parsed.scheme and parsed.netloc:
+        return url
+
+    return request.build_absolute_uri(url)
 
 
 class StudentSerializer(serializers.ModelSerializer):
@@ -19,35 +39,18 @@ class StudentSerializer(serializers.ModelSerializer):
         read_only_fields = ['trust_level', 'trust_points', 'profile_picture', 'profile_picture_url', 'cv', 'admission_letter', 'id_document']
     
     def get_profile_picture_url(self, obj):
-        """Return absolute URL for profile picture"""
-        if obj.profile_picture:
-            request = self.context.get('request')
-            profile_picture_path = str(obj.profile_picture)
-            media_path = settings.MEDIA_URL + profile_picture_path
-            
-            if request:
-                return request.build_absolute_uri(media_path)
-            else:
-                # Fallback - construct from settings
-                return media_path
-        return None
-    
+        """Return profile picture URL from the configured storage backend."""
+        request = self.context.get('request')
+        return _build_storage_file_url(obj.profile_picture, request=request)
+
     def to_representation(self, instance):
-        """Ensure all file fields return full URLs with /media/ prefix"""
+        """Resolve all student file fields through the configured storage backend."""
         data = super().to_representation(instance)
         request = self.context.get('request')
-        
-        # Convert relative file paths to absolute URLs
+
         for file_field in ['cv', 'admission_letter', 'id_document', 'profile_picture']:
-            if data.get(file_field):
-                file_path = str(data[file_field])
-                media_path = settings.MEDIA_URL + file_path
-                
-                if request:
-                    data[file_field] = request.build_absolute_uri(media_path)
-                else:
-                    data[file_field] = media_path
-        
+            data[file_field] = _build_storage_file_url(getattr(instance, file_field, None), request=request)
+
         return data
     
     def validate_registration_number(self, value):

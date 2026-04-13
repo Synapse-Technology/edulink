@@ -1,9 +1,8 @@
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.http import HttpResponse
+from django.http import FileResponse
 from uuid import UUID
-import os
 
 from .models import Artifact, ArtifactType
 from .serializers import ArtifactSerializer
@@ -188,22 +187,33 @@ class ArtifactViewSet(viewsets.ReadOnlyModelViewSet):
         if not can_view_artifact(request.user, artifact):
             return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
 
-        if not artifact.file:
+        if not artifact.file or not artifact.file.name:
             return Response({"error": "File not found"}, status=status.HTTP_404_NOT_FOUND)
 
         # Prepare response
         serializer = ArtifactSerializer(artifact)
         safe_filename = serializer.data['download_filename']
 
+        # Single source of truth for storage access: always use the field's storage backend.
+        storage = artifact.file.storage
+        file_name = artifact.file.name
+
+        if not storage.exists(file_name):
+            logger.warning(f"Artifact file missing in storage for {artifact.id}: {file_name}")
+            return Response({"error": "File not found"}, status=status.HTTP_404_NOT_FOUND)
+
         try:
-            file_content = artifact.file.read()
-        except Exception as e:
-            logger.error(f"Failed to read artifact file {artifact.id}: {e}")
+            file_handle = storage.open(file_name, mode='rb')
+        except FileNotFoundError:
+            logger.warning(f"Artifact file not found during open for {artifact.id}: {file_name}")
+            return Response({"error": "File not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception:
+            logger.exception(f"Failed to read artifact file {artifact.id}")
             return Response(
                 {"error": "File access failed. Please contact support if this persists."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-        response = HttpResponse(file_content, content_type='application/pdf')
+        response = FileResponse(file_handle, content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="{safe_filename}"'
         return response
