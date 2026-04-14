@@ -137,8 +137,31 @@ export interface EmployerStaffProfileRequestAction {
   admin_feedback?: string;
 }
 
+interface PaginatedResponse<T> {
+  count?: number;
+  next?: string | null;
+  previous?: string | null;
+  results?: T[];
+}
+
 class EmployerService {
   private client = apiClient;
+
+  private normalizeListResponse<T>(response: T[] | PaginatedResponse<T> | { data?: T[] } | null | undefined): T[] {
+    if (Array.isArray(response)) {
+      return response;
+    }
+
+    if (response && Array.isArray((response as PaginatedResponse<T>).results)) {
+      return (response as PaginatedResponse<T>).results as T[];
+    }
+
+    if (response && Array.isArray((response as { data?: T[] }).data)) {
+      return (response as { data?: T[] }).data as T[];
+    }
+
+    return [];
+  }
 
   async getRequests(params?: { status?: string; search?: string }): Promise<EmployerRequest[]> {
     try {
@@ -184,8 +207,8 @@ class EmployerService {
 
   async getSupervisors(): Promise<Supervisor[]> {
     try {
-      const response = await this.client.get<Supervisor[]>('/api/employers/employer-supervisors/');
-      return response;
+      const response = await this.client.get<Supervisor[] | PaginatedResponse<Supervisor> | { data?: Supervisor[] }>('/api/employers/employer-supervisors/');
+      return this.normalizeListResponse(response);
     } catch (error) {
       if (error instanceof ApiError) throw error;
       throw new Error('Failed to fetch supervisors');
