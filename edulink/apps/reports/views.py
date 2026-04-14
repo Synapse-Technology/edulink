@@ -1,7 +1,7 @@
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.http import FileResponse
+from django.http import FileResponse, HttpResponse
 from uuid import UUID
 
 from .models import Artifact, ArtifactType
@@ -10,10 +10,12 @@ from .services import (
     generate_completion_certificate, 
     generate_logbook_report, 
     generate_performance_summary,
-    verify_artifact
+    verify_artifact,
+    resolve_artifact_file_for_download,
 )
 from .queries import list_artifacts_for_student, get_artifact_by_id
 from .policies import can_generate_artifact, can_view_artifact
+from edulink.apps.shared.error_handling import NotFoundError
 
 import logging
 
@@ -187,25 +189,13 @@ class ArtifactViewSet(viewsets.ReadOnlyModelViewSet):
         if not can_view_artifact(request.user, artifact):
             return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
 
-        if not artifact.file or not artifact.file.name:
-            return Response({"error": "File not found"}, status=status.HTTP_404_NOT_FOUND)
-
         # Prepare response
         serializer = ArtifactSerializer(artifact)
         safe_filename = serializer.data['download_filename']
 
-        # Single source of truth for storage access: always use the field's storage backend.
-        storage = artifact.file.storage
-        file_name = artifact.file.name
-
-        if not storage.exists(file_name):
-            logger.warning(f"Artifact file missing in storage for {artifact.id}: {file_name}")
-            return Response({"error": "File not found"}, status=status.HTTP_404_NOT_FOUND)
-
         try:
-            file_handle = storage.open(file_name, mode='rb')
-        except FileNotFoundError:
-            logger.warning(f"Artifact file not found during open for {artifact.id}: {file_name}")
+            mode, content = resolve_artifact_file_for_download(artifact=artifact)
+        except NotFoundError:
             return Response({"error": "File not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception:
             logger.exception(f"Failed to read artifact file {artifact.id}")
@@ -214,6 +204,11 @@ class ArtifactViewSet(viewsets.ReadOnlyModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-        response = FileResponse(file_handle, content_type='application/pdf')
+        if mode == "bytes":
+            response = HttpResponse(content, content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="{safe_filename}"'
+            return response
+
+        response = FileResponse(content, content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="{safe_filename}"'
         return response

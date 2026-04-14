@@ -2,6 +2,7 @@
 Production settings for Edulink project.
 """
 from .base import *
+from django.core.exceptions import ImproperlyConfigured
 
 DEBUG = False
 
@@ -74,7 +75,20 @@ CLOUDINARY_STORAGE = {
     'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
 }
 
-if CLOUDINARY_STORAGE['CLOUD_NAME']:
+cloudinary_values = [
+    CLOUDINARY_STORAGE['CLOUD_NAME'],
+    CLOUDINARY_STORAGE['API_KEY'],
+    CLOUDINARY_STORAGE['API_SECRET'],
+]
+cloudinary_set_count = sum(1 for value in cloudinary_values if value)
+
+if 0 < cloudinary_set_count < 3:
+    raise ImproperlyConfigured(
+        "Incomplete Cloudinary configuration. Set CLOUDINARY_CLOUD_NAME, "
+        "CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET together."
+    )
+
+if cloudinary_set_count == 3:
     STORAGES["default"] = {
         "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
     }

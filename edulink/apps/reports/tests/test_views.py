@@ -1,5 +1,6 @@
 from uuid import uuid4
 from unittest.mock import patch
+from io import BytesIO
 
 from django.core.files.base import ContentFile
 from django.test import TestCase
@@ -59,6 +60,37 @@ class ArtifactDownloadViewTests(TestCase):
 
         with patch("edulink.apps.reports.views.get_artifact_by_id", return_value=artifact), \
              patch("edulink.apps.reports.views.can_view_artifact", return_value=True):
+            response = view(request, pk=str(artifact.id))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("attachment; filename=", response["Content-Disposition"])
+
+    def test_download_uses_url_fallback_when_storage_open_fails(self):
+        artifact = Artifact.objects.create(
+            application_id=uuid4(),
+            student_id=uuid4(),
+            artifact_type=ArtifactType.PERFORMANCE_SUMMARY,
+            generated_by=self.user.id,
+            metadata={"student_name": "Test User"},
+            tracking_code="EDULINK-P-FALLBK",
+            file="artifacts/2026/04/fallback.pdf",
+        )
+
+        view = ArtifactViewSet.as_view({"get": "download"})
+        request = self.factory.get(f"/api/reports/artifacts/{artifact.id}/download/")
+        force_authenticate(request, user=self.user)
+
+        class _RemoteFile(BytesIO):
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc_val, exc_tb):
+                self.close()
+
+        with patch("edulink.apps.reports.views.get_artifact_by_id", return_value=artifact), \
+             patch("edulink.apps.reports.views.can_view_artifact", return_value=True), \
+             patch.object(artifact.file.storage, "open", side_effect=Exception("open failed")), \
+               patch("edulink.apps.reports.services.urlopen", return_value=_RemoteFile(b"%PDF-1.4 fallback")):
             response = view(request, pk=str(artifact.id))
 
         self.assertEqual(response.status_code, 200)

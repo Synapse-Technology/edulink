@@ -3,6 +3,8 @@ import logging
 from uuid import UUID
 from datetime import datetime
 from io import BytesIO
+from urllib.error import HTTPError
+from urllib.request import urlopen
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.db import transaction
@@ -41,6 +43,51 @@ from edulink.apps.notifications.services import (
     send_performance_summary_generated_notification,
     send_logbook_report_generated_notification
 )
+
+
+def resolve_artifact_file_for_download(*, artifact):
+    """
+    Resolve artifact binary content from the configured storage backend.
+
+    Returns:
+    - ("stream", file_like) when storage open succeeds
+    - ("bytes", bytes) when URL fallback succeeds
+    """
+    if not artifact.file or not artifact.file.name:
+        raise NotFoundError(user_message="File not found")
+
+    storage = artifact.file.storage
+    file_name = artifact.file.name
+
+    open_error = None
+    try:
+        return "stream", storage.open(file_name, mode="rb")
+    except FileNotFoundError:
+        logger.warning(f"Artifact file not found during open for {artifact.id}: {file_name}")
+        raise NotFoundError(user_message="File not found")
+    except Exception as exc:
+        open_error = exc
+        logger.warning(f"Storage open failed for artifact {artifact.id}; attempting URL fallback")
+
+    artifact_url = None
+    try:
+        artifact_url = artifact.file.url
+    except Exception:
+        artifact_url = None
+
+    if not artifact_url:
+        raise open_error
+
+    try:
+        with urlopen(artifact_url) as remote_file:
+            return "bytes", remote_file.read()
+    except HTTPError as exc:
+        if exc.code == 404:
+            logger.warning(f"Artifact URL missing for {artifact.id}: {artifact_url}")
+            raise NotFoundError(user_message="File not found")
+        raise open_error
+    except Exception:
+        raise open_error
 
 def _draw_chess_pattern(c, x, y, size=8, color=colors.HexColor("#1ab8aa")):
     """Draws a 3x3 chess pattern at (x,y)"""
