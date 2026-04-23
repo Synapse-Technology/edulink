@@ -165,8 +165,11 @@ class EmployerService {
 
   async getRequests(params?: { status?: string; search?: string }): Promise<EmployerRequest[]> {
     try {
-      const response = await this.client.get<EmployerRequest[]>('/api/employers/employer-requests/', { params });
-      return response;
+      const response = await this.client.get<EmployerRequest[] | PaginatedResponse<EmployerRequest> | { data?: EmployerRequest[] }>(
+        '/api/employers/employer-requests/',
+        { params }
+      );
+      return this.normalizeListResponse(response);
     } catch (error) {
       if (error instanceof ApiError) {
         throw error;
@@ -247,8 +250,12 @@ class EmployerService {
   async getProfileUpdateRequests(status?: string): Promise<EmployerStaffProfileRequest[]> {
     try {
       const params = status ? { status } : {};
-      const response = await this.client.get<EmployerStaffProfileRequest[]>('/api/employers/employer-staff-profile-requests/', { params });
-      return response;
+      const response = await this.client.get<
+        EmployerStaffProfileRequest[] |
+        PaginatedResponse<EmployerStaffProfileRequest> |
+        { data?: EmployerStaffProfileRequest[] }
+      >('/api/employers/employer-staff-profile-requests/', { params });
+      return this.normalizeListResponse(response);
     } catch (error) {
       if (error instanceof ApiError) throw error;
       throw new Error('Failed to fetch profile update requests');
@@ -267,11 +274,11 @@ class EmployerService {
 
   async getEmployers(params?: { status?: string; search?: string; is_featured?: boolean }): Promise<Employer[]> {
     try {
-      const response = await this.client.get<Employer[]>('/api/employers/employers/', { 
+      const response = await this.client.get<Employer[] | PaginatedResponse<Employer> | { data?: Employer[] }>('/api/employers/employers/', { 
         params,
         headers: { 'skip-auth': 'true' }
       });
-      return response;
+      return this.normalizeListResponse(response);
     } catch (error) {
       if (error instanceof ApiError) {
         throw error;

@@ -94,7 +94,8 @@ def get_applications_for_user(user) -> QuerySet[InternshipApplication]:
     """
     Returns applications visible to the user.
     """
-    queryset = InternshipApplication.objects.select_related('opportunity')
+    # Stable ordering is required for pagination consistency across pages.
+    queryset = InternshipApplication.objects.select_related('opportunity').order_by('-created_at', '-id')
     
     if not user.is_authenticated:
         return InternshipApplication.objects.none()

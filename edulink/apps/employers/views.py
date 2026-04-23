@@ -160,7 +160,7 @@ class EmployerRequestViewSet(viewsets.ModelViewSet):
         })
 
 class EmployerViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Employer.objects.all()
+    queryset = Employer.objects.all().order_by('-created_at', '-id')
     serializer_class = EmployerSerializer
     filter_backends = [filters.SearchFilter, DjangoFilterBackend]
     search_fields = ['name', 'official_email', 'domain', 'contact_person']
