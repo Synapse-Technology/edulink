@@ -1,8 +1,8 @@
 """
 Base settings for Edulink project.
 """
-from pathlib import Path
 import os
+from pathlib import Path
 import dj_database_url
 from datetime import timedelta
 from dotenv import load_dotenv
@@ -12,6 +12,9 @@ load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+cache_dir = BASE_DIR / ".cache" / "django-cache"
+cache_dir.mkdir(parents=True, exist_ok=True)
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = "django-insecure-n%6^@49(@dn^2!77l)hq6r4u4!$6!!)mbujn*5fy9y-!dw_th1"
@@ -66,6 +69,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "edulink.apps.shared.cache_middleware.PublicApiCacheMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "edulink.apps.shared.middleware.ErrorHandlingMiddleware",  # Global exception handler
@@ -138,6 +142,18 @@ STORAGES = {
 # Media files
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
+        "LOCATION": str(cache_dir),
+        "TIMEOUT": 300,
+        "OPTIONS": {
+            "MAX_ENTRIES": 1000,
+            "CULL_FREQUENCY": 3,
+        },
+    }
+}
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
