@@ -1,31 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { SEO } from '../components/common';
-import { usePublicStats } from '../hooks/usePublicStats';
-import { internshipService, type SuccessStory } from '../services/internship/internshipService';
-import SuccessStoryCard from '../components/internship/SuccessStoryCard';
 
 const Home: React.FC = () => {
-  const stats = usePublicStats();
-  const [featuredStories, setFeaturedStories] = useState<SuccessStory[]>([]);
-  const [loadingStories, setLoadingStories] = useState(true);
-
   useEffect(() => {
-    const fetchFeaturedStories = async () => {
-      try {
-        setLoadingStories(true);
-        const stories = await internshipService.getSuccessStories();
-        // Take top 3 featured/published stories
-        setFeaturedStories(stories.filter(s => s.is_published).slice(0, 3));
-      } catch (error) {
-        console.error('Failed to fetch featured stories:', error);
-      } finally {
-        setLoadingStories(false);
-      }
-    };
-
-    fetchFeaturedStories();
-
     function animateCounter(element: HTMLElement, start: number, end: number, duration: number) {
       let startTimestamp: number | null = null;
       const step = (timestamp: number) => {
@@ -62,10 +40,8 @@ const Home: React.FC = () => {
     }
 
     // Initialize counters
-    if (!stats.loading) {
-      initCounters();
-    }
-  }, [stats.loading]);
+    initCounters();
+  }, []);
 
   return (
     <div className="home-page">
@@ -129,28 +105,28 @@ const Home: React.FC = () => {
           <div className="row gy-4">
             <div className="col-lg-3 col-md-6">
               <div className="stats-item text-center w-100 h-100">
-                <span data-purecounter-start="0" data-purecounter-end={stats.students} data-purecounter-duration="1" className="purecounter">{stats.students}</span>
+                <span data-purecounter-start="0" data-purecounter-end="1500" data-purecounter-duration="1" className="purecounter">0</span>
                 <p>Students</p>
               </div>
             </div>
 
             <div className="col-lg-3 col-md-6">
               <div className="stats-item text-center w-100 h-100">
-                <span data-purecounter-start="0" data-purecounter-end={stats.opportunities} data-purecounter-duration="1" className="purecounter">{stats.opportunities}</span>
+                <span data-purecounter-start="0" data-purecounter-end="75" data-purecounter-duration="1" className="purecounter">0</span>
                 <p>Opportunities</p>
               </div>
             </div>
 
             <div className="col-lg-3 col-md-6">
               <div className="stats-item text-center w-100 h-100">
-                <span data-purecounter-start="0" data-purecounter-end={stats.institutions} data-purecounter-duration="1" className="purecounter">{stats.institutions}</span>
+                <span data-purecounter-start="0" data-purecounter-end="30" data-purecounter-duration="1" className="purecounter">0</span>
                 <p>Partner Institutions</p>
               </div>
             </div>
 
             <div className="col-lg-3 col-md-6">
               <div className="stats-item text-center w-100 h-100">
-                <span data-purecounter-start="0" data-purecounter-end={stats.employers} data-purecounter-duration="1" className="purecounter">{stats.employers}</span>
+                <span data-purecounter-start="0" data-purecounter-end="45" data-purecounter-duration="1" className="purecounter">0</span>
                 <p>Verified Employers</p>
               </div>
             </div>
@@ -304,51 +280,112 @@ const Home: React.FC = () => {
       </section>
 
       {/* Success Stories Preview Section */}
-      <section id="success-stories" className="section success-stories light-background">
+      <section id="success-stories" className="section light-background">
         <div className="container" data-aos="fade-up">
-          <div className="section-title text-center">
+          <div className="section-title text-center mb-5">
             <h2>Student Success Stories</h2>
-            <p>Real stories from students who transformed their career trajectories through EduLink verified internships and graduate placements.</p>
+            <p>Real students achieving their career goals through EduLink verified internships.</p>
           </div>
           
-          <div className="row gy-4">
-            {loadingStories ? (
-              [1, 2, 3].map((i) => (
-                <div key={i} className="col-lg-4">
-                  <div className="card border-0 shadow-sm h-100 w-100 p-4 animate-pulse bg-white">
-                    <div className="h-4 bg-slate-100 rounded w-3/4 mb-4"></div>
-                    <div className="h-4 bg-slate-100 rounded w-1/2 mb-4"></div>
-                    <div className="h-32 bg-slate-50 rounded mb-4"></div>
+          <div className="row gy-4 mb-5">
+            {/* Featured Story Card 1 */}
+            <div className="col-lg-4 d-flex" data-aos="zoom-in" data-aos-delay="100">
+              <div className="card border-0 shadow-sm h-100 overflow-hidden transition-transform hover-lift">
+                <div className="bg-primary text-white p-4 position-relative overflow-hidden" style={{background: 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)'}}>
+                  <div className="position-absolute top-0 end-0 opacity-10" style={{fontSize: '80px'}}>
+                    <i className="bi bi-quote"></i>
                   </div>
-                </div>
-              ))
-            ) : featuredStories.length > 0 ? (
-              featuredStories.map((story) => (
-                <div key={story.id} className="col-lg-4 d-flex" data-aos="zoom-in" data-aos-delay={featuredStories.indexOf(story) * 100}>
-                  <SuccessStoryCard story={story} />
-                </div>
-              ))
-            ) : (
-              <div className="col-12" data-aos="fade-up">
-                <div className="text-center p-5 bg-white rounded-3 shadow-sm border">
-                  <div className="mb-4">
-                    <i className="bi bi-chat-quote text-primary display-4"></i>
+                  <div className="d-flex align-items-center gap-2 mb-3">
+                    <i className="bi bi-star-fill"></i>
+                    <i className="bi bi-star-fill"></i>
+                    <i className="bi bi-star-fill"></i>
+                    <i className="bi bi-star-fill"></i>
+                    <i className="bi bi-star-fill"></i>
                   </div>
-                  <h3 className="h4 fw-bold text-dark mb-3">Crafting New Success Stories</h3>
-                  <p className="text-muted max-w-md mx-auto mb-4">
-                    We're currently documenting the incredible journeys of our latest cohort. Your story could be the next one featured here!
+                  <p className="lead fst-italic mb-0">
+                    "EduLink didn't just connect me to an internship, it transformed my career trajectory."
                   </p>
-                  <Link to="/register" className="btn btn-primary rounded-pill px-4 py-2">
-                    Start Your Story
-                  </Link>
+                </div>
+                <div className="card-body">
+                  <h6 className="fw-bold text-dark mb-1">Alex Kipchoge</h6>
+                  <p className="small text-muted mb-3">Software Engineer @ TechCorp</p>
+                  <p className="small text-secondary mb-0">
+                    "The digital logbook and certificate system proved my experience to employers. I was hired full-time 2 weeks after completing my internship."
+                  </p>
+                </div>
+                <div className="px-4 pb-3">
+                  <small className="text-success">✓ 3-Month Internship | Certified</small>
                 </div>
               </div>
-            )}
+            </div>
+
+            {/* Featured Story Card 2 */}
+            <div className="col-lg-4 d-flex" data-aos="zoom-in" data-aos-delay="200">
+              <div className="card border-0 shadow-sm h-100 overflow-hidden transition-transform hover-lift">
+                <div className="bg-success text-white p-4 position-relative overflow-hidden" style={{background: 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)'}}>
+                  <div className="position-absolute top-0 end-0 opacity-10" style={{fontSize: '80px'}}>
+                    <i className="bi bi-quote"></i>
+                  </div>
+                  <div className="d-flex align-items-center gap-2 mb-3">
+                    <i className="bi bi-star-fill"></i>
+                    <i className="bi bi-star-fill"></i>
+                    <i className="bi bi-star-fill"></i>
+                    <i className="bi bi-star-fill"></i>
+                    <i className="bi bi-star-fill"></i>
+                  </div>
+                  <p className="lead fst-italic mb-0">
+                    "The verification system gave me confidence that every opportunity was legitimate."
+                  </p>
+                </div>
+                <div className="card-body">
+                  <h6 className="fw-bold text-dark mb-1">Faith Ochieng</h6>
+                  <p className="small text-muted mb-3">Data Analyst @ Fintech Kenya</p>
+                  <p className="small text-secondary mb-0">
+                    "As an institution, we can now track student internship progress and verify completion. EduLink bridges the gap between campus and career."
+                  </p>
+                </div>
+                <div className="px-4 pb-3">
+                  <small className="text-success">✓ 2-Month Internship | Certified</small>
+                </div>
+              </div>
+            </div>
+
+            {/* Featured Story Card 3 */}
+            <div className="col-lg-4 d-flex" data-aos="zoom-in" data-aos-delay="300">
+              <div className="card border-0 shadow-sm h-100 overflow-hidden transition-transform hover-lift">
+                <div className="bg-info text-white p-4 position-relative overflow-hidden" style={{background: 'linear-gradient(135deg, #FF9800 0%, #F57C00 100%)'}}>
+                  <div className="position-absolute top-0 end-0 opacity-10" style={{fontSize: '80px'}}>
+                    <i className="bi bi-quote"></i>
+                  </div>
+                  <div className="d-flex align-items-center gap-2 mb-3">
+                    <i className="bi bi-star-fill"></i>
+                    <i className="bi bi-star-fill"></i>
+                    <i className="bi bi-star-fill"></i>
+                    <i className="bi bi-star-fill"></i>
+                    <i className="bi bi-star-fill"></i>
+                  </div>
+                  <p className="lead fst-italic mb-0">
+                    "Real company. Real work. Real growth. That's what EduLink delivers."
+                  </p>
+                </div>
+                <div className="card-body">
+                  <h6 className="fw-bold text-dark mb-1">Kevin Mutua</h6>
+                  <p className="small text-muted mb-3">Product Manager @ StartupKE</p>
+                  <p className="small text-secondary mb-0">
+                    "We use EduLink to find trusted, vetted interns. The platform's verification process saves us weeks of recruitment time."
+                  </p>
+                </div>
+                <div className="px-4 pb-3">
+                  <small className="text-success">✓ 4-Month Internship | Hired</small>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="text-center mt-5">
-            <Link to="/success-stories" className="btn btn-primary rounded-pill px-5 py-3 fw-bold shadow-sm">
-              Browse All Success Stories <i className="bi bi-arrow-right ms-2"></i>
+          <div className="text-center">
+            <Link to="/success-stories" className="btn btn-primary btn-lg rounded-pill px-5 py-3 shadow-sm fw-bold">
+              <span className="me-2">Browse All Success Stories</span>
+              <i className="bi bi-arrow-right"></i>
             </Link>
           </div>
         </div>
