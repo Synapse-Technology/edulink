@@ -1,9 +1,9 @@
 /**
  * Unified Login Entry Point
- * 
+ *
  * Single page that allows users to select which portal/role they want to log into.
  * Provides a better UX than having separate /login, /employer/login, /institution/login URLs.
- * 
+ *
  * New users see this page first and can choose their role.
  * Existing URLs like /employer/login still work for deep linking.
  */
@@ -19,7 +19,7 @@ interface PortalOption {
   id: LoginPortal;
   label: string;
   description: string;
-  icon: string;  // icon class name
+  icon: string; // icon class name
   route: string;
   color: string;
 }
@@ -61,36 +61,43 @@ const LOGIN_PORTALS: PortalOption[] = [
 
 /**
  * LoginSelectorPage - Portal selection entry point
- * 
+ *
  * Displays options for:
  * - Student login
  * - Employer login
  * - Institution login
  * - Admin login
- * 
+ *
  * Routes to appropriate login page based on selection.
  */
 const LoginSelectorPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAuthenticated, user, admin } = useAuthStore();
-  const [selectedPortal, setSelectedPortal] = useState<LoginPortal | null>(null);
+  const [selectedPortal, setSelectedPortal] = useState<LoginPortal | null>(
+    null
+  );
 
-  // If already logged in, redirect to dashboard
-  if (isAuthenticated) {
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
     if (admin) {
       navigate('/admin', { replace: true });
-    } else if (user) {
+      return;
+    }
+
+    if (user) {
       let dashboard = '/dashboard/student';
       if (['employer', 'employer_admin'].includes(user.role)) {
         dashboard = '/employer/dashboard';
-      } else if (['institution', 'institution_admin', 'supervisor'].includes(user.role)) {
+      } else if (
+        ['institution', 'institution_admin', 'supervisor'].includes(user.role)
+      ) {
         dashboard = '/dashboard/institution';
       }
       navigate(dashboard, { replace: true });
     }
-    return null;
-  }
+  }, [admin, isAuthenticated, navigate, user]);
 
   // Auto-select portal based on URL params
   useEffect(() => {
@@ -103,6 +110,11 @@ const LoginSelectorPage: React.FC = () => {
       }
     }
   }, [location.search, navigate]);
+
+  // If already logged in, redirect to dashboard
+  if (isAuthenticated) {
+    return null;
+  }
 
   const handlePortalClick = (portal: LoginPortal) => {
     setSelectedPortal(portal);
@@ -126,14 +138,18 @@ const LoginSelectorPage: React.FC = () => {
 
         {/* Portal Cards Grid */}
         <div className={styles.gridContainer}>
-          {LOGIN_PORTALS.map((portal) => (
+          {LOGIN_PORTALS.map(portal => (
             <button
               key={portal.id}
               className={`${styles.portalCard} ${selectedPortal === portal.id ? styles.selected : ''}`}
               onClick={() => handlePortalClick(portal.id)}
               style={{
-                borderColor: selectedPortal === portal.id ? portal.color : undefined,
-                backgroundColor: selectedPortal === portal.id ? `${portal.color}10` : undefined,
+                borderColor:
+                  selectedPortal === portal.id ? portal.color : undefined,
+                backgroundColor:
+                  selectedPortal === portal.id
+                    ? `${portal.color}10`
+                    : undefined,
               }}
             >
               <div className={styles.icon}>{portal.icon}</div>
@@ -149,7 +165,9 @@ const LoginSelectorPage: React.FC = () => {
 
         {/* Help Text */}
         <div className={styles.helpText}>
-          <p>Don't have an account? <a href="/register">Register here</a></p>
+          <p>
+            Don't have an account? <a href="/register">Register here</a>
+          </p>
           <p className={styles.contactSupport}>
             Need help? <a href="/support">Contact support</a>
           </p>

@@ -6,6 +6,7 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.throttling import UserRateThrottle
 from django_filters.rest_framework import DjangoFilterBackend
 from edulink.apps.shared.pagination import StandardResultsSetPagination, LargeResultsSetPagination
+from edulink.apps.shared.error_handling import AuthorizationError
 from .permissions import (
     CanViewApplication, CanSubmitApplication, CanWithdrawApplication,
     CanSubmitEvidence, CanReviewEvidence, CanReportIncident, CanViewIncident
@@ -312,15 +313,11 @@ class ApplicationViewSet(viewsets.ReadOnlyModelViewSet):
         Allow student to withdraw from an internship application.
         Requires: withdrawal_reason (optional)
         """
-        application = self.get_object()
-        
-        # Policy Check
-        from .policies import can_withdraw_application
-        if not can_withdraw_application(request.user, application):
-            return Response(
-                {"detail": "Not authorized to withdraw this application"},
-                status=status.HTTP_403_FORBIDDEN
-            )
+        try:
+            application = InternshipApplication.objects.select_related("opportunity").get(pk=pk)
+        except InternshipApplication.DoesNotExist:
+            return Response({"detail": "Application not found"}, status=status.HTTP_404_NOT_FOUND)
+        self.check_object_permissions(request, application)
         
         try:
             reason = request.data.get('reason', None)
@@ -331,6 +328,8 @@ class ApplicationViewSet(viewsets.ReadOnlyModelViewSet):
                 reason=reason
             )
             return Response(InternshipApplicationSerializer(app).data)
+        except AuthorizationError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_403_FORBIDDEN)
         except ValueError as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except PermissionError as e:
@@ -371,7 +370,10 @@ class ApplicationViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True, methods=['post'], url_path='review-evidence/(?P<evidence_id>[^/.]+)')
     def review_evidence(self, request, pk=None, evidence_id=None):
-        application = self.get_object()
+        try:
+            application = InternshipApplication.objects.select_related("opportunity").get(pk=pk)
+        except InternshipApplication.DoesNotExist:
+            return Response({"detail": "Application not found"}, status=status.HTTP_404_NOT_FOUND)
         serializer = ReviewEvidenceSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         

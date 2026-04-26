@@ -1,5 +1,5 @@
 name: edulink_app
-description: EduLink KE — Verified Internships & Brighter Futures for Kenyan Students
+description: EduLink — Verified Internships & Brighter Futures for Kenyan Students
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -64,6 +64,7 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^4.0.0
   build_runner: ^2.4.9
+  flutter_launcher_icons: ^0.14.3
 
 flutter:
   uses-material-design: true
@@ -71,3 +72,12 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/icons/edulink-launcher.png
+  adaptive_icon_foreground: assets/icons/edulink-launcher.png
+  adaptive_icon_background: '#FFFFFF'
+  remove_alpha_ios: true
+  min_sdk_android: 21

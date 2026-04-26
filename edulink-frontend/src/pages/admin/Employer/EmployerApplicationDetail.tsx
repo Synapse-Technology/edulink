@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle, XCircle, MapPin, Briefcase, Users, FileText, Calendar } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, MapPin, Briefcase, Users, FileText, Calendar, Star } from 'lucide-react';
 import { EmployerLayout } from '../../../components/admin/employer';
 import { internshipService } from '../../../services/internship/internshipService';
 import type { InternshipApplication } from '../../../services/internship/internshipService';
 import { DocumentPreviewModal, FeedbackModal } from '../../../components/common';
+import InternshipLifecyclePanel from '../../../components/internship/InternshipLifecyclePanel';
 import { useFeedbackModal } from '../../../hooks/useFeedbackModal';
 
 const EmployerApplicationDetail: React.FC = () => {
@@ -15,6 +16,8 @@ const EmployerApplicationDetail: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [finalFeedback, setFinalFeedback] = useState('');
+  const [finalRating, setFinalRating] = useState<number>(5);
   const { feedbackProps, showError, showSuccess } = useFeedbackModal();
 
   // Preview Modal State
@@ -33,6 +36,8 @@ const EmployerApplicationDetail: React.FC = () => {
       setIsLoading(true);
       const data = await internshipService.getApplication(appId);
       setApplication(data);
+      setFinalFeedback(data.final_feedback || '');
+      setFinalRating(data.final_rating || 5);
     } catch (error) {
       console.error('Failed to fetch application:', error);
     } finally {
@@ -40,7 +45,32 @@ const EmployerApplicationDetail: React.FC = () => {
     }
   };
 
-  const handleStatusChange = async (action: 'SHORTLIST' | 'REJECT' | 'ACCEPT' | 'START') => {
+  const handleSubmitFinalFeedback = async () => {
+    if (!application || !finalFeedback.trim()) {
+      showError('Final Assessment Required', 'Please add final feedback before submitting.');
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+      await internshipService.submitFinalFeedback(
+        application.id,
+        finalFeedback.trim(),
+        finalRating
+      );
+      await fetchApplication(application.id);
+      showSuccess('Final Assessment Saved', 'Completion readiness has been updated.');
+    } catch (error: any) {
+      showError(
+        'Assessment Failed',
+        error.response?.data?.detail || error.message || 'Failed to submit final feedback'
+      );
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleStatusChange = async (action: 'SHORTLIST' | 'REJECT' | 'ACCEPT' | 'START' | 'COMPLETE') => {
     if (!id) return;
     try {
       setIsProcessing(true);
@@ -60,7 +90,8 @@ const EmployerApplicationDetail: React.FC = () => {
       
       const actionLabel = action === 'SHORTLIST' ? 'shortlisted' : 
                          action === 'ACCEPT' ? 'accepted' : 
-                         action === 'REJECT' ? 'rejected' : 'started';
+                         action === 'REJECT' ? 'rejected' :
+                         action === 'COMPLETE' ? 'completed' : 'started';
       
       showSuccess('Success', `Application has been ${actionLabel} successfully.`);
     } catch (error: any) {
@@ -271,7 +302,90 @@ const EmployerApplicationDetail: React.FC = () => {
                       </button>
                     </div>
                   )}
+
+                  {application.status === 'ACTIVE' && (
+                    <div className="d-flex gap-2">
+                      <button
+                        className="btn btn-success"
+                        onClick={() => handleStatusChange('COMPLETE')}
+                        disabled={isProcessing || !application.completion_readiness?.can_mark_completed}
+                        title={
+                          application.completion_readiness?.can_mark_completed
+                            ? 'Mark internship completed'
+                            : application.completion_readiness?.summary || 'Completion requirements are not met'
+                        }
+                      >
+                        <CheckCircle size={18} className="me-2" />
+                        Mark Completed
+                      </button>
+                    </div>
+                  )}
                 </div>
+
+                <div className="mb-4">
+                  <InternshipLifecyclePanel
+                    application={application}
+                    roleView="employer"
+                    compact
+                  />
+                </div>
+
+                {application.can_feedback && ['ACTIVE', 'COMPLETED', 'CERTIFIED'].includes(application.status) && (
+                  <div className="card border bg-light mb-4">
+                    <div className="card-body">
+                      <div className="d-flex align-items-start justify-content-between gap-3 mb-3">
+                        <div>
+                          <h5 className="fw-bold mb-1">Final Assessment</h5>
+                          <p className="text-muted small mb-0">
+                            Required before this internship can be marked completed.
+                          </p>
+                        </div>
+                        <div className="d-flex align-items-center gap-1 text-warning">
+                          <Star size={18} fill="currentColor" />
+                          <span className="fw-bold">{finalRating}/5</span>
+                        </div>
+                      </div>
+                      <div className="row g-3">
+                        <div className="col-md-4">
+                          <label className="form-label small fw-semibold">Rating</label>
+                          <select
+                            className="form-select"
+                            value={finalRating}
+                            onChange={(event) => setFinalRating(Number(event.target.value))}
+                            disabled={isProcessing || application.status === 'CERTIFIED'}
+                          >
+                            {[5, 4, 3, 2, 1].map(rating => (
+                              <option key={rating} value={rating}>
+                                {rating} / 5
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="col-md-8">
+                          <label className="form-label small fw-semibold">Supervisor feedback</label>
+                          <textarea
+                            className="form-control"
+                            rows={3}
+                            value={finalFeedback}
+                            onChange={(event) => setFinalFeedback(event.target.value)}
+                            placeholder="Summarize performance, strengths, reliability, and readiness for career progression."
+                            disabled={isProcessing || application.status === 'CERTIFIED'}
+                          />
+                        </div>
+                      </div>
+                      {application.status !== 'CERTIFIED' && (
+                        <button
+                          type="button"
+                          className="btn btn-primary mt-3"
+                          onClick={handleSubmitFinalFeedback}
+                          disabled={isProcessing || !finalFeedback.trim()}
+                        >
+                          Save Final Assessment
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 <div className="row mb-4">
                   <div className="col-md-6">

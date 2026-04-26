@@ -325,3 +325,23 @@ class SuccessStory(BaseModel):
         app_label = "internships"
         db_table = "internship_success_stories"
         ordering = ["-created_at"]
+
+
+class InternshipState:
+    """Backward-compatible state namespace for older callers and tests."""
+
+    DRAFT = OpportunityStatus.DRAFT
+    OPEN = OpportunityStatus.OPEN
+    CLOSED = OpportunityStatus.CLOSED
+    APPLIED = ApplicationStatus.APPLIED
+    SHORTLISTED = ApplicationStatus.SHORTLISTED
+    ACCEPTED = ApplicationStatus.ACCEPTED
+    REJECTED = ApplicationStatus.REJECTED
+    ACTIVE = ApplicationStatus.ACTIVE
+    COMPLETED = ApplicationStatus.COMPLETED
+    TERMINATED = ApplicationStatus.TERMINATED
+    CERTIFIED = ApplicationStatus.CERTIFIED
+    WITHDRAWN = ApplicationStatus.WITHDRAWN
+
+
+Internship = InternshipOpportunity

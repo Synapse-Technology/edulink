@@ -139,10 +139,11 @@ def get_applications_for_user(user) -> QuerySet[InternshipApplication]:
             filters |= Q(employer_supervisor_id=e_supervisor_id)
         if i_supervisor_id:
             filters |= Q(institution_supervisor_id=i_supervisor_id)
+        user_id = user.id if isinstance(user.id, UUID) else UUID(str(user.id))
+        filters |= Q(employer_supervisor_id=user_id) | Q(institution_supervisor_id=user_id)
             
         if not e_supervisor_id and not i_supervisor_id:
             # Fallback for robustness: check if user ID was used as profile ID
-            user_id = user.id if isinstance(user.id, UUID) else UUID(str(user.id))
             filters = Q(employer_supervisor_id=user_id) | Q(institution_supervisor_id=user_id)
             
         return queryset.filter(filters)
@@ -753,4 +754,3 @@ def get_recent_withdrawals_for_opportunity(opportunity_id: UUID, days: int = 30)
         status=ApplicationStatus.WITHDRAWN,
         updated_at__gte=cutoff_date
     ).select_related('student').order_by('-updated_at')
-

@@ -19,7 +19,7 @@
   --accent-dark: #159c90; /* Darker shade of accent color for hover states */
   --surface-color: #ffffff; /* Background of boxed elements within sections */
   --contrast-color: #ffffff; /* Contrast color for text readability */
-  
+
   /* Navigation Colors - Exact match from reference theme */
   --nav-color: #272828; /* Default color of main navmenu links */
   --nav-hover-color: #5fcf80; /* Applied to navmenu links when hovered/active */
@@ -27,23 +27,26 @@
   --nav-dropdown-background-color: #ffffff; /* Background for dropdown items */
   --nav-dropdown-color: #272828; /* Color for dropdown navigation links */
   --nav-dropdown-hover-color: #5fcf80; /* Color for dropdown links when hovered */
-  
+
   /* Status colors */
   --success-color: #5fcf80;
   --warning-color: #f0ad4e;
   --error-color: #d9534f;
   --info-color: #5bc0de;
-  
+
   /* Font families from existing design */
-  --default-font: "Open Sans", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-  --heading-font: "Raleway", sans-serif;
-  --nav-font: "Poppins", sans-serif;
-  
+  --default-font:
+    'Open Sans', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue',
+    Arial, 'Noto Sans', 'Liberation Sans', sans-serif, 'Apple Color Emoji',
+    'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  --heading-font: 'Raleway', sans-serif;
+  --nav-font: 'Poppins', sans-serif;
+
   /* Typography */
   font-family: var(--default-font);
   line-height: 1.5;
   font-weight: 400;
-  
+
   /* Reset */
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -60,7 +63,7 @@
   --accent-color: #14b8a6;
   --surface-color: #23272f;
   --contrast-color: #181c24;
-  
+
   /* Navigation colors for dark mode */
   --nav-color: #6ee7b7;
   --nav-hover-color: #14b8a6;
@@ -68,7 +71,7 @@
   --nav-dropdown-background-color: #23272f;
   --nav-dropdown-color: #6ee7b7;
   --nav-dropdown-hover-color: #14b8a6;
-  
+
   /* Status colors for dark mode */
   --success-color: #6ee7b7;
   --warning-color: #fbbf24;
@@ -78,7 +81,11 @@
 
 /* Dark mode transitions */
 .dark * {
-  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 /* Dark mode sidebar styles */
@@ -96,7 +103,9 @@
 .dark #sidebar nav a {
   color: #6ee7b7 !important;
   background: transparent !important;
-  transition: background 0.2s, color 0.2s;
+  transition:
+    background 0.2s,
+    color 0.2s;
 }
 
 .dark #sidebar nav a.bg-teal-700,
@@ -265,7 +274,7 @@ html.dark .header-edulink {
 }
 
 /* Override any conflicting styles */
-html.dark [style*="background-color: rgb(255, 255, 255)"] {
+html.dark [style*='background-color: rgb(255, 255, 255)'] {
   background-color: #111827 !important;
 }
 
@@ -279,7 +288,7 @@ html.dark [style*="background-color: rgb(255, 255, 255)"] {
   background-color: #111827 !important;
 }
 
-.dark [style*="background-color: rgb(255, 255, 255)"] {
+.dark [style*='background-color: rgb(255, 255, 255)'] {
   background-color: #111827 !important;
 }
 
@@ -291,7 +300,9 @@ html.dark [style*="background-color: rgb(255, 255, 255)"] {
   color: #14b8a6;
   background: transparent !important;
   border: none !important;
-  transition: background 0.2s, color 0.2s;
+  transition:
+    background 0.2s,
+    color 0.2s;
   box-shadow: none !important;
 }
 
@@ -406,7 +417,9 @@ html.dark [style*="background-color: rgb(255, 255, 255)"] {
   color: #fff !important;
   border: none;
   box-shadow: 0 2px 8px 0 #14b8a6cc !important;
-  transition: background 0.2s, color 0.2s;
+  transition:
+    background 0.2s,
+    color 0.2s;
 }
 
 .dark .btn:hover,
@@ -423,16 +436,6 @@ html.dark [style*="background-color: rgb(255, 255, 255)"] {
   background: #14b8a6 !important;
   color: #fff !important;
 }
-/* @media (prefers-color-scheme: dark) {
-  :root {
-    --background-color: #1a1a1a;
-    --default-color: #e5e7eb;
-    --heading-color: #f9fafb;
-    --surface-color: #374151;
-    --contrast-color: #1f2937;
-  }
-}
-
 /*--------------------------------------------------------------
 # Global Page Titles & Breadcrumbs
 --------------------------------------------------------------*/
@@ -447,7 +450,8 @@ html.dark [style*="background-color: rgb(255, 255, 255)"] {
 
 .page-title .heading {
   padding: 80px 0;
-  border-top: 1px solid color-mix(in srgb, var(--default-color), transparent 90%);
+  border-top: 1px solid
+    color-mix(in srgb, var(--default-color), transparent 90%);
 }
 
 .page-title .heading h1 {
@@ -474,16 +478,16 @@ html.dark [style*="background-color: rgb(255, 255, 255)"] {
   padding: 0;
 }
 
-.page-title nav ol li+li {
+.page-title nav ol li + li {
   padding-left: 10px;
 }
 
-.page-title nav ol li+li::before {
-  content: "/";
+.page-title nav ol li + li::before {
+  content: '/';
   display: inline-block;
   padding-right: 10px;
   color: color-mix(in srgb, var(--default-color), transparent 70%);
-} */
+}
 
 /* Base styles */
 * {
@@ -504,7 +508,12 @@ body {
 }
 
 /* Typography styles matching existing design */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: var(--heading-font);
   color: var(--heading-color);
   font-weight: 700;
@@ -614,7 +623,9 @@ a:hover {
   background-color: var(--surface-color);
   border: 1px solid #d1d5db;
   border-radius: 0.375rem;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 .form-control:focus {
@@ -677,7 +688,9 @@ a:hover {
   border-radius: 0.5rem;
   box-shadow: 0 0 30px rgba(0, 0, 0, 0.1);
   padding: 1.5rem;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 .card:hover {
@@ -743,15 +756,15 @@ a:hover {
   h1 {
     font-size: 2rem;
   }
-  
+
   h2 {
     font-size: 1.5rem;
   }
-  
+
   .section-title h2 {
     font-size: 18px; /* Smaller size for mobile */
   }
-  
+
   .btn {
     padding: 0.625rem 1.25rem;
     font-size: 0.75rem;

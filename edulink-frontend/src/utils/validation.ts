@@ -1,6 +1,6 @@
 /**
  * Client-side input validation
- * 
+ *
  * Validates user inputs before sending to API to:
  * - Improve UX (fail fast with clear messages)
  * - Reduce server load (don't send invalid data)
@@ -24,7 +24,7 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const URL_REGEX = /^https?:\/\/.+/i;
 
 // Phone validation (basic - allows various formats)
-const PHONE_REGEX = /^[\d\s\-\+\(\)]+$/;
+const PHONE_REGEX = /^[\d\s+()-]+$/;
 
 /**
  * Validate email address
@@ -37,7 +37,10 @@ export function validateEmail(email: string): ValidationResult {
   } else if (!EMAIL_REGEX.test(email)) {
     errors.push({ field: 'email', message: 'Invalid email format' });
   } else if (email.length > 254) {
-    errors.push({ field: 'email', message: 'Email is too long (max 254 characters)' });
+    errors.push({
+      field: 'email',
+      message: 'Email is too long (max 254 characters)',
+    });
   }
 
   return {
@@ -49,21 +52,40 @@ export function validateEmail(email: string): ValidationResult {
 /**
  * Validate password strength
  */
-export function validatePassword(password: string, minLength: number = 8): ValidationResult {
+export function validatePassword(
+  password: string,
+  minLength: number = 8
+): ValidationResult {
   const errors: ValidationError[] = [];
 
   if (!password) {
     errors.push({ field: 'password', message: 'Password is required' });
   } else if (password.length < minLength) {
-    errors.push({ field: 'password', message: `Password must be at least ${minLength} characters` });
+    errors.push({
+      field: 'password',
+      message: `Password must be at least ${minLength} characters`,
+    });
   } else if (!/[A-Z]/.test(password)) {
-    errors.push({ field: 'password', message: 'Password must contain at least one uppercase letter' });
+    errors.push({
+      field: 'password',
+      message: 'Password must contain at least one uppercase letter',
+    });
   } else if (!/[a-z]/.test(password)) {
-    errors.push({ field: 'password', message: 'Password must contain at least one lowercase letter' });
+    errors.push({
+      field: 'password',
+      message: 'Password must contain at least one lowercase letter',
+    });
   } else if (!/\d/.test(password)) {
-    errors.push({ field: 'password', message: 'Password must contain at least one number' });
+    errors.push({
+      field: 'password',
+      message: 'Password must contain at least one number',
+    });
   } else if (!/[!@#$%^&*]/.test(password)) {
-    errors.push({ field: 'password', message: 'Password must contain at least one special character (!@#$%^&*)' });
+    errors.push({
+      field: 'password',
+      message:
+        'Password must contain at least one special character (!@#$%^&*)',
+    });
   }
 
   return {
@@ -83,7 +105,10 @@ export function validatePhone(phone: string): ValidationResult {
   } else if (!PHONE_REGEX.test(phone)) {
     errors.push({ field: 'phone', message: 'Invalid phone number format' });
   } else if (phone.replace(/\D/g, '').length < 10) {
-    errors.push({ field: 'phone', message: 'Phone number must contain at least 10 digits' });
+    errors.push({
+      field: 'phone',
+      message: 'Phone number must contain at least 10 digits',
+    });
   }
 
   return {
@@ -95,7 +120,10 @@ export function validatePhone(phone: string): ValidationResult {
 /**
  * Validate URL
  */
-export function validateUrl(url: string, optional: boolean = false): ValidationResult {
+export function validateUrl(
+  url: string,
+  optional: boolean = false
+): ValidationResult {
   const errors: ValidationError[] = [];
 
   if (!url) {
@@ -103,7 +131,10 @@ export function validateUrl(url: string, optional: boolean = false): ValidationR
       errors.push({ field: 'url', message: 'URL is required' });
     }
   } else if (!URL_REGEX.test(url)) {
-    errors.push({ field: 'url', message: 'Invalid URL format (must start with http:// or https://)' });
+    errors.push({
+      field: 'url',
+      message: 'Invalid URL format (must start with http:// or https://)',
+    });
   }
 
   return {
@@ -115,7 +146,10 @@ export function validateUrl(url: string, optional: boolean = false): ValidationR
 /**
  * Validate file size
  */
-export function validateFileSize(file: File, maxSizeMB: number): ValidationResult {
+export function validateFileSize(
+  file: File,
+  maxSizeMB: number
+): ValidationResult {
   const errors: ValidationError[] = [];
   const maxSizeBytes = maxSizeMB * 1024 * 1024;
 
@@ -137,7 +171,10 @@ export function validateFileSize(file: File, maxSizeMB: number): ValidationResul
 /**
  * Validate file type
  */
-export function validateFileType(file: File, allowedTypes: string[]): ValidationResult {
+export function validateFileType(
+  file: File,
+  allowedTypes: string[]
+): ValidationResult {
   const errors: ValidationError[] = [];
 
   if (!file) {
@@ -158,7 +195,10 @@ export function validateFileType(file: File, allowedTypes: string[]): Validation
 /**
  * Validate date is in the future
  */
-export function validateFutureDate(dateString: string, fieldName: string = 'date'): ValidationResult {
+export function validateFutureDate(
+  dateString: string,
+  fieldName: string = 'date'
+): ValidationResult {
   const errors: ValidationError[] = [];
 
   try {
@@ -166,7 +206,10 @@ export function validateFutureDate(dateString: string, fieldName: string = 'date
     const now = new Date();
 
     if (date <= now) {
-      errors.push({ field: fieldName, message: `${fieldName} must be in the future` });
+      errors.push({
+        field: fieldName,
+        message: `${fieldName} must be in the future`,
+      });
     }
   } catch (e) {
     errors.push({ field: fieldName, message: `Invalid date format` });
@@ -181,7 +224,10 @@ export function validateFutureDate(dateString: string, fieldName: string = 'date
 /**
  * Validate date is in the past
  */
-export function validatePastDate(dateString: string, fieldName: string = 'date'): ValidationResult {
+export function validatePastDate(
+  dateString: string,
+  fieldName: string = 'date'
+): ValidationResult {
   const errors: ValidationError[] = [];
 
   try {
@@ -189,7 +235,10 @@ export function validatePastDate(dateString: string, fieldName: string = 'date')
     const now = new Date();
 
     if (date >= now) {
-      errors.push({ field: fieldName, message: `${fieldName} must be in the past` });
+      errors.push({
+        field: fieldName,
+        message: `${fieldName} must be in the past`,
+      });
     }
   } catch (e) {
     errors.push({ field: fieldName, message: `Invalid date format` });
@@ -204,7 +253,10 @@ export function validatePastDate(dateString: string, fieldName: string = 'date')
 /**
  * Validate required field is not empty
  */
-export function validateRequired(value: any, fieldName: string = 'field'): ValidationResult {
+export function validateRequired(
+  value: any,
+  fieldName: string = 'field'
+): ValidationResult {
   const errors: ValidationError[] = [];
 
   if (!value || (typeof value === 'string' && value.trim() === '')) {
@@ -220,7 +272,11 @@ export function validateRequired(value: any, fieldName: string = 'field'): Valid
 /**
  * Validate minimum length
  */
-export function validateMinLength(value: string, minLength: number, fieldName: string = 'field'): ValidationResult {
+export function validateMinLength(
+  value: string,
+  minLength: number,
+  fieldName: string = 'field'
+): ValidationResult {
   const errors: ValidationError[] = [];
 
   if (value && value.length < minLength) {
@@ -239,7 +295,11 @@ export function validateMinLength(value: string, minLength: number, fieldName: s
 /**
  * Validate maximum length
  */
-export function validateMaxLength(value: string, maxLength: number, fieldName: string = 'field'): ValidationResult {
+export function validateMaxLength(
+  value: string,
+  maxLength: number,
+  fieldName: string = 'field'
+): ValidationResult {
   const errors: ValidationError[] = [];
 
   if (value && value.length > maxLength) {
@@ -258,7 +318,9 @@ export function validateMaxLength(value: string, maxLength: number, fieldName: s
 /**
  * Combine multiple validation results
  */
-export function combineValidationResults(...results: ValidationResult[]): ValidationResult {
+export function combineValidationResults(
+  ...results: ValidationResult[]
+): ValidationResult {
   const allErrors = results.flatMap(r => r.errors);
   return {
     isValid: allErrors.length === 0,
@@ -269,7 +331,9 @@ export function combineValidationResults(...results: ValidationResult[]): Valida
 /**
  * Format validation errors for display
  */
-export function formatValidationErrors(errors: ValidationError[]): Record<string, string[]> {
+export function formatValidationErrors(
+  errors: ValidationError[]
+): Record<string, string[]> {
   const formatted: Record<string, string[]> = {};
 
   errors.forEach(error => {

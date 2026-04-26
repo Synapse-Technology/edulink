@@ -35,8 +35,8 @@ export interface InternshipOpportunity {
   created_at?: string;
   updated_at?: string;
   student_has_applied?: boolean;
-  
-  // Supervisors might still be relevant on Opportunity level? 
+
+  // Supervisors might still be relevant on Opportunity level?
   // No, supervisors are assigned to Applications (Engagements).
 }
 
@@ -45,7 +45,7 @@ export interface InternshipApplication {
   status: string; // APPLIED, SHORTLISTED, ACCEPTED, ACTIVE, COMPLETED, CERTIFIED, REJECTED, TERMINATED
   student_id: string;
   opportunity: string | { status?: string; [key: string]: any }; // UUID or full object if returned by backend
-  
+
   // Flattened Opportunity Fields
   title: string;
   description: string;
@@ -59,10 +59,10 @@ export interface InternshipApplication {
   employer_id?: string;
   institution_id?: string;
   employer_details?: Employer;
-  
+
   created_at: string;
   updated_at: string;
-  
+
   student_info?: {
     id: string;
     name: string;
@@ -70,7 +70,7 @@ export interface InternshipApplication {
     trust_level?: number;
     trust_points?: number;
   };
-  
+
   employer_supervisor_id?: string;
   employer_supervisor_details?: {
     id: string;
@@ -78,7 +78,7 @@ export interface InternshipApplication {
     name: string;
     email: string;
   };
-  
+
   institution_supervisor_id?: string;
   institution_supervisor_details?: {
     id: string;
@@ -86,16 +86,33 @@ export interface InternshipApplication {
     name: string;
     email: string;
   };
-  
+
   logbook_count?: number;
   can_complete?: boolean;
-  
+  can_feedback?: boolean;
+  final_feedback?: string;
+  final_rating?: number;
+  completion_readiness?: {
+    checks: Array<{
+      key: string;
+      label: string;
+      passed: boolean;
+      count?: number;
+    }>;
+    missing: string[];
+    can_mark_completed: boolean;
+    can_certify: boolean;
+    next_owner: string;
+    next_action: string;
+    summary: string;
+  };
+
   cover_letter?: string;
   application_snapshot?: any;
 }
 
 // Alias for backward compatibility if needed, but we should migrate.
-export type Internship = InternshipOpportunity; 
+export type Internship = InternshipOpportunity;
 
 export interface CreateInternshipData {
   title: string;
@@ -123,6 +140,7 @@ export interface InternshipParams {
   // opportunity_id?: string; // Moved to ApplicationParams
   is_institution_restricted?: boolean;
   location?: string;
+  location_type?: 'ONSITE' | 'REMOTE' | 'HYBRID';
   department?: string;
   duration?: string;
   employer__organization_type?: string;
@@ -151,16 +169,21 @@ export interface InternshipEvidence {
   description: string;
   file: string;
   evidence_type: 'LOGBOOK' | 'REPORT' | 'PROJECT' | 'MILESTONE' | 'OTHER';
-  status: 'SUBMITTED' | 'REVIEWED' | 'ACCEPTED' | 'REJECTED' | 'REVISION_REQUIRED';
+  status:
+    | 'SUBMITTED'
+    | 'REVIEWED'
+    | 'ACCEPTED'
+    | 'REJECTED'
+    | 'REVISION_REQUIRED';
   created_at: string;
-  
+
   // Dual Review Fields
   employer_review_status?: string;
   employer_reviewed_by?: string;
   employer_reviewed_at?: string;
   employer_review_notes?: string;
   employer_private_notes?: string;
-  
+
   institution_review_status?: string;
   institution_reviewed_by?: string;
   institution_reviewed_at?: string;
@@ -211,7 +234,9 @@ class InternshipService {
 
   // --- Opportunities ---
 
-  async getInternships(params?: InternshipParams): Promise<PaginatedResponse<InternshipOpportunity>> {
+  async getInternships(
+    params?: InternshipParams
+  ): Promise<PaginatedResponse<InternshipOpportunity>> {
     try {
       const cleanParams: Record<string, any> = {};
       if (params) {
@@ -221,9 +246,11 @@ class InternshipService {
           }
         });
       }
-      
-      const response = await this.client.get<PaginatedResponse<InternshipOpportunity>>('/api/internships/', { 
-        params: cleanParams
+
+      const response = await this.client.get<
+        PaginatedResponse<InternshipOpportunity>
+      >('/api/internships/', {
+        params: cleanParams,
       });
       return response;
     } catch (error) {
@@ -234,7 +261,9 @@ class InternshipService {
 
   async getInternship(id: string): Promise<InternshipOpportunity> {
     try {
-      const response = await this.client.get<InternshipOpportunity>(`/api/internships/${id}/`);
+      const response = await this.client.get<InternshipOpportunity>(
+        `/api/internships/${id}/`
+      );
       return response;
     } catch (error) {
       // Rethrow all errors to preserve ApiError status codes
@@ -242,9 +271,14 @@ class InternshipService {
     }
   }
 
-  async createOpportunity(data: CreateInternshipData): Promise<InternshipOpportunity> {
+  async createOpportunity(
+    data: CreateInternshipData
+  ): Promise<InternshipOpportunity> {
     try {
-      const response = await this.client.post<InternshipOpportunity>('/api/internships/create_opportunity/', data);
+      const response = await this.client.post<InternshipOpportunity>(
+        '/api/internships/create_opportunity/',
+        data
+      );
       return response;
     } catch (error) {
       // Rethrow all errors to preserve ApiError status codes
@@ -254,7 +288,9 @@ class InternshipService {
 
   async publishOpportunity(id: string): Promise<InternshipOpportunity> {
     try {
-      const response = await this.client.post<InternshipOpportunity>(`/api/internships/${id}/publish/`);
+      const response = await this.client.post<InternshipOpportunity>(
+        `/api/internships/${id}/publish/`
+      );
       return response;
     } catch (error) {
       // Rethrow all errors to preserve ApiError status codes
@@ -262,11 +298,17 @@ class InternshipService {
     }
   }
 
-  async applyForInternship(opportunityId: string, coverLetter?: string): Promise<InternshipApplication> {
+  async applyForInternship(
+    opportunityId: string,
+    coverLetter?: string
+  ): Promise<InternshipApplication> {
     try {
-      const response = await this.client.post<InternshipApplication>(`/api/internships/${opportunityId}/apply/`, {
-        cover_letter: coverLetter
-      });
+      const response = await this.client.post<InternshipApplication>(
+        `/api/internships/${opportunityId}/apply/`,
+        {
+          cover_letter: coverLetter,
+        }
+      );
       return response;
     } catch (error) {
       // Rethrow all errors to preserve ApiError status codes
@@ -276,7 +318,9 @@ class InternshipService {
 
   // --- Applications (Engagements) ---
 
-  async getApplications(params?: ApplicationParams): Promise<InternshipApplication[]> {
+  async getApplications(
+    params?: ApplicationParams
+  ): Promise<InternshipApplication[]> {
     try {
       const cleanParams: Record<string, any> = {};
       if (params) {
@@ -286,10 +330,13 @@ class InternshipService {
           }
         });
       }
-      
-      const response = await this.client.get<any>('/api/internships/applications/', { params: cleanParams });
+
+      const response = await this.client.get<any>(
+        '/api/internships/applications/',
+        { params: cleanParams }
+      );
       // Handle paginated response - extract array from { results: [...] } if needed
-      return Array.isArray(response) ? response : (response?.results || []);
+      return Array.isArray(response) ? response : response?.results || [];
     } catch (error) {
       if (error instanceof ApiError) throw error;
       throw new Error('Failed to fetch applications');
@@ -298,7 +345,9 @@ class InternshipService {
 
   async getApplication(id: string): Promise<InternshipApplication> {
     try {
-      const response = await this.client.get<InternshipApplication>(`/api/internships/applications/${id}/`);
+      const response = await this.client.get<InternshipApplication>(
+        `/api/internships/applications/${id}/`
+      );
       return response;
     } catch (error) {
       // Rethrow all errors to preserve ApiError status codes
@@ -306,12 +355,25 @@ class InternshipService {
     }
   }
 
-  async processApplication(id: string, action: 'SHORTLIST' | 'REJECT' | 'ACCEPT' | 'COMPLETE' | 'START' | 'CERTIFY', reason?: string): Promise<InternshipApplication> {
+  async processApplication(
+    id: string,
+    action:
+      | 'SHORTLIST'
+      | 'REJECT'
+      | 'ACCEPT'
+      | 'COMPLETE'
+      | 'START'
+      | 'CERTIFY',
+    reason?: string
+  ): Promise<InternshipApplication> {
     try {
-      const response = await this.client.post<InternshipApplication>(`/api/internships/applications/${id}/process_application/`, {
-        action: action.toLowerCase(),
-        reason
-      });
+      const response = await this.client.post<InternshipApplication>(
+        `/api/internships/applications/${id}/process_application/`,
+        {
+          action: action.toLowerCase(),
+          reason,
+        }
+      );
       return response;
     } catch (error) {
       // Rethrow all errors to preserve ApiError status codes
@@ -319,12 +381,38 @@ class InternshipService {
     }
   }
 
-  async assignSupervisor(id: string, supervisorId: string, type: 'employer' | 'institution'): Promise<InternshipApplication> {
+  async submitFinalFeedback(
+    id: string,
+    feedback: string,
+    rating?: number
+  ): Promise<InternshipApplication> {
     try {
-      const response = await this.client.post<InternshipApplication>(`/api/internships/applications/${id}/assign_supervisor/`, {
-        supervisor_id: supervisorId,
-        type
-      });
+      const response = await this.client.post<InternshipApplication>(
+        `/api/internships/applications/${id}/submit-final-feedback/`,
+        {
+          feedback,
+          rating,
+        }
+      );
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async assignSupervisor(
+    id: string,
+    supervisorId: string,
+    type: 'employer' | 'institution'
+  ): Promise<InternshipApplication> {
+    try {
+      const response = await this.client.post<InternshipApplication>(
+        `/api/internships/applications/${id}/assign_supervisor/`,
+        {
+          supervisor_id: supervisorId,
+          type,
+        }
+      );
       return response;
     } catch (error) {
       if (error instanceof ApiError) throw error;
@@ -332,11 +420,17 @@ class InternshipService {
     }
   }
 
-  async withdrawApplication(id: string, reason?: string): Promise<InternshipApplication> {
+  async withdrawApplication(
+    id: string,
+    reason?: string
+  ): Promise<InternshipApplication> {
     try {
-      const response = await this.client.post<InternshipApplication>(`/api/internships/applications/${id}/withdraw/`, {
-        reason: reason || null
-      });
+      const response = await this.client.post<InternshipApplication>(
+        `/api/internships/applications/${id}/withdraw/`,
+        {
+          reason: reason || null,
+        }
+      );
       return response;
     } catch (error) {
       if (error instanceof ApiError) throw error;
@@ -344,16 +438,25 @@ class InternshipService {
     }
   }
 
-  async bulkAssignSupervisors(institutionId: string, departmentId: string, cohortId?: string): Promise<{ assigned_count: number; supervisor_count: number; message: string }> {
+  async bulkAssignSupervisors(
+    institutionId: string,
+    departmentId: string,
+    cohortId?: string
+  ): Promise<{
+    assigned_count: number;
+    supervisor_count: number;
+    message: string;
+  }> {
     try {
-      const response = await this.client.post<{ assigned_count: number; supervisor_count: number; message: string }>(
-        '/api/internships/applications/bulk-assign-supervisors/', 
-        {
-          institution_id: institutionId,
-          department_id: departmentId,
-          cohort_id: cohortId
-        }
-      );
+      const response = await this.client.post<{
+        assigned_count: number;
+        supervisor_count: number;
+        message: string;
+      }>('/api/internships/applications/bulk-assign-supervisors/', {
+        institution_id: institutionId,
+        department_id: departmentId,
+        cohort_id: cohortId,
+      });
       return response;
     } catch (error) {
       if (error instanceof ApiError) throw error;
@@ -363,9 +466,12 @@ class InternshipService {
 
   async certifyInternship(id: string): Promise<InternshipApplication> {
     try {
-      const response = await this.client.post<InternshipApplication>(`/api/internships/applications/${id}/process_application/`, {
-        action: 'certify'
-      });
+      const response = await this.client.post<InternshipApplication>(
+        `/api/internships/applications/${id}/process_application/`,
+        {
+          action: 'certify',
+        }
+      );
       return response;
     } catch (error) {
       if (error instanceof ApiError) throw error;
@@ -377,7 +483,9 @@ class InternshipService {
 
   async getEvidence(applicationId: string): Promise<InternshipEvidence[]> {
     try {
-      const response = await this.client.get<InternshipEvidence[]>(`/api/internships/applications/${applicationId}/evidence/`);
+      const response = await this.client.get<InternshipEvidence[]>(
+        `/api/internships/applications/${applicationId}/evidence/`
+      );
       return response;
     } catch (error) {
       if (error instanceof ApiError) throw error;
@@ -385,7 +493,13 @@ class InternshipService {
     }
   }
 
-  async submitEvidence(applicationId: string, title: string, description: string, file: File, evidenceType: string): Promise<InternshipEvidence> {
+  async submitEvidence(
+    applicationId: string,
+    title: string,
+    description: string,
+    file: File,
+    evidenceType: string
+  ): Promise<InternshipEvidence> {
     try {
       const formData = new FormData();
       formData.append('title', title);
@@ -393,11 +507,15 @@ class InternshipService {
       formData.append('file', file);
       formData.append('evidence_type', evidenceType);
 
-      const response = await this.client.post<InternshipEvidence>(`/api/internships/applications/${applicationId}/submit_evidence/`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      const response = await this.client.post<InternshipEvidence>(
+        `/api/internships/applications/${applicationId}/submit_evidence/`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
       return response;
     } catch (error) {
       if (error instanceof ApiError) throw error;
@@ -419,29 +537,40 @@ class InternshipService {
     // For now, I'll comment it out or leave it broken (it will 404).
     // Actually, I should probably restore it if it's used.
     // "SupervisorReview" likely uses it.
-    
+
     // For this step, I will leave it pointing to old URL (it will fail) or try to point to where it should be.
     // If I didn't implement it in backend, I can't call it.
     // I'll skip it for now and fix backend if needed.
-    
+
     try {
-      const response = await this.client.get<any>('/api/internships/pending-evidence/');
+      const response = await this.client.get<any>(
+        '/api/internships/pending-evidence/'
+      );
       // Handle paginated response - extract array from { results: [...] } if needed
-      return Array.isArray(response) ? response : (response?.results || []);
+      return Array.isArray(response) ? response : response?.results || [];
     } catch (error) {
       if (error instanceof ApiError) throw error;
       throw new Error('Failed to fetch pending evidence');
     }
   }
 
-  async reviewEvidence(applicationId: string, evidenceId: string, status: 'ACCEPTED' | 'REJECTED' | 'REVISION_REQUIRED', notes?: string, privateNotes?: string): Promise<InternshipEvidence> {
+  async reviewEvidence(
+    applicationId: string,
+    evidenceId: string,
+    status: 'ACCEPTED' | 'REJECTED' | 'REVISION_REQUIRED',
+    notes?: string,
+    privateNotes?: string
+  ): Promise<InternshipEvidence> {
     try {
       // Backend: /api/internships/applications/{id}/review-evidence/{evidenceId}/
-      const response = await this.client.post<InternshipEvidence>(`/api/internships/applications/${applicationId}/review-evidence/${evidenceId}/`, {
-        status,
-        notes,
-        private_notes: privateNotes
-      });
+      const response = await this.client.post<InternshipEvidence>(
+        `/api/internships/applications/${applicationId}/review-evidence/${evidenceId}/`,
+        {
+          status,
+          notes,
+          private_notes: privateNotes,
+        }
+      );
       return response;
     } catch (error) {
       if (error instanceof ApiError) throw error;
@@ -449,12 +578,19 @@ class InternshipService {
     }
   }
 
-  async reportIncident(applicationId: string, title: string, description: string): Promise<any> {
+  async reportIncident(
+    applicationId: string,
+    title: string,
+    description: string
+  ): Promise<any> {
     try {
-      const response = await this.client.post(`/api/internships/applications/${applicationId}/report_incident/`, {
-        title,
-        description
-      });
+      const response = await this.client.post(
+        `/api/internships/applications/${applicationId}/report_incident/`,
+        {
+          title,
+          description,
+        }
+      );
       return response;
     } catch (error) {
       if (error instanceof ApiError) throw error;
@@ -464,9 +600,11 @@ class InternshipService {
 
   async getIncidents(): Promise<Incident[]> {
     try {
-      const response = await this.client.get<any>('/api/internships/incidents/');
+      const response = await this.client.get<any>(
+        '/api/internships/incidents/'
+      );
       // Handle paginated response - extract array from { results: [...] } if needed
-      return Array.isArray(response) ? response : (response?.results || []);
+      return Array.isArray(response) ? response : response?.results || [];
     } catch (error) {
       if (error instanceof ApiError) throw error;
       throw new Error('Failed to fetch incidents');
@@ -477,9 +615,12 @@ class InternshipService {
 
   async getSuccessStories(): Promise<SuccessStory[]> {
     try {
-      const response = await this.client.get<SuccessStory[]>('/api/internships/success-stories/', {
-        headers: { 'skip-auth': 'true' }
-      });
+      const response = await this.client.get<SuccessStory[]>(
+        '/api/internships/success-stories/',
+        {
+          headers: { 'skip-auth': 'true' },
+        }
+      );
       return response;
     } catch (error) {
       if (error instanceof ApiError) throw error;
@@ -487,12 +628,19 @@ class InternshipService {
     }
   }
 
-  async createSuccessStory(applicationId: string, testimonial: string, feedback: string = ''): Promise<SuccessStory> {
+  async createSuccessStory(
+    applicationId: string,
+    testimonial: string,
+    feedback: string = ''
+  ): Promise<SuccessStory> {
     try {
-      const response = await this.client.post<SuccessStory>(`/api/internships/applications/${applicationId}/create-success-story/`, {
-        student_testimonial: testimonial,
-        employer_feedback: feedback
-      });
+      const response = await this.client.post<SuccessStory>(
+        `/api/internships/applications/${applicationId}/create-success-story/`,
+        {
+          student_testimonial: testimonial,
+          employer_feedback: feedback,
+        }
+      );
       return response;
     } catch (error) {
       if (error instanceof ApiError) throw error;

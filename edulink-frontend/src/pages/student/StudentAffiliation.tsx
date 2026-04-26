@@ -240,10 +240,12 @@ const StudentAffiliation: React.FC = () => {
                 </div>
 
                 {isAutoVerified && (
-                  <p className={isDarkMode ? 'text-light opacity-75' : 'text-muted'}>
-                    ✅ Your student status was automatically verified using your institutional email. 
-                    You can now apply for internships!
-                  </p>
+                  <div className={`d-flex justify-content-center align-items-start gap-2 ${isDarkMode ? 'text-light opacity-75' : 'text-muted'}`}>
+                    <CheckCircle size={18} className="text-success flex-shrink-0 mt-1" />
+                    <p className="mb-0">
+                      Your student status was automatically verified using your institutional email. You can now apply for internships.
+                    </p>
+                  </div>
                 )}
 
                 {isPending && !hasDocument && (
@@ -259,10 +261,12 @@ const StudentAffiliation: React.FC = () => {
                 )}
 
                 {isVerified && !isAutoVerified && (
-                  <p className={isDarkMode ? 'text-light opacity-75' : 'text-muted'}>
-                    ✅ Your student status has been verified by the institution admin. 
-                    You can now apply for internships!
-                  </p>
+                  <div className={`d-flex justify-content-center align-items-start gap-2 ${isDarkMode ? 'text-light opacity-75' : 'text-muted'}`}>
+                    <CheckCircle size={18} className="text-success flex-shrink-0 mt-1" />
+                    <p className="mb-0">
+                      Your student status has been verified by the institution admin. You can now apply for internships.
+                    </p>
+                  </div>
                 )}
               </div>
             </div>
@@ -464,7 +468,7 @@ const StudentAffiliation: React.FC = () => {
                       : 'bg-primary bg-opacity-10 border border-primary'
                   }`}>
                     <small className={isDarkMode ? 'text-info' : 'text-primary'}>
-                      💡 Tip: Start typing your university name to see suggestions (e.g., "University of", "Nairobi", etc.)
+                      Tip: Start typing your university name to see suggestions (e.g., "University of", "Nairobi", etc.)
                     </small>
                   </div>
                 )}

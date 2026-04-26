@@ -36,14 +36,14 @@ const SupervisorInternships: React.FC = () => {
   const handleComplete = async (id: string) => {
     showConfirm({
       title: 'Complete Internship',
-      message: 'Are you sure you want to mark this internship as completed? This will allow the student to generate their certificate and is irreversible.',
+      message: 'Are you sure you want to mark this internship as completed? The institution will still need to certify it before the student can generate a certificate.',
       onConfirm: async () => {
         try {
           await internshipService.processApplication(id, 'COMPLETE');
           showSuccess('Internship Completed', "The internship has been marked as completed successfully!");
           fetchInternships(); // Refresh list
         } catch (err: any) {
-          const message = err.response?.data?.detail || "Failed to complete internship. Ensure there is at least one accepted logbook.";
+          const message = err.response?.data?.detail || "Failed to complete internship. Check accepted evidence, final feedback, and unresolved incidents.";
           showError('Completion Failed', "We could not mark the internship as completed.", message);
         }
       }
@@ -150,11 +150,12 @@ const SupervisorInternships: React.FC = () => {
                         <td className="py-3">{getStatusBadge(internship.status)}</td>
                         <td className="text-end pe-4 py-3">
                            <div className="d-flex justify-content-end gap-2">
-                             {internship.can_complete && (
+                             {internship.status === 'ACTIVE' && (
                                <button 
                                  onClick={() => handleComplete(internship.id)}
                                  className="btn btn-sm btn-success d-flex align-items-center transition-all hover-lift"
-                                 title="Mark as Completed"
+                                 disabled={!internship.completion_readiness?.can_mark_completed}
+                                 title={internship.completion_readiness?.summary || 'Review completion readiness'}
                                >
                                  <CheckCircle size={14} className="me-2" />
                                  <span className="fw-medium">Complete</span>
@@ -177,6 +178,12 @@ const SupervisorInternships: React.FC = () => {
                                <span className="fw-medium">Report</span>
                              </Link>
                            </div>
+                           {internship.status === 'ACTIVE' && internship.completion_readiness?.missing?.length ? (
+                             <div className="text-muted small mt-2 text-end">
+                               Missing: {internship.completion_readiness.missing.slice(0, 2).join(', ')}
+                               {internship.completion_readiness.missing.length > 2 ? '...' : ''}
+                             </div>
+                           ) : null}
                         </td>
                       </tr>
                     ))

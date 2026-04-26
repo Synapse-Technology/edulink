@@ -49,7 +49,7 @@ class TestReportGeneration:
         self.mock_app = MagicMock()
         self.mock_app.id = self.application_id
         self.mock_app.student_id = self.student_id
-        self.mock_app.status = "COMPLETED"
+        self.mock_app.status = "CERTIFIED"
         self.mock_app.opportunity.title = "Software Engineer Intern"
         self.mock_app.opportunity.employer_id = self.employer_id
         self.mock_app.opportunity.start_date = date(2023, 1, 1)
@@ -99,11 +99,11 @@ class TestReportGeneration:
             mock_notify.assert_called_once()
 
     def test_generate_certificate_invalid_status(self, mock_dependencies):
-        """Test certificate generation fails if status is not COMPLETED/CERTIFIED"""
+        """Test certificate generation fails if status is not certified"""
         self.mock_app.status = "IN_PROGRESS"
         mock_dependencies["get_app"].return_value = self.mock_app
 
-        with pytest.raises(ValueError, match="Internship must be marked as COMPLETED"):
+        with pytest.raises(ValueError, match="Internship must be CERTIFIED"):
             generate_completion_certificate(
                 application_id=self.application_id, 
                 actor_id=self.actor_id

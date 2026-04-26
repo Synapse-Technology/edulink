@@ -96,7 +96,7 @@ def test_internship_lifecycle(api_client, institution_admin, employer_admin, emp
     
     # 4. Employer Shortlists (APPLIED -> SHORTLISTED)
     client.force_authenticate(user=emp_user)
-    url = reverse('internship-process-application', args=[app_id])
+    url = reverse('application-process-application', args=[app_id])
     response = client.post(url, {'action': 'shortlist'}, format='json')
     assert response.status_code == status.HTTP_200_OK
     assert response.data['status'] == InternshipState.SHORTLISTED
@@ -107,21 +107,21 @@ def test_internship_lifecycle(api_client, institution_admin, employer_admin, emp
     assert response.data['status'] == InternshipState.ACCEPTED
     
     # 6. Assign Supervisor
-    url_assign = reverse('internship-assign-supervisor', args=[app_id])
+    url_assign = reverse('application-assign-supervisor', args=[app_id])
     response = client.post(url_assign, {'supervisor_id': str(sup_user.id), 'type': 'employer'}, format='json')
     assert response.status_code == status.HTTP_200_OK
     assert response.data['employer_supervisor_id'] == str(sup_user.id)
     
     # 7. Start Internship (ACCEPTED -> ACTIVE)
     client.force_authenticate(user=emp_user)
-    url_process = reverse('internship-process-application', args=[app_id])
+    url_process = reverse('application-process-application', args=[app_id])
     response = client.post(url_process, {'action': 'start'}, format='json')
     assert response.status_code == status.HTTP_200_OK
     assert response.data['status'] == InternshipState.ACTIVE
     
     # 8. Student submits Evidence (Logbook)
     client.force_authenticate(user=student)
-    url_submit = reverse('internship-submit-evidence', args=[app_id])
+    url_submit = reverse('application-submit-evidence', args=[app_id])
     
     file_content = b"file_content"
     file = SimpleUploadedFile("log.pdf", file_content, content_type="application/pdf")
@@ -136,7 +136,7 @@ def test_internship_lifecycle(api_client, institution_admin, employer_admin, emp
     
     # 9. Supervisor Reviews Evidence
     client.force_authenticate(user=sup_user)
-    url_review = reverse('internship-review-evidence', args=[app_id, evidence_id])
+    url_review = reverse('application-review-evidence', args=[app_id, evidence_id])
     # Note: review_evidence action is on Detail view, but url usually includes PK.
     # Wait, review_evidence in views.py is @action(detail=True, url_path='review-evidence/(?P<evidence_id>[^/.]+)')
     # So reverse should take app_id AND evidence_id?
@@ -153,10 +153,18 @@ def test_internship_lifecycle(api_client, institution_admin, employer_admin, emp
         'notes': 'Good job'
     }, format='json')
     assert response.status_code == status.HTTP_200_OK
+    assert response.data['status'] == InternshipEvidence.STATUS_REVIEWED
+
+    client.force_authenticate(user=inst_user)
+    response = client.post(url_review, {
+        'status': InternshipEvidence.STATUS_ACCEPTED,
+        'notes': 'Approved by institution'
+    }, format='json')
+    assert response.status_code == status.HTTP_200_OK
     assert response.data['status'] == InternshipEvidence.STATUS_ACCEPTED
     
     # 10. Supervisor Reports Incident
-    url_incident = reverse('internship-report-incident', args=[app_id])
+    url_incident = reverse('application-report-incident', args=[app_id])
     response = client.post(url_incident, {
         'title': 'Late arrival',
         'description': 'Student was late'
@@ -177,7 +185,7 @@ def test_internship_lifecycle(api_client, institution_admin, employer_admin, emp
     # And then I used `url_review = reverse('internship-review-evidence', args=[app_id, evidence_id])`
     # Let's assume it works.
     
-    url_resolve = reverse('internship-resolve-incident', args=[app_id, incident_id])
+    url_resolve = reverse('application-resolve-incident', args=[app_id, incident_id])
     response = client.post(url_resolve, {
         'status': Incident.STATUS_RESOLVED,
         'resolution_notes': 'Talked to student'
@@ -185,14 +193,16 @@ def test_internship_lifecycle(api_client, institution_admin, employer_admin, emp
     assert response.status_code == status.HTTP_200_OK
     assert response.data['status'] == Incident.STATUS_RESOLVED
     
-    # 11. Employer Completes (ACTIVE -> COMPLETED)
-    # Supervisor CANNOT complete.
-    url_process = reverse('internship-process-application', args=[app_id])
+    # 11. Supervisor submits final feedback, then Employer completes (ACTIVE -> COMPLETED)
+    url_feedback = reverse('application-submit-feedback', args=[app_id])
     client.force_authenticate(user=sup_user)
-    response = client.post(url_process, {'action': 'complete'}, format='json')
-    assert response.status_code == status.HTTP_403_FORBIDDEN # Supervisor cannot complete
-    
-    # Employer Admin completes
+    response = client.post(url_feedback, {
+        'feedback': 'Strong performance throughout the placement.',
+        'rating': 5
+    }, format='json')
+    assert response.status_code == status.HTTP_200_OK
+
+    url_process = reverse('application-process-application', args=[app_id])
     client.force_authenticate(user=emp_user)
     response = client.post(url_process, {'action': 'complete'}, format='json')
     assert response.status_code == status.HTTP_200_OK

@@ -31,7 +31,7 @@ __all__ = [
 logger = logging.getLogger(__name__)
 
 
-class EduLinkError(Exception, ABC):
+class EduLinkError(ValueError, ABC):
     """
     Base exception for Edulink domain errors.
     

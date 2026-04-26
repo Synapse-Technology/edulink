@@ -131,6 +131,7 @@ class InternshipApplicationSerializer(serializers.ModelSerializer):
     logbook_count = serializers.SerializerMethodField()
     can_complete = serializers.SerializerMethodField()
     can_feedback = serializers.SerializerMethodField()
+    completion_readiness = serializers.SerializerMethodField()
     
     # Flatten Opportunity fields
     title = serializers.CharField(source='opportunity.title', read_only=True)
@@ -153,16 +154,17 @@ class InternshipApplicationSerializer(serializers.ModelSerializer):
         from .policies import can_transition_application
         return can_transition_application(request.user, obj, 'COMPLETED')
 
+    def get_completion_readiness(self, obj):
+        from .services import get_completion_readiness
+        return get_completion_readiness(obj)
+
     def get_can_feedback(self, obj):
         request = self.context.get('request')
         if not request or not request.user.is_authenticated:
             return False
-        
-        # Supervisors can submit feedback if the internship is ongoing, completed or certified
-        is_assigned = str(obj.employer_supervisor_id) == str(request.user.id) or \
-                      str(obj.institution_supervisor_id) == str(request.user.id)
-        
-        return is_assigned and obj.status in [ApplicationStatus.ONGOING, ApplicationStatus.COMPLETED, ApplicationStatus.CERTIFIED]
+
+        from .policies import can_submit_final_feedback
+        return can_submit_final_feedback(request.user, obj)
 
     class Meta:
         model = InternshipApplication

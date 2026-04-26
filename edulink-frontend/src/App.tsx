@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import type { ReactNode } from 'react';
 import { ProtectedRoute } from './routes';
 import { Layout, HybridLayout, KeepAlive } from './components';
 import Home from './pages/Home';
@@ -86,8 +87,10 @@ import SupportManagement from './pages/admin/SystemAdmin/SupportManagement';
 import AdminSupportTicketDetail from './pages/admin/SystemAdmin/AdminSupportTicketDetail';
 import ContactManagement from './pages/admin/SystemAdmin/ContactManagement';
 import { AdminAuthProvider } from './contexts/AdminAuthContext';
+import { AdminProtectedRoute } from './components/admin/AdminRouteGuards';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
+import EdiChatbot from './components/common/EdiChatbot';
 import { ToastProvider } from './components/providers/ToastProvider';
 import { useSessionTimeout } from './hooks/useSessionTimeout';
 import NotFound from './pages/NotFound';
@@ -95,247 +98,615 @@ import './App.css';
 import './styles/admin-dashboard.css';
 import './styles/admin-landing.css';
 
+const AdminRoute = ({ children }: { children: ReactNode }) => (
+  <AdminAuthProvider>
+    <AdminProtectedRoute>{children}</AdminProtectedRoute>
+  </AdminAuthProvider>
+);
+
+const EmployerAdminRoute = ({ children }: { children: ReactNode }) => (
+  <ProtectedRoute role={['employer', 'employer_admin']}>
+    {children}
+  </ProtectedRoute>
+);
+
+const EmployerSupervisorRoute = ({ children }: { children: ReactNode }) => (
+  <ProtectedRoute role="supervisor">{children}</ProtectedRoute>
+);
+
 function App() {
   useSessionTimeout();
-  
+
   return (
     <ErrorBoundary>
       <ToastProvider>
         <Router>
           <KeepAlive />
-      <Routes>
-        {/* Public routes with layout */}
-        <Route path="/" element={<Layout />}>
-          <Route index element={<Home />} />
-          <Route path="about" element={<About />} />
-          <Route path="why-us" element={<WhyUs />} />
-          <Route path="contact" element={<Contact />} />
-          <Route path="search" element={<Search />} />
-          <Route path="success-stories" element={<SuccessStories />} />
-        </Route>
-
-        <Route path="/verify/:artifactId" element={<VerifyArtifact />} />
-        
-        <Route path="/support" element={<HybridLayout><Support /></HybridLayout>} />
-        <Route path="/support/history" element={<ProtectedRoute><HybridLayout><TicketHistory /></HybridLayout></ProtectedRoute>} />
-        <Route path="/support/tickets/:trackingCode" element={<ProtectedRoute><HybridLayout><TicketDetail /></HybridLayout></ProtectedRoute>} />
-        <Route path="/opportunities" element={<HybridLayout><Opportunities /></HybridLayout>} />
-        <Route path="/opportunities/:id" element={<HybridLayout><OpportunityDetails /></HybridLayout>} />
-        
-        {/* Auth routes without layout */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/verify-email/:token/" element={<VerifyEmail />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
-        
-        {/* Admin routes without layout */}
-        <Route path="/admin" element={<AdminLanding />} />
-        <Route path="/admin/accept-invite" element={<AcceptInvite />} />
-        <Route path="/admin/login" element={
-          <AdminAuthProvider>
-            <SystemAdminLogin />
-          </AdminAuthProvider>
-        } />
-        <Route path="/dashboard/admin" element={
-          <AdminAuthProvider>
-            <SystemAdminDashboard />
-          </AdminAuthProvider>
-        } />
-        <Route path="/admin/users" element={
-          <AdminAuthProvider>
-            <UserManagement />
-          </AdminAuthProvider>
-        } />
-        <Route path="/admin/institutions" element={
-          <AdminAuthProvider>
-            <InstitutionManagement />
-          </AdminAuthProvider>
-        } />
-        <Route path="/admin/staff" element={
-          <AdminAuthProvider>
-            <PlatformStaffManagement />
-          </AdminAuthProvider>
-        } />
-        <Route path="/admin/staff/invite" element={
-          <AdminAuthProvider>
-            <StaffInviteForm />
-          </AdminAuthProvider>
-        } />
-        <Route path="/admin/health" element={
-          <AdminAuthProvider>
-            <SystemHealthDashboard />
-          </AdminAuthProvider>
-        } />
-        <Route path="/admin/analytics" element={
-          <AdminAuthProvider>
-            <SystemHealthDashboard />
-          </AdminAuthProvider>
-        } />
-        <Route path="/admin/analytics/institutions" element={
-          <AdminAuthProvider>
-            <InstitutionInterestAnalytics />
-          </AdminAuthProvider>
-        } />
-        <Route path="/admin/reports" element={
-          <AdminAuthProvider>
-            <SystemHealthDashboard />
-          </AdminAuthProvider>
-        } />
-        <Route path="/admin/logs" element={
-          <AdminAuthProvider>
-            <AuditLog />
-          </AdminAuthProvider>
-        } />
-        <Route path="/admin/settings" element={
-          <AdminAuthProvider>
-            <SystemAdminDashboard />
-          </AdminAuthProvider>
-        } />
-        
-        {/* Student dashboard routes without layout */}
-        <Route path="/dashboard/student/*" element={
-          <ThemeProvider>
-            <Routes>
-              <Route index element={
+          <Routes>
+            {/* Public routes with layout */}
+            <Route path="/" element={<Layout />}>
+              <Route index element={<Home />} />
+              <Route path="about" element={<About />} />
+              <Route path="why-us" element={<WhyUs />} />
+              <Route path="contact" element={<Contact />} />
+              <Route path="search" element={<Search />} />
+              <Route path="success-stories" element={<SuccessStories />} />
+            </Route>
+            <Route path="/verify/:artifactId" element={<VerifyArtifact />} />
+            <Route
+              path="/support"
+              element={
+                <HybridLayout>
+                  <Support />
+                </HybridLayout>
+              }
+            />
+            <Route
+              path="/support/history"
+              element={
                 <ProtectedRoute>
-                  <StudentDashboard />
+                  <HybridLayout>
+                    <TicketHistory />
+                  </HybridLayout>
                 </ProtectedRoute>
-              } />
-              <Route path="applications" element={
+              }
+            />
+            <Route
+              path="/support/tickets/:trackingCode"
+              element={
                 <ProtectedRoute>
-                  <StudentApplications />
+                  <HybridLayout>
+                    <TicketDetail />
+                  </HybridLayout>
                 </ProtectedRoute>
-              } />
-              <Route path="applications/:id" element={
-                <ProtectedRoute>
-                  <StudentApplicationDetail />
+              }
+            />
+            <Route
+              path="/opportunities"
+              element={
+                <HybridLayout>
+                  <Opportunities />
+                </HybridLayout>
+              }
+            />
+            <Route
+              path="/opportunities/:id"
+              element={
+                <HybridLayout>
+                  <OpportunityDetails />
+                </HybridLayout>
+              }
+            />
+            {/* Auth routes without layout */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/verify-email/:token/" element={<VerifyEmail />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route
+              path="/reset-password/:token"
+              element={<ResetPasswordPage />}
+            />
+            {/* Admin routes without layout */}
+            <Route path="/admin" element={<AdminLanding />} />
+            <Route path="/admin/accept-invite" element={<AcceptInvite />} />
+            <Route
+              path="/admin/login"
+              element={
+                <AdminAuthProvider>
+                  <SystemAdminLogin />
+                </AdminAuthProvider>
+              }
+            />
+            <Route
+              path="/dashboard/admin"
+              element={
+                <AdminRoute>
+                  <SystemAdminDashboard />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/users"
+              element={
+                <AdminRoute>
+                  <UserManagement />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/institutions"
+              element={
+                <AdminRoute>
+                  <InstitutionManagement />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/staff"
+              element={
+                <AdminRoute>
+                  <PlatformStaffManagement />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/staff/invite"
+              element={
+                <AdminRoute>
+                  <StaffInviteForm />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/health"
+              element={
+                <AdminRoute>
+                  <SystemHealthDashboard />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/analytics"
+              element={
+                <AdminRoute>
+                  <SystemHealthDashboard />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/analytics/institutions"
+              element={
+                <AdminRoute>
+                  <InstitutionInterestAnalytics />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/reports"
+              element={
+                <AdminRoute>
+                  <SystemHealthDashboard />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/logs"
+              element={
+                <AdminRoute>
+                  <AuditLog />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/settings"
+              element={
+                <AdminRoute>
+                  <SystemAdminDashboard />
+                </AdminRoute>
+              }
+            />
+            {/* Student dashboard routes without layout */}
+            <Route
+              path="/dashboard/student/*"
+              element={
+                <ThemeProvider>
+                  <Routes>
+                    <Route
+                      index
+                      element={
+                        <ProtectedRoute>
+                          <StudentDashboard />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="applications"
+                      element={
+                        <ProtectedRoute>
+                          <StudentApplications />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="applications/:id"
+                      element={
+                        <ProtectedRoute>
+                          <StudentApplicationDetail />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="internship"
+                      element={
+                        <ProtectedRoute>
+                          <StudentInternship />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="logbook"
+                      element={
+                        <ProtectedRoute>
+                          <StudentLogbook />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="logbook/:evidenceId"
+                      element={
+                        <ProtectedRoute>
+                          <StudentLogbookDetail />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="artifacts"
+                      element={
+                        <ProtectedRoute>
+                          <StudentArtifacts />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="notifications"
+                      element={
+                        <ProtectedRoute>
+                          <StudentNotifications />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="profile"
+                      element={
+                        <ProtectedRoute>
+                          <StudentProfile />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="affiliation"
+                      element={
+                        <ProtectedRoute>
+                          <StudentAffiliation />
+                        </ProtectedRoute>
+                      }
+                    />
+                  </Routes>
+                </ThemeProvider>
+              }
+            />
+            {/* Institution onboarding request */}
+            <Route
+              path="/institutions/request"
+              element={<InstitutionRequest />}
+            />
+            <Route
+              path="/institution/request"
+              element={<InstitutionRequest />}
+            />{' '}
+            {/* Legacy/Alias */}
+            <Route
+              path="/institution/activate"
+              element={<InstitutionActivate />}
+            />
+            <Route
+              path="/institution/staff/activate"
+              element={<InstitutionActivate />}
+            />
+            {/* Institution Routes */}
+            <Route path="/institution/login" element={<InstitutionLogin />} />
+            <Route
+              path="/institution/dashboard"
+              element={
+                <ProtectedRoute role={['institution', 'institution_admin']}>
+                  <InstitutionDashboard />
                 </ProtectedRoute>
-              } />
-              <Route path="internship" element={
-                <ProtectedRoute>
-                  <StudentInternship />
+              }
+            />
+            <Route
+              path="/institution/dashboard/reports"
+              element={
+                <ProtectedRoute role={['institution', 'institution_admin']}>
+                  <InstitutionLayout>
+                    <ReportsAnalytics />
+                  </InstitutionLayout>
                 </ProtectedRoute>
-              } />
-              <Route path="logbook" element={
-                <ProtectedRoute>
-                  <StudentLogbook />
+              }
+            />
+            <Route
+              path="/institution/dashboard/students"
+              element={
+                <ProtectedRoute role={['institution', 'institution_admin']}>
+                  <InstitutionLayout>
+                    <InstitutionStudents />
+                  </InstitutionLayout>
                 </ProtectedRoute>
-              } />
-              <Route path="logbook/:evidenceId" element={
-                <ProtectedRoute>
-                  <StudentLogbookDetail />
+              }
+            />
+            <Route
+              path="/institution/dashboard/staff"
+              element={
+                <ProtectedRoute role={['institution', 'institution_admin']}>
+                  <InstitutionLayout>
+                    <InstitutionStaff />
+                  </InstitutionLayout>
                 </ProtectedRoute>
-              } />
-              <Route path="artifacts" element={
-                <ProtectedRoute>
-                  <StudentArtifacts />
+              }
+            />
+            <Route
+              path="/institution/dashboard/academic"
+              element={
+                <ProtectedRoute role={['institution', 'institution_admin']}>
+                  <InstitutionLayout>
+                    <AcademicStructure />
+                  </InstitutionLayout>
                 </ProtectedRoute>
-              } />
-              <Route path="notifications" element={
-                <ProtectedRoute>
-                  <StudentNotifications />
+              }
+            />
+            <Route
+              path="/institution/dashboard/internships"
+              element={
+                <ProtectedRoute role={['institution', 'institution_admin']}>
+                  <InstitutionLayout>
+                    <InstitutionInternships />
+                  </InstitutionLayout>
                 </ProtectedRoute>
-              } />
-              <Route path="profile" element={
-                <ProtectedRoute>
-                  <StudentProfile />
+              }
+            />
+            <Route
+              path="/institution/dashboard/applications"
+              element={
+                <ProtectedRoute role={['institution', 'institution_admin']}>
+                  <InstitutionLayout>
+                    <InstitutionApplications />
+                  </InstitutionLayout>
                 </ProtectedRoute>
-              } />
-              <Route path="affiliation" element={
-                <ProtectedRoute>
-                  <StudentAffiliation />
+              }
+            />
+            <Route
+              path="/institution/dashboard/certifications"
+              element={
+                <ProtectedRoute role={['institution', 'institution_admin']}>
+                  <InstitutionLayout>
+                    <InstitutionCertifications />
+                  </InstitutionLayout>
                 </ProtectedRoute>
-              } />
-            </Routes>
-          </ThemeProvider>
-        } />
-        
-        {/* Institution onboarding request */}
-        <Route path="/institutions/request" element={<InstitutionRequest />} />
-        <Route path="/institution/request" element={<InstitutionRequest />} /> {/* Legacy/Alias */}
-        <Route path="/institution/activate" element={<InstitutionActivate />} />
-        <Route path="/institution/staff/activate" element={<InstitutionActivate />} />
-        {/* Institution Routes */}
-        <Route path="/institution/login" element={<InstitutionLogin />} />
-        <Route path="/institution/dashboard" element={<ProtectedRoute role={['institution', 'institution_admin']}><InstitutionDashboard /></ProtectedRoute>} />
-        <Route path="/institution/dashboard/reports" element={<ProtectedRoute role={['institution', 'institution_admin']}><InstitutionLayout><ReportsAnalytics /></InstitutionLayout></ProtectedRoute>} />
-        <Route path="/institution/dashboard/students" element={<ProtectedRoute role={['institution', 'institution_admin']}><InstitutionLayout><InstitutionStudents /></InstitutionLayout></ProtectedRoute>} />
-        <Route path="/institution/dashboard/staff" element={<ProtectedRoute role={['institution', 'institution_admin']}><InstitutionLayout><InstitutionStaff /></InstitutionLayout></ProtectedRoute>} />
-        <Route path="/institution/dashboard/academic" element={<ProtectedRoute role={['institution', 'institution_admin']}><InstitutionLayout><AcademicStructure /></InstitutionLayout></ProtectedRoute>} />
-        <Route path="/institution/dashboard/internships" element={<ProtectedRoute role={['institution', 'institution_admin']}><InstitutionLayout><InstitutionInternships /></InstitutionLayout></ProtectedRoute>} />
-        <Route path="/institution/dashboard/applications" element={<ProtectedRoute role={['institution', 'institution_admin']}><InstitutionLayout><InstitutionApplications /></InstitutionLayout></ProtectedRoute>} />
-        <Route path="/institution/dashboard/certifications" element={<ProtectedRoute role={['institution', 'institution_admin']}><InstitutionLayout><InstitutionCertifications /></InstitutionLayout></ProtectedRoute>} />
-        <Route path="/institution/dashboard/verification" element={<ProtectedRoute role={['institution', 'institution_admin']}><InstitutionLayout><StudentVerification /></InstitutionLayout></ProtectedRoute>} />
-        <Route path="/institution/dashboard/settings" element={<ProtectedRoute role={['institution', 'institution_admin']}><InstitutionLayout><InstitutionSettings /></InstitutionLayout></ProtectedRoute>} />
-        
-        <Route path="/institution/supervisor-dashboard" element={<ProtectedRoute role="supervisor"><SupervisorDashboard /></ProtectedRoute>}>
-          <Route index element={<SupervisorOverview />} />
-          <Route path="overview" element={<SupervisorOverview />} />
-          <Route path="logbooks" element={<SupervisorLogbooks />} />
-          <Route path="students" element={<SupervisorStudents />} />
-          <Route path="students/:applicationId/logbook" element={<StudentLogbookHistory />} />
-          <Route path="incidents" element={<SupervisorIncidents />} />
-          <Route path="settings" element={<SupervisorSettings />} />
-        </Route>
-
-        {/* Employer onboarding routes */}
-        <Route path="/employer/onboarding" element={<RequestSubmission />} />
-        <Route path="/employer/track" element={<RequestTracking />} />
-        <Route path="/employer/activate" element={<ActivateAdmin />} />
-        <Route path="/employer/staff/activate" element={<ActivateAdmin />} />
-        <Route path="/employer/login" element={<EmployerLogin />} />
-        
-        {/* Employer Routes */}
-        <Route path="/employer/dashboard" element={<EmployerDashboard />} />
-        <Route path="/employer/dashboard/opportunities" element={<EmployerOpportunities />} />
-        <Route path="/employer/dashboard/opportunities/:id" element={<EmployerOpportunities />} />
-        <Route path="/employer/dashboard/applications" element={<EmployerApplications />} />
-        <Route path="/employer/dashboard/interns" element={<EmployerInterns />} />
-        <Route path="/employer/dashboard/applications/:id" element={<EmployerApplicationDetail />} />
-        <Route path="/employer/dashboard/supervisors" element={<EmployerSupervisors />} />
-        <Route path="/employer/dashboard/profile-requests" element={<EmployerProfileRequests />} />
-        <Route path="/employer/dashboard/reviews" element={<EmployerReviews />} />
-        <Route path="/employer/dashboard/profile" element={<EmployerProfile />} />
-        <Route path="/employer/dashboard/settings" element={<EmployerSettings />} />
-        
-        {/* Employer Supervisor Routes */}
-        <Route path="/employer/supervisor/dashboard" element={<EmployerSupervisorDashboard />} />
-        <Route path="/employer/supervisor/logbooks" element={<EmployerSupervisorLogbooks />} />
-        <Route path="/employer/supervisor/incidents" element={<EmployerSupervisorIncidents />} />
-        <Route path="/employer/supervisor/internships" element={<EmployerSupervisorInternships />} />
-        <Route path="/employer/supervisor/internships/:applicationId/logbook" element={<StudentLogbookHistory />} />
-        <Route path="/employer/supervisor/milestones" element={<EmployerSupervisorMilestones />} />
-        <Route path="/employer/supervisor/profile" element={<EmployerSupervisorProfile />} />
-
-        <Route path="/admin/employers/requests" element={
-          <AdminAuthProvider>
-            <EmployerRequestReview />
-          </AdminAuthProvider>
-        } />
-
-        <Route path="/admin/support" element={
-          <AdminAuthProvider>
-            <SupportManagement />
-          </AdminAuthProvider>
-        } />
-
-        <Route path="/admin/support/tickets/:trackingCode" element={
-          <AdminAuthProvider>
-            <AdminSupportTicketDetail />
-          </AdminAuthProvider>
-        } />
-
-        <Route path="/admin/contact" element={
-          <AdminAuthProvider>
-            <ContactManagement />
-          </AdminAuthProvider>
-        } />
-        
-        {/* Catch-all route for 404 errors */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </Router>
+              }
+            />
+            <Route
+              path="/institution/dashboard/verification"
+              element={
+                <ProtectedRoute role={['institution', 'institution_admin']}>
+                  <InstitutionLayout>
+                    <StudentVerification />
+                  </InstitutionLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/institution/dashboard/settings"
+              element={
+                <ProtectedRoute role={['institution', 'institution_admin']}>
+                  <InstitutionLayout>
+                    <InstitutionSettings />
+                  </InstitutionLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/institution/supervisor-dashboard"
+              element={
+                <ProtectedRoute role="supervisor">
+                  <SupervisorDashboard />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<SupervisorOverview />} />
+              <Route path="overview" element={<SupervisorOverview />} />
+              <Route path="logbooks" element={<SupervisorLogbooks />} />
+              <Route path="students" element={<SupervisorStudents />} />
+              <Route
+                path="students/:applicationId/logbook"
+                element={<StudentLogbookHistory />}
+              />
+              <Route path="incidents" element={<SupervisorIncidents />} />
+              <Route path="settings" element={<SupervisorSettings />} />
+            </Route>
+            {/* Employer onboarding routes */}
+            <Route
+              path="/employer/onboarding"
+              element={<RequestSubmission />}
+            />
+            <Route path="/employer/track" element={<RequestTracking />} />
+            <Route path="/employer/activate" element={<ActivateAdmin />} />
+            <Route
+              path="/employer/staff/activate"
+              element={<ActivateAdmin />}
+            />
+            <Route path="/employer/login" element={<EmployerLogin />} />
+            {/* Employer Routes */}
+            <Route
+              path="/employer/dashboard"
+              element={
+                <EmployerAdminRoute>
+                  <EmployerDashboard />
+                </EmployerAdminRoute>
+              }
+            />
+            <Route
+              path="/employer/dashboard/opportunities"
+              element={
+                <EmployerAdminRoute>
+                  <EmployerOpportunities />
+                </EmployerAdminRoute>
+              }
+            />
+            <Route
+              path="/employer/dashboard/opportunities/:id"
+              element={
+                <EmployerAdminRoute>
+                  <EmployerOpportunities />
+                </EmployerAdminRoute>
+              }
+            />
+            <Route
+              path="/employer/dashboard/applications"
+              element={
+                <EmployerAdminRoute>
+                  <EmployerApplications />
+                </EmployerAdminRoute>
+              }
+            />
+            <Route
+              path="/employer/dashboard/interns"
+              element={
+                <EmployerAdminRoute>
+                  <EmployerInterns />
+                </EmployerAdminRoute>
+              }
+            />
+            <Route
+              path="/employer/dashboard/applications/:id"
+              element={
+                <EmployerAdminRoute>
+                  <EmployerApplicationDetail />
+                </EmployerAdminRoute>
+              }
+            />
+            <Route
+              path="/employer/dashboard/supervisors"
+              element={
+                <EmployerAdminRoute>
+                  <EmployerSupervisors />
+                </EmployerAdminRoute>
+              }
+            />
+            <Route
+              path="/employer/dashboard/profile-requests"
+              element={
+                <EmployerAdminRoute>
+                  <EmployerProfileRequests />
+                </EmployerAdminRoute>
+              }
+            />
+            <Route
+              path="/employer/dashboard/reviews"
+              element={
+                <EmployerAdminRoute>
+                  <EmployerReviews />
+                </EmployerAdminRoute>
+              }
+            />
+            <Route
+              path="/employer/dashboard/profile"
+              element={
+                <EmployerAdminRoute>
+                  <EmployerProfile />
+                </EmployerAdminRoute>
+              }
+            />
+            <Route
+              path="/employer/dashboard/settings"
+              element={
+                <EmployerAdminRoute>
+                  <EmployerSettings />
+                </EmployerAdminRoute>
+              }
+            />
+            {/* Employer Supervisor Routes */}
+            <Route
+              path="/employer/supervisor/dashboard"
+              element={
+                <EmployerSupervisorRoute>
+                  <EmployerSupervisorDashboard />
+                </EmployerSupervisorRoute>
+              }
+            />
+            <Route
+              path="/employer/supervisor/logbooks"
+              element={
+                <EmployerSupervisorRoute>
+                  <EmployerSupervisorLogbooks />
+                </EmployerSupervisorRoute>
+              }
+            />
+            <Route
+              path="/employer/supervisor/incidents"
+              element={
+                <EmployerSupervisorRoute>
+                  <EmployerSupervisorIncidents />
+                </EmployerSupervisorRoute>
+              }
+            />
+            <Route
+              path="/employer/supervisor/internships"
+              element={
+                <EmployerSupervisorRoute>
+                  <EmployerSupervisorInternships />
+                </EmployerSupervisorRoute>
+              }
+            />
+            <Route
+              path="/employer/supervisor/internships/:applicationId/logbook"
+              element={
+                <EmployerSupervisorRoute>
+                  <StudentLogbookHistory />
+                </EmployerSupervisorRoute>
+              }
+            />
+            <Route
+              path="/employer/supervisor/milestones"
+              element={
+                <EmployerSupervisorRoute>
+                  <EmployerSupervisorMilestones />
+                </EmployerSupervisorRoute>
+              }
+            />
+            <Route
+              path="/employer/supervisor/profile"
+              element={
+                <EmployerSupervisorRoute>
+                  <EmployerSupervisorProfile />
+                </EmployerSupervisorRoute>
+              }
+            />
+            <Route
+              path="/admin/employers/requests"
+              element={
+                <AdminRoute>
+                  <EmployerRequestReview />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/support"
+              element={
+                <AdminRoute>
+                  <SupportManagement />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/support/tickets/:trackingCode"
+              element={
+                <AdminRoute>
+                  <AdminSupportTicketDetail />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/contact"
+              element={
+                <AdminRoute>
+                  <ContactManagement />
+                </AdminRoute>
+              }
+            />
+            {/* Catch-all route for 404 errors */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+          <EdiChatbot />
+        </Router>
       </ToastProvider>
     </ErrorBoundary>
   );

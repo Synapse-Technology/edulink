@@ -33,3 +33,7 @@ python-dateutil==2.9.0.post0
 pytz==2024.1
 asgiref==3.8.1
 sqlparse==0.5.1
+
+# Test tooling
+pytest==8.3.4
+pytest-django==4.9.0

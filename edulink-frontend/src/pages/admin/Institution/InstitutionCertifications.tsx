@@ -8,6 +8,7 @@ import TrustBadge, { type TrustLevel } from '../../../components/common/TrustBad
 import InstitutionTableSkeleton from '../../../components/admin/skeletons/InstitutionTableSkeleton';
 import { useFeedbackModal } from '../../../hooks/useFeedbackModal';
 import { FeedbackModal } from '../../../components/common';
+import InternshipLifecyclePanel from '../../../components/internship/InternshipLifecyclePanel';
 import toast from 'react-hot-toast';
 
 const InstitutionCertifications: React.FC = () => {
@@ -269,6 +270,14 @@ const InstitutionCertifications: React.FC = () => {
                   <p className="mb-0"><strong>Current Status:</strong> {getStatusBadge(selectedApp.status)}</p>
                 </Col>
               </Row>
+
+              <div className="mb-4">
+                <InternshipLifecyclePanel
+                  application={selectedApp}
+                  roleView="institution"
+                  compact
+                />
+              </div>
 
               {selectedApp.status === 'COMPLETED' && (
                 <div className="mt-4 pt-3 border-top">

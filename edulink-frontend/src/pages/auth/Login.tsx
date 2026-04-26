@@ -4,6 +4,10 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useAuthStore } from '../../stores/authStore';
 import { Eye, EyeOff } from 'lucide-react';
 import { useLoginErrorHandler } from '../../hooks/useAuthErrorHandler';
+import edulinkLogo from '../../assets/images/edulink-logo-v1-select.svg';
+import DemoCredentialsPanel, {
+  type DemoCredential,
+} from '../../components/auth/DemoCredentialsPanel';
 
 // CSS Animations and Keyframes
 const styles = `
@@ -164,6 +168,23 @@ const Login: React.FC = () => {
   const [showToast, setShowToast] = useState(false);
   const [toastClosing, setToastClosing] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const demoCredentials: DemoCredential[] = [
+    {
+      label: 'Student demo',
+      email: 'demo.student@students.jkuat.ac.ke',
+      password: 'DemoPass12345!',
+      description: 'Browse applications, active internship, logbook, and certificates.',
+    },
+  ];
+
+  const useDemoCredential = (credential: DemoCredential) => {
+    setLoginForm(prev => ({
+      ...prev,
+      email: credential.email,
+      password: credential.password,
+    }));
+    setMessage('');
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
@@ -366,7 +387,7 @@ const Login: React.FC = () => {
             justifyContent: 'center'
           }}>
             <Link to="/">
-              <img src="/images/edulink_logo.png" alt="Edulink Logo" style={{
+              <img src={edulinkLogo} alt="EduLink Logo" style={{
                 maxWidth: '150px',
                 marginBottom: '25px'
               }} />
@@ -486,6 +507,12 @@ const Login: React.FC = () => {
               }}>
                 Please enter your credentials to proceed.
               </p>
+
+              <DemoCredentialsPanel
+                credentials={demoCredentials}
+                onUse={useDemoCredential}
+                dark
+              />
 
               <form onSubmit={handleLoginSubmit} id="loginForm" role="form" aria-label="Login form">
                 <div style={{

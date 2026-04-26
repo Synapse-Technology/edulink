@@ -1392,6 +1392,7 @@ def activate_institution_supervisor_from_invite(
     password: str,
     first_name: str,
     last_name: str,
+    phone_number: str = "",
 ) -> User:
     """
     Activate an institution supervisor account from an invite.
@@ -1419,6 +1420,7 @@ def activate_institution_supervisor_from_invite(
         first_name=first_name,
         last_name=last_name,
         role=User.ROLE_SUPERVISOR,
+        phone_number=phone_number,
         institution_id=invite.institution.id  # Link to institution
     )
     
@@ -2015,4 +2017,3 @@ def get_institution_placement_export_data(*, institution_id: str):
         })
         
     return export_rows
-

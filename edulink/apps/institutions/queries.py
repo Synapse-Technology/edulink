@@ -1,4 +1,5 @@
 from uuid import UUID
+from django.core.exceptions import ValidationError
 from typing import Iterable, Optional
 from django.db.models import Count
 from django.db.models.functions import TruncMonth
@@ -59,11 +60,14 @@ def get_institution_for_user(user_id: str) -> Optional[Institution]:
     Returns the first active institution found for the user.
     """
     # Check for InstitutionStaff record (Primary Method)
-    staff = InstitutionStaff.objects.filter(
-        user__id=user_id, 
-        role=InstitutionStaff.ROLE_ADMIN, 
-        is_active=True
-    ).select_related('institution').first()
+    try:
+        staff = InstitutionStaff.objects.filter(
+            user__id=user_id,
+            role=InstitutionStaff.ROLE_ADMIN,
+            is_active=True
+        ).select_related('institution').first()
+    except (ValueError, TypeError, ValidationError):
+        return None
     
     if staff:
         return staff.institution

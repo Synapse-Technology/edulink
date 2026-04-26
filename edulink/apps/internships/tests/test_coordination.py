@@ -21,16 +21,16 @@ class CoordinationEngineTest(TestCase):
         self.inst_admin = User.objects.create_user(username="inst_admin", email="inst@test.com", password="password", role=User.ROLE_INSTITUTION_ADMIN)
         self.employer_admin = User.objects.create_user(username="emp_admin", email="emp@test.com", password="password", role=User.ROLE_EMPLOYER_ADMIN)
         self.student_user = User.objects.create_user(username="student", email="student@test.com", password="password", role=User.ROLE_STUDENT)
-        
+
         # Setup Institution & Staff
         self.institution = Institution.objects.create(name="Test Inst", domain="test.edu")
         InstitutionStaff.objects.create(user=self.inst_admin, institution=self.institution, role=InstitutionStaff.ROLE_ADMIN, is_active=True)
-        
+
         # Setup Student Profile
         self.student = Student.objects.create(user_id=self.student_user.id, email=self.student_user.email)
         
         # Setup Employer
-        self.employer_id = uuid4()
+        self.employer_id = None
         
     def test_full_lifecycle(self):
         # 1. Create Opportunity (DRAFT)
@@ -80,6 +80,7 @@ class CoordinationEngineTest(TestCase):
         review_evidence(self.inst_admin, evidence.id, InternshipEvidence.STATUS_ACCEPTED, "Good job")
         evidence.refresh_from_db()
         self.assertEqual(evidence.status, InternshipEvidence.STATUS_ACCEPTED)
+        self.assertEqual(evidence.institution_review_status, InternshipEvidence.STATUS_ACCEPTED)
         
         # 10. Complete (ACTIVE -> COMPLETED)
         workflow.transition(internship=application, target_state=InternshipState.COMPLETED, actor=self.inst_admin)
@@ -95,11 +96,11 @@ class CoordinationEngineTest(TestCase):
         # Check event types
         types = [e.event_type for e in events]
         expected = [
-            "INTERNSHIP_APPLIED", 
-            "INTERNSHIP_SHORTLISTED", 
-            "INTERNSHIP_ACCEPTED", 
-            "INTERNSHIP_STARTED", 
-            "INTERNSHIP_COMPLETED", 
+            "INTERNSHIP_APPLIED",
+            "APPLICATION_SHORTLISTED",
+            "APPLICATION_ACCEPTED",
+            "INTERNSHIP_STARTED",
+            "INTERNSHIP_COMPLETED",
             "INTERNSHIP_CERTIFIED"
         ]
         # Filter only transition events (excluding evidence events which might be mixed in time)

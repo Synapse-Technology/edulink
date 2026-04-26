@@ -78,7 +78,7 @@ def test_internship_rejection(api_client, institution_admin, employer_admin, stu
 
     # 4. Employer Rejects (APPLIED -> REJECTED)
     client.force_authenticate(user=emp_user)
-    url = reverse('internship-process-application', args=[app_id])
+    url = reverse('application-process-application', args=[app_id])
     response = client.post(url, {'action': 'reject'}, format='json')
     
     # Check if REJECTED transition is valid

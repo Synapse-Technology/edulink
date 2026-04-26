@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import edulinkLogo from '../../assets/images/edulink-logo-v1-select.svg';
 
 interface HeaderProps {
   className?: string;
@@ -43,7 +44,16 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
       <div className="container-fluid container-xl position-relative d-flex align-items-center justify-content-between">
         {/* Logo - Exact match to original */}
         <Link to="/" className="logo d-flex align-items-center me-auto">
-          <h1 className="sitename">EduLink</h1>
+          <img src={edulinkLogo} alt="EduLink symbol" className="logo-mark" />
+          <span className="logo-divider" aria-hidden="true" />
+          <span className="logo-wordmark">
+            <span className="sitename">
+              <span className="sitename-edu">Edu</span>
+              <span className="sitename-link">Link</span>
+              <span className="sitename-ke"> KE</span>
+            </span>
+            <span className="logo-tagline">CONNECT • LEARN • GROW</span>
+          </span>
         </Link>
 
         {/* Desktop Navigation - Exact structure from HTML */}
@@ -134,20 +144,65 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
         .header .logo {
           line-height: 1;
           text-decoration: none;
+          gap: 10px;
         }
 
-        .header .logo img {
-          max-height: 28px;
-          margin-right: 6px;
+        .header .logo .logo-mark {
+          height: 34px;
+          width: auto;
+          flex-shrink: 0;
         }
 
-        .header .logo h1 {
-          font-weight: 700;
-          font-size: 18px;
+        .header .logo .logo-divider {
+          width: 1px;
+          height: 30px;
+          background: color-mix(in srgb, var(--heading-color), transparent 70%);
+          flex-shrink: 0;
+        }
+
+        .header .logo .logo-wordmark {
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          gap: 3px;
+        }
+
+        .header .logo .sitename {
+          display: inline-flex;
+          align-items: baseline;
           margin: 0;
-          letter-spacing: 1px;
+          color: #0f172a;
+          font-family: 'Poppins', var(--heading-font), sans-serif;
+          letter-spacing: 0;
+          line-height: 1;
+          font-size: 33px;
+          font-weight: 500;
+        }
+
+        .header .logo .sitename-edu {
+          font-weight: 500;
+        }
+
+        .header .logo .sitename-link {
+          font-weight: 700;
+        }
+
+        .header .logo .sitename-ke {
+          font-size: 0.58em;
+          font-weight: 500;
+          letter-spacing: 0.02em;
+          margin-left: 6px;
+        }
+
+        .header .logo .logo-tagline {
+          margin: 0;
+          color: color-mix(in srgb, var(--heading-color), transparent 18%);
+          font-family: 'Inter', var(--default-font), sans-serif;
+          font-size: 9px;
+          font-weight: 500;
+          letter-spacing: 0.38em;
           text-transform: uppercase;
-          color: var(--accent-color);
+          white-space: nowrap;
         }
 
         .header .btn-getstarted,
@@ -176,14 +231,6 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
           padding-left: 12px;
           padding-right: 12px;
           box-sizing: border-box;
-        }
-
-        .logo .sitename {
-          font-weight: 700;
-          font-size: 26px;
-          margin: 0;
-          line-height: 1;
-          color: var(--accent-color);
         }
 
         .navmenu {
@@ -453,9 +500,25 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
             padding: 6px 0;
             min-height: 50px;
           }
-          
-          .logo .sitename {
-            font-size: 16px;
+
+          .header .logo {
+            gap: 8px;
+          }
+
+          .header .logo .logo-mark {
+            height: 28px;
+          }
+
+          .header .logo .logo-divider {
+            height: 24px;
+          }
+
+          .header .logo .sitename {
+            font-size: 23px;
+          }
+
+          .header .logo .logo-tagline {
+            display: none;
           }
           
           .btn-getstarted {
@@ -465,6 +528,16 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
           }
           
           .mobile-nav-toggle {
+            font-size: 20px;
+          }
+        }
+
+        @media (max-width: 400px) {
+          .header .logo .logo-divider {
+            display: none;
+          }
+
+          .header .logo .sitename {
             font-size: 20px;
           }
         }

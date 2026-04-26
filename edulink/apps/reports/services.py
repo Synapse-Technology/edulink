@@ -26,7 +26,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 
-from .models import Artifact, ArtifactType
+from .models import Artifact, ArtifactStatus, ArtifactType
 from edulink.apps.ledger.services import record_event
 from edulink.apps.ledger.queries import find_event_by_artifact_id
 from edulink.apps.internships.queries import (

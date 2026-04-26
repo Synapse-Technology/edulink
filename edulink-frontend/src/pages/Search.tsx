@@ -166,7 +166,6 @@ const Search: React.FC = () => {
     if (searchQuery || selectedCategory !== 'all' || selectedDifficulty !== 'all') {
       performSearch();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCategory, selectedDifficulty, sortBy]);
 
   // Highlight text function

@@ -7,7 +7,7 @@ from rest_framework import status
 from uuid import uuid4
 
 from edulink.apps.institutions.models import Institution, InstitutionStaff
-from edulink.apps.internships.models import Internship, InternshipEvidence, InternshipState
+from edulink.apps.internships.models import Internship, InternshipApplication, InternshipEvidence, InternshipState
 from edulink.apps.students.models import Student
 
 User = get_user_model()
@@ -53,19 +53,24 @@ class SupervisorLogbookTests(TestCase):
             email=self.student_user.email
         )
         
-        # 4. Create Internship assigned to Supervisor
-        self.internship = Internship.objects.create(
+        # 4. Create Opportunity and active Application assigned to Supervisor
+        self.opportunity = Internship.objects.create(
             title="Software Intern",
+            description="Software placement",
             institution_id=self.institution.id,
+            status=InternshipState.OPEN,
+            start_date=timezone.now().date(),
+        )
+        self.application = InternshipApplication.objects.create(
+            opportunity=self.opportunity,
             student_id=self.student.id,
             institution_supervisor_id=self.supervisor_user.id,
             status=InternshipState.ACTIVE,
-            start_date=timezone.now().date(),
         )
         
         # 5. Create Logbook Evidence
         self.evidence = InternshipEvidence.objects.create(
-            internship=self.internship,
+            application=self.application,
             submitted_by=self.student_user.id,
             title="Week 1 Logbook",
             description="Learned Django",
@@ -76,14 +81,14 @@ class SupervisorLogbookTests(TestCase):
     def test_supervisor_can_view_internship(self):
         """Test that supervisor can view the internship they are assigned to"""
         self.client.force_authenticate(user=self.supervisor_user)
-        url = f"/api/internships/{self.internship.id}/"
+        url = f"/api/internships/applications/{self.application.id}/"
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_supervisor_can_list_evidence(self):
         """Test that supervisor can list evidence for the internship"""
         self.client.force_authenticate(user=self.supervisor_user)
-        url = f"/api/internships/{self.internship.id}/evidence/"
+        url = f"/api/internships/applications/{self.application.id}/evidence/"
         response = self.client.get(url)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -100,7 +105,7 @@ class SupervisorLogbookTests(TestCase):
         self.client.force_authenticate(user=self.supervisor_user)
         
         # Endpoint: POST /api/internships/{id}/review-evidence/{evidence_id}/
-        url = f"/api/internships/{self.internship.id}/review-evidence/{self.evidence.id}/"
+        url = f"/api/internships/applications/{self.application.id}/review-evidence/{self.evidence.id}/"
         data = {
             "status": InternshipEvidence.STATUS_ACCEPTED,
             "notes": "Great work!"
@@ -116,8 +121,9 @@ class SupervisorLogbookTests(TestCase):
         # Verify DB
         self.evidence.refresh_from_db()
         self.assertEqual(self.evidence.status, InternshipEvidence.STATUS_ACCEPTED)
-        self.assertEqual(self.evidence.review_notes, "Great work!")
-        self.assertEqual(str(self.evidence.reviewed_by), str(self.supervisor_user.id))
+        self.assertEqual(self.evidence.institution_review_status, InternshipEvidence.STATUS_ACCEPTED)
+        self.assertEqual(self.evidence.institution_review_notes, "Great work!")
+        self.assertEqual(str(self.evidence.institution_reviewed_by), str(self.supervisor_user.id))
 
     def test_unassigned_supervisor_cannot_review(self):
         """Test that a supervisor NOT assigned to the internship cannot review"""
@@ -131,13 +137,11 @@ class SupervisorLogbookTests(TestCase):
         
         self.client.force_authenticate(user=other_supervisor)
         
-        url = f"/api/internships/{self.internship.id}/review-evidence/{self.evidence.id}/"
+        url = f"/api/internships/applications/{self.application.id}/review-evidence/{self.evidence.id}/"
         data = {
             "status": InternshipEvidence.STATUS_ACCEPTED
         }
         
         response = self.client.post(url, data, format='json')
-        # Should be 400 Bad Request (PermissionError from service caught as Exception)
-        
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("User not authorized", str(response.data['detail']))
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertIn("Not authorized", str(response.data['detail']))

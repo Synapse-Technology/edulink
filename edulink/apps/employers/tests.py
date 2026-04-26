@@ -135,7 +135,7 @@ class EmployerBlueprintTest(TransactionTestCase):
         sup_user = activate_supervisor_invite(
             invite_id=str(sup_invite.id),
             token="sup_token",
-            password="password",
+            password="Sup3rvisor-pass-2026!",
             first_name="Sup",
             last_name="User"
         )

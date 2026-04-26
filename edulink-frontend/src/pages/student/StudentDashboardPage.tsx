@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   CheckCircle, 
+  Clock,
+  AlertCircle,
   Briefcase, 
   Calendar,
   Users,
@@ -9,7 +11,8 @@ import {
   Star,
   User,
   Search,
-  Building2
+  Building2,
+  ShieldCheck
 } from 'lucide-react';
 import StudentHeader from '../../components/dashboard/StudentHeader';
 import StudentSidebar from '../../components/dashboard/StudentSidebar';
@@ -30,7 +33,7 @@ import TrustTimeline from '../../components/student/dashboard/TrustTimeline';
 import { studentService } from '../../services/student/studentService';
 import { ledgerService } from '../../services/ledger/ledgerService';
 import type { LedgerEvent } from '../../services/ledger/ledgerService';
-import type { StudentProfile } from '../../services/student/studentService';
+import type { Affiliation, StudentProfile } from '../../services/student/studentService';
 import { internshipService } from '../../services/internship/internshipService';
 import type { Internship } from '../../services/internship/internshipService';
 import StudentDashboardSkeleton from '../../components/student/skeletons/StudentDashboardSkeleton';
@@ -58,6 +61,7 @@ const StudentDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [dashboardStats, setDashboardStats] = useState<any | null>(null);
   const [missingItems, setMissingItems] = useState<string[]>([]);
+  const [affiliations, setAffiliations] = useState<Affiliation[]>([]);
   const [trustLevel, setTrustLevel] = useState(0);
   const [ledgerEvents, setLedgerEvents] = useState<LedgerEvent[]>([]);
   const [hasLoggedOut, setHasLoggedOut] = useState(false);  // Prevent infinite login loop
@@ -79,12 +83,13 @@ const StudentDashboard: React.FC = () => {
         // Check if component is still mounted before continuing
         if (!isMounted) return;
         
-        const [apps, active, allInternships, stats, ledgerData] = await Promise.all([
+        const [apps, active, allInternships, stats, ledgerData, affiliationData] = await Promise.all([
           studentService.getApplications(),
           studentService.getActiveInternship(),
           internshipService.getInternships({ status: 'OPEN' }),
           studentService.getDashboardStats(profileData.id),
-          ledgerService.getEvents({ page_size: 5 })
+          ledgerService.getEvents({ page_size: 5 }),
+          studentService.getAffiliations(profileData.id).catch(() => [])
         ]);
 
         // Check if component is still mounted before setting state
@@ -99,6 +104,7 @@ const StudentDashboard: React.FC = () => {
         setActiveInternship(active);
         setDashboardStats(stats);
         setLedgerEvents(ledgerData.results);
+        setAffiliations(affiliationData);
         
         // Calculate dynamic trust level based on profile and applications
         let calculatedLevel = Math.floor(profileData.trust_level || 0);
@@ -137,18 +143,25 @@ const StudentDashboard: React.FC = () => {
 
         // Calculate missing items for nudge
         const missing: string[] = [];
+        const currentAffiliation = affiliationData.find((a: Affiliation) =>
+          ['approved', 'verified', 'pending'].includes(a.status)
+        );
         if (!profileData.cv) missing.push('CV / Resume');
         if (!profileData.admission_letter) missing.push('Admission Letter');
         if (!profileData.id_document) missing.push('School ID');
         if (!profileData.skills || profileData.skills.length === 0) missing.push('Skills');
         if (!profileData.course_of_study) missing.push('Academic Info');
+        if (!profileData.is_verified && !currentAffiliation) missing.push('Institution Verification');
         setMissingItems(missing);
 
         // Check if profile is incomplete
         const isProfileIncomplete = !profileData.course_of_study || 
                                    !profileData.skills || 
                                    profileData.skills.length === 0 || 
-                                   !profileData.cv;
+                                   !profileData.cv ||
+                                   !profileData.admission_letter ||
+                                   !profileData.id_document ||
+                                   (!profileData.is_verified && !currentAffiliation);
                                    
         if (isProfileIncomplete) {
           setShowProfileWizard(true);
@@ -317,6 +330,52 @@ const StudentDashboard: React.FC = () => {
     statusColor: getStatusColor(app.status)
   }));
 
+  const currentAffiliation = affiliations.find((a) =>
+    ['approved', 'verified', 'pending'].includes(a.status)
+  );
+  const isAffiliationVerified = profile?.is_verified || currentAffiliation?.status === 'approved' || currentAffiliation?.status === 'verified';
+  const isAffiliationPending = currentAffiliation?.status === 'pending';
+  const hasCoreProfile = !!profile?.course_of_study && !!profile?.current_year && !!profile?.registration_number;
+  const hasSkills = !!profile?.skills && profile.skills.length > 0;
+  const hasDocuments = !!profile?.cv && !!profile?.admission_letter && !!profile?.id_document;
+  const isReadyToApply = hasCoreProfile && hasSkills && hasDocuments && !!isAffiliationVerified;
+
+  const onboardingSteps = [
+    {
+      title: 'Academic profile',
+      description: hasCoreProfile ? 'Course, year, and registration number are complete.' : 'Add your course, current year, and registration number.',
+      complete: hasCoreProfile,
+      action: 'Complete profile',
+      href: '/dashboard/student/profile'
+    },
+    {
+      title: 'Skills profile',
+      description: hasSkills ? `${profile?.skills.length} skills listed for matching.` : 'Add at least one skill employers can search for.',
+      complete: hasSkills,
+      action: 'Add skills',
+      href: '/dashboard/student/profile'
+    },
+    {
+      title: 'Institution verification',
+      description: isAffiliationVerified
+        ? 'Your student status is verified.'
+        : isAffiliationPending
+          ? 'Your institution claim is pending review.'
+          : 'Claim your institution so employers can trust your student status.',
+      complete: !!isAffiliationVerified,
+      pending: isAffiliationPending,
+      action: isAffiliationPending ? 'View status' : 'Verify institution',
+      href: '/dashboard/student/affiliation'
+    },
+    {
+      title: 'Required documents',
+      description: hasDocuments ? 'CV, admission letter, and school ID are uploaded.' : 'Upload your CV, admission letter, and school ID.',
+      complete: hasDocuments,
+      action: 'Upload documents',
+      href: '/dashboard/student/profile'
+    }
+  ];
+
   return (
     <div className={`min-vh-100 ${isDarkMode ? 'text-white' : 'bg-light'}`} style={{ backgroundColor: isDarkMode ? '#0f172a' : undefined }}>
       <SEO 
@@ -393,7 +452,7 @@ const StudentDashboard: React.FC = () => {
             <div className="row align-items-center mb-4">
               <div className="col-lg-8">
                 <h1 className={`display-6 fw-bold mb-2 ${isDarkMode ? 'text-info' : ''}`} style={isDarkMode ? { textShadow: '0 0 10px rgba(32, 201, 151, 0.5)' } : {}}>
-                  Welcome back, {user ? user.firstName : 'Student'}! 👋
+                  Welcome back, {user ? user.firstName : 'Student'}!
                 </h1>
                 <p className={`mb-0 ${isDarkMode ? 'text-info opacity-75' : 'text-muted'}`} style={isDarkMode ? { textShadow: '0 0 6px rgba(32, 201, 151, 0.3)' } : {}}>
                   Track your verification progress and unlock internship opportunities
@@ -405,6 +464,71 @@ const StudentDashboard: React.FC = () => {
                     Profile Readiness
                   </div>
                   <ProgressRing progress={readinessScore} size={80} strokeWidth={8} />
+                </div>
+              </div>
+            </div>
+
+            {/* Onboarding Readiness */}
+            <div className={`card mb-4 ${isDarkMode ? 'bg-dark border-secondary' : 'bg-white'}`} style={{ borderRadius: '16px', border: isDarkMode ? '1px solid #374151' : '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.08)' }}>
+              <div className="card-body p-4">
+                <div className="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3 mb-4">
+                  <div>
+                    <div className={`text-uppercase fw-semibold small mb-1 ${isDarkMode ? 'text-info opacity-75' : 'text-muted'}`}>
+                      Student onboarding
+                    </div>
+                    <h5 className={`fw-bold mb-1 ${isDarkMode ? 'text-info' : ''}`}>
+                      {isReadyToApply ? 'You are ready to apply' : 'Finish these steps to become application-ready'}
+                    </h5>
+                    <p className={`mb-0 ${isDarkMode ? 'text-light opacity-75' : 'text-muted'}`}>
+                      EduLink uses these checks to verify your profile and improve employer confidence.
+                    </p>
+                  </div>
+                  <Link
+                    to={isReadyToApply ? '/opportunities' : onboardingSteps.find((step) => !step.complete)?.href || '/dashboard/student/profile'}
+                    className={`btn ${isReadyToApply ? (isDarkMode ? 'btn-info' : 'btn-primary') : (isDarkMode ? 'btn-outline-info' : 'btn-outline-primary')}`}
+                  >
+                    {isReadyToApply ? (
+                      <>
+                        <Briefcase className="me-2" size={16} />
+                        Browse internships
+                      </>
+                    ) : (
+                      <>
+                        <ShieldCheck className="me-2" size={16} />
+                        Continue setup
+                      </>
+                    )}
+                  </Link>
+                </div>
+
+                <div className="row g-3">
+                  {onboardingSteps.map((step) => {
+                    const Icon = step.complete ? CheckCircle : step.pending ? Clock : AlertCircle;
+                    const iconClass = step.complete
+                      ? 'text-success'
+                      : step.pending
+                        ? 'text-warning'
+                        : isDarkMode ? 'text-info' : 'text-primary';
+
+                    return (
+                      <div className="col-md-6 col-xl-3" key={step.title}>
+                        <div className={`h-100 p-3 rounded-3 border ${isDarkMode ? 'border-secondary bg-black bg-opacity-25' : 'bg-light'}`}>
+                          <div className="d-flex align-items-start gap-3">
+                            <Icon size={22} className={`${iconClass} flex-shrink-0 mt-1`} />
+                            <div>
+                              <h6 className={`fw-bold mb-1 ${isDarkMode ? 'text-white' : ''}`}>{step.title}</h6>
+                              <p className={`small mb-2 ${isDarkMode ? 'text-light opacity-75' : 'text-muted'}`}>{step.description}</p>
+                              {!step.complete && (
+                                <Link to={step.href} className={`small fw-semibold ${isDarkMode ? 'text-info' : 'text-primary'}`}>
+                                  {step.action}
+                                </Link>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -572,7 +696,10 @@ const StudentDashboard: React.FC = () => {
             skills: profile.skills,
             cv: profile.cv,
             admission_letter: profile.admission_letter,
-            id_document: profile.id_document
+            id_document: profile.id_document,
+            institution_id: profile.institution_id,
+            is_verified: profile.is_verified,
+            has_affiliation_claim: !!currentAffiliation
           } : undefined}
           onComplete={() => {
             setShowProfileWizard(false);

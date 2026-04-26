@@ -31,6 +31,107 @@ from .policies import (
     can_bulk_assign_supervisors
 )
 
+PENDING_EVIDENCE_STATUSES = [
+    InternshipEvidence.STATUS_SUBMITTED,
+    InternshipEvidence.STATUS_REVIEWED,
+    InternshipEvidence.STATUS_REVISION_REQUIRED,
+]
+
+OPEN_INCIDENT_STATUSES = [
+    Incident.STATUS_OPEN,
+    Incident.STATUS_ASSIGNED,
+    Incident.STATUS_INVESTIGATING,
+    Incident.STATUS_PENDING_APPROVAL,
+]
+
+
+def get_completion_readiness(application: InternshipApplication) -> dict:
+    """
+    Return user-facing readiness signals for ACTIVE -> COMPLETED and
+    COMPLETED -> CERTIFIED transitions. This is intentionally read-only so
+    every role can see the same lifecycle blockers.
+    """
+    evidence_qs = application.evidence.all()
+    accepted_evidence_count = evidence_qs.filter(
+        status=InternshipEvidence.STATUS_ACCEPTED
+    ).count()
+    pending_evidence_count = evidence_qs.filter(
+        status__in=PENDING_EVIDENCE_STATUSES
+    ).count()
+    unresolved_incident_count = application.incidents.filter(
+        status__in=OPEN_INCIDENT_STATUSES
+    ).count()
+    has_final_feedback = bool(application.final_feedback)
+    is_active = application.status == ApplicationStatus.ACTIVE
+    is_completed = application.status == ApplicationStatus.COMPLETED
+    is_certified = application.status == ApplicationStatus.CERTIFIED
+
+    checks = [
+        {
+            "key": "active_status",
+            "label": "Internship is active",
+            "passed": application.status in [
+                ApplicationStatus.ACTIVE,
+                ApplicationStatus.COMPLETED,
+                ApplicationStatus.CERTIFIED,
+            ],
+        },
+        {
+            "key": "accepted_evidence",
+            "label": "At least one approved logbook or evidence item",
+            "passed": accepted_evidence_count > 0,
+            "count": accepted_evidence_count,
+        },
+        {
+            "key": "pending_evidence",
+            "label": "No pending evidence reviews",
+            "passed": pending_evidence_count == 0,
+            "count": pending_evidence_count,
+        },
+        {
+            "key": "final_feedback",
+            "label": "Final supervisor assessment submitted",
+            "passed": has_final_feedback,
+        },
+        {
+            "key": "unresolved_incidents",
+            "label": "No unresolved incidents",
+            "passed": unresolved_incident_count == 0,
+            "count": unresolved_incident_count,
+        },
+    ]
+    can_mark_completed = is_active and all(check["passed"] for check in checks)
+    can_certify = is_completed
+
+    missing = [check["label"] for check in checks if not check["passed"]]
+
+    if is_certified:
+        next_owner = "Completed"
+        next_action = "Certificate available"
+        summary = "This internship is certified. The student can generate verified artifacts."
+    elif is_completed:
+        next_owner = "Institution"
+        next_action = "Certify internship"
+        summary = "The internship is completed and waiting for institution certification."
+    elif can_mark_completed:
+        next_owner = "Employer or supervisor"
+        next_action = "Mark internship completed"
+        summary = "All completion requirements are met."
+    else:
+        next_owner = "Supervisor or placement owner"
+        next_action = "Resolve completion requirements"
+        summary = "Completion is blocked until the missing requirements are handled."
+
+    return {
+        "checks": checks,
+        "missing": missing,
+        "can_mark_completed": can_mark_completed,
+        "can_certify": can_certify,
+        "next_owner": next_owner,
+        "next_action": next_action,
+        "summary": summary,
+    }
+
 @transaction.atomic
 def _trigger_application_update_pusher(application: InternshipApplication, status_label: str):
     """Trigger real-time notification for student application update."""
@@ -182,7 +283,7 @@ def apply_for_internship(actor, opportunity_id: UUID, cover_letter: str = "") ->
         )
     
     # Require email verification
-    if not actor.is_verified:
+    if settings.REQUIRE_EMAIL_VERIFICATION_FOR_APPLICATIONS and not getattr(actor, "is_email_verified", getattr(actor, "is_verified", False)):
         raise ConflictError(
             user_message="Please verify your email before applying. Check your inbox for verification link.",
             developer_message=f"User {actor.id} email not verified",
@@ -201,7 +302,7 @@ def apply_for_internship(actor, opportunity_id: UUID, cover_letter: str = "") ->
         )
         
     # Check for CV
-    if not student.cv:
+    if settings.REQUIRE_CV_FOR_APPLICATIONS and not student.cv:
         raise ConflictError(
             user_message="You must upload a CV to your profile before applying.",
             developer_message=f"Student {student.id} has no CV",
@@ -340,7 +441,7 @@ def apply_for_internship(actor, opportunity_id: UUID, cover_letter: str = "") ->
              if emp: employer_name = emp.name
         elif opportunity.institution_id:
              from edulink.apps.institutions.queries import get_institution_by_id
-             inst = get_institution_by_id(opportunity.institution_id)
+             inst = get_institution_by_id(institution_id=opportunity.institution_id)
              if inst: employer_name = inst.name
              
         send_internship_application_submitted_notification(
@@ -1063,6 +1164,21 @@ def review_evidence(actor, evidence_id: UUID, status: str, notes: str = "", priv
     # Determine which supervisor is reviewing
     is_employer_supervisor = str(application.employer_supervisor_id) == str(actor.id)
     is_institution_supervisor = str(application.institution_supervisor_id) == str(actor.id)
+    if not is_employer_supervisor and application.opportunity.employer_id:
+        from edulink.apps.employers.queries import get_employer_supervisor_by_user
+        supervisor = get_employer_supervisor_by_user(
+            user_id=actor.id,
+            employer_id=application.opportunity.employer_id,
+        )
+        is_employer_supervisor = bool(
+            supervisor and str(application.employer_supervisor_id) == str(supervisor.id)
+        )
+    if not is_institution_supervisor:
+        from edulink.apps.institutions.queries import get_institution_staff_profile
+        staff = get_institution_staff_profile(str(actor.id))
+        is_institution_supervisor = bool(
+            staff and str(application.institution_supervisor_id) == str(staff.id)
+        )
     
     # Fallback for admins who are not supervisors but have review permission
     if not is_employer_supervisor and not is_institution_supervisor:
@@ -1278,11 +1394,14 @@ def withdraw_application(actor, application_id: UUID, reason: str = None) -> Int
     
     application = InternshipApplication.objects.get(id=application_id)
     
+    student = get_student_for_user(str(actor.id)) if actor.is_student else None
+    is_student_owner = student and str(student.id) == str(application.student_id)
+
     # Check authorization (student or admin only)
-    if not (actor.id == application.student_id or actor.is_system_admin):
+    if not (is_student_owner or actor.is_system_admin):
         raise AuthorizationError(
             user_message="Only the student or a system administrator can withdraw this application.",
-            developer_message=f"User {actor.id} is not the student ({application.student_id}) and is not a system admin",
+            developer_message=f"User {actor.id} is not the student profile ({application.student_id}) and is not a system admin",
             context=ErrorContext()
                 .with_user_id(actor.id)
                 .with_resource("application", application.id)
@@ -1296,14 +1415,11 @@ def withdraw_application(actor, application_id: UUID, reason: str = None) -> Int
         actor=actor
     )
     
-    # Store withdrawal metadata (reason, actor type, timestamp)
-    if app.metadata is None:
-        app.metadata = {}
+    # Store withdrawal audit data on the dedicated model fields.
     if reason:
-        app.metadata['withdrawal_reason'] = reason
-    app.metadata['withdrawn_by'] = 'student' if actor.id == application.student_id else 'admin'
-    app.metadata['withdrawn_at'] = timezone.now().isoformat()
-    app.save()
+        app.withdrawal_reason = reason
+    app.withdrawn_at = timezone.now()
+    app.save(update_fields=["withdrawal_reason", "withdrawn_at"])
     
     # Notify student of withdrawal
     send_internship_application_status_update_notification(
@@ -1322,7 +1438,7 @@ def withdraw_application(actor, application_id: UUID, reason: str = None) -> Int
                 send_internship_application_withdrawn_to_employer_notification(
                     application_id=str(app.id),
                     employer_id=str(app.opportunity.employer_id),
-                    student_name=f"{app.student.first_name} {app.student.last_name}",
+                    student_name=app.application_snapshot.get("email", "Student"),
                     opportunity_title=app.opportunity.title,
                     reason=reason,
                     actor_id=str(actor.id)
@@ -1372,12 +1488,9 @@ def complete_internship(actor, application_id: UUID) -> InternshipApplication:
     
     # 1. Check for Pending Evidence
     # Statuses that are considered "pending" or "in-progress"
-    pending_statuses = [
-        InternshipEvidence.STATUS_SUBMITTED,
-        InternshipEvidence.STATUS_REVIEWED, # Partially reviewed
-        InternshipEvidence.STATUS_REVISION_REQUIRED
-    ]
-    if application.evidence.filter(status__in=pending_statuses).exists():
+    readiness = get_completion_readiness(application)
+
+    if application.evidence.filter(status__in=PENDING_EVIDENCE_STATUSES).exists():
         raise ValidationError(
             user_message="Cannot complete internship. All logbooks must be reviewed and either approved or rejected before completion.",
             developer_message=f"Application {application.id} has pending evidence reviews",
@@ -1393,6 +1506,24 @@ def complete_internship(actor, application_id: UUID) -> InternshipApplication:
         raise ValidationError(
             user_message="Final feedback or assessment is required before completing the internship.",
             developer_message=f"Application {application.id} is missing final_feedback",
+            context=ErrorContext()
+                .with_resource("application", application.id)
+                .build(),
+        )
+
+    if application.incidents.filter(status__in=OPEN_INCIDENT_STATUSES).exists():
+        raise ValidationError(
+            user_message="Cannot complete internship while incidents are unresolved. Resolve or dismiss all open incidents first.",
+            developer_message=f"Application {application.id} has unresolved incidents",
+            context=ErrorContext()
+                .with_resource("application", application.id)
+                .build(),
+        )
+
+    if not readiness["can_mark_completed"]:
+        raise ValidationError(
+            user_message="Cannot complete internship until all completion requirements are met.",
+            developer_message=f"Application {application.id} missing requirements: {readiness['missing']}",
             context=ErrorContext()
                 .with_resource("application", application.id)
                 .build(),
@@ -1888,4 +2019,3 @@ def reject_supervisor_assignment(actor, assignment_id: UUID, reason: str = None)
         logger.error(f"Failed to send supervisor rejected notification: {e}")
     
     return assignment
-

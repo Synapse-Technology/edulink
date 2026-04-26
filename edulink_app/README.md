@@ -1,6 +1,6 @@
 # edulink_app
 
-EduLink KE — Verified Internships & Brighter Futures
+EduLink — Verified Internships & Brighter Futures
 
 ## Getting Started
 

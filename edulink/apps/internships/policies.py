@@ -277,6 +277,9 @@ def can_transition_application(actor, application: InternshipApplication, target
         if current_state in [ApplicationStatus.APPLIED, ApplicationStatus.SHORTLISTED]:
             return is_owner()
         return False
+
+    if target_state == ApplicationStatus.WITHDRAWN:
+        return can_withdraw_application(actor, application)
         
     return False
 
@@ -353,11 +356,10 @@ def can_withdraw_application(actor, application: InternshipApplication) -> bool:
     # Students can only withdraw their own applications
     if actor.is_student:
         student = get_student_for_user(str(actor.id))
-        if student and student.id == application.student_id:
+        if student and str(student.id) == str(application.student_id):
             # Check if withdrawal is allowed from current state
             allowed_states = [
                 ApplicationStatus.APPLIED,
-                ApplicationStatus.REVIEWED,
                 ApplicationStatus.SHORTLISTED,
                 ApplicationStatus.ACCEPTED
             ]
@@ -462,3 +464,7 @@ def can_view_supervisor_assignment(actor, assignment) -> bool:
     
     return False
 
+
+def can_transition_internship(actor, internship, target_state: str) -> bool:
+    """Backward-compatible wrapper for older opportunity policy callers."""
+    return can_transition_opportunity(actor, internship, target_state)

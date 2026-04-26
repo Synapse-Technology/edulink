@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search } from 'lucide-react';
+import { AlertCircle, CheckCircle, Search } from 'lucide-react';
 import { authService } from '../../services/auth/authService';
 import { institutionService } from '../../services/institution/institutionService';
 import { apiClient } from '../../services/api/client';
 import { ApiError } from '../../services/errors';
 import { useRegisterErrorHandler } from '../../hooks/useAuthErrorHandler';
+import edulinkLogo from '../../assets/images/edulink-logo-v1-select.svg';
 
 // CSS Animations and Keyframes
 const styles = `
@@ -744,7 +745,7 @@ const Register: React.FC = () => {
           justifyContent: 'center'
         }}>
           <Link to="/">
-            <img src="/images/edulink_logo.png" alt="Edulink Logo" style={{
+            <img src={edulinkLogo} alt="EduLink Logo" style={{
               maxWidth: '150px',
               marginBottom: '15px'
             }} />
@@ -882,7 +883,11 @@ const Register: React.FC = () => {
                   color: messageType === 'error' ? '#dc2626' : '#0d9488',
                   flexShrink: 0
                 }}>
-                  {messageType === 'error' ? '!' : '✓'}
+                  {messageType === 'error' ? (
+                    <AlertCircle size={16} />
+                  ) : (
+                    <CheckCircle size={16} />
+                  )}
                 </div>
                 <div style={{ lineHeight: '1.5' }}>{message}</div>
                 <button 
@@ -999,7 +1004,10 @@ const Register: React.FC = () => {
                       fontSize: '12px',
                       color: '#c8e6c9'
                     }}>
-                      ✓ Institution: {selectedInstitution.name}
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                        <CheckCircle size={14} />
+                        Institution: {selectedInstitution.name}
+                      </span>
                     </div>
                   )}
                   
@@ -1243,7 +1251,7 @@ const Register: React.FC = () => {
                 
                 <div style={{ marginBottom: '15px', padding: '10px', backgroundColor: 'rgba(200, 230, 201, 0.1)', borderRadius: '8px', border: '1px solid rgba(200, 230, 201, 0.3)' }}>
                   <div style={{ color: '#c8e6c9', fontSize: '13px', lineHeight: '1.4' }}>
-                    <strong>Institution Auto-Detection:</strong> Your institution will be automatically detected based on your email address (e.g., student@university.ac.ke). Use your institutional email for automatic linking.
+                    <strong>Institution Verification:</strong> Select your institution now. Institutional emails can be auto-verified when the domain matches; personal emails may require a student document after registration.
                   </div>
                 </div>
 
@@ -1409,7 +1417,10 @@ const Register: React.FC = () => {
                       gap: '4px'
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span>✓ {selectedInstitution.name}</span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                          <CheckCircle size={14} />
+                          {selectedInstitution.name}
+                        </span>
                         <button
                           type="button"
                           onClick={() => {
@@ -1431,7 +1442,7 @@ const Register: React.FC = () => {
                         </button>
                       </div>
                       <div style={{ fontSize: '11px', opacity: 0.8, marginTop: '2px' }}>
-                        Your affiliation request will be sent automatically upon registration. No further action needed.
+                        EduLink will try to auto-verify institutional emails. Personal emails may need a verification document after registration.
                       </div>
                     </div>
                   )}

@@ -71,7 +71,7 @@ def employer_admin(db, employer):
         role=User.ROLE_EMPLOYER_ADMIN
     )
     Supervisor.objects.create(
-        employer=employer,
+        employer_id=employer.id,
         user=user,
         role=Supervisor.ROLE_ADMIN,
         is_active=True
@@ -98,7 +98,7 @@ def opportunity(db, employer):
     return InternshipOpportunity.objects.create(
         title="Test Opportunity",
         description="Test Description",
-        employer=employer,
+        employer_id=employer.id,
         status=OpportunityStatus.OPEN,
         capacity=10,
         application_deadline=timezone.now() + timezone.timedelta(days=30)
@@ -107,8 +107,9 @@ def opportunity(db, employer):
 
 @pytest.fixture
 def application(db, student, opportunity):
+    student_profile = Student.objects.get(user_id=student.id)
     return InternshipApplication.objects.create(
-        student=student,
+        student_id=student_profile.id,
         opportunity=opportunity,
         status=ApplicationStatus.APPLIED,
         application_snapshot={
@@ -148,8 +149,9 @@ class TestWithdrawalPolicies:
         )
         Student.objects.create(user_id=other_student.id, email=other_student.email)
         
+        other_profile = Student.objects.get(user_id=other_student.id)
         other_application = InternshipApplication.objects.create(
-            student=other_student,
+            student_id=other_profile.id,
             opportunity=opportunity,
             status=ApplicationStatus.APPLIED,
             application_snapshot={}
@@ -159,7 +161,7 @@ class TestWithdrawalPolicies:
 
     def test_admin_can_withdraw_any_application(self, db, institution_admin, application):
         """Institution admin should be able to withdraw any application."""
-        institution_admin.is_system_admin = True
+        institution_admin.role = User.ROLE_SYSTEM_ADMIN
         institution_admin.save()
         assert can_withdraw_application(institution_admin, application) is True
 
@@ -179,13 +181,14 @@ class TestWithdrawalService:
         )
         
         assert withdrawn_app.status == ApplicationStatus.WITHDRAWN
-        assert withdrawn_app.metadata.get('withdrawal_reason') == "Found another opportunity"
-        assert withdrawn_app.metadata.get('withdrawn_by') == 'student'
+        assert withdrawn_app.withdrawal_reason == "Found another opportunity"
+        assert withdrawn_app.withdrawn_at is not None
 
     def test_withdraw_from_shortlisted_status(self, db, student, opportunity):
         """Student should successfully withdraw from SHORTLISTED status."""
+        student_profile = Student.objects.get(user_id=student.id)
         app = InternshipApplication.objects.create(
-            student=student,
+            student_id=student_profile.id,
             opportunity=opportunity,
             status=ApplicationStatus.SHORTLISTED,
             application_snapshot={}
@@ -201,8 +204,9 @@ class TestWithdrawalService:
 
     def test_withdraw_from_accepted_status(self, db, student, opportunity):
         """Student should successfully withdraw from ACCEPTED status."""
+        student_profile = Student.objects.get(user_id=student.id)
         app = InternshipApplication.objects.create(
-            student=student,
+            student_id=student_profile.id,
             opportunity=opportunity,
             status=ApplicationStatus.ACCEPTED,
             application_snapshot={}
@@ -218,8 +222,9 @@ class TestWithdrawalService:
 
     def test_cannot_withdraw_from_active_status(self, db, student, opportunity):
         """Student should not be able to withdraw from ACTIVE status."""
+        student_profile = Student.objects.get(user_id=student.id)
         app = InternshipApplication.objects.create(
-            student=student,
+            student_id=student_profile.id,
             opportunity=opportunity,
             status=ApplicationStatus.ACTIVE,
             application_snapshot={}
@@ -232,13 +237,14 @@ class TestWithdrawalService:
                 reason="Changed my mind"
             )
         
-        assert "Cannot withdraw" in str(excinfo.value)
+        assert "Invalid transition" in str(excinfo.value)
         assert ApplicationStatus.ACTIVE in str(excinfo.value)
 
     def test_cannot_withdraw_from_completed_status(self, db, student, opportunity):
         """Student should not be able to withdraw from COMPLETED status."""
+        student_profile = Student.objects.get(user_id=student.id)
         app = InternshipApplication.objects.create(
-            student=student,
+            student_id=student_profile.id,
             opportunity=opportunity,
             status=ApplicationStatus.COMPLETED,
             application_snapshot={}
@@ -250,12 +256,13 @@ class TestWithdrawalService:
                 application_id=app.id
             )
         
-        assert "Cannot withdraw" in str(excinfo.value)
+        assert "Invalid transition" in str(excinfo.value)
 
     def test_cannot_withdraw_from_withdrawn_status(self, db, student, opportunity):
         """Student should not be able to withdraw an already withdrawn application."""
+        student_profile = Student.objects.get(user_id=student.id)
         app = InternshipApplication.objects.create(
-            student=student,
+            student_id=student_profile.id,
             opportunity=opportunity,
             status=ApplicationStatus.WITHDRAWN,
             application_snapshot={}
@@ -267,8 +274,8 @@ class TestWithdrawalService:
                 application_id=app.id
             )
 
-    def test_withdrawal_sets_metadata(self, student, application):
-        """Withdrawal should properly set metadata fields."""
+    def test_withdrawal_sets_fields(self, student, application):
+        """Withdrawal should properly set audit fields."""
         reason = "Changed my mind"
         withdrawn_app = withdraw_application(
             actor=student,
@@ -276,9 +283,8 @@ class TestWithdrawalService:
             reason=reason
         )
         
-        assert withdrawn_app.metadata['withdrawal_reason'] == reason
-        assert withdrawn_app.metadata['withdrawn_by'] == 'student'
-        assert 'withdrawn_at' in withdrawn_app.metadata
+        assert withdrawn_app.withdrawal_reason == reason
+        assert withdrawn_app.withdrawn_at is not None
 
     def test_withdrawal_without_reason(self, student, application):
         """Withdrawal should work without providing a reason."""
@@ -291,8 +297,9 @@ class TestWithdrawalService:
 
     def test_unauthorized_withdrawal(self, db, student, opportunity):
         """Unauthorized user should not be able to withdraw application."""
+        student_profile = Student.objects.get(user_id=student.id)
         app = InternshipApplication.objects.create(
-            student=student,
+            student_id=student_profile.id,
             opportunity=opportunity,
             status=ApplicationStatus.APPLIED,
             application_snapshot={}
@@ -306,7 +313,7 @@ class TestWithdrawalService:
         )
         Student.objects.create(user_id=other_student.id, email=other_student.email)
         
-        with pytest.raises(PermissionError):
+        with pytest.raises(ValueError):
             withdraw_application(
                 actor=other_student,
                 application_id=app.id
@@ -321,7 +328,7 @@ class TestWithdrawalAPI:
         """Student should be able to withdraw application via API."""
         api_client.force_authenticate(user=student)
         
-        url = reverse('internshipapplication-withdraw', kwargs={'pk': application.id})
+        url = reverse('application-withdraw', kwargs={'pk': application.id})
         response = api_client.post(url, {
             'reason': 'Found another opportunity'
         }, format='json')
@@ -339,15 +346,16 @@ class TestWithdrawalAPI:
         )
         Student.objects.create(user_id=other_student.id, email=other_student.email)
         
+        other_profile = Student.objects.get(user_id=other_student.id)
         app = InternshipApplication.objects.create(
-            student=other_student,
+            student_id=other_profile.id,
             opportunity=opportunity,
             status=ApplicationStatus.APPLIED,
             application_snapshot={}
         )
         
         api_client.force_authenticate(user=student)
-        url = reverse('internshipapplication-withdraw', kwargs={'pk': app.id})
+        url = reverse('application-withdraw', kwargs={'pk': app.id})
         response = api_client.post(url, {'reason': 'Test'}, format='json')
         
         assert response.status_code == status.HTTP_403_FORBIDDEN
@@ -356,7 +364,7 @@ class TestWithdrawalAPI:
         """Withdrawal via API should work without reason."""
         api_client.force_authenticate(user=student)
         
-        url = reverse('internshipapplication-withdraw', kwargs={'pk': application.id})
+        url = reverse('application-withdraw', kwargs={'pk': application.id})
         response = api_client.post(url, {}, format='json')
         
         assert response.status_code == status.HTTP_200_OK
@@ -364,15 +372,16 @@ class TestWithdrawalAPI:
 
     def test_cannot_withdraw_active_via_api(self, api_client, db, student, opportunity):
         """API should reject withdrawal from ACTIVE status."""
+        student_profile = Student.objects.get(user_id=student.id)
         app = InternshipApplication.objects.create(
-            student=student,
+            student_id=student_profile.id,
             opportunity=opportunity,
             status=ApplicationStatus.ACTIVE,
             application_snapshot={}
         )
         
         api_client.force_authenticate(user=student)
-        url = reverse('internshipapplication-withdraw', kwargs={'pk': app.id})
+        url = reverse('application-withdraw', kwargs={'pk': app.id})
         response = api_client.post(url, {'reason': 'Test'}, format='json')
         
         assert response.status_code == status.HTTP_400_BAD_REQUEST

@@ -3,6 +3,9 @@ import { Form, Button, Card, Container, Alert, Spinner, Row, Col, InputGroup } f
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../../stores/authStore';
 import { getLoginErrorMessage } from '../../../utils/loginErrorMessage';
+import DemoCredentialsPanel, {
+  type DemoCredential,
+} from '../../../components/auth/DemoCredentialsPanel';
 
 const EmployerLogin: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -15,6 +18,29 @@ const EmployerLogin: React.FC = () => {
   
   const { loginEmployer, isLoading } = useAuthStore();
   const navigate = useNavigate();
+  const demoCredentials: DemoCredential[] = [
+    {
+      label: 'Employer admin',
+      email: 'demo.employer@greenbyte.co.ke',
+      password: 'DemoPass12345!',
+      description: 'Manage opportunities, applications, interns, and supervisors.',
+    },
+    {
+      label: 'Employer supervisor',
+      email: 'demo.supervisor@greenbyte.co.ke',
+      password: 'DemoPass12345!',
+      description: 'Review active internships, logbooks, milestones, and incidents.',
+    },
+  ];
+
+  const useDemoCredential = (credential: DemoCredential) => {
+    setFormData({
+      email: credential.email,
+      password: credential.password,
+    });
+    setFormErrors({});
+    setApiError(null);
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -116,6 +142,12 @@ const EmployerLogin: React.FC = () => {
                     {apiError}
                   </Alert>
                 )}
+
+                <DemoCredentialsPanel
+                  credentials={demoCredentials}
+                  onUse={useDemoCredential}
+                  compact
+                />
 
                 <Form onSubmit={handleSubmit}>
                   <Form.Group className="mb-3">

@@ -110,6 +110,15 @@ class ApplicationWorkflow:
             if application.evidence.filter(status__in=pending_statuses).exists():
                  raise ValueError("Internship cannot be completed with pending evidence reviews.")
 
+            open_incident_statuses = [
+                Incident.STATUS_OPEN,
+                Incident.STATUS_ASSIGNED,
+                Incident.STATUS_INVESTIGATING,
+                Incident.STATUS_PENDING_APPROVAL,
+            ]
+            if application.incidents.filter(status__in=open_incident_statuses).exists():
+                 raise ValueError("Internship cannot be completed with unresolved incidents.")
+
 
         # 4. Execute
         with transaction.atomic():
@@ -229,6 +238,7 @@ class IncidentWorkflow:
     TRANSITIONS = {
         Incident.STATUS_OPEN: [
             Incident.STATUS_ASSIGNED,
+            Incident.STATUS_RESOLVED,
             Incident.STATUS_DISMISSED,  # Can dismiss immediately if not serious
         ],
         Incident.STATUS_ASSIGNED: [
@@ -415,3 +425,18 @@ application_workflow = ApplicationWorkflow()
 evidence_workflow = EvidenceWorkflow()
 incident_workflow = IncidentWorkflow()
 supervisor_assignment_workflow = SupervisorAssignmentWorkflow()
+
+
+class LegacyApplicationWorkflow:
+    """Adapter for older tests/callers that used the `internship` keyword."""
+
+    def transition(self, *, internship=None, application=None, target_state: str, actor, payload=None):
+        return application_workflow.transition(
+            application=application or internship,
+            target_state=target_state,
+            actor=actor,
+            payload=payload,
+        )
+
+
+workflow = LegacyApplicationWorkflow()

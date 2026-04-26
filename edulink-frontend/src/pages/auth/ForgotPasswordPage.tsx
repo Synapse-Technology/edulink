@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, ArrowLeft, Loader2, CheckCircle } from 'lucide-react';
 import { authService } from '../../services/auth/authService';
+import edulinkLogo from '../../assets/images/edulink-logo-v1-select.svg';
 
 // CSS Animations and Keyframes (Reused from Login.tsx for consistency)
 const styles = `
@@ -304,7 +305,7 @@ const ForgotPasswordPage: React.FC = () => {
             justifyContent: 'center'
           }}>
             <Link to="/">
-              <img src="/images/edulink_logo.png" alt="Edulink Logo" style={{
+              <img src={edulinkLogo} alt="EduLink Logo" style={{
                 maxWidth: '150px',
                 marginBottom: '25px'
               }} />

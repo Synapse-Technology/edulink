@@ -104,15 +104,7 @@ class CanWithdrawApplication(permissions.BasePermission):
             from edulink.apps.students.queries import get_student_for_user
             student = get_student_for_user(str(user.id))
             if student and str(obj.student_id) == str(student.id):
-                # Can only withdraw if not already in terminal state
-                from .models import ApplicationStatus
-                if obj.status not in [
-                    ApplicationStatus.COMPLETED,
-                    ApplicationStatus.CERTIFIED,
-                    ApplicationStatus.TERMINATED,
-                    ApplicationStatus.WITHDRAWN,
-                ]:
-                    return True
+                return True
         
         return False
 

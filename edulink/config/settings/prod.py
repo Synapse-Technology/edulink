@@ -6,6 +6,17 @@ from django.core.exceptions import ImproperlyConfigured
 
 DEBUG = False
 
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY") or os.environ.get("SECRET_KEY")
+if not SECRET_KEY:
+    raise ImproperlyConfigured("DJANGO_SECRET_KEY or SECRET_KEY must be set in production.")
+
+REQUIRE_EMAIL_VERIFICATION_FOR_APPLICATIONS = os.environ.get(
+    "REQUIRE_EMAIL_VERIFICATION_FOR_APPLICATIONS", "True"
+).lower() in {"1", "true", "yes"}
+REQUIRE_CV_FOR_APPLICATIONS = os.environ.get(
+    "REQUIRE_CV_FOR_APPLICATIONS", "True"
+).lower() in {"1", "true", "yes"}
+
 ALLOWED_HOSTS = [
     "edulink.jhubafrica.com",
     "www.edulink.jhubafrica.com",
@@ -28,6 +39,7 @@ if RENDER_EXTERNAL_URL:
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
 SECURE_HSTS_SECONDS = 31536000
 SECURE_REDIRECT_EXEMPT = []
 SECURE_SSL_REDIRECT = True

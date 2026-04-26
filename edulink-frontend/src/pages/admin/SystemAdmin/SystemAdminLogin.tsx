@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Shield, AlertCircle, LogIn, Building2, Lock } from 'lucide-react';
 import { useAdminAuth } from '../../../contexts/AdminAuthContext';
 import { getLoginErrorMessage } from '../../../utils/loginErrorMessage';
+import DemoCredentialsPanel, {
+  type DemoCredential,
+} from '../../../components/auth/DemoCredentialsPanel';
 
 interface LoginFormData {
   email: string;
@@ -20,6 +23,22 @@ const SystemAdminLogin: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [rememberMe, setRememberMe] = useState(false);
+  const demoCredentials: DemoCredential[] = [
+    {
+      label: 'System admin',
+      email: 'demo.admin@edulink.test',
+      password: 'DemoPass12345!',
+      description: 'Inspect platform health, support, contact, user, and audit flows.',
+    },
+  ];
+
+  const useDemoCredential = (credential: DemoCredential) => {
+    setFormData({
+      email: credential.email,
+      password: credential.password,
+    });
+    setError('');
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -95,6 +114,12 @@ const SystemAdminLogin: React.FC = () => {
                     <div className="small">{error}</div>
                   </div>
                 )}
+
+                <DemoCredentialsPanel
+                  credentials={demoCredentials}
+                  onUse={useDemoCredential}
+                  compact
+                />
 
                 {/* Login Form */}
                 <form onSubmit={handleSubmit} className="needs-validation" noValidate>

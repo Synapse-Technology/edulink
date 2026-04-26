@@ -14,11 +14,11 @@ void main() {
     // Build our app and trigger a frame.
     await tester.pumpWidget(const ProviderScope(child: EdulinkApp()));
 
-    // Verify that our app starts (check for some text in the welcome screen)
-    // Since it's a router-based app, we might need to pump and settle.
-    await tester.pumpAndSettle();
-    
+    // Let the finite entrance animation complete. The welcome screen also has
+    // a pulsing status chip, so pumpAndSettle would wait forever.
+    await tester.pump(const Duration(seconds: 1));
+
     // Check for the app name in the Welcome screen
-    expect(find.text('EduLink KE'), findsOneWidget);
+    expect(find.text('EduLink'), findsOneWidget);
   });
 }

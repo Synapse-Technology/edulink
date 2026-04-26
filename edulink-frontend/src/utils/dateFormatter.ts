@@ -79,10 +79,9 @@ export const dateFormatter = {
    */
   relativeTime: (date?: string | Date): string => {
     if (!date) return 'Invalid date';
-    
+
     try {
       const now = new Date();
-      // @ts-ignore - date is guaranteed to be defined by guard clause above
       const diff = now.getTime() - new Date(date).getTime();
       const seconds = Math.floor(diff / 1000);
 
@@ -94,8 +93,7 @@ export const dateFormatter = {
       const days = Math.floor(hours / 24);
       if (days < 7) return `${days}d ago`;
       if (days < 30) return `${Math.floor(days / 7)}w ago`;
-      // @ts-ignore - date is guaranteed to be defined by guard clause above
-      return this.shortDate(date);
+      return dateFormatter.shortDate(date);
     } catch {
       return 'Invalid date';
     }

@@ -26,11 +26,13 @@ local_settings.py
 db.sqlite3
 db.sqlite3-journal
 media/
+.cache/
 
 # Virtual Environment
 venv/
 env/
 ENV/
+.venv/
 
 # IDE
 .idea/
@@ -46,3 +48,6 @@ Thumbs.db
 .env
 *.sqlite3
 *.pyc
+
+# Local agent/tooling artifacts
+.codex

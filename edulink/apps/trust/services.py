@@ -332,7 +332,7 @@ def get_employer_trust_progress(employer_id: UUID) -> dict:
 # Student Trust
 # -----------------------------------------------------------------------------
 
-from .queries import calculate_student_trust_state
+from edulink.apps.students.constants import TRUST_EVENT_POINTS, TRUST_TIER_THRESHOLDS
 
 def compute_student_trust_tier(*, student_id: str) -> dict:
     """
@@ -342,8 +342,20 @@ def compute_student_trust_tier(*, student_id: str) -> dict:
     student_uuid = UUID(str(student_id))
     student = get_student_details_for_trust(student_id=student_uuid)
     
-    # Delegate calculation to read-only query
-    trust_state = calculate_student_trust_state(student_id=student_id)
+    events = get_events_for_entity(entity_id=student_id, entity_type="Student")
+    score = sum(TRUST_EVENT_POINTS.get(event.event_type, 0) for event in events)
+    tier = {"level": 0, "name": "Self-Registered"}
+    for min_score, max_score, level, name in TRUST_TIER_THRESHOLDS:
+        if min_score <= score <= max_score:
+            tier = {"level": level, "name": name}
+            break
+    trust_state = {
+        "student_id": student_id,
+        "score": score,
+        "tier_level": tier["level"],
+        "tier_name": tier["name"],
+        "tier_label": tier["name"],
+    }
     score = trust_state["score"]
     tier_level = trust_state["tier_level"]
 

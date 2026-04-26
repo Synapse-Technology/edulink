@@ -2,7 +2,7 @@ from django.test import TransactionTestCase
 from edulink.apps.accounts.models import User
 from edulink.apps.institutions.models import Institution, InstitutionStaff
 from edulink.apps.institutions.queries import get_institution_staff_profile
-from edulink.apps.internships.models import Internship, InternshipState
+from edulink.apps.internships.models import Internship, InternshipApplication, InternshipState
 from edulink.apps.internships.policies import can_review_evidence
 
 class InstitutionSupervisorTest(TransactionTestCase):
@@ -41,13 +41,18 @@ class InstitutionSupervisorTest(TransactionTestCase):
         self.assertEqual(profile.institution, self.institution)
         
         # 3. Verify Internship Policy Integration
-        # Create an internship assigned to this supervisor
-        internship = Internship.objects.create(
+        # Create an application assigned to this supervisor
+        opportunity = Internship.objects.create(
             title="Research Project",
             description="Academic research",
             institution_id=self.institution.id,
+            status=InternshipState.OPEN,
+        )
+        internship = InternshipApplication.objects.create(
+            opportunity=opportunity,
+            student_id=self.student_user.id,
+            institution_supervisor_id=self.supervisor_user.id,
             status=InternshipState.ACTIVE,
-            institution_supervisor_id=self.supervisor_user.id
         )
         
         # Check permission

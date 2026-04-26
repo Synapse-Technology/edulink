@@ -18,6 +18,9 @@ interface ProfileWizardProps {
     cv?: string | null;
     admission_letter?: string | null;
     id_document?: string | null;
+    institution_id?: string | null;
+    is_verified?: boolean;
+    has_affiliation_claim?: boolean;
   };
 }
 
@@ -53,14 +56,18 @@ const ProfileWizard: React.FC<ProfileWizardProps> = ({ show, onHide, studentId, 
   // Determine initial step based on missing data
   useEffect(() => {
     if (show && initialData) {
+      const hasAffiliationPath = !!initialData.institution_id || !!initialData.is_verified || !!initialData.has_affiliation_claim;
+
       if (!initialData.course_of_study || !initialData.current_year || !initialData.registration_number) {
         setStep(0);
       } else if (!initialData.skills || initialData.skills.length === 0) {
         setStep(1);
+      } else if (!hasAffiliationPath) {
+        setStep(2);
       } else if (!initialData.cv || !initialData.admission_letter || !initialData.id_document) {
-        setStep(3); // Skip institution step if docs are missing but basic info is there
+        setStep(3);
       } else {
-        setStep(0); // Default to start if everything is somehow there but wizard is opened
+        setStep(0);
       }
     }
   }, [show, initialData]);
@@ -103,6 +110,14 @@ const ProfileWizard: React.FC<ProfileWizardProps> = ({ show, onHide, studentId, 
     if (step === 1) {
       if (skills.length === 0) {
         setError("Please add at least one skill.");
+        return;
+      }
+    }
+
+    if (step === 2) {
+      const alreadyHasAffiliation = !!initialData?.institution_id || !!initialData?.is_verified || !!initialData?.has_affiliation_claim;
+      if (!alreadyHasAffiliation && !selectedInstitution) {
+        setError("Please select your institution. If it is not listed, use the affiliation page to request onboarding.");
         return;
       }
     }
@@ -173,27 +188,6 @@ const ProfileWizard: React.FC<ProfileWizardProps> = ({ show, onHide, studentId, 
     } catch (err: any) {
       console.error(err);
       setError("Failed to save profile. Please try again.");
-      
-      // OPTIONAL: Reset skills if they are deemed "corrupted" by the error, 
-      // but usually we want to KEEP user input so they can retry.
-      // If the user specifically complained about "clearing" being the bug, 
-      // then we should actually ensure state is PRESERVED (which it is).
-      // However, if the "anomaly" is that the frontend CLEARS it on error (as the user claimed),
-      // we need to verify where that happens. 
-      // Looking at the code, state is NOT cleared in catch block. 
-      // User said: "when fronted encounter an error the skills sectiion forrm inputs are cleared"
-      // My previous analysis confirmed it DOES NOT clear.
-      // Perhaps the user WANTS it to persist (which it does) or is observing a side effect I missed.
-      // If the user means "Retry does not include skills", it might be because 'skills' state was lost?
-      // Re-reading: "inputs are cleared and thus sending a retry does not invclude the skills"
-      // This suggests a page reload or component unmount/remount? 
-      // OR maybe `setSkills` is called somewhere else? 
-      // Ah, if `updateProfile` fails, we stay on the same step? 
-      // If we are on Step 3 (Documents) and submit fails, `skills` state (Step 1) should still be there.
-      
-      // Let's ensure we don't accidentally reset anything. 
-      // The current code is SAFE. 
-      // I will add a comment to clarify.
     } finally {
       setLoading(false);
     }
@@ -248,7 +242,7 @@ const ProfileWizard: React.FC<ProfileWizardProps> = ({ show, onHide, studentId, 
                   type="text" 
                   value={skillInput} 
                   onChange={(e) => setSkillInput(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleAddSkill()}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddSkill()}
                   placeholder="e.g. Python, React"
                 />
                 <Button variant="outline-primary" onClick={handleAddSkill}>Add</Button>
@@ -305,7 +299,7 @@ const ProfileWizard: React.FC<ProfileWizardProps> = ({ show, onHide, studentId, 
             <div className="alert alert-info d-flex">
               <AlertCircle size={20} className="me-2 flex-shrink-0" />
               <div className="small">
-                Claiming affiliation allows your institution to verify your student status. This increases your trust score with employers.
+                Claiming affiliation allows your institution to verify your student status. If your institution is not listed, visit the affiliation page after saving to request onboarding.
               </div>
             </div>
           </div>

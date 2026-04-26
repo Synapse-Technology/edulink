@@ -32,7 +32,7 @@ class DepartmentCohortServicesTest(TestCase):
         # Verify Event
         event = LedgerEvent.objects.filter(event_type="DEPARTMENT_CREATED").last()
         self.assertIsNotNone(event)
-        self.assertEqual(event.entity_id, str(dept.id))
+        self.assertEqual(str(event.entity_id), str(dept.id))
 
     def test_create_department_duplicate_name_case_insensitive(self):
         create_department(

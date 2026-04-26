@@ -17,7 +17,10 @@ cache_dir = BASE_DIR / ".cache" / "django-cache"
 cache_dir.mkdir(parents=True, exist_ok=True)
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-n%6^@49(@dn^2!77l)hq6r4u4!$6!!)mbujn*5fy9y-!dw_th1"
+SECRET_KEY = os.environ.get(
+    "DJANGO_SECRET_KEY",
+    os.environ.get("SECRET_KEY", "django-insecure-n%6^@49(@dn^2!77l)hq6r4u4!$6!!)mbujn*5fy9y-!dw_th1"),
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -103,6 +106,21 @@ DATABASES = {
         conn_max_age=600,
     )
 }
+
+if os.environ.get("EDULINK_TEST_SQLITE", "").lower() in {"1", "true", "yes"}:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": os.environ.get("EDULINK_TEST_SQLITE_NAME", str(BASE_DIR / "test.sqlite3")),
+        }
+    }
+
+REQUIRE_EMAIL_VERIFICATION_FOR_APPLICATIONS = os.environ.get(
+    "REQUIRE_EMAIL_VERIFICATION_FOR_APPLICATIONS", "False"
+).lower() in {"1", "true", "yes"}
+REQUIRE_CV_FOR_APPLICATIONS = os.environ.get(
+    "REQUIRE_CV_FOR_APPLICATIONS", "False"
+).lower() in {"1", "true", "yes"}
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [

@@ -8,6 +8,7 @@ import { internshipService } from '../../services/internship/internshipService';
 import { showToast } from '../../utils/toast';
 import type { InternshipApplication } from '../../services/internship/internshipService';
 import { useTheme } from '../../contexts/ThemeContext';
+import InternshipLifecyclePanel from '../../components/internship/InternshipLifecyclePanel';
 
 const StudentApplicationDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -94,76 +95,6 @@ const StudentApplicationDetail: React.FC = () => {
         {config.text}
       </span>
     );
-  };
-
-  // Timeline Helper (simplified for now)
-  const getTimelineSteps = (currentStatus: string) => {
-    const steps = [
-      { status: 'APPLIED', label: 'Applied', date: application?.created_at },
-      { status: 'SHORTLISTED', label: 'Shortlisted', date: null },
-      { status: 'ACCEPTED', label: 'Accepted', date: null },
-      { status: 'ACTIVE', label: 'Started', date: null }
-    ];
-
-    const currentIndex = steps.findIndex(s => s.status === currentStatus);
-    const isRejected = currentStatus === 'REJECTED';
-
-    return steps.map((step, index) => {
-      let stepClass = 'text-muted';
-      let iconClass = 'bg-secondary bg-opacity-10 text-secondary';
-      
-      if (isRejected) {
-         // If rejected, everything after APPLIED is greyed out
-         // The APPLIED step shows as completed (since they did apply)
-         // We could optionally show a RED line or icon for the step where they were rejected, 
-         // but since 'REJECTED' isn't a step in the linear happy path, we just stop progress.
-         
-         if (index === 0) { // Applied is always done
-            stepClass = isDarkMode ? 'text-light fw-bold' : 'text-dark fw-bold';
-            iconClass = 'bg-success text-white';
-            // The line AFTER applied should be red to indicate stoppage
-         } else {
-            stepClass = 'text-muted';
-            iconClass = 'bg-secondary bg-opacity-10 text-secondary';
-         }
-      } else if (index <= currentIndex) {
-        stepClass = isDarkMode ? 'text-light fw-bold' : 'text-dark fw-bold';
-        iconClass = 'bg-success text-white';
-      }
-
-      // If this is the specific step where rejection "happened" visually (e.g. they were shortlisted then rejected),
-      // we don't have that history easily. 
-      // So for REJECTED status, we keep it simple: Applied (Green) -> Red Line -> Stops.
-      
-      return (
-        <div key={step.status} className="d-flex flex-column align-items-center position-relative" style={{ width: '25%' }}>
-          {index !== 0 && (
-            <div 
-              className="position-absolute w-100" 
-              style={{ 
-                height: '2px', 
-                backgroundColor: isRejected && index === 1 ? '#dc3545' : (index <= currentIndex && !isRejected ? '#198754' : '#dee2e6'), 
-                top: '15px', 
-                right: '50%', 
-                zIndex: 0,
-                transform: 'translateY(-50%)'
-              }}
-            ></div>
-          )}
-          <div className={`rounded-circle d-flex align-items-center justify-content-center mb-2 position-relative ${iconClass}`} style={{ width: '30px', height: '30px', zIndex: 1, border: `4px solid ${isDarkMode ? '#1e293b' : 'white'}` }}>
-            {/* If rejected and we want to show an X somewhere, we could do it here. 
-                But currently we just show 'Applied' as checked, and the rest empty. 
-            */}
-            {index <= currentIndex && !isRejected ? <CheckCircle size={16} /> : (
-              isRejected && index === 1 ? <XCircle size={16} className="text-danger" /> : 
-              <div style={{width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'currentColor'}}></div>
-            )}
-          </div>
-          <small className={`text-center ${stepClass}`}>{step.label}</small>
-          {step.date && <small className="text-muted text-center" style={{fontSize: '0.7rem'}}>{new Date(step.date).toLocaleDateString()}</small>}
-        </div>
-      );
-    });
   };
 
   if (isLoading) {
@@ -277,14 +208,6 @@ const StudentApplicationDetail: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Timeline (Visual Only) */}
-                  <div className="py-3 mt-4 border-top border-light">
-                    <h6 className={`mb-4 fw-bold ${isDarkMode ? 'text-light' : 'text-dark'}`}>Application Progress</h6>
-                    <div className="d-flex justify-content-between px-3">
-                      {getTimelineSteps(application.status)}
-                    </div>
-                  </div>
-
                   {/* Action Buttons */}
                   {canWithdraw && (
                     <div className="py-3 mt-4 border-top border-light">
@@ -298,6 +221,14 @@ const StudentApplicationDetail: React.FC = () => {
                     </div>
                   )}
                 </div>
+              </div>
+
+              <div className="mb-4">
+                <InternshipLifecyclePanel
+                  application={application}
+                  roleView="student"
+                  dark={isDarkMode}
+                />
               </div>
 
               {/* Cover Letter Card */}
