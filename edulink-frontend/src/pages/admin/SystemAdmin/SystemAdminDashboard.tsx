@@ -24,6 +24,7 @@ import AdminLayout from '../../../components/admin/AdminLayout';
 import AdminDashboardSkeleton from '../../../components/admin/skeletons/AdminDashboardSkeleton';
 import { SEO } from '../../../components/common';
 import { showToast } from '../../../utils/toast';
+import { sanitizeAdminError } from '../../../utils/adminErrorSanitizer';
 
 const SystemAdminDashboard: React.FC = () => {
   const { admin } = useAdminAuth();
@@ -46,18 +47,16 @@ const SystemAdminDashboard: React.FC = () => {
       setStats(response);
       setError('');
     } catch (err) {
-      console.error("Error:", err); showToast.error("An error occurred. Please try again.");
-      if (err instanceof Error) {
-        if (err.message.includes('401')) {
+      const sanitized = sanitizeAdminError(err);
+      console.error("Dashboard error:", sanitized.title);
+      showToast.error(sanitized.userMessage);
+      if ((err as any)?.status === 401 || (err as any)?.response?.status === 401) {
           setError('Session expired. Please log in again.');
           setTimeout(() => {
             window.location.href = '/admin/login';
           }, 3000);
-        } else {
-          setError(err.message || 'Failed to load dashboard data');
-        }
       } else {
-        setError('An unexpected error occurred');
+        setError(sanitized.userMessage);
       }
     } finally {
       setIsLoading(false);

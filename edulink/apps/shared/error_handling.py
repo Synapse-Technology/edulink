@@ -10,7 +10,7 @@ Provides structured exception hierarchy for domain errors with:
 
 import logging
 from abc import ABC
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Optional, Dict, Any
 from uuid import UUID
 
@@ -59,7 +59,7 @@ class EduLinkError(ValueError, ABC):
         """Initialize error with optional override of class attributes."""
         self.developer_message = developer_message or str(self.__class__.__name__)
         self.context = context or {}
-        self.timestamp = datetime.utcnow()
+        self.timestamp = datetime.now(UTC)
         
         # Allow instance-level overrides
         if user_message:

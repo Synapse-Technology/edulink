@@ -6,13 +6,13 @@ import { showToast } from '../utils/toast';
  * useSessionTimeout - Monitor user inactivity and auto-logout
  *
  * Configuration:
- * - totalSessionTime: Total session duration in milliseconds (default 30 minutes)
- * - warningTime: Time before expiry to warn user in milliseconds (default 5 minutes)
+ * - totalSessionTime: Total inactivity duration in milliseconds (default 2 hours)
+ * - warningTime: Time before expiry to warn user in milliseconds (default 10 minutes)
  * - checkInterval: How often to check for timeout in milliseconds (default 1 minute)
  *
  * Events tracked: mouse move, click, keyboard, scroll, focus
  * Auto-logout: Silent redirect to login page after timeout
- * Warning: Toast notification when 5 minutes remaining
+ * Warning: Toast notification when the configured warning window remains
  *
  * Usage in App.tsx:
  * ```
@@ -30,8 +30,8 @@ export const useSessionTimeout = (config?: {
   checkInterval?: number; // milliseconds (default 1 min)
 }) => {
   const {
-    totalSessionTime = 30 * 60 * 1000, // 30 minutes
-    warningTime = 5 * 60 * 1000, // 5 minutes
+    totalSessionTime = 2 * 60 * 60 * 1000, // 2 hours, aligned with backend access token lifetime
+    warningTime = 10 * 60 * 1000, // 10 minutes
     checkInterval = 1 * 60 * 1000, // 1 minute
   } = config || {};
 
@@ -71,7 +71,7 @@ export const useSessionTimeout = (config?: {
       return;
     }
 
-    // Warn when 5 minutes remaining (only once per session)
+    // Warn once before inactivity timeout
     if (timeRemaining <= warningTime && !warningShownRef.current) {
       warningShownRef.current = true;
       const minutesRemaining = Math.floor(timeRemaining / 60000);
@@ -131,8 +131,8 @@ export const useSessionTimeoutWithCountdown = (config?: {
   checkInterval?: number;
 }) => {
   const {
-    totalSessionTime = 30 * 60 * 1000,
-    warningTime = 5 * 60 * 1000,
+    totalSessionTime = 2 * 60 * 60 * 1000,
+    warningTime = 10 * 60 * 1000,
     checkInterval = 1000, // 1 second for countdown precision
   } = config || {};
 
@@ -169,7 +169,7 @@ export const useSessionTimeoutWithCountdown = (config?: {
       return;
     }
 
-    // Warn at 5 minutes
+    // Warn once before inactivity timeout
     if (remaining <= warningTime && !warningShownRef.current) {
       warningShownRef.current = true;
       const minutesRemaining = Math.floor(remaining / 60000);

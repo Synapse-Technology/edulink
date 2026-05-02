@@ -3,6 +3,8 @@
  * Backend format: {error_code, message, status_code, timestamp, context}
  */
 
+import { getUserFacingErrorMessage } from '../utils/userFacingErrors';
+
 export interface BackendErrorResponse {
   error_code: string;
   message: string;
@@ -81,7 +83,7 @@ export const STATUS_CODE_MESSAGE_MAP: StatusCodeToMessageMap = {
  */
 export function getUserMessageForStatus(status: number, defaultMessage?: string): string {
   const mapping = STATUS_CODE_MESSAGE_MAP[status];
-  return defaultMessage || mapping?.userMessage || 'An unexpected error occurred.';
+  return getUserFacingErrorMessage(defaultMessage || mapping?.userMessage, status);
 }
 
 /**

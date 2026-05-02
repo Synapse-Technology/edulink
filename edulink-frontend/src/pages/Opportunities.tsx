@@ -23,6 +23,9 @@ import {
   Wrench,
   Briefcase,
   MapPin,
+  CalendarDays,
+  ExternalLink,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { SEO } from '../components/common';
 
@@ -47,7 +50,7 @@ const Opportunities: React.FC = () => {
     onNotFound: () => showToast.error('No opportunities available'),
     onAuthError: () => showToast.error('Unauthorized access'),
     onUnexpected: error =>
-      showToast.error(`Failed to load opportunities: ${error.message}`),
+      showToast.error(error.userMessage || 'Failed to load opportunities. Please try again.'),
   });
 
   const { handleError: handleAuxiliaryError } = useErrorHandler({
@@ -146,6 +149,11 @@ const Opportunities: React.FC = () => {
   }, [searchQuery, filters]);
 
   const initiateApply = (opportunity: InternshipOpportunity) => {
+    if (opportunity.application_mode === 'EXTERNAL' && opportunity.external_apply_url) {
+      window.open(opportunity.external_apply_url, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
     if (!user) {
       setShowLoginModal(true);
       return;
@@ -209,6 +217,48 @@ const Opportunities: React.FC = () => {
 
   // Filter opportunities for display
   const availableOpportunities = opportunities.filter(isOpportunityAvailable);
+  const activeFilterCount = [
+    filters.locationType,
+    filters.duration,
+    filters.isVerified ? 'verified' : '',
+    filters.employerType,
+    filters.department !== 'all' ? filters.department : '',
+    searchQuery.trim(),
+  ].filter(Boolean).length;
+
+  const resetFilters = () => {
+    setFilters({
+      locationType: '',
+      duration: '',
+      isVerified: false,
+      employerType: '',
+      department: 'all',
+    });
+    setSearchQuery('');
+  };
+
+  const formatDate = (date?: string) => {
+    if (!date) return 'Not listed';
+    return new Date(date).toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+  };
+
+  const getEmployerName = (opportunity: InternshipOpportunity) =>
+    opportunity.employer_details?.name ||
+    opportunity.external_employer_name ||
+    opportunity.external_source_name ||
+    'EduLink partner';
+
+  const getInitials = (name?: string) =>
+    (name || 'Student')
+      .split(' ')
+      .slice(0, 2)
+      .map(part => part[0])
+      .join('')
+      .toUpperCase();
 
   const getCategoryColor = (dept: string = '') => {
     const category = dept.toLowerCase();
@@ -257,62 +307,80 @@ const Opportunities: React.FC = () => {
         description="Browse and apply for verified internship and graduate job opportunities across Kenya. Filter by category, location, and employer type."
         keywords="find internships, jobs kenya, student opportunities, verified jobs"
       />
-      <main className="main">
-        {/* Marketplace Hero */}
-        <section className="marketplace-hero text-center" data-aos="fade-in">
+      <main className="main opportunities-page">
+        <section className="opportunities-header" data-aos="fade-in">
           <div className="container">
-            <h1 className="display-5 fw-bold mb-3">
-              Find Your Next Opportunity
-            </h1>
-            <p className="lead mb-4">
-              Discover verified internships and jobs from top employers and
-              institutions
-            </p>
-            <div className="search-bar shadow mx-auto">
-              <input
-                type="text"
-                placeholder="Search by role, company, or keyword..."
-                aria-label="Search opportunities"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-              />
-              <button
-                type="button"
-                onClick={() =>
-                  window.scrollTo({ top: 600, behavior: 'smooth' })
-                }
-              >
-                <i className="bi bi-search"></i> Search
-              </button>
+            <div className="opportunities-header-grid">
+              <div>
+                <div className="opportunities-eyebrow">
+                  Verified attachments and internships
+                </div>
+                <h1 className="opportunities-title">
+                  Find and compare opportunities faster
+                </h1>
+                <p className="opportunities-subtitle">
+                  Search EduLink-hosted applications and curated external listings from one place.
+                </p>
+              </div>
+
+              <div className="opportunities-search-panel">
+                <label className="opportunities-search-label" htmlFor="opportunity-search">
+                  Search opportunities
+                </label>
+                <div className="opportunities-search">
+                  <input
+                    id="opportunity-search"
+                    type="text"
+                    placeholder="Role, company, skill, or keyword"
+                    aria-label="Search opportunities"
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                  />
+                  <button type="button" aria-label="Search">
+                    <i className="bi bi-search"></i>
+                  </button>
+                </div>
+                <div className="opportunities-search-meta">
+                  <span>{availableOpportunities.length} active now</span>
+                  <span>{activeFilterCount} filters applied</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="marketplace-categories" data-aos="fade-up">
+              {categories.map(category => (
+                <button
+                  key={category.id}
+                  className={`cat-btn ${filters.department === category.id ? 'active' : ''}`}
+                  onClick={() =>
+                    setFilters({ ...filters, department: category.id })
+                  }
+                >
+                  <i className={`bi ${category.icon} me-1`}></i>
+                  {category.name}
+                </button>
+              ))}
             </div>
           </div>
         </section>
 
-        {/* Category Quick Filters */}
-        <div className="marketplace-categories" data-aos="fade-up">
-          {categories.map(category => (
-            <button
-              key={category.id}
-              className={`cat-btn ${filters.department === category.id ? 'active' : ''}`}
-              onClick={() =>
-                setFilters({ ...filters, department: category.id })
-              }
-            >
-              <i className={`bi ${category.icon} me-1`}></i>
-              {category.name}
-            </button>
-          ))}
-        </div>
-
-        <section className="container mb-5" data-aos="fade-up">
-          <div className="row">
+        <section className="container opportunities-results-section" data-aos="fade-up">
+          <div className="row g-4">
             {/* Sidebar Filters */}
             <div className="col-lg-3 mb-4">
-              <div className="filter-sidebar p-4 bg-white rounded shadow-sm border">
-                <h5 className="fw-bold mb-3">Filters</h5>
+              <div className="filter-sidebar">
+                <div className="filter-sidebar-header">
+                  <div>
+                    <h5 className="fw-bold mb-1">Refine</h5>
+                    <div className="text-muted small">
+                      {activeFilterCount} active filter{activeFilterCount === 1 ? '' : 's'}
+                    </div>
+                  </div>
+                  <SlidersHorizontal size={18} />
+                </div>
 
                 {/* Verified Only */}
-                <div className="form-check form-switch mb-3">
+                <div className="form-check form-switch filter-switch">
                   <input
                     className="form-check-input"
                     type="checkbox"
@@ -327,10 +395,8 @@ const Opportunities: React.FC = () => {
                   </label>
                 </div>
 
-                <hr className="my-3 text-muted" />
-
                 {/* Location Type */}
-                <div className="mb-3">
+                <div className="filter-field">
                   <label className="form-label fw-semibold small text-muted">
                     Location Type
                   </label>
@@ -352,7 +418,7 @@ const Opportunities: React.FC = () => {
                 </div>
 
                 {/* Duration */}
-                <div className="mb-3">
+                <div className="filter-field">
                   <label className="form-label fw-semibold small text-muted">
                     Duration
                   </label>
@@ -372,7 +438,7 @@ const Opportunities: React.FC = () => {
                 </div>
 
                 {/* Employer Type */}
-                <div className="mb-3">
+                <div className="filter-field">
                   <label className="form-label fw-semibold small text-muted">
                     Employer Type
                   </label>
@@ -393,16 +459,7 @@ const Opportunities: React.FC = () => {
 
                 <button
                   className="btn btn-outline-secondary w-100 btn-sm mt-2"
-                  onClick={() => {
-                    setFilters({
-                      locationType: '',
-                      duration: '',
-                      isVerified: false,
-                      employerType: '',
-                      department: 'all',
-                    });
-                    setSearchQuery('');
-                  }}
+                  onClick={resetFilters}
                 >
                   Clear All Filters
                 </button>
@@ -411,15 +468,15 @@ const Opportunities: React.FC = () => {
 
             {/* Opportunities Grid */}
             <div className="col-lg-9">
-              <div className="d-flex justify-content-between align-items-center mb-3">
+              <div className="results-toolbar">
                 <h5 className="fw-bold mb-0">
-                  {opportunities.length} Opportunities Found
+                  {availableOpportunities.length} active opportunities
                 </h5>
-                <div className="text-muted small">Sorted by: Newest</div>
+                <div className="text-muted small">Sorted by newest</div>
               </div>
 
               {loading ? (
-                <div className="text-center py-5">
+                <div className="loading-state">
                   <div className="spinner-border text-primary" role="status">
                     <span className="visually-hidden">Loading...</span>
                   </div>
@@ -428,141 +485,122 @@ const Opportunities: React.FC = () => {
                 <div className="row g-4">
                   {availableOpportunities.map(opportunity => (
                     <div key={opportunity.id} className="col-12">
-                      <div className="opportunity-card horizontal-card">
-                        <div className="row g-0">
-                          {/* Card Icon/Image */}
-                          <div className="col-md-3 col-lg-2">
-                            <div
-                              className="card-img-horizontal h-100 d-flex align-items-center justify-content-center"
-                              style={{
-                                backgroundColor: getCategoryBgColor(
-                                  opportunity.department || ''
-                                ),
-                              }}
+                      <article className="opportunity-card">
+                        <div
+                          className="opportunity-card-icon"
+                          style={{
+                            backgroundColor: getCategoryBgColor(
+                              opportunity.department || ''
+                            ),
+                          }}
+                        >
+                          {getCategoryIcon(opportunity.department || '', 34)}
+                        </div>
+
+                        <div className="opportunity-card-body">
+                          <div className="opportunity-card-topline">
+                            <span
+                              className={`badge rounded-pill ${getCategoryColor(opportunity.department)}`}
                             >
-                              {getCategoryIcon(
-                                opportunity.department || '',
-                                40
+                              {opportunity.department || 'General'}
+                            </span>
+                            <span
+                              className={`source-badge ${opportunity.application_mode === 'EXTERNAL' ? 'external' : 'internal'}`}
+                            >
+                              {opportunity.application_mode === 'EXTERNAL'
+                                ? 'External portal'
+                                : 'Apply in EduLink'}
+                            </span>
+                            {opportunity.employer_details?.is_featured && (
+                              <span className="badge featured rounded-pill">
+                                Featured
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="opportunity-card-main">
+                            <div>
+                              <h3 className="opportunity-card-title">
+                                {opportunity.title}
+                              </h3>
+                              <div className="opportunity-employer">
+                                {opportunity.employer_details?.logo ? (
+                                  <img
+                                    src={opportunity.employer_details.logo}
+                                    alt={getEmployerName(opportunity)}
+                                  />
+                                ) : (
+                                  <Building2 size={16} />
+                                )}
+                                <span>{getEmployerName(opportunity)}</span>
+                              </div>
+                            </div>
+
+                            <div className="openings-box">
+                              <strong>{opportunity.capacity || 1}</strong>
+                              <span>openings</span>
+                            </div>
+                          </div>
+
+                          <div className="opportunity-meta-grid">
+                            <div className="opportunity-meta-item">
+                              <MapPin size={15} />
+                              <span>
+                                {opportunity.location || 'Location not listed'}
+                                {opportunity.location_type ? ` · ${opportunity.location_type}` : ''}
+                              </span>
+                            </div>
+                            <div className="opportunity-meta-item">
+                              <CalendarDays size={15} />
+                              <span>Deadline {formatDate(opportunity.application_deadline)}</span>
+                            </div>
+                            <div className="opportunity-meta-item">
+                              <Briefcase size={15} />
+                              <span>{opportunity.duration || 'Duration not listed'}</span>
+                            </div>
+                          </div>
+
+                          {opportunity.skills && opportunity.skills.length > 0 && (
+                            <div className="opportunity-tags">
+                              {opportunity.skills.slice(0, 5).map(tag => (
+                                <span key={tag} className="tag-pill">
+                                  {tag}
+                                </span>
+                              ))}
+                              {opportunity.skills.length > 5 && (
+                                <span className="tag-pill muted">
+                                  +{opportunity.skills.length - 5} more
+                                </span>
                               )}
                             </div>
-                          </div>
+                          )}
 
-                          {/* Card Content */}
-                          <div className="col-md-9 col-lg-10">
-                            <div className="card-content p-4">
-                              <div className="d-flex justify-content-between align-items-start mb-3">
-                                <div className="flex-grow-1">
-                                  <div className="d-flex align-items-center gap-2 mb-2 flex-wrap">
-                                    <span
-                                      className={`badge rounded-pill ${getCategoryColor(opportunity.department)}`}
-                                    >
-                                      {opportunity.department || 'General'}
-                                    </span>
-                                    {opportunity.employer_details
-                                      ?.is_featured && (
-                                      <span className="badge featured rounded-pill">
-                                        Featured
-                                      </span>
-                                    )}
-                                    <span className="text-muted small d-flex align-items-center">
-                                      <i className="bi bi-calendar-event me-1"></i>
-                                      Posted{' '}
-                                      {opportunity.created_at
-                                        ? new Date(
-                                            opportunity.created_at
-                                          ).toLocaleDateString()
-                                        : 'N/A'}
-                                    </span>
-                                  </div>
-                                  <h4 className="fw-bold mb-1">
-                                    {opportunity.title}
-                                  </h4>
-                                  <div className="d-flex align-items-center gap-2 text-muted">
-                                    {opportunity.employer_details?.logo ? (
-                                      <img
-                                        src={opportunity.employer_details.logo}
-                                        alt={opportunity.employer_details.name}
-                                        style={{
-                                          width: '20px',
-                                          height: '20px',
-                                          objectFit: 'contain',
-                                        }}
-                                      />
-                                    ) : (
-                                      <Building2 size={16} />
-                                    )}
-                                    <span className="fw-medium">
-                                      {opportunity.employer_details?.name}
-                                    </span>
-                                  </div>
-                                </div>
-
-                                <div className="text-end d-none d-md-block ms-3">
-                                  <div className="h4 fw-bold text-primary mb-0">
-                                    {opportunity.capacity}
-                                  </div>
-                                  <div className="text-muted extra-small text-uppercase fw-bold">
-                                    Openings
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="row g-3 mb-3">
-                                <div className="col-md-4">
-                                  <div className="d-flex align-items-center gap-2 text-muted small">
-                                    <MapPin
-                                      size={16}
-                                      className="text-primary"
-                                    />
-                                    <span>
-                                      {opportunity.location} (
-                                      {opportunity.location_type})
-                                    </span>
-                                  </div>
-                                </div>
-                                <div className="col-md-8">
-                                  <div className="d-flex flex-wrap gap-2">
-                                    {opportunity.skills?.map(tag => (
-                                      <span key={tag} className="tag-pill">
-                                        {tag}
-                                      </span>
-                                    ))}
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
-                                <div className="d-md-none">
-                                  <span className="fw-bold text-primary">
-                                    {opportunity.capacity} Openings
-                                  </span>
-                                </div>
-                                <div className="d-flex gap-2 ms-auto">
-                                  <button
-                                    className="btn btn-outline-primary btn-sm px-4 rounded-pill"
-                                    onClick={() =>
-                                      navigate(
-                                        `/opportunities/${opportunity.id}`
-                                      )
-                                    }
-                                  >
-                                    View Details
-                                  </button>
-                                  <button
-                                    className={`btn btn-sm px-4 rounded-pill ${opportunity.student_has_applied ? 'btn-success' : 'btn-primary'}`}
-                                    onClick={() => initiateApply(opportunity)}
-                                    disabled={opportunity.student_has_applied}
-                                  >
-                                    {opportunity.student_has_applied
-                                      ? 'Applied'
-                                      : 'Apply Now'}
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
+                          <div className="opportunity-card-actions">
+                            <button
+                              className="btn btn-outline-primary btn-sm"
+                              onClick={() =>
+                                navigate(`/opportunities/${opportunity.id}`)
+                              }
+                            >
+                              Details
+                            </button>
+                            <button
+                              className={`btn btn-sm ${opportunity.student_has_applied ? 'btn-success' : 'btn-primary'}`}
+                              onClick={() => initiateApply(opportunity)}
+                              disabled={opportunity.student_has_applied}
+                            >
+                              {opportunity.application_mode === 'EXTERNAL' && (
+                                <ExternalLink size={14} className="me-1" />
+                              )}
+                              {opportunity.application_mode === 'EXTERNAL'
+                                ? 'Apply on Source'
+                                : opportunity.student_has_applied
+                                ? 'Applied'
+                                : 'Apply Now'}
+                            </button>
                           </div>
                         </div>
-                      </div>
+                      </article>
                     </div>
                   ))}
                 </div>
@@ -588,14 +626,7 @@ const Opportunities: React.FC = () => {
                   )}
                   <button
                     className="btn btn-link mt-2"
-                    onClick={() =>
-                      setFilters({
-                        ...filters,
-                        department: 'all',
-                        locationType: '',
-                        employerType: '',
-                      })
-                    }
+                    onClick={resetFilters}
                   >
                     Clear filters
                   </button>
@@ -609,41 +640,45 @@ const Opportunities: React.FC = () => {
         {featuredEmployers.length > 0 && (
           <section className="featured-employers" data-aos="fade-up">
             <div className="container">
-              <div className="text-center mb-4">
-                <h2 className="fw-bold">Featured Employers</h2>
-                <p>Connect with top companies and organizations</p>
+              <div className="section-heading-row">
+                <div>
+                  <h2 className="fw-bold mb-1">Featured Employers</h2>
+                  <p className="mb-0 text-muted">
+                    Verified organizations currently engaging student talent.
+                  </p>
+                </div>
+                <button
+                  className="btn btn-outline-primary btn-sm"
+                  onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                >
+                  Browse Opportunities
+                </button>
               </div>
-              <div className="row g-4 justify-content-center">
+              <div className="featured-employer-strip">
                 {featuredEmployers.map((employer, index) => (
-                  <div
+                  <button
                     key={employer.id}
-                    className="col-6 col-md-4 col-lg-2"
+                    className="employer-card"
                     data-aos="fade-up"
                     data-aos-delay={index * 100}
+                    type="button"
                   >
-                    <div className="employer-card text-center h-100">
-                      {employer.logo ? (
-                        <img
-                          src={employer.logo}
-                          className="employer-logo"
-                          alt={employer.name}
-                        />
-                      ) : (
-                        <div className="employer-logo d-flex align-items-center justify-content-center">
-                          <Building2 size={24} className="text-muted" />
-                        </div>
-                      )}
-                      <h6
-                        className="mt-2 mb-1 text-truncate"
-                        title={employer.name}
-                      >
-                        {employer.name}
-                      </h6>
-                      <small className="text-muted">
-                        {employer.organization_type}
-                      </small>
-                    </div>
-                  </div>
+                    {employer.logo ? (
+                      <img
+                        src={employer.logo}
+                        className="employer-logo"
+                        alt=""
+                      />
+                    ) : (
+                      <span className="employer-logo placeholder-logo">
+                        <Building2 size={20} />
+                      </span>
+                    )}
+                    <span className="employer-card-copy">
+                      <strong title={employer.name}>{employer.name}</strong>
+                      <small>{employer.organization_type}</small>
+                    </span>
+                  </button>
                 ))}
               </div>
             </div>
@@ -654,51 +689,46 @@ const Opportunities: React.FC = () => {
         {successStories.length > 0 && (
           <section className="marketplace-impact" data-aos="fade-up">
             <div className="container">
-              <div className="text-center mb-5">
-                <h2 className="fw-bold">Success Stories</h2>
-                <p>See how EduLink is transforming careers across Kenya</p>
+              <div className="section-heading-row">
+                <div>
+                  <h2 className="fw-bold mb-1">Recent Student Outcomes</h2>
+                  <p className="mb-0 text-muted">
+                    Placement proof from verified logbooks and completion records.
+                  </p>
+                </div>
+                <button
+                  className="btn btn-outline-primary btn-sm"
+                  onClick={() => navigate('/success-stories')}
+                >
+                  View All Stories
+                </button>
               </div>
-              <div className="row g-4 justify-content-center">
-                {successStories.map((story, index) => (
+              <div className="outcomes-grid">
+                {successStories.slice(0, 3).map((story, index) => (
                   <div
                     key={story.id}
-                    className="col-md-6 col-lg-4"
+                    className="outcome-card"
                     data-aos="fade-up"
                     data-aos-delay={index * 100}
                   >
-                    <div className="testimonial h-100 bg-white p-4 rounded shadow-sm border">
-                      <div className="d-flex align-items-center mb-3">
-                        <div
-                          className="avatar me-3"
-                          style={{
-                            width: 50,
-                            height: 50,
-                            borderRadius: '50%',
-                            background: '#eee',
-                            overflow: 'hidden',
-                          }}
-                        >
-                          <img
-                            src="assets/img/testimonials/testimonials-1.jpg"
-                            alt={story.student_name}
-                            style={{
-                              width: '100%',
-                              height: '100%',
-                              objectFit: 'cover',
-                            }}
-                          />
-                        </div>
-                        <div>
-                          <div className="fw-bold">{story.student_name}</div>
-                          <div className="small text-muted">
-                            Intern at {story.employer_name}
-                          </div>
-                        </div>
+                    <div className="outcome-card-header">
+                      <div className="outcome-avatar" aria-hidden="true">
+                        {getInitials(story.student_name)}
                       </div>
-                      <div className="quote fst-italic text-muted">
-                        "{story.student_testimonial}"
+                      <div className="min-width-0">
+                        <div className="fw-bold text-truncate">
+                          {story.student_name || 'Student'}
+                        </div>
+                        <div className="small text-muted text-truncate">
+                          {story.employer_name
+                            ? `Intern at ${story.employer_name}`
+                            : 'Verified internship graduate'}
+                        </div>
                       </div>
                     </div>
+                    <p className="outcome-quote">
+                      "{story.student_testimonial || story.employer_feedback}"
+                    </p>
                   </div>
                 ))}
               </div>
@@ -708,15 +738,23 @@ const Opportunities: React.FC = () => {
 
         {/* Employer CTA */}
         <section className="marketplace-cta-section" data-aos="fade-up">
-          <div className="container text-center">
-            <h2 className="fw-bold mb-3">Are You Hiring?</h2>
-            <p className="lead mb-4">
-              Post your opportunity and connect with top student talent across
-              Kenya
-            </p>
-            <button className="btn btn-light btn-lg">
-              Post an Opportunity
-            </button>
+          <div className="container">
+            <div className="cta-panel">
+              <div>
+                <h2 className="fw-bold mb-2">Hiring interns or attachees?</h2>
+                <p className="lead mb-0">
+                  Verified employers can publish opportunities and manage student applications inside EduLink.
+                </p>
+              </div>
+              <div className="cta-actions">
+                <button
+                  className="btn btn-light btn-lg"
+                  onClick={() => navigate('/employer/onboarding')}
+                >
+                  Register as Employer
+                </button>
+              </div>
+            </div>
           </div>
         </section>
       </main>
@@ -736,179 +774,685 @@ const Opportunities: React.FC = () => {
       />
 
       <style>{`
-        /* Marketplace Hero */
-        .marketplace-hero {
-          background: linear-gradient(120deg, var(--accent-color) 0%, #22c55e 100%);
-          color: #fff;
-          padding: 80px 0 60px 0;
-          position: relative;
-          overflow: hidden;
+        .opportunities-page {
+          background: #f8fafc;
         }
 
-        .marketplace-hero .search-bar {
-          background: #fff;
-          border-radius: 16px;
-          box-shadow: 0 4px 24px rgba(0,0,0,0.08);
-          padding: 20px 24px;
-          max-width: 600px;
-          margin: 0 auto;
-          display: flex;
-          gap: 12px;
-          align-items: center;
+        .opportunities-header {
+          background: #ffffff;
+          border-bottom: 1px solid #e5e7eb;
+          padding: 42px 0 20px;
         }
 
-        .marketplace-hero .search-bar input {
-          border: none;
-          outline: none;
-          flex: 1 1 auto;
-          font-size: 1.1rem;
-          background: transparent;
-          color: #222;
+        .opportunities-header-grid {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) minmax(320px, 520px);
+          gap: 32px;
+          align-items: end;
         }
 
-        .marketplace-hero .search-bar button {
-          background: var(--accent-color);
-          color: #fff;
-          border: none;
+        .opportunities-eyebrow {
+          color: var(--accent-color);
+          font-size: 0.78rem;
+          font-weight: 700;
+          letter-spacing: 0;
+          margin-bottom: 10px;
+          text-transform: uppercase;
+        }
+
+        .opportunities-title {
+          color: #0f172a;
+          font-size: 2.25rem;
+          font-weight: 800;
+          line-height: 1.12;
+          margin: 0 0 10px;
+        }
+
+        .opportunities-subtitle {
+          color: #64748b;
+          font-size: 1rem;
+          line-height: 1.6;
+          margin: 0;
+          max-width: 640px;
+        }
+
+        .opportunities-search-panel {
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
           border-radius: 8px;
-          padding: 10px 22px;
-          font-size: 1.1rem;
-          font-weight: 600;
-          transition: background 0.2s;
+          padding: 16px;
         }
 
-        .marketplace-hero .search-bar button:hover {
-          background: #22c55e;
+        .opportunities-search-label {
+          color: #475569;
+          display: block;
+          font-size: 0.78rem;
+          font-weight: 700;
+          margin-bottom: 8px;
+          text-transform: uppercase;
         }
 
-        /* Category Filters */
-        .marketplace-categories {
-          margin: 0 auto 32px auto;
-          max-width: 900px;
+        .opportunities-search {
+          align-items: center;
+          background: #ffffff;
+          border: 1px solid #cbd5e1;
+          border-radius: 8px;
+          display: flex;
+          gap: 8px;
+          min-height: 48px;
+          padding: 0 8px 0 14px;
+        }
+
+        .opportunities-search:focus-within {
+          border-color: var(--accent-color);
+          box-shadow: 0 0 0 3px rgba(0,153,153,0.12);
+        }
+
+        .opportunities-search input {
+          background: transparent;
+          border: 0;
+          color: #0f172a;
+          flex: 1 1 auto;
+          font-size: 0.98rem;
+          min-width: 0;
+          outline: 0;
+        }
+
+        .opportunities-search button {
+          align-items: center;
+          background: var(--accent-color);
+          border: 0;
+          border-radius: 6px;
+          color: #ffffff;
+          display: inline-flex;
+          height: 36px;
+          justify-content: center;
+          width: 42px;
+        }
+
+        .opportunities-search-meta {
+          color: #64748b;
           display: flex;
           flex-wrap: wrap;
+          font-size: 0.82rem;
           gap: 12px;
-          justify-content: center;
-          padding: 20px 0;
+          justify-content: space-between;
+          margin-top: 10px;
+        }
+
+        .marketplace-categories {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          padding: 22px 0 0;
         }
 
         .marketplace-categories .cat-btn {
-          background: #e0f7f7;
-          color: var(--accent-color);
-          border: none;
-          border-radius: 8px;
-          padding: 10px 18px;
-          font-size: 1rem;
-          font-weight: 600;
-          transition: background 0.2s, color 0.2s;
+          background: #ffffff;
+          border: 1px solid #dbe3ea;
+          border-radius: 999px;
+          color: #334155;
           cursor: pointer;
+          font-size: 0.9rem;
+          font-weight: 650;
+          min-height: 38px;
+          padding: 8px 14px;
+          transition: background 0.2s, border-color 0.2s, color 0.2s;
         }
 
         .marketplace-categories .cat-btn.active,
         .marketplace-categories .cat-btn:hover {
-          background: var(--accent-color);
-          color: #fff;
+          background: #e6f7f7;
+          border-color: var(--accent-color);
+          color: var(--accent-color);
         }
 
-        /* Sidebar */
+        .opportunities-results-section {
+          padding-top: 28px;
+          padding-bottom: 56px;
+        }
+
         .filter-sidebar {
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          padding: 18px;
           position: sticky;
-          top: 100px;
+          top: 96px;
         }
 
-        /* Opportunity Cards */
+        .filter-sidebar-header {
+          align-items: center;
+          border-bottom: 1px solid #edf2f7;
+          color: #0f172a;
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 16px;
+          padding-bottom: 14px;
+        }
+
+        .filter-switch {
+          background: #f8fafc;
+          border-radius: 8px;
+          margin-bottom: 16px;
+          padding: 12px 12px 12px 42px;
+        }
+
+        .filter-field {
+          margin-bottom: 14px;
+        }
+
+        .filter-sidebar .form-select,
+        .filter-sidebar .btn {
+          border-radius: 7px;
+        }
+
+        .results-toolbar {
+          align-items: center;
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 14px;
+        }
+
+        .loading-state {
+          align-items: center;
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          display: flex;
+          justify-content: center;
+          min-height: 240px;
+        }
+
         .opportunity-card {
-          background: #fff;
-          border-radius: 16px;
-          box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          display: grid;
+          grid-template-columns: 92px minmax(0, 1fr);
           overflow: hidden;
-          transition: transform 0.2s, box-shadow 0.2s;
-          border: 1px solid #f0f0f0;
+          transition: border-color 0.2s, box-shadow 0.2s;
         }
 
         .opportunity-card:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 12px 30px rgba(0,153,153,0.12);
-          border-color: #e0f7f7;
+          border-color: rgba(0,153,153,0.45);
+          box-shadow: 0 14px 32px rgba(15,23,42,0.08);
         }
 
-        .horizontal-card {
-          height: auto;
+        .opportunity-card-icon {
+          align-items: center;
+          display: flex;
+          justify-content: center;
+          min-height: 100%;
         }
 
-        .card-img-horizontal {
-          min-height: 120px;
-          height: 100%;
-          transition: transform 0.3s;
+        .opportunity-card-body {
+          padding: 18px;
+        }
+
+        .opportunity-card-topline {
+          align-items: center;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          margin-bottom: 10px;
         }
 
         .opportunity-card .badge.featured {
-          background: #22c55e;
-          color: #fff;
+          background: #ecfdf3;
+          border: 1px solid #bbf7d0;
+          color: #15803d;
+        }
+
+        .source-badge {
+          border-radius: 999px;
+          font-size: 0.72rem;
+          font-weight: 700;
+          padding: 0.35rem 0.58rem;
+        }
+
+        .source-badge.internal {
+          background: #e0f2fe;
+          color: #0369a1;
+        }
+
+        .source-badge.external {
+          background: #fff7ed;
+          color: #c2410c;
+        }
+
+        .opportunity-card-main {
+          align-items: flex-start;
+          display: flex;
+          gap: 18px;
+          justify-content: space-between;
+        }
+
+        .opportunity-card-title {
+          color: #0f172a;
+          font-size: 1.18rem;
+          font-weight: 800;
+          line-height: 1.32;
+          margin: 0 0 8px;
+        }
+
+        .opportunity-employer {
+          align-items: center;
+          color: #475569;
+          display: flex;
+          font-size: 0.92rem;
+          font-weight: 600;
+          gap: 8px;
+        }
+
+        .opportunity-employer img {
+          height: 20px;
+          object-fit: contain;
+          width: 20px;
+        }
+
+        .openings-box {
+          align-items: center;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          color: #0f172a;
+          display: flex;
+          flex-direction: column;
+          min-width: 76px;
+          padding: 8px 10px;
+          text-align: center;
+        }
+
+        .openings-box strong {
+          color: var(--accent-color);
+          font-size: 1.1rem;
+          line-height: 1;
+        }
+
+        .openings-box span {
+          color: #64748b;
+          font-size: 0.68rem;
+          font-weight: 700;
+          margin-top: 4px;
+          text-transform: uppercase;
+        }
+
+        .opportunity-meta-grid {
+          display: grid;
+          gap: 8px;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          margin-top: 16px;
+        }
+
+        .opportunity-meta-item {
+          align-items: center;
+          background: #f8fafc;
+          border-radius: 7px;
+          color: #475569;
+          display: flex;
+          font-size: 0.83rem;
+          gap: 8px;
+          min-width: 0;
+          padding: 9px 10px;
+        }
+
+        .opportunity-meta-item svg {
+          color: var(--accent-color);
+          flex: 0 0 auto;
+        }
+
+        .opportunity-meta-item span {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .opportunity-tags {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 7px;
+          margin-top: 14px;
         }
 
         .tag-pill {
-          display: inline-block;
           background: #f1f5f9;
-          color: #475569;
-          border-radius: 100px;
-          font-size: 0.75rem;
-          padding: 4px 12px;
-          font-weight: 500;
           border: 1px solid #e2e8f0;
+          border-radius: 999px;
+          color: #475569;
+          display: inline-block;
+          font-size: 0.74rem;
+          font-weight: 650;
+          padding: 4px 10px;
         }
 
-        .extra-small {
-          font-size: 0.65rem;
+        .tag-pill.muted {
+          color: #64748b;
         }
 
-        @media (max-width: 767.98px) {
-          .card-img-horizontal {
-            min-height: 80px;
-            height: 100px;
-          }
+        .opportunity-card-actions {
+          align-items: center;
+          border-top: 1px solid #edf2f7;
+          display: flex;
+          gap: 10px;
+          justify-content: flex-end;
+          margin-top: 16px;
+          padding-top: 14px;
         }
 
-        /* Featured Employers */
+        .opportunity-card-actions .btn {
+          align-items: center;
+          border-radius: 7px;
+          display: inline-flex;
+          font-weight: 700;
+          justify-content: center;
+          min-height: 36px;
+          padding-left: 18px;
+          padding-right: 18px;
+        }
+
         .featured-employers {
           background: #f8fafc;
-          padding: 60px 0 50px 0;
-          margin: 40px 0;
+          border-top: 1px solid #e2e8f0;
+          padding: 44px 0;
+          margin: 0;
+        }
+
+        .section-heading-row {
+          align-items: center;
+          display: flex;
+          gap: 20px;
+          justify-content: space-between;
+          margin-bottom: 20px;
+        }
+
+        .section-heading-row .btn {
+          border-radius: 7px;
+          flex: 0 0 auto;
+          font-weight: 700;
+        }
+
+        .featured-employer-strip {
+          display: grid;
+          gap: 12px;
+          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
         }
 
         .employer-card {
-          padding: 20px;
-          border-radius: 12px;
-          transition: transform 0.2s;
+          align-items: center;
           background: #fff;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          color: inherit;
+          display: flex;
+          gap: 12px;
+          min-height: 76px;
+          padding: 14px;
+          text-align: left;
+          transition: border-color 0.2s, box-shadow 0.2s;
+          width: 100%;
         }
 
         .employer-card:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+          border-color: rgba(0,153,153,0.45);
+          box-shadow: 0 10px 24px rgba(15,23,42,0.07);
         }
 
         .employer-logo {
-          width: 80px;
-          height: 50px;
+          align-items: center;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          display: flex;
+          flex: 0 0 auto;
+          height: 44px;
+          justify-content: center;
           object-fit: contain;
-          background: #fff;
-          margin: 0 auto;
+          padding: 6px;
+          width: 44px;
+        }
+
+        .placeholder-logo {
+          color: #64748b;
+        }
+
+        .employer-card-copy {
+          min-width: 0;
+        }
+
+        .employer-card-copy strong,
+        .employer-card-copy small {
+          display: block;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .employer-card-copy strong {
+          color: #0f172a;
+          font-size: 0.94rem;
+        }
+
+        .employer-card-copy small {
+          color: #64748b;
+          font-size: 0.78rem;
         }
 
         /* Success Stories */
         .marketplace-impact {
-          background: #e0f7f7;
-          padding: 60px 0 50px 0;
+          background: #ffffff;
+          border-top: 1px solid #e2e8f0;
+          padding: 44px 0;
+        }
+
+        .outcomes-grid {
+          display: grid;
+          gap: 14px;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .outcome-card {
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          padding: 18px;
+        }
+
+        .outcome-card-header {
+          align-items: center;
+          display: flex;
+          gap: 12px;
+          margin-bottom: 14px;
+          min-width: 0;
+        }
+
+        .outcome-avatar {
+          align-items: center;
+          background: #e6f7f7;
+          border: 1px solid rgba(0,153,153,0.2);
+          border-radius: 50%;
+          color: var(--accent-color);
+          display: flex;
+          flex: 0 0 auto;
+          font-size: 0.78rem;
+          font-weight: 800;
+          height: 42px;
+          justify-content: center;
+          width: 42px;
+        }
+
+        .min-width-0 {
+          min-width: 0;
+        }
+
+        .outcome-quote {
+          color: #475569;
+          font-size: 0.92rem;
+          line-height: 1.62;
+          margin: 0;
         }
 
         /* CTA Section */
         .marketplace-cta-section {
-          background: linear-gradient(120deg, var(--accent-color) 0%, #22c55e 100%);
+          background: #0f766e;
           color: #fff;
-          padding: 80px 0;
-          margin-top: 40px;
+          padding: 52px 0;
+          margin-top: 0;
+        }
+
+        .cta-panel {
+          align-items: center;
+          display: flex;
+          gap: 28px;
+          justify-content: space-between;
+        }
+
+        .cta-panel p {
+          color: rgba(255,255,255,0.78);
+          max-width: 760px;
+        }
+
+        .cta-actions {
+          display: flex;
+          flex: 0 0 auto;
+          flex-wrap: wrap;
+          gap: 10px;
+          justify-content: flex-end;
+        }
+
+        .cta-actions .btn {
+          border-radius: 7px;
+          font-weight: 800;
+        }
+
+        @media (max-width: 991.98px) {
+          .opportunities-header-grid {
+            grid-template-columns: 1fr;
+            gap: 22px;
+          }
+
+          .filter-sidebar {
+            position: static;
+          }
+
+          .outcomes-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .cta-panel {
+            align-items: flex-start;
+            flex-direction: column;
+          }
+
+          .cta-actions {
+            justify-content: flex-start;
+          }
+        }
+
+        @media (max-width: 767.98px) {
+          .opportunities-header {
+            padding: 32px 0 16px;
+          }
+
+          .opportunities-title {
+            font-size: 1.8rem;
+          }
+
+          .opportunities-search-panel {
+            padding: 12px;
+          }
+
+          .marketplace-categories {
+            flex-wrap: nowrap;
+            margin-left: -12px;
+            margin-right: -12px;
+            overflow-x: auto;
+            padding-left: 12px;
+            padding-right: 12px;
+            scrollbar-width: none;
+          }
+
+          .marketplace-categories::-webkit-scrollbar {
+            display: none;
+          }
+
+          .marketplace-categories .cat-btn {
+            flex: 0 0 auto;
+          }
+
+          .results-toolbar {
+            align-items: flex-start;
+            flex-direction: column;
+            gap: 4px;
+          }
+
+          .opportunity-card {
+            grid-template-columns: 1fr;
+          }
+
+          .opportunity-card-icon {
+            min-height: 72px;
+          }
+
+          .opportunity-card-main {
+            flex-direction: column;
+          }
+
+          .openings-box {
+            align-items: baseline;
+            flex-direction: row;
+            gap: 6px;
+            min-width: 0;
+          }
+
+          .opportunity-meta-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .opportunity-card-actions {
+            align-items: stretch;
+            flex-direction: column;
+          }
+
+          .opportunity-card-actions .btn {
+            width: 100%;
+          }
+
+          .section-heading-row {
+            align-items: flex-start;
+            flex-direction: column;
+            gap: 12px;
+          }
+
+          .section-heading-row .btn {
+            width: 100%;
+          }
+
+          .cta-actions,
+          .cta-actions .btn {
+            width: 100%;
+          }
+        }
+
+        @media (max-width: 575.98px) {
+          .opportunities-search-meta {
+            flex-direction: column;
+            gap: 4px;
+          }
+
+          .opportunities-results-section {
+            padding-top: 20px;
+          }
+
+          .filter-sidebar {
+            padding: 14px;
+          }
+
+          .featured-employers,
+          .marketplace-impact,
+          .marketplace-cta-section {
+            padding: 44px 0;
+          }
         }
       `}</style>
     </>

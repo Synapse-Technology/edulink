@@ -4,6 +4,7 @@ import { Search, FileText, CheckCircle, XCircle, User } from 'lucide-react';
 import { internshipService } from '../../../services/internship/internshipService';
 import { useErrorHandler } from '../../../hooks/useErrorHandler';
 import { showToast } from '../../../utils/toast';
+import { sanitizeAdminError } from '../../../utils/adminErrorSanitizer';
 import type { InternshipApplication } from '../../../services/internship/internshipService';
 import TrustBadge, { type TrustLevel } from '../../../components/common/TrustBadge';
 import InstitutionTableSkeleton from '../../../components/admin/skeletons/InstitutionTableSkeleton';
@@ -33,7 +34,9 @@ const InstitutionApplications: React.FC = () => {
       const apps = await internshipService.getApplications({ is_institutional: true });
       setApplications(apps);
     } catch (err) {
-      console.error("Error:", err); showToast.error("An error occurred. Please try again.");
+      console.error("Error:", err);
+      const sanitized = sanitizeAdminError(err);
+      showToast.error(sanitized.message);
     } finally {
       setLoading(false);
     }

@@ -12,6 +12,7 @@ import {
   ClipboardList,
   GraduationCap,
   Award,
+  ClipboardCheck,
 } from 'lucide-react';
 import { useAuthStore } from '../../../stores/authStore';
 import { institutionService } from '../../../services/institution/institutionService';
@@ -96,6 +97,12 @@ const InstitutionSidebar: React.FC<InstitutionSidebarProps> = ({
       label: 'Internships',
       icon: BookOpen,
       path: '/institution/dashboard/internships',
+    },
+    {
+      id: 'external-placements',
+      label: 'External Placements',
+      icon: ClipboardCheck,
+      path: '/institution/dashboard/external-placements',
     },
     {
       id: 'applications',

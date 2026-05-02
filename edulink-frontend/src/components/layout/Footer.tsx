@@ -44,9 +44,9 @@ const Footer: React.FC<FooterProps> = ({ className = '' }) => {
         <div className="row gy-4">
           {/* About Section */}
           <div className="col-lg-4 col-md-6 footer-about">
-            <a href="/" className="logo d-flex align-items-center">
+            <Link to="/" className="logo d-flex align-items-center">
               <span className="sitename">EduLink KE</span>
-            </a>
+            </Link>
             <div className="footer-contact pt-3">
               <p>JKUAT, Juja</p>
               <p>Nairobi, Kenya</p>
@@ -76,7 +76,8 @@ const Footer: React.FC<FooterProps> = ({ className = '' }) => {
               <li><Link to="/support">Support Center</Link></li>
               <li><Link to="/support/history">Track Tickets</Link></li>
               <li><Link to="/faq">FAQs</Link></li>
-              <li><Link to="/policy">Privacy Policy</Link></li>
+              <li><Link to="/trust-policy">Trust & Pilot Policy</Link></li>
+              <li><Link to="/privacy">Privacy Policy</Link></li>
               <li><Link to="/terms">Terms of Service</Link></li>
             </ul>
           </div>
@@ -85,11 +86,11 @@ const Footer: React.FC<FooterProps> = ({ className = '' }) => {
           <div className="col-lg-2 col-md-3 footer-links">
             <h4>Our Services</h4>
             <ul>
-              <li><Link to="/internships">Internship Listings</Link></li>
-              <li><Link to="/certifications">Digital Certifications</Link></li>
-              <li><Link to="/tracking">Performance Tracking</Link></li>
-              <li><Link to="/employer-dashboard">Employer Dashboard</Link></li>
-              <li><Link to="/reports">Institution Reports</Link></li>
+              <li><Link to="/opportunities">Find Opportunities</Link></li>
+              <li><Link to="/success-stories">Student Outcomes</Link></li>
+              <li><Link to="/institutions/request">Institution Onboarding</Link></li>
+              <li><Link to="/employer/onboarding">Employer Onboarding</Link></li>
+              <li><Link to="/login">Student Portal</Link></li>
             </ul>
           </div>
 

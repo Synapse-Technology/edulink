@@ -6,6 +6,7 @@ import { toast } from 'react-hot-toast';
 import { institutionService, type InstitutionProfile } from '../../../services/institution/institutionService';
 import AcademicStructure from '../../../components/admin/institution/AcademicStructure';
 import InstitutionSettingsSkeleton from '../../../components/admin/skeletons/InstitutionSettingsSkeleton';
+import { sanitizeAdminError } from '../../../utils/adminErrorSanitizer';
 
 const InstitutionSettings: React.FC = () => {
   const [activeTab, setActiveTab] = useState('profile');
@@ -31,7 +32,8 @@ const InstitutionSettings: React.FC = () => {
       setLogoPreview(data.logo || null);
       reset(data);
     } catch (err: any) {
-      toast.error(err.message || 'Failed to load profile');
+      const sanitized = sanitizeAdminError(err);
+      toast.error(sanitized.userMessage || 'Failed to load profile');
     } finally {
       setIsLoading(false);
     }
@@ -78,7 +80,8 @@ const InstitutionSettings: React.FC = () => {
       toast.success('Profile updated successfully');
       setIsEditing(false);
     } catch (err: any) {
-      toast.error(err.message || 'Failed to update profile');
+      const sanitized = sanitizeAdminError(err);
+      toast.error(sanitized.userMessage || 'Failed to update profile');
     } finally {
       setIsSaving(false);
     }

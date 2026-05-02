@@ -12,11 +12,12 @@ Registered in REST_FRAMEWORK['EXCEPTION_HANDLER'] in settings.
 import logging
 from typing import Optional, Any
 
+from django.db import DatabaseError, OperationalError
 from rest_framework.exceptions import APIException
 from rest_framework.response import Response
 from rest_framework.views import exception_handler as drf_exception_handler
 
-from .error_handling import EduLinkError
+from .error_handling import EduLinkError, TransientError
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +53,21 @@ def edulink_exception_handler(exc: Exception, context: dict) -> Optional[Respons
             response = _format_api_error(exc, response)
             return response
         return response
+
+    if isinstance(exc, (OperationalError, DatabaseError)):
+        request = context.get("request")
+        logger.warning(
+            "Database temporarily unavailable",
+            extra={"path": request.path} if request else {},
+            exc_info=True,
+        )
+        return _format_domain_error(
+            TransientError(
+                user_message="The service is temporarily unavailable. Please try again shortly.",
+                developer_message=f"{exc.__class__.__name__}: {exc}",
+                error_code="DATABASE_UNAVAILABLE",
+            )
+        )
     
     # Unhandled exception - log and return 500
     logger.exception("Unhandled exception in API request", extra={"path": context.get("request").path} if context.get("request") else {})

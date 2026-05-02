@@ -42,16 +42,16 @@ class CanViewApplication(permissions.BasePermission):
                 return True
             return False
         
-        # Institution admins can view applications for their opportunities + affiliated students
+        # Institution admins can view applications for institution-owned opportunities.
         if user.is_institution_admin:
             from edulink.apps.institutions.queries import get_institution_for_user
-            from edulink.apps.students.queries import get_affiliated_student_ids
             
             inst = get_institution_for_user(str(user.id))
             if inst:
-                affiliated_ids = get_affiliated_student_ids(str(inst.id))
-                if (str(obj.opportunity.institution_id) == str(inst.id) or 
-                    str(obj.student_id) in [str(sid) for sid in affiliated_ids]):
+                if (
+                    str(obj.opportunity.institution_id) == str(inst.id)
+                    and obj.opportunity.origin != "EXTERNAL_STUDENT_DECLARED"
+                ):
                     return True
         
         # Employer admins can view applications for their opportunities

@@ -9,6 +9,7 @@ import { usePusher } from '../../../hooks/usePusher';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import AdminLayout from '../../../components/admin/AdminLayout';
+import { sanitizeAdminError } from '../../../utils/adminErrorSanitizer';
 
 const AdminSupportTicketDetail: React.FC = () => {
   const { trackingCode } = useParams<{ trackingCode: string }>();
@@ -65,7 +66,8 @@ const AdminSupportTicketDetail: React.FC = () => {
       setIsInternal(false);
       toast.success(isInternal ? 'Internal note added' : 'Reply sent to user');
     } catch (error: any) {
-      toast.error(error.message || 'Failed to send message');
+      const sanitized = sanitizeAdminError(error);
+      toast.error(sanitized.userMessage || 'Failed to send message');
     } finally {
       setIsSubmitting(false);
     }
@@ -89,7 +91,8 @@ const AdminSupportTicketDetail: React.FC = () => {
           
           showSuccess('Ticket Resolved', 'The ticket has been marked as resolved and the user has been notified.');
         } catch (error: any) {
-          showError('Action Failed', 'Could not resolve ticket.', error.message);
+          const sanitized = sanitizeAdminError(error);
+          showError('Action Failed', 'Could not resolve ticket.', sanitized.details);
         }
       }
     });

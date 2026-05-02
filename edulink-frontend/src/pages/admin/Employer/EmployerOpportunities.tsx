@@ -9,6 +9,7 @@ import { internshipService } from '../../../services/internship/internshipServic
 import type { InternshipOpportunity } from '../../../services/internship/internshipService';
 import CreateInternshipModal from '../../../components/dashboard/institution/CreateInternshipModal';
 import InternshipDetailsModal from '../../../components/dashboard/InternshipDetailsModal';
+import { sanitizeAdminError } from '../../../utils/adminErrorSanitizer';
 
 const EmployerOpportunities: React.FC = () => {
   const [opportunities, setOpportunities] = useState<InternshipOpportunity[]>([]);
@@ -88,10 +89,11 @@ const EmployerOpportunities: React.FC = () => {
           fetchOpportunities();
       } catch (error: any) {
           console.error('Failed to publish:', error);
+          const sanitized = sanitizeAdminError(error);
           showError(
             'Publish Failed',
             'We encountered an error while trying to publish this opportunity.',
-            error.response?.data?.error || error.message
+            sanitized.details
           );
       } finally {
           setPublishingId(null);

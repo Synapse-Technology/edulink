@@ -16,6 +16,7 @@ import { ledgerService } from '../../../services/ledger/ledgerService';
 import type { LedgerEvent } from '../../../services/ledger/ledgerService';
 import { useErrorHandler } from '../../../hooks/useErrorHandler';
 import { showToast } from '../../../utils/toast';
+import PilotReadinessPanel, { type PilotReadinessItem } from '../../../components/pilot/PilotReadinessPanel';
 
 const EmployerDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -133,6 +134,57 @@ const EmployerDashboard: React.FC = () => {
     }
   };
 
+  const readinessItems: PilotReadinessItem[] = [
+    {
+      id: 'verified-employer',
+      label: 'Employer profile verified',
+      description: 'Students and institutions need visible proof that this employer is legitimate before applications start.',
+      complete: Boolean(currentEmployer && currentEmployer.trust_level >= 1),
+      actionLabel: 'Review profile',
+      actionTo: '/employer/dashboard/profile',
+    },
+    {
+      id: 'supervision-team',
+      label: 'Supervisor capacity added',
+      description: 'A pilot employer needs named supervisors so accepted students can be managed after placement.',
+      complete: supervisors.length > 0,
+      actionLabel: 'Manage supervisors',
+      actionTo: '/employer/dashboard/supervisors',
+    },
+    {
+      id: 'candidate-pipeline',
+      label: 'Candidate pipeline started',
+      description: 'Applications, shortlists, or active interns confirm the employer is participating in the pilot workflow.',
+      complete: allApplications.length > 0,
+      actionLabel: 'Open applications',
+      actionTo: '/employer/dashboard/applications',
+    },
+    {
+      id: 'response-loop',
+      label: 'Application response loop active',
+      description: 'Shortlisting, acceptance, or rejection reduces student uncertainty and keeps the pilot credible.',
+      complete: allApplications.some(app => app.status !== 'APPLIED'),
+      actionLabel: 'Review candidates',
+      actionTo: '/employer/dashboard/applications',
+    },
+    {
+      id: 'active-supervision',
+      label: 'Active supervision evidence',
+      description: 'Pending or reviewed logbooks show the employer is using EduLink for supervision, not just recruiting.',
+      complete: pendingLogbooks.length > 0 || allApplications.some(app => ['ACTIVE', 'COMPLETED', 'CERTIFIED'].includes(app.status)),
+      actionLabel: 'Open interns',
+      actionTo: '/employer/dashboard/interns',
+    },
+    {
+      id: 'completion-outcomes',
+      label: 'Completion outcome path ready',
+      description: 'Completed or certified internships become proof for the institution and student after the pilot.',
+      complete: allApplications.some(app => ['COMPLETED', 'CERTIFIED'].includes(app.status)),
+      actionLabel: 'View reviews',
+      actionTo: '/employer/dashboard/reviews',
+    },
+  ];
+
   if (isLoading) {
     return (
       <EmployerLayout>
@@ -152,7 +204,7 @@ const EmployerDashboard: React.FC = () => {
           <div className="col-12">
             <h2 className="fw-bold text-dark">Dashboard</h2>
             <p className="text-muted">
-              Welcome back, {user?.firstName}! Here's what's happening with your internships.
+              Welcome back, {user?.firstName}! Manage verified student placements from application to supervised completion.
             </p>
             
             {/* Unverified Warning (Level 0 only) */}
@@ -178,6 +230,13 @@ const EmployerDashboard: React.FC = () => {
             )}
           </div>
         </div>
+
+        <PilotReadinessPanel
+          title="Employer pilot operating checklist"
+          subtitle="Use this to confirm your team can host verified students without falling back to email-only supervision."
+          items={readinessItems}
+          variant="employer"
+        />
 
         {/* Stats Cards */}
         <div className="row mb-4">

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
 import { useAuthStore } from '../../stores/authStore';
 import { Eye, EyeOff } from 'lucide-react';
 import { useLoginErrorHandler } from '../../hooks/useAuthErrorHandler';
@@ -8,6 +7,7 @@ import edulinkLogo from '../../assets/images/edulink-logo-v1-select.svg';
 import DemoCredentialsPanel, {
   type DemoCredential,
 } from '../../components/auth/DemoCredentialsPanel';
+import { getDashboardPath, portalMatchesUser, type Portal } from '../../utils/authRouting';
 
 // CSS Animations and Keyframes
 const styles = `
@@ -152,10 +152,71 @@ interface LoginFormData {
   rememberMe: boolean;
 }
 
-const Login: React.FC = () => {
+interface LoginProps {
+  portalIntent?: Portal;
+}
+
+const portalCopy: Record<Portal, { label: string; title: string; helper: string }> = {
+  student: {
+    label: 'Student',
+    title: 'Student Login',
+    helper: 'Access applications, placements, logbooks, and certificates.',
+  },
+  employer: {
+    label: 'Employer',
+    title: 'Employer Login',
+    helper: 'Manage opportunities, applications, interns, and supervision.',
+  },
+  institution: {
+    label: 'Institution',
+    title: 'Institution Login',
+    helper: 'Monitor cohorts, placements, assessors, reports, and verification.',
+  },
+  admin: {
+    label: 'Admin',
+    title: 'System Admin',
+    helper: 'Use the system admin portal for platform operations.',
+  },
+};
+
+const demoByPortal: Record<Exclude<Portal, 'admin'>, DemoCredential[]> = {
+  student: [
+    {
+      label: 'Student demo',
+      email: 'demo.student@students.jkuat.ac.ke',
+      password: 'DemoPass12345!',
+      description: 'Browse applications, active internship, logbook, and certificates.',
+    },
+  ],
+  employer: [
+    {
+      label: 'Employer admin',
+      email: 'demo.employer@greenbyte.co.ke',
+      password: 'DemoPass12345!',
+      description: 'Manage opportunities, applications, interns, and supervisors.',
+    },
+    {
+      label: 'Employer supervisor',
+      email: 'demo.supervisor@greenbyte.co.ke',
+      password: 'DemoPass12345!',
+      description: 'Review active internships, logbooks, milestones, and incidents.',
+    },
+  ],
+  institution: [
+    {
+      label: 'Institution admin',
+      email: 'demo.institution@jkuat.ac.ke',
+      password: 'DemoPass12345!',
+      description: 'Review students, departments, placements, reports, and oversight tools.',
+    },
+  ],
+};
+
+const Login: React.FC<LoginProps> = ({ portalIntent = 'student' }) => {
   const navigate = useNavigate();
-  const { login } = useAuth();
-  const errorHandler = useLoginErrorHandler({ portal: 'student' });
+  const { login, isLoading } = useAuthStore();
+  const [selectedPortal, setSelectedPortal] = useState<Portal>(portalIntent);
+  const errorHandler = useLoginErrorHandler({ portal: selectedPortal });
   
   const [loginForm, setLoginForm] = useState<LoginFormData>({
     email: '',
@@ -168,14 +229,7 @@ const Login: React.FC = () => {
   const [showToast, setShowToast] = useState(false);
   const [toastClosing, setToastClosing] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
-  const demoCredentials: DemoCredential[] = [
-    {
-      label: 'Student demo',
-      email: 'demo.student@students.jkuat.ac.ke',
-      password: 'DemoPass12345!',
-      description: 'Browse applications, active internship, logbook, and certificates.',
-    },
-  ];
+  const demoCredentials = selectedPortal === 'admin' ? [] : demoByPortal[selectedPortal];
 
   const useDemoCredential = (credential: DemoCredential) => {
     setLoginForm(prev => ({
@@ -237,13 +291,23 @@ const Login: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      await login(loginForm.email, loginForm.password);
+      if (selectedPortal === 'admin') {
+        navigate('/admin/login');
+        return;
+      }
+
+      await login({ email: loginForm.email, password: loginForm.password });
       
       const user = useAuthStore.getState().user;
-      if (user?.role === 'student') {
-        navigate('/dashboard/student');
+      const currentPortal = useAuthStore.getState().currentPortal;
+      if (user && portalMatchesUser(user, selectedPortal)) {
+        navigate(getDashboardPath(user, selectedPortal));
       } else {
-        showToastMessage('Access restricted to Students. Please use the appropriate portal.', 'error');
+        showToastMessage(`This account belongs to a different EduLink workspace. Redirecting you to the right dashboard.`, 'error');
+        if (user) {
+          setTimeout(() => navigate(getDashboardPath(user, currentPortal)), 1200);
+          return;
+        }
         await useAuthStore.getState().logout();
       }
     } catch (error) {
@@ -402,7 +466,7 @@ const Login: React.FC = () => {
               fontSize: '1.05rem',
               lineHeight: '1.6',
               opacity: '0.85'
-            }}>Log in to access your dashboard, track applications, and discover new opportunities.</p>
+            }}>Use one account entry point. EduLink will route you to the correct workspace after sign in.</p>
 
             
             <div style={{
@@ -426,7 +490,7 @@ const Login: React.FC = () => {
                   color: '#fff',
                   fontSize: '14px'
                 }}>
-                  Access your courses and materials
+                  Student placement and logbook workflows
                 </span>
               </div>
               
@@ -446,7 +510,7 @@ const Login: React.FC = () => {
                   color: '#fff',
                   fontSize: '14px'
                 }}>
-                  Connect with peers and instructors
+                  Institution cohort and assessor oversight
                 </span>
               </div>
               
@@ -466,7 +530,7 @@ const Login: React.FC = () => {
                   color: '#fff',
                   fontSize: '14px'
                 }}>
-                  Track your progress and achievements
+                  Employer internship and supervision tools
                 </span>
               </div>
             </div>
@@ -495,7 +559,7 @@ const Login: React.FC = () => {
                 marginBottom: '8px',
                 textAlign: 'center'
               }}>
-                Sign In
+                {portalCopy[selectedPortal].title}
               </h2>
               
               <p style={{
@@ -505,14 +569,50 @@ const Login: React.FC = () => {
                 textAlign: 'center',
                 lineHeight: '1.5'
               }}>
-                Please enter your credentials to proceed.
+                {portalCopy[selectedPortal].helper}
               </p>
 
-              <DemoCredentialsPanel
-                credentials={demoCredentials}
-                onUse={useDemoCredential}
-                dark
-              />
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+                gap: '6px',
+                marginBottom: '16px'
+              }}>
+                {(Object.keys(portalCopy) as Portal[]).map((portal) => (
+                  <button
+                    key={portal}
+                    type="button"
+                    onClick={() => {
+                      if (portal === 'admin') {
+                        navigate('/admin/login');
+                        return;
+                      }
+                      setSelectedPortal(portal);
+                      setMessage('');
+                    }}
+                    style={{
+                      minHeight: '38px',
+                      borderRadius: '10px',
+                      border: selectedPortal === portal ? '1px solid rgb(17, 204, 173)' : '1px solid rgba(255,255,255,0.18)',
+                      background: selectedPortal === portal ? 'rgba(17, 204, 173, 0.22)' : 'rgba(255,255,255,0.08)',
+                      color: '#fff',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {portalCopy[portal].label}
+                  </button>
+                ))}
+              </div>
+
+              {demoCredentials.length > 0 && (
+                <DemoCredentialsPanel
+                  credentials={demoCredentials}
+                  onUse={useDemoCredential}
+                  dark
+                />
+              )}
 
               <form onSubmit={handleLoginSubmit} id="loginForm" role="form" aria-label="Login form">
                 <div style={{
@@ -660,7 +760,7 @@ const Login: React.FC = () => {
                       }}
                       disabled={isSubmitting}
                     >
-                      {isSubmitting ? 'Signing In...' : 'Sign In'}
+                      {isSubmitting || isLoading ? 'Signing In...' : 'Sign In'}
                     </button>
                   </div>
                 </form>

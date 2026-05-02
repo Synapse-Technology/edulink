@@ -7,7 +7,16 @@ from django.conf import settings
 from edulink.apps.institutions.queries import get_institution_for_user, get_institution_staff_id_for_user
 from edulink.apps.employers.queries import get_employer_for_user, get_supervisor_id_for_user
 from edulink.apps.students.queries import get_student_for_user, get_total_students_count
-from .models import InternshipOpportunity, InternshipApplication, OpportunityStatus, ApplicationStatus, InternshipEvidence, SuccessStory, Incident
+from .models import (
+    InternshipOpportunity,
+    InternshipApplication,
+    OpportunityStatus,
+    ApplicationStatus,
+    InternshipEvidence,
+    SuccessStory,
+    Incident,
+    ExternalPlacementDeclaration,
+)
 
 
 def check_supervisor_assigned_to_application(supervisor_id: str, application_id: str) -> bool:
@@ -112,15 +121,14 @@ def get_applications_for_user(user) -> QuerySet[InternshipApplication]:
     elif user.is_institution_admin:
         inst = get_institution_for_user(str(user.id))
         if inst:
-            # Show applications for opportunities posted by this institution
-            # AND applications by students affiliated with this institution (for monitoring/certification)
-            from edulink.apps.students.queries import get_affiliated_student_ids
-            affiliated_student_ids = get_affiliated_student_ids(str(inst.id))
-            
+            # Application workflow ownership is scoped to the posting organization.
+            # Institution monitoring/reporting for affiliated students lives in
+            # dedicated institution queries, not the application management feed.
             return queryset.filter(
-                Q(opportunity__institution_id=inst.id) |
-                Q(student_id__in=affiliated_student_ids)
-            ).distinct()
+                opportunity__institution_id=inst.id
+            ).exclude(
+                opportunity__origin=InternshipOpportunity.ORIGIN_EXTERNAL_STUDENT_DECLARED
+            )
         return InternshipApplication.objects.none()
 
     elif user.is_employer_admin:
@@ -301,33 +309,54 @@ def count_completed_internships_for_employer(employer_id: UUID) -> int:
         status=ApplicationStatus.COMPLETED
     ).count()
 
-def get_active_placements_for_institution(institution_id: str) -> QuerySet[InternshipApplication]:
+PLACEMENT_STATUSES = [
+    ApplicationStatus.ACTIVE,
+    ApplicationStatus.COMPLETED,
+    ApplicationStatus.CERTIFIED,
+]
+
+
+def get_active_placements_for_institution(
+    institution_id: str,
+    department_id: str = None,
+    cohort_id: str = None,
+) -> QuerySet[InternshipApplication]:
     """
-    Returns active placements (engagements) for an institution.
-    Includes internships posted by the institution OR students affiliated with the institution.
+    Returns current/history placement records for students affiliated with an institution.
+    Application pipeline states are intentionally excluded from placement oversight.
     """
-    return InternshipApplication.objects.filter(
-        Q(opportunity__institution_id=institution_id) |
-        Q(application_snapshot__institution_id=institution_id),
-        status__in=[
-            ApplicationStatus.APPLIED, 
-            ApplicationStatus.SHORTLISTED, 
-            ApplicationStatus.ACCEPTED, 
-            ApplicationStatus.ACTIVE, 
-            ApplicationStatus.COMPLETED, 
-            ApplicationStatus.CERTIFIED
-        ]
+    from edulink.apps.students.queries import get_affiliated_student_ids
+
+    affiliated_student_ids = get_affiliated_student_ids(
+        institution_id,
+        department_id=department_id,
+        cohort_id=cohort_id,
     )
+    if not affiliated_student_ids:
+        return InternshipApplication.objects.none()
+
+    return InternshipApplication.objects.filter(
+        student_id__in=affiliated_student_ids,
+        status__in=PLACEMENT_STATUSES,
+    ).select_related("opportunity")
 
 
-def get_active_placements_for_monitoring(institution_id: str) -> List[dict]:
+def get_active_placements_for_monitoring(
+    institution_id: str,
+    department_id: str = None,
+    cohort_id: str = None,
+) -> List[dict]:
     """
     Returns enriched placement data for monitoring dashboard.
     """
     from edulink.apps.students.queries import get_students_by_ids
     from edulink.apps.employers.queries import get_employers_by_ids
 
-    placements = get_active_placements_for_institution(institution_id=institution_id)
+    placements = get_active_placements_for_institution(
+        institution_id=institution_id,
+        department_id=department_id,
+        cohort_id=cohort_id,
+    )
     
     # Collect IDs for batch fetching
     student_ids = [str(p.student_id) for p in placements if p.student_id]
@@ -386,7 +415,11 @@ def get_supervisor_for_student(student_id: UUID) -> Optional[dict]:
             }
     return None
 
-def get_institution_placement_stats(institution_id: str) -> dict:
+def get_institution_placement_stats(
+    institution_id: str,
+    department_id: str = None,
+    cohort_id: str = None,
+) -> dict:
     """
     Returns rich, insightful placement analytics for institutional admins.
     Includes conversion funnels, department performance, and audit metrics.
@@ -399,19 +432,26 @@ def get_institution_placement_stats(institution_id: str) -> dict:
 
     # 1. Base query for all applications related to this institution
     # (Students affiliated with this institution)
-    affiliated_student_ids = get_affiliated_student_ids(institution_id)
-    
-    all_apps = InternshipApplication.objects.filter(
-        Q(opportunity__institution_id=institution_id) |
-        Q(student_id__in=affiliated_student_ids)
+    affiliated_student_ids = get_affiliated_student_ids(
+        institution_id,
+        department_id=department_id,
+        cohort_id=cohort_id,
+    )
+    all_placements = InternshipApplication.objects.filter(
+        student_id__in=affiliated_student_ids,
+        status__in=PLACEMENT_STATUSES,
     )
     
     # Management-specific apps (only those hosted by the institution)
     # This is what the admin actually manages in the "Applications" page
     institutional_apps = InternshipApplication.objects.filter(opportunity__institution_id=institution_id)
     
-    total_apps_count = all_apps.count()
-    total_students = get_total_students_count(institution_id)
+    total_placements_count = all_placements.count()
+    total_students = (
+        len(affiliated_student_ids)
+        if department_id or cohort_id
+        else get_total_students_count(institution_id)
+    )
     
     # 2. Conversion Funnel
     funnel = {
@@ -419,21 +459,26 @@ def get_institution_placement_stats(institution_id: str) -> dict:
         "applied": institutional_apps.filter(status=ApplicationStatus.APPLIED).count(),
         "shortlisted": institutional_apps.filter(status=ApplicationStatus.SHORTLISTED).count(),
         "accepted": institutional_apps.filter(status=ApplicationStatus.ACCEPTED).count(),
-        "active": all_apps.filter(status=ApplicationStatus.ACTIVE).count(),
-        "completed": all_apps.filter(status__in=[ApplicationStatus.COMPLETED, ApplicationStatus.CERTIFIED]).count(),
-        "certified": all_apps.filter(status=ApplicationStatus.CERTIFIED).count(),
+        "active": all_placements.filter(status=ApplicationStatus.ACTIVE).count(),
+        "completed": all_placements.filter(status__in=[ApplicationStatus.COMPLETED, ApplicationStatus.CERTIFIED]).count(),
+        "certified": all_placements.filter(status=ApplicationStatus.CERTIFIED).count(),
     }
     
     # Conversion Rate: Students with at least one ACTIVE or COMPLETED placement / Total Students
-    placed_student_ids = all_apps.filter(
-        status__in=[ApplicationStatus.ACTIVE, ApplicationStatus.COMPLETED, ApplicationStatus.CERTIFIED]
-    ).values_list('student_id', flat=True).distinct().count()
+    placed_student_ids = all_placements.values_list('student_id', flat=True).distinct().count()
     
     placement_rate = round((placed_student_ids / total_students) * 100, 1) if total_students else 0
 
     # 3. Department Performance
     # Get department mapping via student queries
     student_dept_map = get_student_department_map(institution_id)
+    if department_id or cohort_id:
+        allowed_student_ids = {str(student_id) for student_id in affiliated_student_ids}
+        student_dept_map = {
+            student_id: info
+            for student_id, info in student_dept_map.items()
+            if student_id in allowed_student_ids
+        }
     
     dept_map = {}
     for student_id, info in student_dept_map.items():
@@ -445,8 +490,8 @@ def get_institution_placement_stats(institution_id: str) -> dict:
         dept_map[dept_id]["student_ids"].append(UUID(student_id))
 
     for dept_id, data in dept_map.items():
-        dept_apps = all_apps.filter(student_id__in=data["student_ids"])
-        data["placements"] = dept_apps.filter(status__in=[ApplicationStatus.ACTIVE, ApplicationStatus.COMPLETED, ApplicationStatus.CERTIFIED]).count()
+        dept_apps = all_placements.filter(student_id__in=data["student_ids"])
+        data["placements"] = dept_apps.count()
         data["certified"] = dept_apps.filter(status=ApplicationStatus.CERTIFIED).count()
         data["total_students"] = len(data["student_ids"])
         data["placement_rate"] = round((data["placements"] / data["total_students"]) * 100, 1) if data["total_students"] else 0
@@ -455,17 +500,17 @@ def get_institution_placement_stats(institution_id: str) -> dict:
 
     # 4. Audit & Quality Control Metrics
     # Logbook submission frequency
-    total_active_completed = all_apps.filter(status__in=[ApplicationStatus.ACTIVE, ApplicationStatus.COMPLETED, ApplicationStatus.CERTIFIED])
+    total_active_completed = all_placements
     total_evidence = InternshipEvidence.objects.filter(application__in=total_active_completed).count()
     evidence_per_placement = round(total_evidence / total_active_completed.count(), 1) if total_active_completed.count() else 0
     
     # Incidents
-    total_incidents = Incident.objects.filter(application__in=all_apps).count()
-    unresolved_incidents = Incident.objects.filter(application__in=all_apps, status=Incident.STATUS_OPEN).count()
+    total_incidents = Incident.objects.filter(application__in=all_placements).count()
+    unresolved_incidents = Incident.objects.filter(application__in=all_placements, status=Incident.STATUS_OPEN).count()
 
     # 5. Trends
-    total_last_30 = all_apps.filter(created_at__gte=last_month).count()
-    total_prev_30 = all_apps.filter(created_at__gte=prev_month, created_at__lt=last_month).count()
+    total_last_30 = all_placements.filter(created_at__gte=last_month).count()
+    total_prev_30 = all_placements.filter(created_at__gte=prev_month, created_at__lt=last_month).count()
     total_trend = calculate_trend(total_last_30, total_prev_30)
 
     return {
@@ -473,7 +518,8 @@ def get_institution_placement_stats(institution_id: str) -> dict:
             "total_students": total_students,
             "total_placements": placed_student_ids,
             "placement_rate": placement_rate,
-            "total_applications": total_apps_count,
+            "total_applications": institutional_apps.count(),
+            "total_placements_count": total_placements_count,
             "total_trend": total_trend,
         },
         "funnel": funnel,
@@ -487,11 +533,19 @@ def get_institution_placement_stats(institution_id: str) -> dict:
         }
     }
 
-def get_export_data(institution_id: str) -> QuerySet[InternshipApplication]:
+def get_export_data(
+    institution_id: str,
+    department_id: str = None,
+    cohort_id: str = None,
+) -> QuerySet[InternshipApplication]:
     """
     Returns full data for export.
     """
-    return get_active_placements_for_institution(institution_id).select_related('opportunity')
+    return get_active_placements_for_institution(
+        institution_id,
+        department_id=department_id,
+        cohort_id=cohort_id,
+    ).select_related('opportunity')
 
 def get_time_to_placement_stats(institution_id: str) -> dict:
     return {
@@ -754,3 +808,37 @@ def get_recent_withdrawals_for_opportunity(opportunity_id: UUID, days: int = 30)
         status=ApplicationStatus.WITHDRAWN,
         updated_at__gte=cutoff_date
     ).select_related('student').order_by('-updated_at')
+
+
+def get_external_placement_declarations_for_user(user) -> QuerySet[ExternalPlacementDeclaration]:
+    queryset = ExternalPlacementDeclaration.objects.select_related(
+        "application",
+        "application__opportunity",
+    ).order_by("-created_at", "-id")
+
+    if user.is_system_admin:
+        return queryset
+
+    if user.is_student:
+        student = get_student_for_user(str(user.id))
+        if student:
+            return queryset.filter(student_id=student.id)
+        return ExternalPlacementDeclaration.objects.none()
+
+    if user.is_institution_admin:
+        institution = get_institution_for_user(str(user.id))
+        if institution:
+            return queryset.filter(institution_id=institution.id)
+        return ExternalPlacementDeclaration.objects.none()
+
+    return ExternalPlacementDeclaration.objects.none()
+
+
+def get_external_placement_declaration_by_id(declaration_id) -> Optional[ExternalPlacementDeclaration]:
+    try:
+        return ExternalPlacementDeclaration.objects.select_related(
+            "application",
+            "application__opportunity",
+        ).get(id=declaration_id)
+    except ExternalPlacementDeclaration.DoesNotExist:
+        return None

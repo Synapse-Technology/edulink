@@ -26,6 +26,7 @@ import { employerService } from '../../../services/employer/employerService';
 import type { Employer, EmployerRequest, ReviewRequestData } from '../../../services/employer/employerService';
 import AdminLayout from '../../../components/admin/AdminLayout';
 import EmployerManagementSkeleton from '../../../components/admin/skeletons/EmployerManagementSkeleton';
+import { sanitizeAdminError } from '../../../utils/adminErrorSanitizer';
 
 const EmployerRequestReview: React.FC = () => {
   const [employers, setEmployers] = useState<Employer[]>([]);
@@ -85,7 +86,8 @@ const EmployerRequestReview: React.FC = () => {
       } else if (err.status === 403 || (err.response && err.response.status === 403)) {
         setError('You do not have permission to view this data.');
       } else {
-        setError(err.errorMessage || err.message || 'Failed to fetch data. Please check your connection.');
+        const sanitized = sanitizeAdminError(err);
+        setError(sanitized.userMessage || 'Failed to fetch data. Please check your connection.');
       }
     } finally {
       setLoading(false);
@@ -141,7 +143,8 @@ const EmployerRequestReview: React.FC = () => {
       setShowViewRequestModal(false); // Close view modal if open
       
     } catch (err: any) {
-      toast.error(err.errorMessage || err.message || 'Failed to submit review');
+      const sanitized = sanitizeAdminError(err);
+      toast.error(sanitized.userMessage || 'Failed to submit review');
     } finally {
       setSubmittingReview(false);
     }

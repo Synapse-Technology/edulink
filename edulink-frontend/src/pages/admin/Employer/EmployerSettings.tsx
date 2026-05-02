@@ -7,6 +7,7 @@ import { toast } from 'react-hot-toast';
 import { FeedbackModal } from '../../../components/common';
 import { useFeedbackModal } from '../../../hooks/useFeedbackModal';
 import { useNavigate } from 'react-router-dom';
+import { sanitizeAdminError } from '../../../utils/adminErrorSanitizer';
 
 const EmployerSettings: React.FC = () => {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -39,10 +40,11 @@ const EmployerSettings: React.FC = () => {
       resetPassword();
     } catch (error: any) {
       console.error('Failed to change password:', error);
+      const sanitized = sanitizeAdminError(error);
       showError(
-        'Password Change Failed',
-        'We could not update your password.',
-        error.message
+        sanitized.title,
+        sanitized.message,
+        sanitized.details
       );
     } finally {
       setIsChangingPassword(false);
@@ -64,10 +66,11 @@ const EmployerSettings: React.FC = () => {
           navigate('/employer/login');
         } catch (error: any) {
           console.error('Failed to deactivate account:', error);
+          const sanitized = sanitizeAdminError(error);
           showError(
-            'Deactivation Failed',
-            'An error occurred while trying to deactivate your account.',
-            error.message
+            sanitized.title,
+            sanitized.message,
+            sanitized.details
           );
         } finally {
           setIsDeactivating(false);

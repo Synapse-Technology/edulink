@@ -5,6 +5,7 @@ import { useFeedbackModal } from '../../../hooks/useFeedbackModal';
 import { FeedbackModal } from '../../../components/common';
 import { format } from 'date-fns';
 import AdminLayout from '../../../components/admin/AdminLayout';
+import { sanitizeAdminError } from '../../../utils/adminErrorSanitizer';
 
 const ContactManagement: React.FC = () => {
   const queryClient = useQueryClient();
@@ -41,7 +42,8 @@ const ContactManagement: React.FC = () => {
       setProcessingId(null);
       setInternalNotes('');
     } catch (err: any) {
-      showError('Processing Failed', err.message || 'Failed to process submission');
+      const sanitized = sanitizeAdminError(err);
+      showError('Processing Failed', sanitized.userMessage || 'Failed to process submission');
     }
   };
 

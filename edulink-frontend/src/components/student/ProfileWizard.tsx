@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Modal, Button, Form, ProgressBar, Badge } from 'react-bootstrap';
 import { AlertCircle } from 'lucide-react';
 import { studentService } from '../../services/student/studentService';
-import type { UpdateProfileData } from '../../services/student/studentService';
+import type { Affiliation, UpdateProfileData } from '../../services/student/studentService';
 import { DocumentPreviewModal } from '../common';
 
 interface ProfileWizardProps {
@@ -26,10 +26,14 @@ interface ProfileWizardProps {
 
 const STEPS = ['Basic Info', 'Skills', 'Institution', 'Documents'];
 
+type AffiliationStatus = 'unknown' | 'none' | 'pending' | 'verified';
+
 const ProfileWizard: React.FC<ProfileWizardProps> = ({ show, onHide, studentId, onComplete, initialData }) => {
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [affiliationStatus, setAffiliationStatus] = useState<AffiliationStatus>('unknown');
+  const [affiliationName, setAffiliationName] = useState('');
 
   // Form Data
   const [course, setCourse] = useState(initialData?.course_of_study || '');
@@ -53,11 +57,66 @@ const ProfileWizard: React.FC<ProfileWizardProps> = ({ show, onHide, studentId, 
   const [previewTitle, setPreviewTitle] = useState('');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
+  const initialHasAffiliationPath = Boolean(
+    initialData?.institution_id ||
+    initialData?.is_verified ||
+    initialData?.has_affiliation_claim
+  );
+
+  const hasAffiliationPath = initialHasAffiliationPath ||
+    affiliationStatus === 'pending' ||
+    affiliationStatus === 'verified';
+  const isAffiliationVerified = Boolean(initialData?.is_verified || initialData?.institution_id || affiliationStatus === 'verified');
+  const isAffiliationPending = !isAffiliationVerified && Boolean(initialData?.has_affiliation_claim || affiliationStatus === 'pending');
+
+  useEffect(() => {
+    if (!show || !studentId) return;
+
+    let isMounted = true;
+
+    const loadAffiliationState = async () => {
+      if (initialData?.is_verified || initialData?.institution_id) {
+        setAffiliationStatus('verified');
+        return;
+      }
+
+      try {
+        const affiliations = await studentService.getAffiliations(studentId);
+        if (!isMounted) return;
+
+        const activeAffiliation = affiliations.find((affiliation: Affiliation) =>
+          ['approved', 'verified', 'pending'].includes(affiliation.status)
+        );
+
+        if (!activeAffiliation) {
+          setAffiliationStatus('none');
+          setAffiliationName('');
+          return;
+        }
+
+        setAffiliationName(activeAffiliation.institution_name || activeAffiliation.institution?.name || 'your institution');
+        setAffiliationStatus(
+          activeAffiliation.status === 'approved' || activeAffiliation.status === 'verified'
+            ? 'verified'
+            : 'pending'
+        );
+      } catch (err) {
+        if (isMounted) {
+          setAffiliationStatus(initialData?.has_affiliation_claim ? 'pending' : 'none');
+        }
+      }
+    };
+
+    loadAffiliationState();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [show, studentId, initialData?.institution_id, initialData?.is_verified, initialData?.has_affiliation_claim]);
+
   // Determine initial step based on missing data
   useEffect(() => {
     if (show && initialData) {
-      const hasAffiliationPath = !!initialData.institution_id || !!initialData.is_verified || !!initialData.has_affiliation_claim;
-
       if (!initialData.course_of_study || !initialData.current_year || !initialData.registration_number) {
         setStep(0);
       } else if (!initialData.skills || initialData.skills.length === 0) {
@@ -70,7 +129,13 @@ const ProfileWizard: React.FC<ProfileWizardProps> = ({ show, onHide, studentId, 
         setStep(0);
       }
     }
-  }, [show, initialData]);
+  }, [show, initialData, hasAffiliationPath]);
+
+  useEffect(() => {
+    if (show && step === 2 && hasAffiliationPath && initialData?.cv && initialData?.admission_letter && initialData?.id_document) {
+      setStep(3);
+    }
+  }, [show, step, hasAffiliationPath, initialData?.cv, initialData?.admission_letter, initialData?.id_document]);
 
   // Update state when initialData changes
   useEffect(() => {
@@ -115,9 +180,23 @@ const ProfileWizard: React.FC<ProfileWizardProps> = ({ show, onHide, studentId, 
     }
 
     if (step === 2) {
-      const alreadyHasAffiliation = !!initialData?.institution_id || !!initialData?.is_verified || !!initialData?.has_affiliation_claim;
-      if (!alreadyHasAffiliation && !selectedInstitution) {
+      if (!hasAffiliationPath && affiliationStatus === 'unknown') {
+        setError("We are checking your institution status. Please wait a moment.");
+        return;
+      }
+      if (!hasAffiliationPath && !selectedInstitution) {
         setError("Please select your institution. If it is not listed, use the affiliation page to request onboarding.");
+        return;
+      }
+    }
+
+    if (step === 3) {
+      const hasCv = !!existingCv || !!cvFile;
+      const hasAdmissionLetter = !!existingLetter || !!letterFile;
+      const hasSchoolId = !!existingId || !!idFile;
+
+      if (!hasCv || !hasAdmissionLetter || !hasSchoolId) {
+        setError("Please upload your CV, admission letter, and school ID to finish setup.");
         return;
       }
     }
@@ -170,7 +249,7 @@ const ProfileWizard: React.FC<ProfileWizardProps> = ({ show, onHide, studentId, 
       await studentService.updateProfile(studentId, updateData);
 
       // 2. Claim Affiliation (if selected)
-      if (selectedInstitution) {
+      if (selectedInstitution && !hasAffiliationPath) {
         try {
           await studentService.claimAffiliation(studentId, selectedInstitution.id);
         } catch (e) {
@@ -260,6 +339,24 @@ const ProfileWizard: React.FC<ProfileWizardProps> = ({ show, onHide, studentId, 
       case 2:
         return (
           <div className="space-y-4">
+            {hasAffiliationPath ? (
+              <div className={`alert ${isAffiliationPending ? 'alert-warning' : 'alert-success'} d-flex`}>
+                <AlertCircle size={20} className="me-2 flex-shrink-0" />
+                <div className="small">
+                  {isAffiliationVerified ? (
+                    <>
+                      Your institution status{affiliationName ? ` with ${affiliationName}` : ''} is already verified. You can continue to documents.
+                    </>
+                  ) : (
+                    <>
+                      Your institution affiliation request{affiliationName ? ` for ${affiliationName}` : ''} is already submitted and awaiting review. We will not submit another claim.
+                    </>
+                  )}
+                </div>
+              </div>
+            ) : null}
+
+            {!hasAffiliationPath && (
             <Form.Group className="mb-3">
               <Form.Label>Select Your Institution</Form.Label>
               <Form.Control 
@@ -267,9 +364,12 @@ const ProfileWizard: React.FC<ProfileWizardProps> = ({ show, onHide, studentId, 
                 value={institutionQuery} 
                 onChange={(e) => handleSearchInstitutions(e.target.value)}
                 placeholder="Search for your university or college..."
+                disabled={hasAffiliationPath || affiliationStatus === 'unknown'}
               />
               {searchingInst && <div className="text-muted small mt-1">Searching...</div>}
+              {affiliationStatus === 'unknown' && <div className="text-muted small mt-1">Checking existing affiliation status...</div>}
             </Form.Group>
+            )}
             
             {institutions.length > 0 && (
               <div className="list-group mb-3" style={{ maxHeight: '200px', overflowY: 'auto' }}>
@@ -296,12 +396,14 @@ const ProfileWizard: React.FC<ProfileWizardProps> = ({ show, onHide, studentId, 
               </div>
             )}
 
+            {!hasAffiliationPath && (
             <div className="alert alert-info d-flex">
               <AlertCircle size={20} className="me-2 flex-shrink-0" />
               <div className="small">
                 Claiming affiliation allows your institution to verify your student status. If your institution is not listed, visit the affiliation page after saving to request onboarding.
               </div>
             </div>
+            )}
           </div>
         );
       case 3:
@@ -316,8 +418,8 @@ const ProfileWizard: React.FC<ProfileWizardProps> = ({ show, onHide, studentId, 
                   <button type="button" onClick={() => handleViewDocument(existingCv, 'CV / Resume')} className="btn btn-sm btn-link p-0">Preview</button>
                 </div>
               )}
-              <Form.Control type="file" onChange={(e: any) => setCvFile(e.target.files[0])} />
-              <Form.Text className="text-muted">Upload to replace (PDF or Word)</Form.Text>
+              <Form.Control type="file" accept=".pdf,.doc,.docx" onChange={(e: any) => setCvFile(e.target.files[0])} />
+              <Form.Text className="text-muted">{existingCv ? 'Upload to replace (PDF or Word)' : 'Required: PDF or Word'}</Form.Text>
             </Form.Group>
 
             <Form.Group className="mb-3">
@@ -329,8 +431,8 @@ const ProfileWizard: React.FC<ProfileWizardProps> = ({ show, onHide, studentId, 
                   <button type="button" onClick={() => handleViewDocument(existingLetter, 'Admission Letter')} className="btn btn-sm btn-link p-0">Preview</button>
                 </div>
               )}
-              <Form.Control type="file" onChange={(e: any) => setLetterFile(e.target.files[0])} />
-              <Form.Text className="text-muted">{existingLetter ? 'Upload to replace' : ''}</Form.Text>
+              <Form.Control type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e: any) => setLetterFile(e.target.files[0])} />
+              <Form.Text className="text-muted">{existingLetter ? 'Upload to replace' : 'Required: PDF, JPG, or PNG'}</Form.Text>
             </Form.Group>
 
             <Form.Group className="mb-3">
@@ -342,8 +444,8 @@ const ProfileWizard: React.FC<ProfileWizardProps> = ({ show, onHide, studentId, 
                   <button type="button" onClick={() => handleViewDocument(existingId, 'School ID')} className="btn btn-sm btn-link p-0">Preview</button>
                 </div>
               )}
-              <Form.Control type="file" onChange={(e: any) => setIdFile(e.target.files[0])} />
-              <Form.Text className="text-muted">{existingId ? 'Upload to replace' : ''}</Form.Text>
+              <Form.Control type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e: any) => setIdFile(e.target.files[0])} />
+              <Form.Text className="text-muted">{existingId ? 'Upload to replace' : 'Required: PDF, JPG, or PNG'}</Form.Text>
             </Form.Group>
           </div>
         );

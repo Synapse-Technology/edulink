@@ -12,6 +12,7 @@ import {
   getTitleForStatus,
 } from '../types/errors';
 import { ApiError } from './errors';
+import { getUserFacingErrorMessage } from '../utils/userFacingErrors';
 
 export interface ParsedErrorResponse {
   errorCode: string;
@@ -35,7 +36,7 @@ export function parseErrorResponse(error: any): ParsedErrorResponse {
     const backendError = error as Partial<BackendErrorResponse>;
     return {
       errorCode: backendError.error_code || 'UNKNOWN',
-      message: backendError.message || 'Unknown error',
+      message: getUserFacingErrorMessage(backendError.message, backendError.status_code, backendError.error_code),
       statusCode: backendError.status_code || 500,
       title: getTitleForStatus(backendError.status_code || 500),
       userMessage: getUserMessageForStatus(backendError.status_code || 500, backendError.message),
@@ -51,7 +52,7 @@ export function parseErrorResponse(error: any): ParsedErrorResponse {
   if (error instanceof ApiError) {
     return {
       errorCode: getErrorCodeFromApiError(error),
-      message: error.message || 'An error occurred',
+      message: getUserFacingErrorMessage(error.message, error.status, getErrorCodeFromApiError(error)),
       statusCode: error.status || 500,
       title: getTitleForStatus(error.status || 500),
       userMessage: getUserMessageForStatus(error.status || 500, error.message),
@@ -66,7 +67,7 @@ export function parseErrorResponse(error: any): ParsedErrorResponse {
   // Handle generic errors
   return {
     errorCode: 'NETWORK_ERROR',
-    message: error?.message || 'An unexpected error occurred',
+    message: getUserFacingErrorMessage(error?.message, 500, 'NETWORK_ERROR'),
     statusCode: 500,
     title: 'Error',
     userMessage: 'We encountered an unexpected error. Please try again.',
@@ -189,5 +190,4 @@ export function isValidationError(statusCode: number, errorCode?: string): boole
 export function isNotFoundError(statusCode: number, errorCode?: string): boolean {
   return statusCode === 404 || errorCode === 'NOT_FOUND';
 }
-
 

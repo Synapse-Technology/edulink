@@ -23,7 +23,7 @@ def can_view_institution_request(*, actor, request_id: str) -> bool:
     return True
 
 def is_institution_staff(actor) -> bool:
-    if actor.is_institution_admin or actor.is_supervisor:
+    if actor.is_institution_admin:
         return True
     
     # Check if user has an active InstitutionStaff record

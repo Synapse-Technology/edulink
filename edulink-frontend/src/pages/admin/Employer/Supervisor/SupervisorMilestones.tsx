@@ -7,6 +7,7 @@ import { SupervisorLayout } from '../../../../components/admin/employer';
 import SupervisorTableSkeleton from '../../../../components/admin/skeletons/SupervisorTableSkeleton';
 import { useFeedbackModal } from '../../../../hooks/useFeedbackModal';
 import { FeedbackModal } from '../../../../components/common';
+import { sanitizeAdminError } from '../../../../utils/adminErrorSanitizer';
 
 const SupervisorMilestones: React.FC = () => {
   const { feedbackProps, showSuccess, showError } = useFeedbackModal();
@@ -66,7 +67,8 @@ const SupervisorMilestones: React.FC = () => {
       fetchEvidence(); // Refresh list
     } catch (err: any) {
       console.error("Failed to review milestone", err);
-      showError('Review Failed', err.message || 'Failed to submit review for milestone.');
+      const sanitized = sanitizeAdminError(err);
+      showError('Review Failed', sanitized.userMessage || 'Failed to submit review for milestone.');
     } finally {
       setSubmitting(false);
     }

@@ -5,6 +5,7 @@ import { EmployerLayout } from '../../../components/admin/employer';
 import TableSkeleton from '../../../components/admin/skeletons/TableSkeleton';
 import { employerService } from '../../../services/employer/employerService';
 import { internshipService } from '../../../services/internship/internshipService';
+import { sanitizeAdminError } from '../../../utils/adminErrorSanitizer';
 import type { InternshipApplication } from '../../../services/internship/internshipService';
 import TrustBadge, { type TrustLevel } from '../../../components/common/TrustBadge';
 import { showToast } from '../../../utils/toast';
@@ -38,7 +39,8 @@ const EmployerInterns: React.FC = () => {
       const interns = apps.filter((app: any) => ['ACTIVE', 'COMPLETED'].includes(app.status));
       setApplications(interns);
     } catch (error) {
-      console.error("Error:", error); showToast.error("An error occurred. Please try again.");
+      const sanitized = sanitizeAdminError(error);
+      showToast.error(sanitized.userMessage);
     } finally {
       setIsLoading(false);
     }
@@ -50,7 +52,8 @@ const EmployerInterns: React.FC = () => {
       const data = await employerService.getSupervisors();
       setSupervisors(data);
     } catch (error) {
-      showToast.error('Failed to fetch supervisors');
+      const sanitized = sanitizeAdminError(error);
+      showToast.error(sanitized.userMessage || 'Failed to fetch supervisors');
     }
   };
 
@@ -93,7 +96,8 @@ const EmployerInterns: React.FC = () => {
       fetchApplications();
     } catch (error: any) {
       console.error('Failed to assign supervisor:', error);
-      showError('Assignment Failed', 'We could not assign the mentor at this time.', error.message);
+      const sanitized = sanitizeAdminError(error);
+      showError('Assignment Failed', 'We could not assign the mentor at this time.', sanitized.details);
     } finally {
       setActionLoading(false);
     }

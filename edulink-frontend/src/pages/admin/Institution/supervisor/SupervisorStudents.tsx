@@ -6,6 +6,7 @@ import { internshipService, type InternshipApplication } from '../../../../servi
 import { FeedbackModal } from '../../../../components/common';
 import { useFeedbackModal } from '../../../../hooks/useFeedbackModal';
 import type { SupervisorDashboardContext } from './SupervisorDashboard';
+import { sanitizeAdminError } from '../../../../utils/adminErrorSanitizer';
 
 const SupervisorStudents: React.FC = () => {
   const { internships } = useOutletContext<SupervisorDashboardContext>();
@@ -31,10 +32,11 @@ const SupervisorStudents: React.FC = () => {
           setTimeout(() => window.location.reload(), 1500);
         } catch (err: any) {
           console.error("Failed to complete internship", err);
+          const sanitized = sanitizeAdminError(err);
           showError(
             'Action Failed',
             `We encountered an error while trying to ${actionText.toLowerCase()}.`,
-            err.message
+            sanitized.details
           );
         } finally {
           setProcessingId(null);

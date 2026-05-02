@@ -7,6 +7,7 @@ import { studentService } from '../../services/student/studentService';
 import TrustBadge, { type TrustLevel } from '../common/TrustBadge';
 import NotificationBell from '../common/NotificationBell';
 import defaultProfile from '../../assets/images/default_profile.jpg';
+import '../../styles/student-portal.css';
 
 interface StudentHeaderProps {
   onMobileMenuClick?: () => void;
@@ -76,16 +77,13 @@ const StudentHeader: React.FC<StudentHeaderProps> = ({
     <>
       {/* Header */}
       <nav 
-        className={`navbar navbar-expand-lg rounded-4 shadow-sm px-3 px-sm-4 px-lg-5 mb-4 ${
-          isDarkMode ? 'navbar-dark bg-dark border border-secondary' : 'navbar-light bg-white border border-light'
-        }`}
-        style={{ height: '80px' }}
+        className={`student-header ${isDarkMode ? 'dark' : ''} navbar navbar-expand-lg`}
       >
         <div className="container-fluid p-0">
           {/* Mobile Menu Toggle */}
           <button 
             onClick={handleMobileMenuClick}
-            className="navbar-toggler d-lg-none btn btn-primary rounded-circle p-2 me-3"
+            className="student-icon-btn navbar-toggler d-lg-none btn btn-primary me-3"
             type="button"
             aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={isMobileMenuOpen}
@@ -98,13 +96,9 @@ const StudentHeader: React.FC<StudentHeaderProps> = ({
           </button>
 
           {/* Brand/Title Section */}
-          <div className="d-none d-lg-flex flex-column">
-            <span className={`text-uppercase fw-semibold small tracking-wide ${isDarkMode ? 'text-info opacity-75' : 'text-muted'}`} style={isDarkMode ? { textShadow: '0 0 6px rgba(32, 201, 151, 0.2)' } : {}}>
-              Student Space
-            </span>
-            <span className={`h6 mb-0 fw-bold ${isDarkMode ? 'text-info' : ''}`} style={isDarkMode ? { textShadow: '0 0 8px rgba(32, 201, 151, 0.3)' } : {}}>
-              Dashboard
-            </span>
+          <div className="student-header-context d-none d-lg-flex flex-column">
+            <span className="student-header-label">Student Space</span>
+            <span className="student-header-title">Career dashboard</span>
           </div>
 
           {/* Right Side Controls */}
@@ -115,7 +109,7 @@ const StudentHeader: React.FC<StudentHeaderProps> = ({
             {/* Dark Mode Toggle */}
             <button 
               onClick={toggleDarkMode}
-              className={`btn btn-outline-${isDarkMode ? 'light' : 'dark'} rounded-circle p-2`}
+              className={`student-icon-btn btn btn-outline-${isDarkMode ? 'light' : 'secondary'}`}
               title="Toggle dark mode"
               aria-pressed={isDarkMode}
             >
@@ -132,7 +126,7 @@ const StudentHeader: React.FC<StudentHeaderProps> = ({
               <button
                 type="button"
                 onClick={toggleUserMenu}
-                className="btn btn-outline-secondary dropdown-toggle d-flex align-items-center gap-2 px-3 py-2 rounded-pill"
+                className="student-user-button btn dropdown-toggle d-flex align-items-center gap-2 px-2 px-sm-3"
                 aria-haspopup="menu"
                 aria-expanded={isUserMenuOpen}
               >
@@ -148,10 +142,10 @@ const StudentHeader: React.FC<StudentHeaderProps> = ({
                   }} 
                 />
                 <div className="d-none d-sm-block text-start">
-                  <div className={`text-uppercase fw-semibold small ${isDarkMode ? 'text-info opacity-75' : 'text-muted'}`} style={isDarkMode ? { textShadow: '0 0 4px rgba(32, 201, 151, 0.2)' } : {}}>
+                  <div className="text-uppercase fw-semibold small text-muted">
                     Student
                   </div>
-                  <div className={`fw-medium ${isDarkMode ? 'text-info' : ''}`} style={isDarkMode ? { textShadow: '0 0 6px rgba(32, 201, 151, 0.3)' } : {}}>
+                  <div className="fw-semibold">
                     {user ? `${user.firstName} ${user.lastName}` : 'Student'}
                   </div>
                 </div>

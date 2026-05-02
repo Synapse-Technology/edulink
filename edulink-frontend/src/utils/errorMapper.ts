@@ -1,4 +1,5 @@
 import { ApiError } from '../services/errors';
+import { getUserFacingErrorMessage } from './userFacingErrors';
 
 /**
  * Error Context for better error message generation
@@ -15,9 +16,17 @@ export interface ErrorContext {
  */
 export const getErrorMessage = (error: any, context: ErrorContext): string => {
   if (error instanceof ApiError) {
+    const rawBackendMessage = error?.data?.raw_message;
+    const backendErrorCode = error?.data?.error_code || error?.data?.code;
+    const specificMessage = getUserFacingErrorMessage(
+      rawBackendMessage || error.message,
+      error.status,
+      backendErrorCode
+    );
+
     switch (error.status) {
       case 400:
-        return `Invalid input for ${context.action}. Please check your data and try again.`;
+        return specificMessage || `Invalid input for ${context.action}. Please check your data and try again.`;
       case 401:
         return 'Your session has expired. Please log in again to continue.';
       case 403:
@@ -31,16 +40,16 @@ export const getErrorMessage = (error: any, context: ErrorContext): string => {
       case 503:
         return 'The service is temporarily unavailable. Please try again in a few minutes.';
       default:
-        return error.message || `Failed to ${context.action.toLowerCase()}. Please try again.`;
+        return getUserFacingErrorMessage(error.message, error.status) || `Failed to ${context.action.toLowerCase()}. Please try again.`;
     }
   }
 
   if (error instanceof Error) {
-    return error.message;
+    return getUserFacingErrorMessage(error.message);
   }
 
   if (error?.message) {
-    return error.message;
+    return getUserFacingErrorMessage(error.message);
   }
 
   return `An unexpected error occurred while ${context.action.toLowerCase()}.`;

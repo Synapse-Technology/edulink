@@ -30,7 +30,7 @@ const OpportunityDetails: React.FC = () => {
     },
     onAuthError: () => showToast.error('Unauthorized access'),
     onUnexpected: (error) => {
-      showToast.error(`Failed to load opportunity: ${error.message}`);
+      showToast.error(error.userMessage || 'Failed to load opportunity. Please try again.');
       navigate('/opportunities');
     },
   });
@@ -57,6 +57,11 @@ const OpportunityDetails: React.FC = () => {
   }, [id, navigate]);
 
   const initiateApply = () => {
+    if (opportunity?.application_mode === 'EXTERNAL' && opportunity.external_apply_url) {
+      window.open(opportunity.external_apply_url, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
     if (!user) {
       setShowLoginModal(true);
       return;
@@ -289,7 +294,9 @@ const OpportunityDetails: React.FC = () => {
                   onClick={initiateApply}
                   disabled={!isApplicationOpen()}
                 >
-                  {opportunity.student_has_applied 
+                  {opportunity.application_mode === 'EXTERNAL'
+                    ? 'Apply on Source'
+                    : opportunity.student_has_applied
                     ? 'Applied' 
                     : isApplicationOpen()
                     ? 'Apply Now' 

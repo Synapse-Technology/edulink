@@ -1,91 +1,8 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import type { ReactNode } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
 import { ProtectedRoute } from './routes';
 import { Layout, HybridLayout, KeepAlive } from './components';
-import Home from './pages/Home';
-import About from './pages/About';
-import Contact from './pages/Contact';
-import Search from './pages/Search';
-import Support from './pages/Support';
-import SuccessStories from './pages/SuccessStories';
-import TicketHistory from './pages/TicketHistory';
-import TicketDetail from './pages/TicketDetail';
-import Opportunities from './pages/Opportunities';
-import OpportunityDetails from './pages/OpportunityDetails';
-import WhyUs from './pages/WhyUs';
-import VerifyArtifact from './pages/VerifyArtifact';
-import Login from './pages/auth/Login';
-import Register from './pages/auth/Register';
-import VerifyEmail from './pages/auth/VerifyEmail';
-import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
-import ResetPasswordPage from './pages/auth/ResetPasswordPage';
-import InstitutionRequest from './pages/admin/Institution/InstitutionRequest';
-import InstitutionActivate from './pages/admin/Institution/InstitutionActivate';
-import InstitutionLogin from './pages/admin/Institution/InstitutionLogin';
-import InstitutionDashboard from './pages/admin/Institution/InstitutionDashboard';
-import ReportsAnalytics from './pages/admin/Institution/ReportsAnalytics';
-import InstitutionStudents from './pages/admin/Institution/InstitutionStudents';
-import InstitutionStaff from './pages/admin/Institution/InstitutionStaff';
-import InstitutionInternships from './pages/admin/Institution/InstitutionInternships';
-import InstitutionApplications from './pages/admin/Institution/InstitutionApplications';
-import InstitutionCertifications from './pages/admin/Institution/InstitutionCertifications';
-import StudentVerification from './pages/admin/Institution/StudentVerification';
-import InstitutionSettings from './pages/admin/Institution/InstitutionSettings';
-import AcademicStructure from './components/admin/institution/AcademicStructure';
 import InstitutionLayout from './components/admin/institution/InstitutionLayout';
-import SupervisorDashboard from './pages/admin/Institution/supervisor/SupervisorDashboard';
-import SupervisorOverview from './pages/admin/Institution/supervisor/SupervisorOverview';
-import SupervisorLogbooks from './pages/admin/Institution/supervisor/SupervisorLogbooks';
-import SupervisorStudents from './pages/admin/Institution/supervisor/SupervisorStudents';
-import SupervisorIncidents from './pages/admin/Institution/supervisor/SupervisorIncidents';
-import SupervisorSettings from './pages/admin/Institution/supervisor/SupervisorSettings';
-import StudentLogbookHistory from './pages/admin/shared/StudentLogbookHistory';
-import StudentDashboard from './pages/student/StudentDashboardPage';
-import StudentApplications from './pages/student/StudentApplications';
-import StudentInternship from './pages/student/StudentInternship';
-import StudentLogbook from './pages/student/StudentLogbook';
-import StudentLogbookDetail from './pages/student/StudentLogbookDetail';
-import StudentArtifacts from './pages/student/StudentArtifacts';
-import StudentNotifications from './pages/student/StudentNotifications';
-import StudentProfile from './pages/student/StudentProfile';
-import StudentAffiliation from './pages/student/StudentAffiliation';
-import StudentApplicationDetail from './pages/student/StudentApplicationDetail';
-import AdminLanding from './pages/admin/AdminLanding';
-import SystemAdminDashboard from './pages/admin/SystemAdmin/SystemAdminDashboard';
-import SystemAdminLogin from './pages/admin/SystemAdmin/SystemAdminLogin';
-import UserManagement from './pages/admin/SystemAdmin/UserManagement';
-import InstitutionManagement from './pages/admin/SystemAdmin/InstitutionManagement';
-import InstitutionInterestAnalytics from './pages/admin/SystemAdmin/InstitutionInterestAnalytics';
-import PlatformStaffManagement from './pages/admin/SystemAdmin/PlatformStaffManagement';
-import StaffInviteForm from './pages/admin/SystemAdmin/StaffInviteForm';
-import AcceptInvite from './pages/admin/SystemAdmin/AcceptInvite';
-import SystemHealthDashboard from './pages/admin/SystemAdmin/SystemHealthDashboard';
-import AuditLog from './pages/admin/SystemAdmin/AuditLog';
-import RequestSubmission from './pages/admin/Employer/RequestSubmission';
-import RequestTracking from './pages/admin/Employer/RequestTracking';
-import ActivateAdmin from './pages/admin/Employer/ActivateAdmin';
-import EmployerLogin from './pages/admin/Employer/EmployerLogin';
-import EmployerDashboard from './pages/admin/Employer/EmployerDashboard';
-import EmployerOpportunities from './pages/admin/Employer/EmployerOpportunities';
-import EmployerApplications from './pages/admin/Employer/EmployerApplications';
-import EmployerInterns from './pages/admin/Employer/EmployerInterns';
-import EmployerApplicationDetail from './pages/admin/Employer/EmployerApplicationDetail';
-import EmployerSupervisors from './pages/admin/Employer/EmployerSupervisors';
-import EmployerProfile from './pages/admin/Employer/EmployerProfile';
-import EmployerSettings from './pages/admin/Employer/EmployerSettings';
-import EmployerProfileRequests from './pages/admin/Employer/EmployerProfileRequests';
-import EmployerReviews from './pages/admin/Employer/EmployerReviews';
-import EmployerSupervisorDashboard from './pages/admin/Employer/Supervisor/SupervisorDashboard';
-import EmployerSupervisorLogbooks from './pages/admin/Employer/Supervisor/SupervisorLogbooks';
-import EmployerSupervisorIncidents from './pages/admin/Employer/Supervisor/SupervisorIncidents';
-import EmployerSupervisorInternships from './pages/admin/Employer/Supervisor/SupervisorInternships';
-import EmployerSupervisorMilestones from './pages/admin/Employer/Supervisor/SupervisorMilestones';
-import EmployerSupervisorProfile from './pages/admin/Employer/Supervisor/SupervisorProfile';
-
-import EmployerRequestReview from './pages/admin/SystemAdmin/EmployerRequestReview';
-import SupportManagement from './pages/admin/SystemAdmin/SupportManagement';
-import AdminSupportTicketDetail from './pages/admin/SystemAdmin/AdminSupportTicketDetail';
-import ContactManagement from './pages/admin/SystemAdmin/ContactManagement';
 import { AdminAuthProvider } from './contexts/AdminAuthContext';
 import { AdminProtectedRoute } from './components/admin/AdminRouteGuards';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -97,6 +14,98 @@ import NotFound from './pages/NotFound';
 import './App.css';
 import './styles/admin-dashboard.css';
 import './styles/admin-landing.css';
+
+const Home = lazy(() => import('./pages/Home'));
+const About = lazy(() => import('./pages/About'));
+const Contact = lazy(() => import('./pages/Contact'));
+const Search = lazy(() => import('./pages/Search'));
+const Support = lazy(() => import('./pages/Support'));
+const FAQ = lazy(() => import('./pages/FAQ'));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
+const SuccessStories = lazy(() => import('./pages/SuccessStories'));
+const TermsOfService = lazy(() => import('./pages/TermsOfService'));
+const TrustPolicy = lazy(() => import('./pages/TrustPolicy'));
+const TicketHistory = lazy(() => import('./pages/TicketHistory'));
+const TicketDetail = lazy(() => import('./pages/TicketDetail'));
+const Opportunities = lazy(() => import('./pages/Opportunities'));
+const OpportunityDetails = lazy(() => import('./pages/OpportunityDetails'));
+const WhyUs = lazy(() => import('./pages/WhyUs'));
+const VerifyArtifact = lazy(() => import('./pages/VerifyArtifact'));
+const Login = lazy(() => import('./pages/auth/Login'));
+const Register = lazy(() => import('./pages/auth/Register'));
+const VerifyEmail = lazy(() => import('./pages/auth/VerifyEmail'));
+const ForgotPasswordPage = lazy(() => import('./pages/auth/ForgotPasswordPage'));
+const ResetPasswordPage = lazy(() => import('./pages/auth/ResetPasswordPage'));
+
+const InstitutionRequest = lazy(() => import('./pages/admin/Institution/InstitutionRequest'));
+const InstitutionActivate = lazy(() => import('./pages/admin/Institution/InstitutionActivate'));
+const InstitutionDashboard = lazy(() => import('./pages/admin/Institution/InstitutionDashboard'));
+const ReportsAnalytics = lazy(() => import('./pages/admin/Institution/ReportsAnalytics'));
+const InstitutionStudents = lazy(() => import('./pages/admin/Institution/InstitutionStudents'));
+const InstitutionStaff = lazy(() => import('./pages/admin/Institution/InstitutionStaff'));
+const InstitutionInternships = lazy(() => import('./pages/admin/Institution/InstitutionInternships'));
+const InstitutionApplications = lazy(() => import('./pages/admin/Institution/InstitutionApplications'));
+const InstitutionCertifications = lazy(() => import('./pages/admin/Institution/InstitutionCertifications'));
+const ExternalPlacements = lazy(() => import('./pages/admin/Institution/ExternalPlacements'));
+const StudentVerification = lazy(() => import('./pages/admin/Institution/StudentVerification'));
+const InstitutionSettings = lazy(() => import('./pages/admin/Institution/InstitutionSettings'));
+const AcademicStructure = lazy(() => import('./components/admin/institution/AcademicStructure'));
+const SupervisorDashboard = lazy(() => import('./pages/admin/Institution/supervisor/SupervisorDashboard'));
+const SupervisorOverview = lazy(() => import('./pages/admin/Institution/supervisor/SupervisorOverview'));
+const SupervisorLogbooks = lazy(() => import('./pages/admin/Institution/supervisor/SupervisorLogbooks'));
+const SupervisorStudents = lazy(() => import('./pages/admin/Institution/supervisor/SupervisorStudents'));
+const SupervisorIncidents = lazy(() => import('./pages/admin/Institution/supervisor/SupervisorIncidents'));
+const SupervisorSettings = lazy(() => import('./pages/admin/Institution/supervisor/SupervisorSettings'));
+const StudentLogbookHistory = lazy(() => import('./pages/admin/shared/StudentLogbookHistory'));
+
+const StudentDashboard = lazy(() => import('./pages/student/StudentDashboardPage'));
+const StudentApplications = lazy(() => import('./pages/student/StudentApplications'));
+const StudentInternship = lazy(() => import('./pages/student/StudentInternship'));
+const StudentLogbook = lazy(() => import('./pages/student/StudentLogbook'));
+const StudentLogbookDetail = lazy(() => import('./pages/student/StudentLogbookDetail'));
+const ExternalPlacement = lazy(() => import('./pages/student/ExternalPlacement'));
+const StudentArtifacts = lazy(() => import('./pages/student/StudentArtifacts'));
+const StudentNotifications = lazy(() => import('./pages/student/StudentNotifications'));
+const StudentProfile = lazy(() => import('./pages/student/StudentProfile'));
+const StudentAffiliation = lazy(() => import('./pages/student/StudentAffiliation'));
+const StudentApplicationDetail = lazy(() => import('./pages/student/StudentApplicationDetail'));
+
+const AdminLanding = lazy(() => import('./pages/admin/AdminLanding'));
+const SystemAdminDashboard = lazy(() => import('./pages/admin/SystemAdmin/SystemAdminDashboard'));
+const SystemAdminLogin = lazy(() => import('./pages/admin/SystemAdmin/SystemAdminLogin'));
+const UserManagement = lazy(() => import('./pages/admin/SystemAdmin/UserManagement'));
+const InstitutionManagement = lazy(() => import('./pages/admin/SystemAdmin/InstitutionManagement'));
+const InstitutionInterestAnalytics = lazy(() => import('./pages/admin/SystemAdmin/InstitutionInterestAnalytics'));
+const PlatformStaffManagement = lazy(() => import('./pages/admin/SystemAdmin/PlatformStaffManagement'));
+const StaffInviteForm = lazy(() => import('./pages/admin/SystemAdmin/StaffInviteForm'));
+const AcceptInvite = lazy(() => import('./pages/admin/SystemAdmin/AcceptInvite'));
+const SystemHealthDashboard = lazy(() => import('./pages/admin/SystemAdmin/SystemHealthDashboard'));
+const AuditLog = lazy(() => import('./pages/admin/SystemAdmin/AuditLog'));
+const ExternalOpportunityCuration = lazy(() => import('./pages/admin/SystemAdmin/ExternalOpportunityCuration'));
+const EmployerRequestReview = lazy(() => import('./pages/admin/SystemAdmin/EmployerRequestReview'));
+const SupportManagement = lazy(() => import('./pages/admin/SystemAdmin/SupportManagement'));
+const AdminSupportTicketDetail = lazy(() => import('./pages/admin/SystemAdmin/AdminSupportTicketDetail'));
+const ContactManagement = lazy(() => import('./pages/admin/SystemAdmin/ContactManagement'));
+
+const RequestSubmission = lazy(() => import('./pages/admin/Employer/RequestSubmission'));
+const RequestTracking = lazy(() => import('./pages/admin/Employer/RequestTracking'));
+const ActivateAdmin = lazy(() => import('./pages/admin/Employer/ActivateAdmin'));
+const EmployerDashboard = lazy(() => import('./pages/admin/Employer/EmployerDashboard'));
+const EmployerOpportunities = lazy(() => import('./pages/admin/Employer/EmployerOpportunities'));
+const EmployerApplications = lazy(() => import('./pages/admin/Employer/EmployerApplications'));
+const EmployerInterns = lazy(() => import('./pages/admin/Employer/EmployerInterns'));
+const EmployerApplicationDetail = lazy(() => import('./pages/admin/Employer/EmployerApplicationDetail'));
+const EmployerSupervisors = lazy(() => import('./pages/admin/Employer/EmployerSupervisors'));
+const EmployerProfile = lazy(() => import('./pages/admin/Employer/EmployerProfile'));
+const EmployerSettings = lazy(() => import('./pages/admin/Employer/EmployerSettings'));
+const EmployerProfileRequests = lazy(() => import('./pages/admin/Employer/EmployerProfileRequests'));
+const EmployerReviews = lazy(() => import('./pages/admin/Employer/EmployerReviews'));
+const EmployerSupervisorDashboard = lazy(() => import('./pages/admin/Employer/Supervisor/SupervisorDashboard'));
+const EmployerSupervisorLogbooks = lazy(() => import('./pages/admin/Employer/Supervisor/SupervisorLogbooks'));
+const EmployerSupervisorIncidents = lazy(() => import('./pages/admin/Employer/Supervisor/SupervisorIncidents'));
+const EmployerSupervisorInternships = lazy(() => import('./pages/admin/Employer/Supervisor/SupervisorInternships'));
+const EmployerSupervisorMilestones = lazy(() => import('./pages/admin/Employer/Supervisor/SupervisorMilestones'));
+const EmployerSupervisorProfile = lazy(() => import('./pages/admin/Employer/Supervisor/SupervisorProfile'));
 
 const AdminRoute = ({ children }: { children: ReactNode }) => (
   <AdminAuthProvider>
@@ -111,7 +120,20 @@ const EmployerAdminRoute = ({ children }: { children: ReactNode }) => (
 );
 
 const EmployerSupervisorRoute = ({ children }: { children: ReactNode }) => (
-  <ProtectedRoute role="supervisor">{children}</ProtectedRoute>
+  <ProtectedRoute role="supervisor" portal="employer">{children}</ProtectedRoute>
+);
+
+const InstitutionSupervisorRoute = ({ children }: { children: ReactNode }) => (
+  <ProtectedRoute role="supervisor" portal="institution">{children}</ProtectedRoute>
+);
+
+const RouteFallback = () => (
+  <div className="d-flex align-items-center justify-content-center min-vh-100 bg-light">
+    <div className="text-center">
+      <div className="spinner-border text-primary mb-3" role="status" aria-label="Loading" />
+      <div className="fw-semibold text-muted">Loading EduLink...</div>
+    </div>
+  </div>
 );
 
 function App() {
@@ -122,6 +144,7 @@ function App() {
       <ToastProvider>
         <Router>
           <KeepAlive />
+          <Suspense fallback={<RouteFallback />}>
           <Routes>
             {/* Public routes with layout */}
             <Route path="/" element={<Layout />}>
@@ -130,7 +153,11 @@ function App() {
               <Route path="why-us" element={<WhyUs />} />
               <Route path="contact" element={<Contact />} />
               <Route path="search" element={<Search />} />
+              <Route path="faq" element={<FAQ />} />
+              <Route path="privacy" element={<PrivacyPolicy />} />
               <Route path="success-stories" element={<SuccessStories />} />
+              <Route path="terms" element={<TermsOfService />} />
+              <Route path="trust-policy" element={<TrustPolicy />} />
             </Route>
             <Route path="/verify/:artifactId" element={<VerifyArtifact />} />
             <Route
@@ -230,6 +257,14 @@ function App() {
               }
             />
             <Route
+              path="/admin/opportunities/external"
+              element={
+                <AdminRoute>
+                  <ExternalOpportunityCuration />
+                </AdminRoute>
+              }
+            />
+            <Route
               path="/admin/staff/invite"
               element={
                 <AdminRoute>
@@ -324,6 +359,14 @@ function App() {
                       }
                     />
                     <Route
+                      path="external-placement"
+                      element={
+                        <ProtectedRoute role="student">
+                          <ExternalPlacement />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
                       path="logbook"
                       element={
                         <ProtectedRoute>
@@ -394,7 +437,7 @@ function App() {
               element={<InstitutionActivate />}
             />
             {/* Institution Routes */}
-            <Route path="/institution/login" element={<InstitutionLogin />} />
+            <Route path="/institution/login" element={<Login portalIntent="institution" />} />
             <Route
               path="/institution/dashboard"
               element={
@@ -454,6 +497,14 @@ function App() {
               }
             />
             <Route
+              path="/institution/dashboard/external-placements"
+              element={
+                <ProtectedRoute role={['institution', 'institution_admin']}>
+                  <ExternalPlacements />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/institution/dashboard/applications"
               element={
                 <ProtectedRoute role={['institution', 'institution_admin']}>
@@ -496,9 +547,9 @@ function App() {
             <Route
               path="/institution/supervisor-dashboard"
               element={
-                <ProtectedRoute role="supervisor">
+                <InstitutionSupervisorRoute>
                   <SupervisorDashboard />
-                </ProtectedRoute>
+                </InstitutionSupervisorRoute>
               }
             >
               <Route index element={<SupervisorOverview />} />
@@ -523,7 +574,7 @@ function App() {
               path="/employer/staff/activate"
               element={<ActivateAdmin />}
             />
-            <Route path="/employer/login" element={<EmployerLogin />} />
+            <Route path="/employer/login" element={<Login portalIntent="employer" />} />
             {/* Employer Routes */}
             <Route
               path="/employer/dashboard"
@@ -705,6 +756,7 @@ function App() {
             {/* Catch-all route for 404 errors */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </Suspense>
           <EdiChatbot />
         </Router>
       </ToastProvider>

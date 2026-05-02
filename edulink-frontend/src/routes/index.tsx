@@ -35,19 +35,20 @@ import SupervisorLayout from '../components/admin/employer/supervisor/Supervisor
 // import AdminReview from '../pages/admin/Employer/AdminReview';
 import { AdminProtectedRoute, AdminPublicRoute } from '../components/admin/AdminRouteGuards';
 import { useAuthStore } from '../stores/authStore';
+import { getDashboardPath, hasPortalAccess, type ProtectedPortal } from '../utils/authRouting';
 
 import { useLocation } from 'react-router-dom';
 
 // Protected Route Component
-export const ProtectedRoute: React.FC<{ children: React.ReactNode, role?: string | string[] }> = ({ children, role }) => {
+export const ProtectedRoute: React.FC<{ children: React.ReactNode, role?: string | string[], portal?: ProtectedPortal }> = ({ children, role, portal }) => {
   // Use Zustand store for reactive authentication state
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user, currentPortal } = useAuthStore();
   const location = useLocation();
   
   if (!isAuthenticated) {
     // Determine redirect path based on current location
     const path = location.pathname;
-    let loginPath = '/login'; // Default to student login
+    let loginPath = '/login'; // Unified login with portal shortcuts
     
     if (path.startsWith('/institution') || path.startsWith('/dashboard/institution')) {
       loginPath = '/institution/login';
@@ -63,16 +64,9 @@ export const ProtectedRoute: React.FC<{ children: React.ReactNode, role?: string
   // Check role if specified
   if (role && user) {
     const roles = Array.isArray(role) ? role : [role];
-    if (!roles.includes(user.role)) {
+    if (!roles.includes(user.role) || !hasPortalAccess(user, portal)) {
       // Redirect to their own dashboard if they try to access a route they don't have access to
-      let dashboardPath = '/dashboard/student';
-      if (user.role === 'employer' || user.role === 'employer_admin') {
-        dashboardPath = '/employer/dashboard';
-      } else if (user.role === 'institution' || user.role === 'institution_admin' || user.role === 'supervisor') {
-        dashboardPath = '/institution/dashboard';
-      } else if (user.role === 'system_admin') {
-        dashboardPath = '/admin';
-      }
+      const dashboardPath = getDashboardPath(user, currentPortal);
       return <Navigate to={dashboardPath} replace />;
     }
   }
@@ -82,22 +76,11 @@ export const ProtectedRoute: React.FC<{ children: React.ReactNode, role?: string
 
 // Public Route Component
 export const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user, currentPortal } = useAuthStore();
   
   if (isAuthenticated && user) {
     // Redirect based on user role
-    let dashboardPath = '/dashboard/student'; // Default
-    
-    const role = user.role;
-    if (role === 'employer' || role === 'employer_admin') {
-      dashboardPath = '/employer/dashboard';
-    } else if (role === 'institution' || role === 'institution_admin' || role === 'supervisor') {
-      dashboardPath = '/institution/dashboard';
-    } else if (role === 'system_admin') {
-      dashboardPath = '/admin';
-    }
-    
-    return <Navigate to={dashboardPath} replace />;
+    return <Navigate to={getDashboardPath(user, currentPortal)} replace />;
   }
 
   return <>{children}</>;

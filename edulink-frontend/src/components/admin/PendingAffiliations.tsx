@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FeedbackModal } from '../common';
 import { useFeedbackModal } from '../../hooks/useFeedbackModal';
 import { apiClient } from '../../services/api/client';
+import { sanitizeAdminError } from '../../utils/adminErrorSanitizer';
 
 interface StudentInstitutionAffiliation {
   id: string;
@@ -49,7 +50,8 @@ const PendingAffiliations: React.FC<PendingAffiliationsProps> = ({ institutionId
       const data = await apiClient.get<PendingAffiliationsResponse>(url);
       setAffiliations(data.pending_affiliations || data.results || data as any as StudentInstitutionAffiliation[]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      const sanitized = sanitizeAdminError(err);
+      setError(sanitized.userMessage);
     } finally {
       setLoading(false);
     }
@@ -70,7 +72,8 @@ const PendingAffiliations: React.FC<PendingAffiliationsProps> = ({ institutionId
       // Show success message
       showSuccess('Affiliation Approved', 'The student affiliation has been approved successfully.');
     } catch (err: any) {
-      showError('Approval Failed', 'We could not approve the affiliation.', err.message);
+      const sanitized = sanitizeAdminError(err);
+      showError('Approval Failed', 'We could not approve the affiliation.', sanitized.details);
     } finally {
       setProcessingId(null);
     }
@@ -91,7 +94,8 @@ const PendingAffiliations: React.FC<PendingAffiliationsProps> = ({ institutionId
       // Show success message
       showSuccess('Affiliation Rejected', 'The student affiliation has been rejected successfully.');
     } catch (err: any) {
-      showError('Rejection Failed', 'We could not reject the affiliation.', err.message);
+      const sanitized = sanitizeAdminError(err);
+      showError('Rejection Failed', 'We could not reject the affiliation.', sanitized.details);
     } finally {
       setProcessingId(null);
     }

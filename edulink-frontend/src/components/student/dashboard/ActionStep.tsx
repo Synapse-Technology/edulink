@@ -41,26 +41,19 @@ const ActionStep: React.FC<ActionStepProps> = ({ number, title, description, sta
   const styles = getStatusStyles();
 
   return (
-    <div className={`card mb-3 ${isDarkMode ? 'bg-dark border-secondary' : 'bg-white'}`} style={{ borderRadius: '16px', border: isDarkMode ? '1px solid #374151' : '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' }}>
-      <div className="card-body">
-        <div className="d-flex align-items-center justify-content-between">
-          <div className="d-flex align-items-center gap-3">
-            <div className={`rounded-circle d-flex align-items-center justify-content-center fw-bold ${styles.numberBg}`} 
-                 style={{ width: '40px', height: '40px' }}>
-              {status === 'completed' ? <CheckCircle size={20} /> : number}
-            </div>
-            <div>
-              <h6 className={`fw-semibold mb-1 ${isDarkMode ? 'text-info' : styles.text}`} style={isDarkMode ? { textShadow: '0 0 8px rgba(32, 201, 151, 0.3)' } : {}}>{title}</h6>
-              <p className={`small mb-0 ${isDarkMode ? 'text-light opacity-75' : 'text-muted'}`}>{description}</p>
-            </div>
-          </div>
-          {actionText && actionLink && status === 'current' && (
-            <Link to={actionLink} className="btn btn-primary btn-sm">
-              {actionText}
-            </Link>
-          )}
-        </div>
+    <div className="student-action-row">
+      <div className={`student-action-number ${status === 'completed' ? 'complete' : ''}`}>
+        {status === 'completed' ? <CheckCircle size={18} /> : number}
       </div>
+      <div>
+        <h6 className={`fw-semibold mb-1 ${isDarkMode ? 'text-info' : styles.text}`}>{title}</h6>
+        <p className={`small mb-0 ${isDarkMode ? 'text-light opacity-75' : 'student-muted'}`}>{description}</p>
+      </div>
+      {actionText && actionLink && status === 'current' && (
+        <Link to={actionLink} className="btn btn-primary btn-sm">
+          {actionText}
+        </Link>
+      )}
     </div>
   );
 };

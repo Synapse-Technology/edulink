@@ -137,7 +137,7 @@ export const config = {
     lockoutDuration: 15 * 60 * 1000, // 15 minutes
     passwordMinLength: 8,
     passwordComplexity: true,
-    sessionTimeout: 30 * 60 * 1000, // 30 minutes
+    sessionTimeout: 2 * 60 * 60 * 1000, // 2 hours
   },
 
   // Network Configuration

@@ -23,6 +23,7 @@ import {
 import axios from 'axios';
 import AdminLayout from '../../../components/admin/AdminLayout';
 import PlatformStaffManagementSkeleton from '../../../components/admin/skeletons/PlatformStaffManagementSkeleton';
+import { sanitizeAdminError } from '../../../utils/adminErrorSanitizer';
 
 interface PlatformStaff {
   id: string;
@@ -87,11 +88,8 @@ const PlatformStaffManagement: React.FC = () => {
       setInvites(invitesResponse.data);
       calculateStats(staffResponse.data, invitesResponse.data);
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.error || 'Failed to load staff data');
-      } else {
-        setError('An unexpected error occurred');
-      }
+      const sanitized = sanitizeAdminError(err);
+      setError(sanitized.userMessage || 'Failed to load staff data');
     } finally {
       setIsLoading(false);
     }
@@ -164,9 +162,8 @@ const PlatformStaffManagement: React.FC = () => {
       });
       fetchStaffData();
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.error || 'Failed to cancel invite');
-      }
+      const sanitized = sanitizeAdminError(err);
+      setError(sanitized.userMessage || 'Failed to cancel invite');
     }
   };
 
@@ -180,9 +177,8 @@ const PlatformStaffManagement: React.FC = () => {
       });
       fetchStaffData();
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.error || 'Failed to update status');
-      }
+      const sanitized = sanitizeAdminError(err);
+      setError(sanitized.userMessage || 'Failed to update status');
     }
   };
 

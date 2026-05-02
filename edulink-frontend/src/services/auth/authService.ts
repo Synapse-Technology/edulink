@@ -64,7 +64,7 @@ interface UserProfile {
  * AuthService - Handles authentication API calls
  *
  * Cookie-based auth flow:
- * 1. login() → POST /api/students/auth/login/ → backend sets HttpOnly cookies + returns user
+ * 1. login() → POST /api/auth/users/login/ → backend sets refresh cookie + returns user/tokens
  * 2. Subsequent requests: browser includes cookies automatically (withCredentials: true)
  * 3. logout() → POST /api/auth/logout/ → backend clears cookies
  *
@@ -97,7 +97,7 @@ class AuthService {
 
     try {
       const response = await this.client.post<AuthResponse>(
-        '/api/students/auth/login/',
+        '/api/auth/users/login/',
         credentials
       );
 

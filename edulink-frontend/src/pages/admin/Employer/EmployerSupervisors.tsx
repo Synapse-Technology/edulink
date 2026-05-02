@@ -8,6 +8,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 // import TableSkeleton from '../../../components/admin/skeletons/TableSkeleton';
 import { employerService } from '../../../services/employer/employerService';
 import type { Supervisor } from '../../../services/employer/employerService';
+import { sanitizeAdminError } from '../../../utils/adminErrorSanitizer';
 
 const EmployerSupervisors: React.FC = () => {
   const { user } = useAuth();
@@ -73,10 +74,11 @@ const EmployerSupervisors: React.FC = () => {
           fetchSupervisors();
         } catch (error: any) {
           console.error('Failed to remove supervisor:', error);
+          const sanitized = sanitizeAdminError(error);
           showError(
             'Removal Failed',
             'We encountered an error while trying to remove this supervisor.',
-            error.response?.data?.error || error.message
+            sanitized.details
           );
         }
       }

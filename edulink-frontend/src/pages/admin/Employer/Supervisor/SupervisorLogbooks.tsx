@@ -7,6 +7,7 @@ import { FeedbackModal, DocumentPreviewModal } from '../../../../components/comm
 import { useFeedbackModal } from '../../../../hooks/useFeedbackModal';
 import { SupervisorLayout } from '../../../../components/admin/employer';
 import SupervisorTableSkeleton from '../../../../components/admin/skeletons/SupervisorTableSkeleton';
+import { sanitizeAdminError } from '../../../../utils/adminErrorSanitizer';
 
 const SupervisorLogbooks: React.FC = () => {
   const [evidenceList, setEvidenceList] = useState<InternshipEvidence[]>([]);
@@ -80,13 +81,14 @@ const SupervisorLogbooks: React.FC = () => {
       fetchEvidence(); // Refresh list
     } catch (err: any) {
       console.error("Failed to review evidence", err);
-      if (err.response?.data?.detail?.includes("authorized")) {
+      if (err?.response?.status === 403) {
          showError("Unauthorized", "You cannot review this logbook (Internship might be completed).");
       } else {
+         const sanitized = sanitizeAdminError(err);
          showError(
            "Review Failed",
            "We encountered an error while trying to submit your review.",
-           err.response?.data?.error || err.message
+           sanitized.details
          );
       }
     } finally {

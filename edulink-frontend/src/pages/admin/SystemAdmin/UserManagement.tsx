@@ -27,6 +27,7 @@ import {
 import { adminAuthService } from '../../../services';
 import AdminLayout from '../../../components/admin/AdminLayout';
 import UserManagementSkeleton from '../../../components/admin/skeletons/UserManagementSkeleton';
+import { sanitizeAdminError } from '../../../utils/adminErrorSanitizer';
 
 interface User {
   id: string;
@@ -116,11 +117,8 @@ const UserManagement: React.FC = () => {
       // For now, we'll use the total count from the paginated response for the main card)
       calculateStats(usersData);
     } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message || 'Failed to load user data');
-      } else {
-        setError('An unexpected error occurred');
-      }
+      const sanitized = sanitizeAdminError(err);
+      setError(sanitized.userMessage || 'Failed to load user data');
     } finally {
       setIsLoading(false);
     }
@@ -148,9 +146,8 @@ const UserManagement: React.FC = () => {
       await adminAuthService.suspendUser(userId, 'Administrative suspension');
       fetchUsers(currentPage); // Refresh from server
     } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message || 'Failed to suspend user');
-      }
+      const sanitized = sanitizeAdminError(err);
+      setError(sanitized.userMessage || 'Failed to suspend user');
     }
   };
 
@@ -159,9 +156,8 @@ const UserManagement: React.FC = () => {
       await adminAuthService.reactivateUser(userId, 'Administrative reactivation');
       fetchUsers(currentPage); // Refresh from server
     } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message || 'Failed to reactivate user');
-      }
+      const sanitized = sanitizeAdminError(err);
+      setError(sanitized.userMessage || 'Failed to reactivate user');
     }
   };
 

@@ -49,7 +49,7 @@ const S: Record<string, React.CSSProperties> = {
     color: '#f0f5f2',
     lineHeight: 1.15,
     margin: '0 0 16px',
-    letterSpacing: '-0.5px',
+    letterSpacing: 0,
   },
   heroSub: {
     fontSize: 15,
@@ -115,7 +115,7 @@ const S: Record<string, React.CSSProperties> = {
     fontWeight: 600,
     color: '#1a3c2e',
     lineHeight: 1,
-    letterSpacing: '-1px',
+    letterSpacing: 0,
   },
   statLabel: {
     fontSize: 12,
@@ -323,7 +323,7 @@ const S: Record<string, React.CSSProperties> = {
     color: '#f0f5f2',
     margin: '0 0 10px',
     lineHeight: 1.2,
-    letterSpacing: '-0.3px',
+    letterSpacing: 0,
   },
   ctaP: {
     fontSize: 13,
@@ -380,6 +380,7 @@ const FilterBtn: React.FC<{
   children: React.ReactNode;
 }> = ({ active, onClick, children }) => (
   <button
+    className="success-stories-filter-btn"
     onClick={onClick}
     style={{
       fontFamily: "'DM Sans', sans-serif",
@@ -647,9 +648,10 @@ const SuccessStories: React.FC = () => {
 
       <div style={S.root}>
         {/* ── Hero ─────────────────────────────────────────────────────── */}
-        <section style={S.hero}>
+        <section className="success-stories-hero" style={S.hero}>
           {/* Background decorative icon */}
           <svg
+            className="success-stories-hero-icon"
             style={S.heroBgIcon}
             width="240"
             height="240"
@@ -691,27 +693,27 @@ const SuccessStories: React.FC = () => {
             EduLink KE
           </div>
 
-          <h1 style={S.heroH1}>
+          <h1 className="success-stories-hero-title" style={S.heroH1}>
             Student Success
             <br />
             Stories
           </h1>
 
-          <p style={S.heroSub}>
+          <p className="success-stories-hero-sub" style={S.heroSub}>
             Real students. Real companies. Real career growth — powered by
             verified internships and professional development across Kenya.
           </p>
 
-          <div style={S.heroBadge}>
+          <div className="success-stories-hero-badge" style={S.heroBadge}>
             <CheckIcon />
             Verified internship placements only
           </div>
         </section>
 
         {/* ── Stats ────────────────────────────────────────────────────── */}
-        <section style={S.statsSection}>
-          <div style={S.statsInner}>
-            <div style={S.stat}>
+        <section className="success-stories-stats-section" style={S.statsSection}>
+          <div className="success-stories-stats" style={S.statsInner}>
+            <div className="success-stories-stat" style={S.stat}>
               <UsersIcon />
               <div style={S.statNumber}>
                 {loading ? '—' : `${stories.length}+`}
@@ -719,7 +721,7 @@ const SuccessStories: React.FC = () => {
               <div style={S.statLabel}>Student success stories</div>
             </div>
 
-            <div style={S.stat}>
+            <div className="success-stories-stat" style={S.stat}>
               <TrendIcon />
               <div style={S.statNumber}>
                 {loading ? '—' : `${stories.length}`}
@@ -727,7 +729,7 @@ const SuccessStories: React.FC = () => {
               <div style={S.statLabel}>Verified placements</div>
             </div>
 
-            <div style={S.statLast}>
+            <div className="success-stories-stat" style={S.statLast}>
               <BriefcaseIcon />
               <div style={S.statNumber}>
                 {loading ? '—' : `${employerCount}`}
@@ -738,9 +740,9 @@ const SuccessStories: React.FC = () => {
         </section>
 
         {/* ── Filters ──────────────────────────────────────────────────── */}
-        <section style={S.filtersSection}>
-          <div style={S.filterGroup}>
-            <span style={S.filterLabel}>View</span>
+        <section className="success-stories-filters-section" style={S.filtersSection}>
+          <div className="success-stories-filter-group" style={S.filterGroup}>
+            <span className="success-stories-filter-label" style={S.filterLabel}>View</span>
             <FilterBtn
               active={filter === 'recent'}
               onClick={() => setFilter('recent')}
@@ -763,8 +765,8 @@ const SuccessStories: React.FC = () => {
         </section>
 
         {/* ── Stories grid ─────────────────────────────────────────────── */}
-        <section style={S.gridSection}>
-          <div style={S.gridHeader}>
+        <section className="success-stories-grid-section" style={S.gridSection}>
+          <div className="success-stories-grid-header" style={S.gridHeader}>
             <span style={S.gridTitle}>Internship experiences</span>
             {!loading && (
               <span style={S.gridCount}>
@@ -776,29 +778,29 @@ const SuccessStories: React.FC = () => {
 
           {loading ? (
             /* Skeleton loader */
-            <div style={S.skeletonGrid}>
+            <div className="success-stories-cards-grid" style={S.skeletonGrid}>
               {[1, 2, 3, 4, 5, 6].map(i => (
                 <SkeletonCard key={i} />
               ))}
             </div>
           ) : filteredStories.length > 0 ? (
             /* Populated grid */
-            <div style={S.cardsGrid}>
+            <div className="success-stories-cards-grid" style={S.cardsGrid}>
               {filteredStories.map(story => (
                 <StoryCard key={story.id} story={story} />
               ))}
             </div>
           ) : (
             /* Empty / error state */
-            <div style={S.skeletonGrid}>
+            <div className="success-stories-cards-grid" style={S.skeletonGrid}>
               <EmptyState message={loadError ?? undefined} />
             </div>
           )}
         </section>
 
         {/* ── CTA ──────────────────────────────────────────────────────── */}
-        <section style={S.cta}>
-          <div>
+        <section className="success-stories-cta" style={S.cta}>
+          <div className="success-stories-cta-copy">
             <div style={S.ctaEyebrow}>Begin your journey</div>
             <h2 style={S.ctaH2}>
               Ready to write your
@@ -811,16 +813,143 @@ const SuccessStories: React.FC = () => {
             </p>
           </div>
 
-          <div style={S.ctaActions}>
-            <a href="/opportunities" style={S.btnPrimary}>
+          <div className="success-stories-cta-actions" style={S.ctaActions}>
+            <a className="success-stories-cta-button" href="/opportunities" style={S.btnPrimary}>
               Browse opportunities
             </a>
-            <a href="/register" style={S.btnGhost}>
+            <a className="success-stories-cta-button" href="/register" style={S.btnGhost}>
               Create free account
             </a>
           </div>
         </section>
       </div>
+
+      <style>{`
+        @media (max-width: 991.98px) {
+          .success-stories-hero {
+            padding: 56px 28px 48px !important;
+          }
+
+          .success-stories-hero-title {
+            font-size: 36px !important;
+          }
+
+          .success-stories-stats,
+          .success-stories-cards-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          }
+
+          .success-stories-stat {
+            padding: 28px !important;
+          }
+
+          .success-stories-grid-section {
+            padding: 36px 28px !important;
+          }
+        }
+
+        @media (max-width: 575.98px) {
+          .success-stories-hero {
+            padding: 40px 20px 36px !important;
+          }
+
+          .success-stories-hero-icon {
+            width: 160px !important;
+            height: 160px !important;
+            right: -36px !important;
+            top: 32px !important;
+            transform: none !important;
+          }
+
+          .success-stories-hero-title {
+            font-size: 32px !important;
+            line-height: 1.12 !important;
+          }
+
+          .success-stories-hero-sub {
+            font-size: 14px !important;
+            max-width: none !important;
+          }
+
+          .success-stories-hero-badge {
+            width: 100% !important;
+            justify-content: center !important;
+            padding: 10px 12px !important;
+            text-align: center !important;
+          }
+
+          .success-stories-stats,
+          .success-stories-cards-grid {
+            grid-template-columns: 1fr !important;
+          }
+
+          .success-stories-stat {
+            border-right: 0 !important;
+            border-bottom: 0.5px solid rgba(0,0,0,0.08) !important;
+            padding: 24px 20px !important;
+          }
+
+          .success-stories-filters-section {
+            padding: 18px 20px !important;
+          }
+
+          .success-stories-filter-group {
+            align-items: stretch !important;
+            flex-direction: column !important;
+            gap: 8px !important;
+          }
+
+          .success-stories-filter-label {
+            margin-right: 0 !important;
+          }
+
+          .success-stories-filter-btn {
+            width: 100% !important;
+            min-height: 40px !important;
+          }
+
+          .success-stories-grid-section {
+            padding: 28px 20px !important;
+          }
+
+          .success-stories-grid-header {
+            align-items: flex-start !important;
+            flex-direction: column !important;
+            gap: 6px !important;
+            margin-bottom: 18px !important;
+          }
+
+          .success-stories-cards-grid {
+            gap: 12px !important;
+            background: transparent !important;
+            border: 0 !important;
+          }
+
+          .success-stories-cards-grid > * {
+            border: 0.5px solid rgba(0,0,0,0.08) !important;
+          }
+
+          .success-stories-cta {
+            align-items: stretch !important;
+            flex-direction: column !important;
+            padding: 40px 20px !important;
+            gap: 24px !important;
+          }
+
+          .success-stories-cta-copy {
+            width: 100% !important;
+          }
+
+          .success-stories-cta-actions {
+            width: 100% !important;
+          }
+
+          .success-stories-cta-button {
+            width: 100% !important;
+            white-space: normal !important;
+          }
+        }
+      `}</style>
     </>
   );
 };

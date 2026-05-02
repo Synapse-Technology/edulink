@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Form, Button, Alert, Container, Row, Col, Card, Badge } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { employerService } from '../../../services/employer/employerService';
+import { sanitizeAdminError } from '../../../utils/adminErrorSanitizer';
 import type { EmployerRequestStatusResponse } from '../../../services/employer/employerService';
 
 const RequestTracking: React.FC = () => {
@@ -26,7 +27,8 @@ const RequestTracking: React.FC = () => {
       const data = await employerService.getRequestStatus(trackingCode.trim());
       setStatusData(data);
     } catch (err: any) {
-      setError(err.errorMessage || err.message || 'Could not find request with this tracking code');
+      const sanitized = sanitizeAdminError(err);
+      setError(sanitized.message);
     } finally {
       setIsLoading(false);
     }

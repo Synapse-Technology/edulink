@@ -3,6 +3,7 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import { Lock, ArrowLeft, Loader2, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import { authService } from '../../services/auth/authService';
 import edulinkLogo from '../../assets/images/edulink-logo-v1-select.svg';
+import { getUserFacingErrorMessage } from '../../utils/userFacingErrors';
 
 // CSS Animations and Keyframes (Reused for consistency)
 const styles = `
@@ -194,7 +195,7 @@ const ResetPasswordPage: React.FC = () => {
         navigate('/login');
       }, 3000);
     } catch (err: any) {
-      showToastMessage(err.message || 'Failed to reset password. The link may have expired.', 'error');
+      showToastMessage(getUserFacingErrorMessage(err?.message, err?.status) || 'Failed to reset password. The link may have expired.', 'error');
     } finally {
       setIsLoading(false);
     }

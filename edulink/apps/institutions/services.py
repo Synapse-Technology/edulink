@@ -1984,7 +1984,12 @@ def process_bulk_verification_confirm(
     return total_processed
 
 
-def get_institution_placement_export_data(*, institution_id: str):
+def get_institution_placement_export_data(
+    *,
+    institution_id: str,
+    department_id: str = None,
+    cohort_id: str = None,
+):
     """
     Get placement data for export.
     """
@@ -1992,7 +1997,11 @@ def get_institution_placement_export_data(*, institution_id: str):
     from edulink.apps.students.queries import get_students_by_ids
     from edulink.apps.employers.queries import get_employers_by_ids
     
-    qs = get_export_data(institution_id)
+    qs = get_export_data(
+        institution_id,
+        department_id=department_id,
+        cohort_id=cohort_id,
+    )
     
     # Prefetch related data manually due to UUID fields
     student_ids = list(set([str(i.student_id) for i in qs if i.student_id]))

@@ -83,7 +83,7 @@ const SupervisorLogbooks: React.FC = () => {
     } catch (err: any) {
       console.error("Failed to review evidence", err);
       // Check for the specific permission error message from backend
-      if (err.response?.data?.detail?.includes("authorized")) {
+      if (err?.response?.status === 403) {
          toast.error("You cannot review this logbook (Internship might be completed).");
       } else {
          toast.error("Failed to submit review");

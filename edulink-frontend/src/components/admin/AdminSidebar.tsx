@@ -91,6 +91,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
           <NavItem to="/admin/users" icon={Users} label="User Management" />
           <NavItem to="/admin/institutions" icon={Building2} label="Institutions" />
           <NavItem to="/admin/employers/requests" icon={Briefcase} label="Employer Management" />
+          <NavItem to="/admin/opportunities/external" icon={Briefcase} label="External Opportunities" />
           <NavItem to="/admin/staff" icon={ShieldCheck} label="Platform Staff" />
           <NavItem to="/admin/support" icon={LifeBuoy} label="Support & Care" />
           <NavItem to="/admin/contact" icon={Mail} label="Contact Inquiries" />

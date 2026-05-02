@@ -78,30 +78,39 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
               </Link>
             </li>
             <li>
-              <Link 
-                to="/contact" 
-                className={`nav-link ${isActive('/contact') ? 'active' : ''}`}
+              <Link
+                to="/opportunities"
+                className={`nav-link ${isActive('/opportunities') ? 'active' : ''}`}
                 onClick={closeMobileMenu}
               >
-                Contact
+                Opportunities
               </Link>
             </li>
             <li>
-              <Link 
+              <Link
+                to="/why-us"
+                className={`nav-link ${isActive('/why-us') ? 'active' : ''}`}
+                onClick={closeMobileMenu}
+              >
+                Why EduLink
+              </Link>
+            </li>
+            <li>
+              <Link
                 to="/support" 
                 className={`nav-link ${isActive('/support') ? 'active' : ''}`}
                 onClick={closeMobileMenu}
               >
-                Support Features
+                Support
               </Link>
             </li>
             <li>
-              <Link 
-                to="/search" 
-                className={`nav-link ${isActive('/search') ? 'active' : ''}`}
+              <Link
+                to="/contact"
+                className={`nav-link ${isActive('/contact') ? 'active' : ''}`}
                 onClick={closeMobileMenu}
               >
-                Search
+                Contact
               </Link>
             </li>
             <li>

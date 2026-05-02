@@ -10,11 +10,12 @@ Applied globally to ensure no bare exceptions escape to the client.
 
 import logging
 import json
+from datetime import UTC, datetime
 from typing import Callable
 
 from django.http import JsonResponse, HttpRequest, HttpResponse
 from django.core.exceptions import PermissionDenied, ObjectDoesNotExist, ValidationError as DjangoValidationError
-from django.db import IntegrityError
+from django.db import DatabaseError, IntegrityError, OperationalError
 
 from .error_handling import (
     EduLinkError,
@@ -23,6 +24,7 @@ from .error_handling import (
     ConflictError,
     AuthorizationError,
     ErrorContext,
+    TransientError,
 )
 
 logger = logging.getLogger(__name__)
@@ -62,6 +64,8 @@ class ErrorHandlingMiddleware:
             return self._handle_not_found(exc, request)
         except IntegrityError as exc:
             return self._handle_integrity_error(exc, request)
+        except (OperationalError, DatabaseError) as exc:
+            return self._handle_database_unavailable(exc, request)
         except DjangoValidationError as exc:
             return self._handle_validation_error(exc, request)
         except Exception as exc:
@@ -174,6 +178,24 @@ class ErrorHandlingMiddleware:
         
         return self._error_to_response(error)
 
+    def _handle_database_unavailable(self, exc: Exception, request: HttpRequest) -> JsonResponse:
+        """Convert database connectivity failures to a retryable 503 response."""
+        logger.warning(
+            "Database temporarily unavailable",
+            extra={
+                "path": request.path,
+                "method": request.method,
+            },
+            exc_info=True,
+        )
+
+        error = TransientError(
+            user_message="The service is temporarily unavailable. Please try again shortly.",
+            developer_message=f"{exc.__class__.__name__}: {exc}",
+            error_code="DATABASE_UNAVAILABLE",
+        )
+        return self._error_to_response(error)
+
     def _handle_validation_error(self, exc: DjangoValidationError, request: HttpRequest) -> JsonResponse:
         """Convert Django ValidationError to 400 ValidationError response."""
         # Extract error details
@@ -221,7 +243,7 @@ class ErrorHandlingMiddleware:
             "error_code": "INTERNAL_ERROR",
             "message": "An unexpected error occurred. Please contact support.",
             "status_code": 500,
-            "timestamp": __import__("datetime").datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
         
         return JsonResponse(data, status=500)

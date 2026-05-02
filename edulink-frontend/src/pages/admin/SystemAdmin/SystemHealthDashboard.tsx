@@ -22,7 +22,7 @@ import {
 import AdminLayout from '../../../components/admin/AdminLayout';
 import AdminDashboardSkeleton from '../../../components/admin/skeletons/AdminDashboardSkeleton';
 import { adminAuthService } from '../../../services/auth/adminAuthService';
-import { ApiError } from '../../../services/errors';
+import { sanitizeAdminError } from '../../../utils/adminErrorSanitizer';
 
 interface SystemHealth {
   status: 'healthy' | 'degraded' | 'critical';
@@ -92,11 +92,8 @@ const SystemHealthDashboard: React.FC = () => {
       setRecentActivity(activityData);
       setError('');
     } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.message || 'Failed to load system data');
-      } else {
-        setError('An unexpected error occurred');
-      }
+      const sanitized = sanitizeAdminError(err);
+      setError(sanitized.userMessage);
     } finally {
       setIsLoading(false);
     }

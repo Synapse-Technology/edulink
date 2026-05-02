@@ -7,6 +7,7 @@ import {
 import { institutionService } from '../../../services/institution/institutionService';
 import type { PlacementStats, TimeToPlacementStats } from '../../../services/institution/institutionService';
 import ReportsAnalyticsSkeleton from '../../../components/admin/skeletons/ReportsAnalyticsSkeleton';
+import { sanitizeAdminError } from '../../../utils/adminErrorSanitizer';
 
 const ReportsAnalytics: React.FC = () => {
     const [loading, setLoading] = useState(true);
@@ -25,7 +26,8 @@ const ReportsAnalytics: React.FC = () => {
                 setPlacementStats(pStats);
                 setTimeStats(tStats);
             } catch (err: any) {
-                setError(err.message || 'Failed to load analytics data');
+                const sanitized = sanitizeAdminError(err);
+                setError(sanitized.userMessage || 'Failed to load analytics data');
             } finally {
                 setLoading(false);
             }
@@ -47,7 +49,8 @@ const ReportsAnalytics: React.FC = () => {
             window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
         } catch (err: any) {
-            setError(err.message || 'Failed to export report');
+            const sanitized = sanitizeAdminError(err);
+            setError(sanitized.userMessage || 'Failed to export report');
         } finally {
             setExporting(false);
         }

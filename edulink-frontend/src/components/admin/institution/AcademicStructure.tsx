@@ -6,6 +6,7 @@ import { FeedbackModal } from '../../common';
 import { useFeedbackModal } from '../../../hooks/useFeedbackModal';
 import { institutionService, type Department, type Cohort } from '../../../services/institution/institutionService';
 import AcademicStructureSkeleton, { CohortTableSkeleton } from '../skeletons/AcademicStructureSkeleton';
+import { sanitizeAdminError } from '../../../utils/adminErrorSanitizer';
 
 const AcademicStructure: React.FC = () => {
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -51,7 +52,8 @@ const AcademicStructure: React.FC = () => {
       const data = await institutionService.getDepartments();
       setDepartments(data);
     } catch (err: any) {
-      setError(err.message || 'Failed to load departments');
+      const sanitized = sanitizeAdminError(err);
+      setError(sanitized.userMessage || 'Failed to load departments');
     } finally {
       setLoading(false);
     }
@@ -109,7 +111,8 @@ const AcademicStructure: React.FC = () => {
       fetchDepartments();
       setShowDeptModal(false);
     } catch (err: any) {
-      showError('Save Failed', 'We could not save the department.', err.message);
+      const sanitized = sanitizeAdminError(err);
+      showError('Save Failed', 'We could not save the department.', sanitized.details);
     } finally {
       setDeptSubmitting(false);
     }
@@ -160,7 +163,8 @@ const AcademicStructure: React.FC = () => {
       fetchCohorts(selectedDeptForCohort);
       setShowCohortModal(false);
     } catch (err: any) {
-      showError('Save Failed', 'We could not save the cohort.', err.message);
+      const sanitized = sanitizeAdminError(err);
+      showError('Save Failed', 'We could not save the cohort.', sanitized.details);
     } finally {
       setCohortSubmitting(false);
     }
@@ -178,7 +182,8 @@ const AcademicStructure: React.FC = () => {
           toast.success('Department deleted successfully');
           fetchDepartments();
         } catch (err: any) {
-          showError('Delete Failed', 'Failed to delete department', err.message);
+          const sanitized = sanitizeAdminError(err);
+          showError('Delete Failed', 'Failed to delete department', sanitized.details);
         }
       }
     });
@@ -196,7 +201,8 @@ const AcademicStructure: React.FC = () => {
           toast.success('Cohort deleted successfully');
           fetchCohorts(deptId);
         } catch (err: any) {
-          showError('Delete Failed', 'Failed to delete cohort', err.message);
+          const sanitized = sanitizeAdminError(err);
+          showError('Delete Failed', 'Failed to delete cohort', sanitized.details);
         }
       }
     });

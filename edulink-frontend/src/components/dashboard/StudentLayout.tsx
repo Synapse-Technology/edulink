@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import StudentSidebar from './StudentSidebar';
 import StudentHeader from './StudentHeader';
 import { useTheme } from '../../contexts/ThemeContext';
+import '../../styles/student-portal.css';
 
 interface StudentLayoutProps {
   children: React.ReactNode;
@@ -12,7 +13,7 @@ const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
-    <div className={`min-vh-100 d-flex ${isDarkMode ? 'bg-dark text-white' : 'bg-light'}`}>
+    <div className={`student-portal-shell ${isDarkMode ? 'dark' : ''}`}>
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
         <div 
@@ -23,39 +24,26 @@ const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
       )}
       
       {/* Sidebar */}
-      <div className={`${isMobileMenuOpen ? 'd-block' : 'd-none'} d-lg-block position-fixed top-0 start-0 h-100 d-flex flex-column`} style={{ zIndex: 1040, width: '280px' }}>
+      <div className={`${isMobileMenuOpen ? 'd-block' : 'd-none'} d-lg-block position-fixed top-0 start-0 h-100 d-flex flex-column`} style={{ zIndex: 1040, width: '272px' }}>
         <StudentSidebar isDarkMode={isDarkMode} />
       </div>
 
       {/* Main Content */}
       <div 
-        className="flex-grow-1 d-flex flex-column min-vh-100 overflow-auto main-content-margin"
+        className="student-main d-flex flex-column overflow-auto"
         onClick={isMobileMenuOpen ? () => setIsMobileMenuOpen(false) : undefined}
       >
-        <style>{`
-          .main-content-margin {
-            margin-left: 0;
-            max-width: 100vw;
-          }
-          @media (min-width: 992px) {
-            .main-content-margin {
-              margin-left: 280px !important;
-              max-width: calc(100vw - 280px) !important;
-            }
-          }
-        `}</style>
-        
-        <div className="px-4 px-lg-5 pt-4">
+        <div className="student-main-inner">
           <StudentHeader
             onMobileMenuClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             isMobileMenuOpen={isMobileMenuOpen}
             isDarkMode={isDarkMode}
             onToggleDarkMode={toggleDarkMode}
           />
-        </div>
 
-        <div className="flex-grow-1 px-4 px-lg-5 pb-4">
+          <div className="flex-grow-1">
             {children}
+          </div>
         </div>
       </div>
     </div>

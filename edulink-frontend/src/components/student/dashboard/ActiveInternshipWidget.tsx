@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, Button, Form, ProgressBar, Alert } from 'react-bootstrap';
+import { Button, Form, ProgressBar, Alert } from 'react-bootstrap';
 import { 
   Calendar, 
   Clock, 
@@ -59,23 +59,24 @@ const ActiveInternshipWidget: React.FC<ActiveInternshipWidgetProps> = ({
   const daysLeft = Math.max(0, totalDays - elapsedDays);
 
   return (
-    <Card className={`border-0 shadow-sm mb-4 ${isDarkMode ? 'bg-dark bg-opacity-50 border-secondary' : 'bg-white'}`}>
-      <Card.Header className="bg-transparent border-0 pt-4 px-3 px-md-4 d-flex justify-content-between align-items-center">
-        <div className="d-flex align-items-center gap-2">
-          <div className="bg-success bg-opacity-10 p-2 rounded text-success">
-            <CheckCircle size={20} />
+    <section className="student-panel student-section-block">
+      <div className="student-panel-body">
+        <div className="d-flex justify-content-between align-items-center gap-3">
+          <div className="d-flex align-items-center gap-2">
+            <div className="bg-success bg-opacity-10 p-2 rounded text-success">
+              <CheckCircle size={20} />
+            </div>
+            <h5 className={`mb-0 fw-bold ${isDarkMode ? 'text-white' : ''}`}>Current Internship</h5>
           </div>
-          <h5 className={`mb-0 fw-bold ${isDarkMode ? 'text-white' : ''}`}>Current Internship</h5>
+          <Link
+            to="/dashboard/student/internship"
+            className="text-decoration-none small fw-semibold d-flex align-items-center gap-1"
+          >
+            <span className="d-none d-sm-inline">View Full Details</span> <ChevronRight size={14} />
+          </Link>
         </div>
-        <Link 
-          to="/dashboard/student/internship" 
-          className="text-decoration-none small fw-semibold d-flex align-items-center gap-1"
-        >
-          <span className="d-none d-sm-inline">View Full Details</span> <ChevronRight size={14} />
-        </Link>
-      </Card.Header>
-      
-      <Card.Body className="p-3 p-md-4">
+
+      <div className="mt-4">
         <div className="row g-4">
           {/* Internship Overview */}
           <div className="col-lg-6">
@@ -176,8 +177,9 @@ const ActiveInternshipWidget: React.FC<ActiveInternshipWidgetProps> = ({
             )}
           </div>
         </div>
-      </Card.Body>
-    </Card>
+      </div>
+      </div>
+    </section>
   );
 };
 

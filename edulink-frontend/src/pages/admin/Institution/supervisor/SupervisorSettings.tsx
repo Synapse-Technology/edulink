@@ -4,6 +4,7 @@ import { Settings, User, Lock, Save, Send } from 'lucide-react';
 import { useAuthStore } from '../../../../stores/authStore';
 import { authService } from '../../../../services/auth/authService';
 import { institutionService } from '../../../../services/institution/institutionService';
+import { sanitizeAdminError } from '../../../../utils/adminErrorSanitizer';
 
 const SupervisorSettings: React.FC = () => {
   const { user } = useAuthStore();
@@ -61,9 +62,10 @@ const SupervisorSettings: React.FC = () => {
         text: 'Profile update request submitted for admin review',
       });
     } catch (err: any) {
+      const sanitized = sanitizeAdminError(err);
       setProfileMessage({
         type: 'danger',
-        text: err.message || 'Failed to submit profile update request',
+        text: sanitized.userMessage || 'Failed to submit profile update request',
       });
     } finally {
       setProfileSubmitting(false);
@@ -87,7 +89,8 @@ const SupervisorSettings: React.FC = () => {
       setMessage({ type: 'success', text: 'Password updated successfully' });
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
     } catch (err: any) {
-      setMessage({ type: 'danger', text: err.message || 'Failed to update password' });
+      const sanitized = sanitizeAdminError(err);
+      setMessage({ type: 'danger', text: sanitized.userMessage || 'Failed to update password' });
     } finally {
       setLoading(false);
     }

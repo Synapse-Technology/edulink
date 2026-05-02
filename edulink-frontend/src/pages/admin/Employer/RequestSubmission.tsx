@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { Form, Button, Alert, Container, Row, Col, ProgressBar } from 'react-bootstrap';
+import React, { useState } from 'react';
+import { Form, Button, Alert, Container, Row, Col } from 'react-bootstrap';
 import { useNavigate, Link } from 'react-router-dom';
 import { employerService } from '../../../services/employer/employerService';
+import { sanitizeAdminError } from '../../../utils/adminErrorSanitizer';
 import type { EmployerRequestData } from '../../../services/employer/employerService';
+import '../../../styles/onboarding-request.css';
 
 interface EmployerRequestForm {
   name: string;
@@ -33,14 +35,7 @@ const RequestSubmission: React.FC = () => {
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [trackingCode, setTrackingCode] = useState('');
-  const [progress, setProgress] = useState(33);
-
   const totalSteps = 3;
-
-  useEffect(() => {
-    const progressPercentage = (currentStep / totalSteps) * 100;
-    setProgress(progressPercentage);
-  }, [currentStep]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -160,8 +155,8 @@ const RequestSubmission: React.FC = () => {
       setSubmitSuccess(true);
 
     } catch (error: any) {
-      const errorMessage = error.errorMessage || error.message || 'An unexpected error occurred';
-      setSubmitError(errorMessage);
+      const sanitized = sanitizeAdminError(error);
+      setSubmitError(sanitized.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -175,38 +170,55 @@ const RequestSubmission: React.FC = () => {
 
   if (submitSuccess) {
     return (
-      <Container fluid className="min-vh-100 d-flex align-items-center justify-content-center p-0 bg-light">
-        <Row className="w-100 g-0">
+      <Container fluid className="onboarding-page">
+        <Row className="onboarding-shell g-0">
           <Col lg={6} className="d-none d-lg-block">
-            <div className="success-branding h-100 d-flex flex-column justify-content-center align-items-center p-5" style={{ background: 'linear-gradient(135deg, #0dcaf0 0%, #0d6efd 100%)' }}>
-              <div className="text-center mb-5">
-                <h1 className="display-4 fw-bold mb-3 text-white">Success!</h1>
-                <p className="lead mb-4 text-white-75">Your request has been submitted successfully</p>
-              </div>
-              
-              <div className="features-list text-white">
-                 <div className="mb-4"><i className="bi bi-clock me-2"></i> Review within 3-5 business days</div>
-                 <div className="mb-4"><i className="bi bi-envelope me-2"></i> Email confirmation sent</div>
+            <div className="onboarding-brand-panel employer">
+              <div className="onboarding-brand-content">
+                <div>
+                  <div className="onboarding-kicker"><i className="bi bi-briefcase"></i> Employer review queued</div>
+                  <h1 className="onboarding-brand-title">Your employer request is ready for review.</h1>
+                  <p className="onboarding-brand-copy">EduLink checks organization identity and official domains before employers can publish trusted opportunities.</p>
+                </div>
+                <div className="onboarding-checklist">
+                  <div className="onboarding-check">
+                    <i className="bi bi-clock-history"></i>
+                    <div>
+                      <h5>3-5 business days</h5>
+                      <p>Review covers organization legitimacy, contact details, and hiring readiness.</p>
+                    </div>
+                  </div>
+                  <div className="onboarding-check">
+                    <i className="bi bi-envelope-check"></i>
+                    <div>
+                      <h5>Email confirmation</h5>
+                      <p>Your contact person receives the activation instructions after approval.</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </Col>
 
           <Col lg={6} xs={12}>
-            <div className="success-container h-100 d-flex flex-column justify-content-center p-4 p-lg-5">
-              <div className="text-center">
-                <h2 className="mb-3 fw-bold text-primary">Request Submitted!</h2>
+            <div className="onboarding-form-panel">
+              <div className="onboarding-success-card text-center">
+                <div className="onboarding-success-icon">
+                  <i className="bi bi-check2"></i>
+                </div>
+                <h2 className="mb-3 fw-bold">Request Submitted</h2>
                 <p className="text-muted mb-4 fs-5">
-                  Thank you for your interest. Please save your tracking code below.
+                  Thank you for your interest. Save your tracking code and use it to check review progress.
                 </p>
                 <div className="mb-4">
-                  <div className="alert alert-info d-inline-block text-start p-4">
-                    <div className="fw-bold mb-1">Your Tracking Code</div>
-                    <div className="display-6 fw-bold text-primary">{trackingCode}</div>
+                  <div className="onboarding-tracking-code text-start">
+                    <span className="text-muted small fw-bold text-uppercase">Tracking code</span>
+                    <strong>{trackingCode}</strong>
                   </div>
                 </div>
-                <div className="d-flex justify-content-center gap-3">
+                <div className="d-flex flex-column flex-sm-row justify-content-center gap-3">
                   <Button variant="outline-primary" onClick={() => navigate('/')}>Return Home</Button>
-                  <Button variant="primary" onClick={() => navigate('/employer/track')}>Track Request</Button>
+                  <Button variant="link" className="onboarding-primary-btn" onClick={() => navigate('/employer/track')}>Track Request</Button>
                 </div>
               </div>
             </div>
@@ -217,54 +229,89 @@ const RequestSubmission: React.FC = () => {
   }
 
   return (
-    <Container fluid className="min-vh-100 d-flex align-items-center justify-content-center p-0 bg-light">
-      <Row className="w-100 g-0 shadow-lg">
-        <Col lg={6} className="d-none d-lg-block">
-          <div className="branding-side h-100 d-flex flex-column justify-content-center align-items-center p-5 position-relative" style={{ background: 'linear-gradient(135deg, #0dcaf0 0%, #0d6efd 100%)' }}>
-            <div className="text-center mb-5 text-white">
-              <h1 className="display-4 fw-bold mb-3">EduLink for Employers</h1>
-              <p className="lead mb-4">Connect with top talent from leading institutions.</p>
-            </div>
-            <div className="text-white-75">
-               <p><i className="bi bi-check-circle me-2"></i> Verified Talent Pool</p>
-               <p><i className="bi bi-check-circle me-2"></i> Streamlined Recruitment</p>
-               <p><i className="bi bi-check-circle me-2"></i> Integrated Workflow</p>
+    <Container fluid className="onboarding-page">
+      <Row className="onboarding-shell g-0">
+        <Col lg={6} className="d-none d-lg-flex">
+          <div className="onboarding-brand-panel employer w-100">
+            <div className="onboarding-brand-content">
+              <div>
+                <div className="onboarding-kicker"><i className="bi bi-patch-check"></i> Employer onboarding</div>
+                <h1 className="onboarding-brand-title">Publish trusted internships students can believe in.</h1>
+                <p className="onboarding-brand-copy">Request access for your organization, verify official contact channels, and prepare to manage applications, interns, supervisors, and placement evidence.</p>
+                <div className="onboarding-proof-grid">
+                  <div className="onboarding-proof"><strong>Trust</strong><span>organization review</span></div>
+                  <div className="onboarding-proof"><strong>Talent</strong><span>verified students</span></div>
+                  <div className="onboarding-proof"><strong>Control</strong><span>supervisor workflows</span></div>
+                </div>
+              </div>
+              <div className="onboarding-checklist">
+                <div className="onboarding-check">
+                  <i className="bi bi-shield-check"></i>
+                  <div>
+                    <h5>Verified employer profile</h5>
+                    <p>Official domain and organization details are reviewed before activation.</p>
+                  </div>
+                </div>
+                <div className="onboarding-check">
+                  <i className="bi bi-kanban"></i>
+                  <div>
+                    <h5>Placement pipeline</h5>
+                    <p>Manage opportunities, applicants, supervisors, reviews, and completion decisions.</p>
+                  </div>
+                </div>
+                <div className="onboarding-check">
+                  <i className="bi bi-person-check"></i>
+                  <div>
+                    <h5>Student-ready workflows</h5>
+                    <p>Build trust with students and institutions before the pilot starts.</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </Col>
 
         <Col lg={6} xs={12}>
-          <div className="form-side h-100 d-flex flex-column justify-content-center p-4 p-lg-5 bg-white">
-            <div className="d-flex justify-content-between align-items-center mb-4">
+          <div className="onboarding-form-panel bg-white">
+            <div className="onboarding-form-inner">
+            <div className="onboarding-mobile-brief">
+              <div className="onboarding-kicker"><i className="bi bi-patch-check"></i> Employer onboarding</div>
+              <h1>Publish trusted internships students can believe in.</h1>
+              <p>Request access for your organization, verify official contact channels, and prepare to manage applications, interns, supervisors, and placement evidence.</p>
+            </div>
+            <div className="onboarding-form-top">
               <div>
-                <h2 className="fw-bold mb-2 text-primary">Employer Onboarding</h2>
-                <p className="text-muted mb-0">Register your organization to start hiring.</p>
+                <div className="onboarding-eyebrow">Request access</div>
+                <h2>Employer Onboarding</h2>
+                <p>Submit organization details for review and trusted opportunity publishing.</p>
               </div>
-              <div className="text-end">
-                <span className="text-muted small d-block">Already have an account?</span>
-                <Link to="/employer/login" className="fw-bold text-decoration-none text-primary">Sign In</Link>
+              <div className="onboarding-login-link">
+                <span>Already registered?</span>
+                <Link to="/employer/login">Login here</Link>
               </div>
             </div>
 
             {submitError && (
-              <Alert variant="danger" dismissible onClose={() => setSubmitError('')}>
+              <Alert variant="danger" dismissible onClose={() => setSubmitError('')} className="mb-4 border-0 rounded-3 shadow-sm">
+                <i className="bi bi-exclamation-triangle me-2"></i>
                 {submitError}
               </Alert>
             )}
 
-            <div className="mb-4">
-              <div className="d-flex justify-content-between align-items-center mb-2">
-                <span className="text-muted small">Step {currentStep} of {totalSteps}</span>
-                <span className="fw-bold text-primary">{stepTitles[currentStep - 1]}</span>
-              </div>
-              <ProgressBar now={progress} style={{ height: '6px' }} variant="info" />
+            <div className="onboarding-steps" aria-label="Employer onboarding progress">
+              {stepTitles.map((title, index) => (
+                <div key={title} className={`onboarding-step ${currentStep >= index + 1 ? 'active' : ''}`}>
+                  <span>{index + 1}</span>
+                  {title}
+                </div>
+              ))}
             </div>
 
             <Form onSubmit={handleSubmit}>
               {currentStep === 1 && (
                 <>
                   <Form.Group className="mb-3">
-                    <Form.Label>Organization Name <span className="text-danger">*</span></Form.Label>
+                    <Form.Label className="fw-semibold">Organization Name <span className="text-danger">*</span></Form.Label>
                     <Form.Control
                       type="text"
                       name="name"
@@ -272,17 +319,19 @@ const RequestSubmission: React.FC = () => {
                       onChange={handleInputChange}
                       isInvalid={!!errors.name}
                       placeholder="e.g. Acme Corp"
+                      className="rounded-3"
                     />
                     <Form.Control.Feedback type="invalid">{errors.name}</Form.Control.Feedback>
                   </Form.Group>
 
                   <Form.Group className="mb-3">
-                    <Form.Label>Organization Type <span className="text-danger">*</span></Form.Label>
+                    <Form.Label className="fw-semibold">Organization Type <span className="text-danger">*</span></Form.Label>
                     <Form.Select
                       name="organization_type"
                       value={formData.organization_type}
                       onChange={handleInputChange}
                       isInvalid={!!errors.organization_type}
+                      className="rounded-3"
                     >
                       <option value="">Select Type...</option>
                       <option value="Private Company">Private Company</option>
@@ -296,7 +345,7 @@ const RequestSubmission: React.FC = () => {
                   </Form.Group>
 
                   <Form.Group className="mb-3">
-                    <Form.Label>Official Domain <span className="text-danger">*</span></Form.Label>
+                    <Form.Label className="fw-semibold">Official Domain <span className="text-danger">*</span></Form.Label>
                     <Form.Control
                       type="text"
                       name="domain"
@@ -304,15 +353,16 @@ const RequestSubmission: React.FC = () => {
                       onChange={handleInputChange}
                       isInvalid={!!errors.domain}
                       placeholder="e.g. acme.com"
+                      className="rounded-3"
                     />
-                    <Form.Text className="text-muted">
+                    <Form.Text className="text-muted small">
                       Your organization's primary domain name.
                     </Form.Text>
                     <Form.Control.Feedback type="invalid">{errors.domain}</Form.Control.Feedback>
                   </Form.Group>
 
-                  <Form.Group className="mb-3">
-                    <Form.Label>Official Email <span className="text-danger">*</span></Form.Label>
+                  <Form.Group className="mb-4">
+                    <Form.Label className="fw-semibold">Official Email <span className="text-danger">*</span></Form.Label>
                     <Form.Control
                       type="email"
                       name="official_email"
@@ -320,31 +370,44 @@ const RequestSubmission: React.FC = () => {
                       onChange={handleInputChange}
                       isInvalid={!!errors.official_email}
                       placeholder="admin@acme.com"
+                      className="rounded-3"
                     />
-                    <Form.Text className="text-muted">
+                    <Form.Text className="text-muted small">
                       Must match the domain provided above.
                     </Form.Text>
                     <Form.Control.Feedback type="invalid">{errors.official_email}</Form.Control.Feedback>
                   </Form.Group>
+
+                  <div className="d-flex justify-content-end mb-4">
+                    <Button 
+                      onClick={nextStep}
+                      type="button"
+                      variant="link"
+                      className="rounded-3 px-4 onboarding-primary-btn"
+                    >
+                      Continue <i className="bi bi-arrow-right ms-2"></i>
+                    </Button>
+                  </div>
                 </>
               )}
 
               {currentStep === 2 && (
                 <>
                   <Form.Group className="mb-3">
-                    <Form.Label>Contact Person Name <span className="text-danger">*</span></Form.Label>
+                    <Form.Label className="fw-semibold">Contact Person Name <span className="text-danger">*</span></Form.Label>
                     <Form.Control
                       type="text"
                       name="contact_person"
                       value={formData.contact_person}
                       onChange={handleInputChange}
                       isInvalid={!!errors.contact_person}
+                      className="rounded-3"
                     />
                     <Form.Control.Feedback type="invalid">{errors.contact_person}</Form.Control.Feedback>
                   </Form.Group>
 
                   <Form.Group className="mb-3">
-                    <Form.Label>Phone Number <span className="text-danger">*</span></Form.Label>
+                    <Form.Label className="fw-semibold">Phone Number <span className="text-danger">*</span></Form.Label>
                     <Form.Control
                       type="tel"
                       name="phone_number"
@@ -352,12 +415,13 @@ const RequestSubmission: React.FC = () => {
                       onChange={handleInputChange}
                       isInvalid={!!errors.phone_number}
                       placeholder="+1 234 567 8900"
+                      className="rounded-3"
                     />
                     <Form.Control.Feedback type="invalid">{errors.phone_number}</Form.Control.Feedback>
                   </Form.Group>
 
                   <Form.Group className="mb-3">
-                    <Form.Label>Website URL</Form.Label>
+                    <Form.Label className="fw-semibold">Website URL</Form.Label>
                     <Form.Control
                       type="url"
                       name="website_url"
@@ -365,30 +429,52 @@ const RequestSubmission: React.FC = () => {
                       onChange={handleInputChange}
                       isInvalid={!!errors.website_url}
                       placeholder="https://www.acme.com"
+                      className="rounded-3"
                     />
                     <Form.Control.Feedback type="invalid">{errors.website_url}</Form.Control.Feedback>
                   </Form.Group>
 
-                  <Form.Group className="mb-3">
-                    <Form.Label>Registration Number</Form.Label>
+                  <Form.Group className="mb-4">
+                    <Form.Label className="fw-semibold">Registration Number</Form.Label>
                     <Form.Control
                       type="text"
                       name="registration_number"
                       value={formData.registration_number}
                       onChange={handleInputChange}
                       placeholder="e.g. Tax ID or Company Reg No."
+                      className="rounded-3"
                     />
                   </Form.Group>
+
+                  <div className="d-flex justify-content-between">
+                    <Button variant="outline-secondary" onClick={prevStep} type="button" className="rounded-3 px-4">
+                      Back
+                    </Button>
+                    <Button 
+                      onClick={nextStep}
+                      type="button"
+                      variant="link"
+                      className="rounded-3 px-4 onboarding-primary-btn"
+                    >
+                      Continue <i className="bi bi-arrow-right ms-2"></i>
+                    </Button>
+                  </div>
                 </>
               )}
 
               {currentStep === 3 && (
-                <div className="review-section">
-                  <h5 className="mb-4">Please review your information</h5>
+                <div>
+                  <div className="onboarding-section-title">
+                    <div className="step-number">3</div>
+                    <div>
+                      <h5>Review & Submit</h5>
+                      <p>Confirm organization details before sending the request.</p>
+                    </div>
+                  </div>
                   
-                  <div className="mb-4">
-                    <h6 className="text-muted text-uppercase small fw-bold">Organization Details</h6>
-                    <div className="ps-3 border-start border-3 border-primary">
+                  <div className="onboarding-review-card mb-4">
+                    <h6 className="mb-3">Organization Details</h6>
+                    <div>
                       <p className="mb-1"><strong>Name:</strong> {formData.name}</p>
                       <p className="mb-1"><strong>Type:</strong> {formData.organization_type}</p>
                       <p className="mb-1"><strong>Domain:</strong> {formData.domain}</p>
@@ -396,9 +482,9 @@ const RequestSubmission: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="mb-4">
-                    <h6 className="text-muted text-uppercase small fw-bold">Additional Info</h6>
-                    <div className="ps-3 border-start border-3 border-primary">
+                  <div className="onboarding-review-card mb-4">
+                    <h6 className="mb-3">Contact & Additional Info</h6>
+                    <div>
                       <p className="mb-1"><strong>Contact Person:</strong> {formData.contact_person}</p>
                       <p className="mb-1"><strong>Phone:</strong> {formData.phone_number}</p>
                       <p className="mb-1"><strong>Website:</strong> {formData.website_url || 'N/A'}</p>
@@ -406,7 +492,7 @@ const RequestSubmission: React.FC = () => {
                     </div>
                   </div>
                   
-                  <Alert variant="info" className="d-flex align-items-center">
+                  <Alert variant="info" className="onboarding-note d-flex align-items-center">
                     <i className="bi bi-info-circle-fill me-3 fs-4"></i>
                     <div>
                       By submitting this request, you confirm that you are authorized to represent this organization.
@@ -415,31 +501,28 @@ const RequestSubmission: React.FC = () => {
                 </div>
               )}
 
-              <div className="d-flex justify-content-between mt-5">
-                {currentStep > 1 ? (
-                  <Button variant="outline-secondary" onClick={prevStep} type="button">
+              {currentStep === totalSteps && (
+                <div className="d-flex justify-content-between mt-5">
+                  <Button variant="outline-secondary" onClick={prevStep} type="button" className="rounded-3 px-4">
                     Back
                   </Button>
-                ) : (
-                  <div></div>
-                )}
-                
-                {currentStep < totalSteps ? (
-                  <Button variant="primary" onClick={nextStep} type="button">
-                    Next Step
-                  </Button>
-                ) : (
-                  <Button variant="success" type="submit" disabled={isSubmitting}>
+                  <Button 
+                    type="submit" 
+                    disabled={isSubmitting}
+                    variant="link"
+                    className="rounded-3 px-4 onboarding-primary-btn"
+                  >
                     {isSubmitting ? 'Submitting...' : 'Submit Request'}
                   </Button>
-                )}
-              </div>
+                </div>
+              )}
             </Form>
 
             <div className="mt-4 pt-3 border-top text-center">
               <p className="text-muted small mb-0">
-                Need help? <a href="/contact" className="text-decoration-none text-primary">Contact our support team</a>
+                Need help? <a href="/contact" className="text-decoration-none fw-semibold">Contact our support team</a>
               </p>
+            </div>
             </div>
           </div>
         </Col>

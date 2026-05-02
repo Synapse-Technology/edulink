@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Mail, ArrowLeft, Loader2, CheckCircle } from 'lucide-react';
 import { authService } from '../../services/auth/authService';
 import edulinkLogo from '../../assets/images/edulink-logo-v1-select.svg';
+import { getUserFacingErrorMessage } from '../../utils/userFacingErrors';
 
 // CSS Animations and Keyframes (Reused from Login.tsx for consistency)
 const styles = `
@@ -167,7 +168,7 @@ const ForgotPasswordPage: React.FC = () => {
       setIsSubmitted(true);
       showToastMessage('Reset link sent successfully!', 'success');
     } catch (err: any) {
-      showToastMessage(err.message || 'Failed to send reset link. Please try again.', 'error');
+      showToastMessage(getUserFacingErrorMessage(err?.message, err?.status) || 'Failed to send reset link. Please try again.', 'error');
     } finally {
       setIsLoading(false);
     }

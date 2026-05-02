@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AlertCircle, CheckCircle, Search } from 'lucide-react';
 import { authService } from '../../services/auth/authService';
@@ -335,6 +335,7 @@ const Register: React.FC = () => {
   const [isSearchingInstitutions, setIsSearchingInstitutions] = useState(false);
   const [institutionSearchQuery, setInstitutionSearchQuery] = useState('');
   const [searchTimeout, setSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const [institutionSkipped, setInstitutionSkipped] = useState(false);
   const [showInstitutionInterestModal, setShowInstitutionInterestModal] = useState(false);
   const [institutionInterestName, setInstitutionInterestName] = useState('');
   const [isSubmittingInterest, setIsSubmittingInterest] = useState(false);
@@ -348,9 +349,13 @@ const Register: React.FC = () => {
     }));
   };
 
-
-
-
+  useEffect(() => {
+    return () => {
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
+      }
+    };
+  }, [searchTimeout]);
 
   // const handleInstitutionSkip = () => {
   //   setSelectedInstitution(null);
@@ -370,6 +375,10 @@ const Register: React.FC = () => {
 
   const handleInstitutionSearchInput = (query: string) => {
     setInstitutionSearchQuery(query);
+    setInstitutionSkipped(false);
+    if (selectedInstitution && query !== selectedInstitution.name) {
+      setSelectedInstitution(null);
+    }
     
     // Clear existing timeout
     if (searchTimeout) {
@@ -394,6 +403,8 @@ const Register: React.FC = () => {
     setSelectedInstitution(null);
     setInstitutionSearchQuery('');
     setAvailableInstitutions([]);
+    setInstitutionSkipped(true);
+    setInstitutionInterestName(institutionSearchQuery.trim());
     setInterestSubmissionStatus('idle');
     setShowInstitutionInterestModal(true);
   };
@@ -524,14 +535,13 @@ const Register: React.FC = () => {
       }
       
       // Validate registration number format
-      if (!/^[A-Z0-9/-]{6,20}$/i.test(formData.registrationNumber)) {
-        showToastMessage('Registration number must be 6-20 characters (letters, numbers, /, - only)', 'error');
+      if (!/^[A-Z0-9/ -]{3,50}$/i.test(formData.registrationNumber)) {
+        showToastMessage('Registration number must be 3-50 characters using letters, numbers, spaces, /, or -', 'error');
         return false;
       }
       
-      // Validate institution selection
-      if (!selectedInstitution) {
-        showToastMessage('Please select your institution', 'error');
+      if (!selectedInstitution && !institutionSkipped) {
+        showToastMessage('Select your institution or choose "I cannot find my institution" to continue', 'error');
         return false;
       }
     }
@@ -550,37 +560,11 @@ const Register: React.FC = () => {
   };
 
   const validateForm = (): boolean => {
-    if (!formData.firstName.trim()) {
-      setMessage('Please enter your first name');
-      return false;
-    }
-    if (!formData.lastName.trim()) {
-      setMessage('Please enter your last name');
-      return false;
-    }
-    if (!formData.email.trim()) {
-      setMessage('Please enter your email address');
-      return false;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      setMessage('Please enter a valid email address');
-      return false;
-    }
-    if (!formData.phone.trim()) {
-      setMessage('Please enter your phone number');
-      return false;
-    }
-    if (!formData.password) {
-      setMessage('Please enter a password');
-      return false;
-    }
-    if (formData.password.length < 8) {
-      setMessage('Password must be at least 8 characters long');
-      return false;
-    }
-    if (formData.password !== formData.confirmPassword) {
-      setMessage('Passwords do not match');
-      return false;
+    for (const step of [0, 1, 2]) {
+      if (!validateStep(step)) {
+        setCurrentStep(step);
+        return false;
+      }
     }
     return true;
   };
@@ -594,31 +578,6 @@ const Register: React.FC = () => {
     }
 
     setIsSubmitting(true);
-
-    // Create loading overlay
-    const formBox = document.querySelector('.form-box');
-    if (formBox) {
-      const loadingOverlay = document.createElement('div');
-      loadingOverlay.className = 'loading-overlay';
-      loadingOverlay.innerHTML = `
-        <div class="loading-content">
-          <div class="loading-spinner-enhanced"></div>
-          <div class="loading-title">Creating Your Account</div>
-          <div class="loading-subtitle">Please wait while we set up your profile...</div>
-          <div class="loading-shimmer"></div>
-          <div class="loading-dots">
-            <div class="loading-dot"></div>
-            <div class="loading-dot"></div>
-            <div class="loading-dot"></div>
-          </div>
-          <div class="loading-progress">
-            <div class="loading-progress-bar"></div>
-          </div>
-        </div>
-      `;
-      (formBox as HTMLElement).style.position = 'relative';
-      formBox.appendChild(loadingOverlay);
-    }
 
     try {
       const payload = {
@@ -665,11 +624,6 @@ const Register: React.FC = () => {
       }
     } finally {
       setIsSubmitting(false);
-      // Remove loading overlay
-      const loadingOverlay = document.querySelector('.loading-overlay');
-      if (loadingOverlay) {
-        loadingOverlay.remove();
-      }
     }
   };
 
@@ -772,7 +726,7 @@ const Register: React.FC = () => {
           padding: '20px'
         }}>
           <div className="form-box" style={{
-            position: 'static',
+            position: 'relative',
             backdropFilter: 'none',
             background: 'transparent',
             border: 'none',
@@ -923,6 +877,8 @@ const Register: React.FC = () => {
               </div>
             )}
 
+            {!registrationComplete && (
+              <>
             {/* Step Indicator */}
             <div className="step-indicator" style={{
               display: 'flex',
@@ -1357,6 +1313,7 @@ const Register: React.FC = () => {
                             key={institution.id}
                             onClick={() => {
                               setSelectedInstitution(institution);
+                              setInstitutionSkipped(false);
                               setAvailableInstitutions([]);
                               setInstitutionSearchQuery(institution.name);
                             }}
@@ -1425,6 +1382,7 @@ const Register: React.FC = () => {
                           type="button"
                           onClick={() => {
                             setSelectedInstitution(null);
+                            setInstitutionSkipped(false);
                             setInstitutionSearchQuery('');
                             setAvailableInstitutions([]);
                           }}
@@ -1444,6 +1402,21 @@ const Register: React.FC = () => {
                       <div style={{ fontSize: '11px', opacity: 0.8, marginTop: '2px' }}>
                         EduLink will try to auto-verify institutional emails. Personal emails may need a verification document after registration.
                       </div>
+                    </div>
+                  )}
+
+                  {institutionSkipped && !selectedInstitution && (
+                    <div style={{
+                      marginTop: '8px',
+                      padding: '8px 12px',
+                      backgroundColor: 'rgba(255, 193, 7, 0.16)',
+                      borderRadius: '6px',
+                      border: '1px solid rgba(255, 193, 7, 0.45)',
+                      fontSize: '12px',
+                      color: '#fff3cd',
+                      lineHeight: '1.4'
+                    }}>
+                      You can create your account now and request institution verification from your dashboard.
                     </div>
                   )}
                   
@@ -1471,7 +1444,7 @@ const Register: React.FC = () => {
                       onMouseOver={(e) => e.currentTarget.style.opacity = '1'}
                       onMouseOut={(e) => e.currentTarget.style.opacity = '0.8'}
                     >
-                      Can't find your institution? Skip for now
+                      I cannot find my institution
                     </button>
                   </div>
                 </div>
@@ -1485,6 +1458,7 @@ const Register: React.FC = () => {
               <div className="form-navigation" style={{
                 display: 'flex',
                 justifyContent: 'space-between',
+                gap: '12px',
                 marginTop: '10px'
               }}>
                 <button
@@ -1498,9 +1472,10 @@ const Register: React.FC = () => {
                     border: '1px solid #c8e6c9',
                     backgroundColor: 'transparent',
                     color: '#c8e6c9',
-                    cursor: 'pointer',
+                    cursor: isSubmitting ? 'default' : 'pointer',
                     fontWeight: '600'
                   }}
+                  disabled={isSubmitting}
                 >
                   Previous
                 </button>
@@ -1525,7 +1500,7 @@ const Register: React.FC = () => {
                   type="submit"
                   style={{
                     display: currentStep === 2 ? 'inline-block' : 'none',
-                    width: '100%',
+                    flex: '1 1 auto',
                     padding: '13px',
                     background: 'linear-gradient(90deg,rgb(10, 187, 163) 0%,rgb(7, 168, 141) 100%)',
                     color: 'white',
@@ -1546,7 +1521,30 @@ const Register: React.FC = () => {
               </div>
             </form>
 
+            {isSubmitting && (
+              <div className="loading-overlay" role="status" aria-live="polite">
+                <div className="loading-content">
+                  <div className="loading-spinner-enhanced"></div>
+                  <div className="loading-title">Creating Your Account</div>
+                  <div className="loading-subtitle">Please wait while we set up your profile...</div>
+                  <div className="loading-shimmer"></div>
+                  <div className="loading-dots">
+                    <div className="loading-dot"></div>
+                    <div className="loading-dot"></div>
+                    <div className="loading-dot"></div>
+                  </div>
+                  <div className="loading-progress">
+                    <div className="loading-progress-bar"></div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+              </>
+            )}
+
             <div style={{
+              clear: 'both',
               textAlign: 'center',
               marginTop: '18px',
               fontSize: '14px',
@@ -1674,9 +1672,9 @@ const Register: React.FC = () => {
                       fontWeight: '600',
                       border: '1px solid #d1d5db',
                       transition: 'all 0.2s'
-                    }}
-                  >
-                    Maybe later
+                  }}
+                >
+                    Continue without it
                   </button>
                   <button
                     type="button"

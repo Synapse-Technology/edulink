@@ -15,6 +15,7 @@ import type {
   SupervisorProfileUpdateRequest,
 } from '../../../services/institution/institutionService';
 import InstitutionTableSkeleton from '../../../components/admin/skeletons/InstitutionTableSkeleton';
+import { sanitizeAdminError } from '../../../utils/adminErrorSanitizer';
 
 const InstitutionStaff: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -108,7 +109,8 @@ const InstitutionStaff: React.FC = () => {
       const data = await institutionService.getStaffList(params);
       setStaffMembers(data);
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch staff members');
+      const sanitized = sanitizeAdminError(err);
+      setError(sanitized.userMessage || 'Failed to fetch staff members');
     } finally {
       setLoading(false);
     }
@@ -125,7 +127,8 @@ const InstitutionStaff: React.FC = () => {
       const data = await institutionService.getStaffProfileRequests({ status: 'pending' });
       setProfileRequests(data);
     } catch (err: any) {
-      setProfileRequestsError(err.message || 'Failed to fetch profile update requests');
+      const sanitized = sanitizeAdminError(err);
+      setProfileRequestsError(sanitized.userMessage || 'Failed to fetch profile update requests');
     } finally {
       setProfileRequestsLoading(false);
     }
@@ -175,7 +178,8 @@ const InstitutionStaff: React.FC = () => {
         setSelectedStaff(null);
       }, 1500);
     } catch (err: any) {
-      setEditError(err.message || 'Failed to update staff details');
+      const sanitized = sanitizeAdminError(err);
+      setEditError(sanitized.userMessage || 'Failed to update staff details');
     } finally {
       setEditLoading(false);
     }
@@ -204,10 +208,11 @@ const InstitutionStaff: React.FC = () => {
         `The profile update request has been ${action}d successfully.`
       );
     } catch (err: any) {
+      const sanitized = sanitizeAdminError(err);
       showError(
         'Action Failed',
         'Failed to process profile update request',
-        err.message
+        sanitized.details
       );
     } finally {
       setProfileRequestsProcessing(false);
@@ -236,7 +241,8 @@ const InstitutionStaff: React.FC = () => {
       fetchStaff();
       setTimeout(() => setShowInviteModal(false), 2000);
     } catch (err: any) {
-      setInviteError(err.message || 'Failed to send invitation');
+      const sanitized = sanitizeAdminError(err);
+      setInviteError(sanitized.userMessage || 'Failed to send invitation');
     } finally {
       setInviteLoading(false);
     }
@@ -249,7 +255,8 @@ const InstitutionStaff: React.FC = () => {
         await institutionService.resendInvite(inviteId);
         showSuccess('Invite Resent', 'The invitation has been resent successfully.');
     } catch (err: any) {
-        showError('Resend Failed', "Failed to resend invite", err.message);
+        const sanitized = sanitizeAdminError(err);
+        showError('Resend Failed', "Failed to resend invite", sanitized.details);
     }
   };
 
@@ -265,7 +272,8 @@ const InstitutionStaff: React.FC = () => {
             showToast.success('Staff member removed successfully');
             fetchStaff();
         } catch (err: any) {
-            showError('Removal Failed', "Failed to remove staff member", err.message);
+            const sanitized = sanitizeAdminError(err);
+            showError('Removal Failed', "Failed to remove staff member", sanitized.details);
         }
       }
     });
@@ -285,7 +293,8 @@ const InstitutionStaff: React.FC = () => {
       setBulkDeptId('');
       setBulkCohortId('');
     } catch (err: any) {
-      showError('Assignment Failed', 'Failed to assign supervisors', err.message);
+      const sanitized = sanitizeAdminError(err);
+      showError('Assignment Failed', 'Failed to assign supervisors', sanitized.details);
     } finally {
       setIsBulkAssigning(false);
     }

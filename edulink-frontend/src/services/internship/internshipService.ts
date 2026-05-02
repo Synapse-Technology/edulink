@@ -32,6 +32,14 @@ export interface InternshipOpportunity {
   application_deadline?: string;
   is_deadline_expired?: boolean; // Backend computed field for deadline validation
   is_institution_restricted?: boolean;
+  application_mode?: 'INTERNAL' | 'EXTERNAL';
+  origin?: 'EDULINK_INTERNAL' | 'EXTERNAL_STUDENT_DECLARED' | 'ADMIN_CURATED_EXTERNAL';
+  external_employer_name?: string;
+  external_source_name?: string;
+  external_apply_url?: string;
+  external_reference?: string;
+  curated_by?: string;
+  last_verified_at?: string;
   created_at?: string;
   updated_at?: string;
   student_has_applied?: boolean;
@@ -129,6 +137,62 @@ export interface CreateInternshipData {
   duration?: string;
   application_deadline?: string;
   is_institution_restricted?: boolean;
+  application_mode?: 'INTERNAL' | 'EXTERNAL';
+  origin?: 'EDULINK_INTERNAL' | 'EXTERNAL_STUDENT_DECLARED' | 'ADMIN_CURATED_EXTERNAL';
+  external_employer_name?: string;
+  external_source_name?: string;
+  external_apply_url?: string;
+  external_reference?: string;
+}
+
+export interface ExternalPlacementDeclaration {
+  id: string;
+  student_id: string;
+  student_info?: {
+    name?: string;
+    email?: string;
+    registration_number?: string;
+    department?: string;
+    cohort?: string;
+  };
+  institution_id: string;
+  application?: string;
+  application_status?: string;
+  status: 'PENDING' | 'CHANGES_REQUESTED' | 'APPROVED' | 'REJECTED';
+  status_display?: string;
+  company_name: string;
+  company_contact_name?: string;
+  company_contact_email?: string;
+  company_contact_phone?: string;
+  role_title: string;
+  location?: string;
+  location_type: 'ONSITE' | 'REMOTE' | 'HYBRID';
+  start_date: string;
+  end_date?: string | null;
+  source_url?: string;
+  proof_document?: string;
+  student_notes?: string;
+  review_notes?: string;
+  reviewed_by?: string;
+  reviewed_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ExternalPlacementDeclarationPayload {
+  institution_id: string;
+  company_name: string;
+  company_contact_name?: string;
+  company_contact_email?: string;
+  company_contact_phone?: string;
+  role_title: string;
+  location?: string;
+  location_type?: 'ONSITE' | 'REMOTE' | 'HYBRID';
+  start_date: string;
+  end_date?: string;
+  source_url?: string;
+  proof_document?: File;
+  student_notes?: string;
 }
 
 export interface InternshipParams {
@@ -314,6 +378,59 @@ class InternshipService {
       // Rethrow all errors to preserve ApiError status codes
       throw error;
     }
+  }
+
+  async getExternalPlacementDeclarations(): Promise<ExternalPlacementDeclaration[]> {
+    const response = await this.client.get<PaginatedResponse<ExternalPlacementDeclaration> | ExternalPlacementDeclaration[]>(
+      '/api/internships/external-placement-declarations/'
+    );
+    return Array.isArray(response) ? response : response.results || [];
+  }
+
+  async declareExternalPlacement(
+    data: ExternalPlacementDeclarationPayload
+  ): Promise<ExternalPlacementDeclaration> {
+    const formData = new FormData();
+    Object.entries(data).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        formData.append(key, value as string | Blob);
+      }
+    });
+
+    return this.client.post<ExternalPlacementDeclaration>(
+      '/api/internships/external-placement-declarations/',
+      formData
+    );
+  }
+
+  async approveExternalPlacementDeclaration(
+    declarationId: string,
+    reviewNotes = ''
+  ): Promise<ExternalPlacementDeclaration> {
+    return this.client.post<ExternalPlacementDeclaration>(
+      `/api/internships/external-placement-declarations/${declarationId}/approve/`,
+      { review_notes: reviewNotes }
+    );
+  }
+
+  async requestExternalPlacementChanges(
+    declarationId: string,
+    reviewNotes = ''
+  ): Promise<ExternalPlacementDeclaration> {
+    return this.client.post<ExternalPlacementDeclaration>(
+      `/api/internships/external-placement-declarations/${declarationId}/request-changes/`,
+      { review_notes: reviewNotes }
+    );
+  }
+
+  async rejectExternalPlacementDeclaration(
+    declarationId: string,
+    reviewNotes = ''
+  ): Promise<ExternalPlacementDeclaration> {
+    return this.client.post<ExternalPlacementDeclaration>(
+      `/api/internships/external-placement-declarations/${declarationId}/reject/`,
+      { review_notes: reviewNotes }
+    );
   }
 
   // --- Applications (Engagements) ---

@@ -1,8 +1,15 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { SEO } from '../components/common';
+import {
+  internshipService,
+  type SuccessStory,
+} from '../services/internship/internshipService';
 
 const Home: React.FC = () => {
+  const [successStories, setSuccessStories] = useState<SuccessStory[]>([]);
+  const [storiesLoading, setStoriesLoading] = useState(true);
+
   useEffect(() => {
     function animateCounter(element: HTMLElement, start: number, end: number, duration: number) {
       let startTimestamp: number | null = null;
@@ -43,12 +50,58 @@ const Home: React.FC = () => {
     initCounters();
   }, []);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchSuccessStories = async () => {
+      try {
+        setStoriesLoading(true);
+        const data = await internshipService.getSuccessStories();
+        const published = data
+          .filter(story => story.is_published)
+          .sort(
+            (a, b) =>
+              new Date(b.created_at).getTime() -
+              new Date(a.created_at).getTime()
+          )
+          .slice(0, 3);
+
+        if (isMounted) {
+          setSuccessStories(published);
+        }
+      } catch (error) {
+        console.error('Failed to load home success stories:', error);
+        if (isMounted) {
+          setSuccessStories([]);
+        }
+      } finally {
+        if (isMounted) {
+          setStoriesLoading(false);
+        }
+      }
+    };
+
+    fetchSuccessStories();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const getInitials = (name?: string) =>
+    (name || 'Student')
+      .split(' ')
+      .slice(0, 2)
+      .map(part => part[0])
+      .join('')
+      .toUpperCase();
+
   return (
     <div className="home-page">
       <SEO 
         title="Home"
-        description="EduLink KE is the leading platform for verified internships and graduate jobs in Kenya. Connecting students, institutions, and employers for a better career path."
-        keywords="internships kenya, graduate jobs, student placements, edulink home"
+        description="EduLink KE helps Kenyan institutions run trusted attachment and internship programs with verified employers, supervised logbooks, evidence, and outcome reporting."
+        keywords="industrial attachment Kenya, verified internships Kenya, student placement system, institution attachment portal"
       />
       {/* Hero Section */}
       <section id="hero" className="hero section dark-background">
@@ -59,11 +112,14 @@ const Home: React.FC = () => {
         />
         
         <div className="container">
-          <h2 data-aos="fade-up" data-aos-delay="100">Verified Internships,<br />Brighter Futures</h2>
+          <h2 data-aos="fade-up" data-aos-delay="100">Trusted Attachments,<br />Verified Outcomes</h2>
           <p data-aos="fade-up" data-aos-delay="200">
-            Connecting Kenyan students to trusted internship and graduate job opportunities with smart tools and verified employers.
+            Helping Kenyan institutions, students, and employers run attachment and internship programs with verified identity, supervision, logbooks, and completion evidence.
           </p>
-          <Link to="/opportunities" className="btn-get-started" data-aos="fade-up" data-aos-delay="300">Find Opportunities</Link>
+          <div className="d-flex flex-wrap gap-3" data-aos="fade-up" data-aos-delay="300">
+            <Link to="/institutions/request" className="btn-get-started">Start Institution Pilot</Link>
+            <Link to="/employer/onboarding" className="btn-get-started btn-secondary-action">Join as Employer</Link>
+          </div>
         </div>
       </section>
 
@@ -76,22 +132,22 @@ const Home: React.FC = () => {
             </div>
 
             <div className="col-lg-6 order-2 order-lg-1 content" data-aos="fade-up" data-aos-delay="200">
-              <h3>Empowering Youth Through Verified Work Experience</h3>
+              <h3>A Trusted Operating System For Work-Based Learning</h3>
               <p className="fst-italic">
-                EduLink KE is committed to bridging the gap between education and employment for Kenyan youth by making the internship journey safer, smarter, and more successful.
+                EduLink KE is built around the real attachment cycle: institution verification, employer trust, student applications, supervision, evidence, and final outcomes.
               </p>
               <ul>
                 <li>
                   <i className="bi bi-check-circle"></i> 
-                  <span>Access only verified internship and graduate job listings.</span>
+                  <span>Verify students by institution, department, and cohort before placement.</span>
                 </li>
                 <li>
                   <i className="bi bi-check-circle"></i> 
-                  <span>Track your applications, feedback, and performance with digital tools.</span>
+                  <span>Give employers structured applications, supervision tools, and trusted candidate records.</span>
                 </li>
                 <li>
                   <i className="bi bi-check-circle"></i> 
-                  <span>Receive digital certificates and build a professional profile trusted by employers and institutions.</span>
+                  <span>Track logbooks, artifacts, feedback, completion, and verifiable certificates.</span>
                 </li>
               </ul>
             </div>
@@ -105,29 +161,29 @@ const Home: React.FC = () => {
           <div className="row gy-4">
             <div className="col-lg-3 col-md-6">
               <div className="stats-item text-center w-100 h-100">
-                <span data-purecounter-start="0" data-purecounter-end="1500" data-purecounter-duration="1" className="purecounter">0</span>
-                <p>Students</p>
-              </div>
-            </div>
-
-            <div className="col-lg-3 col-md-6">
-              <div className="stats-item text-center w-100 h-100">
-                <span data-purecounter-start="0" data-purecounter-end="75" data-purecounter-duration="1" className="purecounter">0</span>
-                <p>Opportunities</p>
+                <span data-purecounter-start="0" data-purecounter-end="300" data-purecounter-duration="1" className="purecounter">0</span>
+                <p>Pilot Students Target</p>
               </div>
             </div>
 
             <div className="col-lg-3 col-md-6">
               <div className="stats-item text-center w-100 h-100">
                 <span data-purecounter-start="0" data-purecounter-end="30" data-purecounter-duration="1" className="purecounter">0</span>
-                <p>Partner Institutions</p>
+                <p>Verified Opportunities Target</p>
               </div>
             </div>
 
             <div className="col-lg-3 col-md-6">
               <div className="stats-item text-center w-100 h-100">
-                <span data-purecounter-start="0" data-purecounter-end="45" data-purecounter-duration="1" className="purecounter">0</span>
-                <p>Verified Employers</p>
+                <span data-purecounter-start="0" data-purecounter-end="3" data-purecounter-duration="1" className="purecounter">0</span>
+                <p>Institution Partners Target</p>
+              </div>
+            </div>
+
+            <div className="col-lg-3 col-md-6">
+              <div className="stats-item text-center w-100 h-100">
+                <span data-purecounter-start="0" data-purecounter-end="20" data-purecounter-duration="1" className="purecounter">0</span>
+                <p>Employer Partners Target</p>
               </div>
             </div>
           </div>
@@ -142,7 +198,7 @@ const Home: React.FC = () => {
               <div className="why-box">
                 <h3>Why Choose EduLink KE?</h3>
                 <p>
-                  Fake internships and lack of placement tracking leave students vulnerable and institutions underprepared. EduLink KE offers a trusted digital bridge between learning and employment.
+                  Kenya's attachment market is fragmented across portals, WhatsApp, employer websites, and paper processes. EduLink KE gives pilot institutions one trusted workflow from student verification to completion reporting.
                 </p>
                 <div className="text-center">
                   <Link to="/why-us" className="more-btn">
@@ -157,24 +213,24 @@ const Home: React.FC = () => {
                 <div className="col-xl-4">
                   <div className="icon-box d-flex flex-column justify-content-center align-items-center">
                     <i className="bi bi-clipboard-data"></i>
-                    <h4>Track & Certify Experience</h4>
-                    <p>Digital logbooks, supervisor ratings, and downloadable internship certificates.</p>
+                    <h4>Run The Full Cycle</h4>
+                    <p>Applications, supervision, logbooks, incidents, evidence, completion, and certificates.</p>
                   </div>
                 </div>
 
                 <div className="col-xl-4" data-aos="fade-up" data-aos-delay="300">
                   <div className="icon-box d-flex flex-column justify-content-center align-items-center">
                     <i className="bi bi-gem"></i>
-                    <h4>Verified, Trusted Listings</h4>
-                    <p>Every opportunity is screened and approved to eliminate scams and fraud.</p>
+                    <h4>Trust Before Scale</h4>
+                    <p>Institution affiliation and employer verification reduce fake listings and weak records.</p>
                   </div>
                 </div>
 
                 <div className="col-xl-4" data-aos="fade-up" data-aos-delay="400">
                   <div className="icon-box d-flex flex-column justify-content-center align-items-center">
                     <i className="bi bi-inboxes"></i>
-                    <h4>Smart Matching with AI</h4>
-                    <p>Receive personalized internship recommendations based on your profile and skills.</p>
+                    <h4>Outcome Reporting</h4>
+                    <p>Placement rates, department performance, supervisor load, and audit-ready evidence.</p>
                   </div>
                 </div>
               </div>
@@ -188,35 +244,35 @@ const Home: React.FC = () => {
         <div className="container" data-aos="fade-up">
           <div className="section-title text-center">
             <h2>How It Works</h2>
-            <p>A simple, streamlined path to your next opportunity.</p>
+            <p>A focused workflow for beta institutions, employers, and student cohorts.</p>
           </div>
           <div className="row gy-4 mt-4">
             <div className="col-md-6 col-lg-3 d-flex align-items-stretch" data-aos="fade-up" data-aos-delay="100">
               <div className="icon-box-step text-center">
                 <div className="icon"><i className="bi bi-person-plus"></i></div>
-                <h4>1. Create Profile</h4>
-                <p>Sign up and build a professional profile to showcase your skills.</p>
+                <h4>1. Verify Cohort</h4>
+                <p>Institution admins define departments, cohorts, and eligible students.</p>
               </div>
             </div>
             <div className="col-md-6 col-lg-3 d-flex align-items-stretch" data-aos="fade-up" data-aos-delay="200">
               <div className="icon-box-step text-center">
                 <div className="icon"><i className="bi bi-compass"></i></div>
-                <h4>2. Discover Opportunities</h4>
-                <p>Explore verified internships and graduate jobs tailored to you.</p>
+                <h4>2. Approve Employers</h4>
+                <p>Employers join through onboarding and publish trusted opportunities.</p>
               </div>
             </div>
             <div className="col-md-6 col-lg-3 d-flex align-items-stretch" data-aos="fade-up" data-aos-delay="300">
               <div className="icon-box-step text-center">
                 <div className="icon"><i className="bi bi-clipboard-check"></i></div>
-                <h4>3. Apply & Track</h4>
-                <p>Apply with one click and monitor your application status in real-time.</p>
+                <h4>3. Place & Supervise</h4>
+                <p>Students apply, get reviewed, start placements, and submit logbooks.</p>
               </div>
             </div>
             <div className="col-md-6 col-lg-3 d-flex align-items-stretch" data-aos="fade-up" data-aos-delay="400">
               <div className="icon-box-step text-center">
                 <div className="icon"><i className="bi bi-patch-check-fill"></i></div>
-                <h4>4. Get Certified</h4>
-                <p>Receive digital certificates upon completion to validate your experience.</p>
+                <h4>4. Report Outcomes</h4>
+                <p>Institutions certify completions and review placement performance.</p>
               </div>
             </div>
           </div>
@@ -228,7 +284,7 @@ const Home: React.FC = () => {
         <div className="container" data-aos="fade-up">
           <div className="section-title text-center mb-5">
             <h2>The EduLink Trust Journey</h2>
-            <p>Your path to becoming a certified, high-tier professional.</p>
+            <p>Visible trust signals across students, institutions, employers, and completion evidence.</p>
           </div>
           
           <div className="row gy-4">
@@ -274,7 +330,7 @@ const Home: React.FC = () => {
           </div>
           
           <div className="text-center mt-5">
-            <Link to="/register" className="btn btn-primary rounded-pill px-5 py-3 fw-bold shadow-sm">Start Your Journey</Link>
+            <Link to="/institutions/request" className="btn btn-primary rounded-pill px-5 py-3 fw-bold shadow-sm">Request Institution Pilot</Link>
           </div>
         </div>
       </section>
@@ -282,111 +338,90 @@ const Home: React.FC = () => {
       {/* Success Stories Preview Section */}
       <section id="success-stories" className="section light-background">
         <div className="container" data-aos="fade-up">
-          <div className="section-title text-center mb-5">
-            <h2>Student Success Stories</h2>
-            <p>Real students achieving their career goals through EduLink verified internships.</p>
-          </div>
-          
-          <div className="row gy-4 mb-5">
-            {/* Featured Story Card 1 */}
-            <div className="col-lg-4 d-flex" data-aos="zoom-in" data-aos-delay="100">
-              <div className="card border-0 shadow-sm h-100 overflow-hidden transition-transform hover-lift">
-                <div className="bg-primary text-white p-4 position-relative overflow-hidden" style={{background: 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)'}}>
-                  <div className="position-absolute top-0 end-0 opacity-10" style={{fontSize: '80px'}}>
-                    <i className="bi bi-quote"></i>
-                  </div>
-                  <div className="d-flex align-items-center gap-2 mb-3">
-                    <i className="bi bi-star-fill"></i>
-                    <i className="bi bi-star-fill"></i>
-                    <i className="bi bi-star-fill"></i>
-                    <i className="bi bi-star-fill"></i>
-                    <i className="bi bi-star-fill"></i>
-                  </div>
-                  <p className="lead fst-italic mb-0">
-                    "EduLink didn't just connect me to an internship, it transformed my career trajectory."
-                  </p>
-                </div>
-                <div className="card-body">
-                  <h6 className="fw-bold text-dark mb-1">Alex Kipchoge</h6>
-                  <p className="small text-muted mb-3">Software Engineer @ TechCorp</p>
-                  <p className="small text-secondary mb-0">
-                    "The digital logbook and certificate system proved my experience to employers. I was hired full-time 2 weeks after completing my internship."
-                  </p>
-                </div>
-                <div className="px-4 pb-3">
-                  <small className="text-success">✓ 3-Month Internship | Certified</small>
-                </div>
-              </div>
+          <div className="home-section-heading">
+            <div>
+              <span className="home-section-eyebrow">Verified outcomes</span>
+              <h2>Student Success Stories</h2>
+              <p>
+                Real student placement outcomes from published EduLink success records.
+              </p>
             </div>
-
-            {/* Featured Story Card 2 */}
-            <div className="col-lg-4 d-flex" data-aos="zoom-in" data-aos-delay="200">
-              <div className="card border-0 shadow-sm h-100 overflow-hidden transition-transform hover-lift">
-                <div className="bg-success text-white p-4 position-relative overflow-hidden" style={{background: 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)'}}>
-                  <div className="position-absolute top-0 end-0 opacity-10" style={{fontSize: '80px'}}>
-                    <i className="bi bi-quote"></i>
-                  </div>
-                  <div className="d-flex align-items-center gap-2 mb-3">
-                    <i className="bi bi-star-fill"></i>
-                    <i className="bi bi-star-fill"></i>
-                    <i className="bi bi-star-fill"></i>
-                    <i className="bi bi-star-fill"></i>
-                    <i className="bi bi-star-fill"></i>
-                  </div>
-                  <p className="lead fst-italic mb-0">
-                    "The verification system gave me confidence that every opportunity was legitimate."
-                  </p>
-                </div>
-                <div className="card-body">
-                  <h6 className="fw-bold text-dark mb-1">Faith Ochieng</h6>
-                  <p className="small text-muted mb-3">Data Analyst @ Fintech Kenya</p>
-                  <p className="small text-secondary mb-0">
-                    "As an institution, we can now track student internship progress and verify completion. EduLink bridges the gap between campus and career."
-                  </p>
-                </div>
-                <div className="px-4 pb-3">
-                  <small className="text-success">✓ 2-Month Internship | Certified</small>
-                </div>
-              </div>
-            </div>
-
-            {/* Featured Story Card 3 */}
-            <div className="col-lg-4 d-flex" data-aos="zoom-in" data-aos-delay="300">
-              <div className="card border-0 shadow-sm h-100 overflow-hidden transition-transform hover-lift">
-                <div className="bg-info text-white p-4 position-relative overflow-hidden" style={{background: 'linear-gradient(135deg, #FF9800 0%, #F57C00 100%)'}}>
-                  <div className="position-absolute top-0 end-0 opacity-10" style={{fontSize: '80px'}}>
-                    <i className="bi bi-quote"></i>
-                  </div>
-                  <div className="d-flex align-items-center gap-2 mb-3">
-                    <i className="bi bi-star-fill"></i>
-                    <i className="bi bi-star-fill"></i>
-                    <i className="bi bi-star-fill"></i>
-                    <i className="bi bi-star-fill"></i>
-                    <i className="bi bi-star-fill"></i>
-                  </div>
-                  <p className="lead fst-italic mb-0">
-                    "Real company. Real work. Real growth. That's what EduLink delivers."
-                  </p>
-                </div>
-                <div className="card-body">
-                  <h6 className="fw-bold text-dark mb-1">Kevin Mutua</h6>
-                  <p className="small text-muted mb-3">Product Manager @ StartupKE</p>
-                  <p className="small text-secondary mb-0">
-                    "We use EduLink to find trusted, vetted interns. The platform's verification process saves us weeks of recruitment time."
-                  </p>
-                </div>
-                <div className="px-4 pb-3">
-                  <small className="text-success">✓ 4-Month Internship | Hired</small>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="text-center">
-            <Link to="/success-stories" className="btn btn-primary btn-lg rounded-pill px-5 py-3 shadow-sm fw-bold">
-              <span className="me-2">Browse All Success Stories</span>
-              <i className="bi bi-arrow-right"></i>
+            <Link to="/success-stories" className="btn btn-outline-primary">
+              View All Stories
             </Link>
+            <Link to="/trust-policy" className="btn btn-outline-dark">
+              Trust Policy
+            </Link>
+          </div>
+
+          <div className="home-outcomes-grid">
+            {storiesLoading ? (
+              [1, 2, 3].map(item => (
+                <div className="home-outcome-card skeleton" key={item}>
+                  <div className="home-outcome-header">
+                    <div className="home-outcome-avatar" />
+                    <div className="w-100">
+                      <div className="skeleton-line short" />
+                      <div className="skeleton-line" />
+                    </div>
+                  </div>
+                  <div className="skeleton-line wide" />
+                  <div className="skeleton-line" />
+                  <div className="skeleton-line medium" />
+                </div>
+              ))
+            ) : successStories.length > 0 ? (
+              successStories.map((story, index) => (
+                <article
+                  className="home-outcome-card"
+                  key={story.id}
+                  data-aos="zoom-in"
+                  data-aos-delay={(index + 1) * 100}
+                >
+                  <div className="home-outcome-header">
+                    <div className="home-outcome-avatar" aria-hidden="true">
+                      {getInitials(story.student_name)}
+                    </div>
+                    <div className="min-width-0">
+                      <h3>{story.student_name || 'Student'}</h3>
+                      <p>
+                        {story.employer_name
+                          ? `Intern at ${story.employer_name}`
+                          : 'Verified internship graduate'}
+                      </p>
+                    </div>
+                  </div>
+                  <blockquote>
+                    "{story.student_testimonial || story.employer_feedback}"
+                  </blockquote>
+                  <div className="home-outcome-footer">
+                    <span>
+                      <i className="bi bi-patch-check-fill"></i>
+                      Verified success story
+                    </span>
+                    {story.created_at && (
+                      <time dateTime={story.created_at}>
+                        {new Date(story.created_at).toLocaleDateString('en-GB', {
+                          month: 'short',
+                          year: 'numeric',
+                        })}
+                      </time>
+                    )}
+                  </div>
+                </article>
+              ))
+            ) : (
+              <div className="home-outcome-empty">
+                <h3>Published success stories will appear here soon.</h3>
+                <p>
+                  Explore current opportunities while institutions and employers
+                  publish verified student outcomes.
+                </p>
+                <Link to="/opportunities" className="btn btn-primary">
+                  Find Opportunities
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -473,6 +508,10 @@ const Home: React.FC = () => {
           background: var(--accent-color); /* Accent color on hover */
           border: 2px solid var(--accent-color); /* Accent border on hover */
           color: #ffffff; /* White text on hover */
+        }
+
+        .hero .btn-secondary-action {
+          background: rgba(255, 255, 255, 0.12);
         }
 
         .dark-background {
@@ -707,58 +746,188 @@ const Home: React.FC = () => {
           font-size: 1.15rem;
         }
 
-        /* Success Stories Section Enhancements */
+        /* Success Stories Section */
         #success-stories {
-          padding: 60px 0;
+          background: #f8fafc;
+          padding: 64px 0;
         }
 
-        #success-stories .card {
-          transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-          border-radius: 12px;
+        .home-section-heading {
+          align-items: flex-end;
+          display: flex;
+          gap: 24px;
+          justify-content: space-between;
+          margin-bottom: 24px;
+        }
+
+        .home-section-heading h2 {
+          color: #0f172a;
+          font-size: 2rem;
+          font-weight: 800;
+          margin: 0 0 8px;
+        }
+
+        .home-section-heading p {
+          color: #64748b;
+          line-height: 1.7;
+          margin: 0;
+          max-width: 680px;
+        }
+
+        .home-section-eyebrow {
+          color: var(--accent-color);
+          display: block;
+          font-size: 0.78rem;
+          font-weight: 800;
+          margin-bottom: 8px;
+          text-transform: uppercase;
+        }
+
+        .home-section-heading .btn {
+          border-radius: 7px;
+          flex: 0 0 auto;
+          font-weight: 700;
+        }
+
+        .home-outcomes-grid {
+          display: grid;
+          gap: 14px;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .home-outcome-card,
+        .home-outcome-empty {
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          padding: 20px;
+        }
+
+        .home-outcome-card {
+          display: flex;
+          flex-direction: column;
+          min-height: 245px;
+        }
+
+        .home-outcome-header {
+          align-items: center;
+          display: flex;
+          gap: 12px;
+          margin-bottom: 16px;
+          min-width: 0;
+        }
+
+        .home-outcome-avatar {
+          align-items: center;
+          background: #e6f7f7;
+          border: 1px solid rgba(0,153,153,0.2);
+          border-radius: 50%;
+          color: var(--accent-color);
+          display: flex;
+          flex: 0 0 auto;
+          font-size: 0.78rem;
+          font-weight: 800;
+          height: 44px;
+          justify-content: center;
+          width: 44px;
+        }
+
+        .min-width-0 {
+          min-width: 0;
+        }
+
+        .home-outcome-header h3 {
+          color: #0f172a;
+          font-size: 1rem;
+          font-weight: 800;
+          margin: 0 0 3px;
           overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
-        #success-stories .hover-lift {
-          transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s ease;
+        .home-outcome-header p {
+          color: #64748b;
+          font-size: 0.84rem;
+          margin: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
-        #success-stories .hover-lift:hover {
-          transform: translateY(-12px);
-          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15) !important;
-        }
-
-        #success-stories .card .text-white {
-          color: #ffffff !important;
-        }
-
-        #success-stories .card .text-white-80 {
-          color: rgba(255, 255, 255, 0.8);
-        }
-
-        #success-stories .card .text-success {
-          color: #28a745 !important;
-        }
-
-        #success-stories .btn-primary {
-          background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
-          border: none;
-          padding: 12px 40px;
-          font-weight: 600;
-          transition: all 0.3s ease;
-        }
-
-        #success-stories .btn-primary:hover {
-          background: linear-gradient(135deg, #45a049 0%, #3d8b40 100%);
-          transform: translateY(-2px);
-          box-shadow: 0 8px 16px rgba(76, 175, 80, 0.3);
-        }
-
-        #success-stories .card-body p {
-          line-height: 1.6;
-        }
-
-        #success-stories .card-body h6 {
+        .home-outcome-card blockquote {
+          border-left: 3px solid #e6f7f7;
+          color: #475569;
+          flex: 1;
           font-size: 0.95rem;
+          line-height: 1.72;
+          margin: 0;
+          padding-left: 14px;
+        }
+
+        .home-outcome-footer {
+          align-items: center;
+          border-top: 1px solid #edf2f7;
+          color: #64748b;
+          display: flex;
+          flex-wrap: wrap;
+          font-size: 0.78rem;
+          gap: 10px;
+          justify-content: space-between;
+          margin-top: 18px;
+          padding-top: 14px;
+        }
+
+        .home-outcome-footer span {
+          align-items: center;
+          color: #15803d;
+          display: inline-flex;
+          font-weight: 700;
+          gap: 6px;
+        }
+
+        .home-outcome-empty {
+          grid-column: 1 / -1;
+          text-align: center;
+        }
+
+        .home-outcome-empty h3 {
+          color: #0f172a;
+          font-size: 1.15rem;
+          font-weight: 800;
+          margin: 0 0 8px;
+        }
+
+        .home-outcome-empty p {
+          color: #64748b;
+          margin: 0 auto 16px;
+          max-width: 620px;
+        }
+
+        .home-outcome-card.skeleton .home-outcome-avatar,
+        .skeleton-line {
+          background: #edf2f7;
+          border-color: transparent;
+        }
+
+        .skeleton-line {
+          border-radius: 4px;
+          height: 12px;
+          margin-bottom: 10px;
+          width: 70%;
+        }
+
+        .skeleton-line.short {
+          width: 42%;
+        }
+
+        .skeleton-line.wide {
+          margin-top: 10px;
+          width: 100%;
+        }
+
+        .skeleton-line.medium {
+          width: 58%;
         }
 
         /* Enhanced Responsive Design */
@@ -776,12 +945,18 @@ const Home: React.FC = () => {
             padding: 60px 0;
           }
 
-          #success-stories .card {
-            margin-bottom: 1.5rem;
+          .home-section-heading {
+            align-items: flex-start;
+            flex-direction: column;
+            gap: 14px;
           }
 
-          #success-stories .container {
-            padding: 0 15px;
+          .home-section-heading .btn {
+            width: 100%;
+          }
+
+          .home-outcomes-grid {
+            grid-template-columns: 1fr;
           }
         }
 
@@ -799,13 +974,12 @@ const Home: React.FC = () => {
             padding: 6px 25px 8px 25px;
           }
 
-          #success-stories .card p {
-            font-size: 0.9rem;
+          #success-stories {
+            padding: 44px 0;
           }
 
-          #success-stories .btn-primary {
-            padding: 10px 30px;
-            font-size: 0.9rem;
+          .home-section-heading h2 {
+            font-size: 1.55rem;
           }
         }
       `}</style>

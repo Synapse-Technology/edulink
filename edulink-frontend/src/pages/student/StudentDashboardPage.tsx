@@ -6,30 +6,24 @@ import {
   AlertCircle,
   Briefcase, 
   Calendar,
-  Users,
   FileText,
-  Star,
   User,
   Search,
   Building2,
-  ShieldCheck
+  ShieldCheck,
+  ArrowRight,
+  Upload,
+  BookOpen,
+  MapPin,
+  Award
 } from 'lucide-react';
-import StudentHeader from '../../components/dashboard/StudentHeader';
-import StudentSidebar from '../../components/dashboard/StudentSidebar';
+import StudentLayout from '../../components/dashboard/StudentLayout';
 import { SEO } from '../../components/common';
 import { useAuth } from '../../contexts/AuthContext';
-import { useTheme } from '../../contexts/ThemeContext';
 import { showToast } from '../../utils/toast';
 import { getErrorMessage, logError } from '../../utils/errorMapper';
 import ProfileWizard from '../../components/student/ProfileWizard';
 import ProgressRing from '../../components/student/dashboard/ProgressRing';
-import StatCard from '../../components/student/dashboard/StatCard';
-import ActionStep from '../../components/student/dashboard/ActionStep';
-import UpcomingEvent from '../../components/student/dashboard/UpcomingEvent';
-import TrustJourneyRoadmap from '../../components/student/dashboard/TrustJourneyRoadmap';
-import ProfileNudge from '../../components/student/dashboard/ProfileNudge';
-import ActiveInternshipWidget from '../../components/student/dashboard/ActiveInternshipWidget';
-import TrustTimeline from '../../components/student/dashboard/TrustTimeline';
 import { studentService } from '../../services/student/studentService';
 import { ledgerService } from '../../services/ledger/ledgerService';
 import type { LedgerEvent } from '../../services/ledger/ledgerService';
@@ -37,6 +31,7 @@ import type { Affiliation, StudentProfile } from '../../services/student/student
 import { internshipService } from '../../services/internship/internshipService';
 import type { Internship } from '../../services/internship/internshipService';
 import StudentDashboardSkeleton from '../../components/student/skeletons/StudentDashboardSkeleton';
+import '../../styles/student-portal.css';
 
 interface EventItem {
   title: string;
@@ -47,9 +42,7 @@ interface EventItem {
 
 const StudentDashboard: React.FC = () => {
   const { user, logout } = useAuth();
-  const { isDarkMode } = useTheme();
   const navigate = useNavigate();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showProfileWizard, setShowProfileWizard] = useState(false);
   const [studentId, setStudentId] = useState('');
   const [profile, setProfile] = useState<StudentProfile | null>(null);
@@ -59,7 +52,6 @@ const StudentDashboard: React.FC = () => {
   const [readinessScore, setReadinessScore] = useState(0);
   const [upcomingEvents, setUpcomingEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dashboardStats, setDashboardStats] = useState<any | null>(null);
   const [missingItems, setMissingItems] = useState<string[]>([]);
   const [affiliations, setAffiliations] = useState<Affiliation[]>([]);
   const [trustLevel, setTrustLevel] = useState(0);
@@ -102,7 +94,6 @@ const StudentDashboard: React.FC = () => {
         setStudentId(profileData.id);
         setApplications(appsList);
         setActiveInternship(active);
-        setDashboardStats(stats);
         setLedgerEvents(ledgerData.results);
         setAffiliations(affiliationData);
         
@@ -207,26 +198,6 @@ const StudentDashboard: React.FC = () => {
     };
   }, [user, hasLoggedOut, logout, navigate]);
 
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
-  };
-
-  const closeMobileMenu = () => {
-    setIsMobileMenuOpen(false);
-  };
-
-  const handleQuickLogSubmit = async (entry: string) => {
-    if (!activeInternship) return;
-    try {
-      await studentService.submitDailyLog(activeInternship.id, entry);
-      showToast.success('Log entry submitted successfully');
-    } catch (error) {
-      const message = getErrorMessage(error, { action: 'Submit Daily Log' });
-      showToast.error(message);
-      logError(error, { action: 'Submit Daily Log', data: { internshipId: activeInternship.id } });
-    }
-  };
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'APPLIED': return 'primary';
@@ -237,90 +208,6 @@ const StudentDashboard: React.FC = () => {
       default: return 'secondary';
     }
   };
-
-  // Real data stats
-  const quickStats = [
-    {
-      title: 'Applications',
-      value: applications.length.toString(),
-      icon: <FileText size={24} className="text-primary" />,
-      description: `${applications.filter(a => ['APPLIED', 'SHORTLISTED'].includes(a.status)).length} pending review`,
-      trend: dashboardStats
-        ? {
-            value: Math.abs(dashboardStats.applications?.trend_value ?? 0),
-            isPositive: dashboardStats.applications?.trend_positive ?? true
-          }
-        : undefined,
-      link: '/dashboard/student/applications'
-    },
-    {
-      title: ['COMPLETED', 'CERTIFIED'].includes(activeInternship?.status) ? 'Completed Internship' : 'Active Internship',
-      value: activeInternship ? '1' : '0',
-      icon: <Users size={24} className={['COMPLETED', 'CERTIFIED'].includes(activeInternship?.status) ? 'text-primary' : 'text-success'} />,
-      description: activeInternship ? (['COMPLETED', 'CERTIFIED'].includes(activeInternship.status) ? 'Certificate available' : 'View details') : 'No active internship',
-      trend: dashboardStats
-        ? {
-            value: Math.abs(dashboardStats.active_internship?.trend_value ?? 0),
-            isPositive: dashboardStats.active_internship?.trend_positive ?? true
-          }
-        : undefined,
-      link: '/dashboard/student/internship'
-    },
-    {
-      title: 'Opportunities',
-      value: opportunitiesCount.toString(),
-      icon: <Briefcase size={24} className="text-info" />,
-      description: 'Available now',
-      trend: dashboardStats
-        ? {
-            value: Math.abs(dashboardStats.opportunities?.trend_value ?? 0),
-            isPositive: dashboardStats.opportunities?.trend_positive ?? true
-          }
-        : undefined,
-      link: '/opportunities'
-    },
-    {
-      title: 'Profile Score',
-      value: `${Math.round(readinessScore)}%`,
-      icon: <Star size={24} className="text-warning" />,
-      description: 'Complete your profile',
-      trend: dashboardStats
-        ? {
-            value: Math.abs(dashboardStats.profile?.trend_value ?? 0),
-            isPositive: dashboardStats.profile?.trend_positive ?? true
-          }
-        : undefined,
-      link: '/dashboard/student/profile'
-    }
-  ];
-
-  const actionSteps = [
-    {
-      number: 1,
-      title: 'Complete Profile',
-      description: 'Upload your CV and Admission Letter',
-      status: readinessScore >= 80 ? 'completed' : 'current',
-      actionText: 'Update Profile',
-      actionLink: '/dashboard/student/profile'
-    },
-    {
-      number: 2,
-      title: 'Browse Opportunities',
-      description: 'Find internships that match your skills',
-      status: readinessScore >= 80 ? (applications.length > 0 ? 'completed' : 'current') : 'pending',
-      actionText: 'Browse Now',
-      actionLink: '/opportunities'
-    },
-    {
-      number: 3,
-      title: 'Track Applications',
-      description: 'Monitor status of your applications',
-      status: applications.length > 0 ? 'current' : 'pending',
-      actionLink: '/dashboard/student/applications'
-    }
-  ] as const;
-
-  // Replaced with dynamic state derived in useEffect
 
   const recentApplications = applications.slice(0, 3).map(app => ({
     company: app.employer_details?.name || app.employer_name || 'Unknown Employer',
@@ -376,315 +263,333 @@ const StudentDashboard: React.FC = () => {
     }
   ];
 
+  const activeStart = activeInternship?.start_date ? new Date(activeInternship.start_date) : null;
+  const activeEnd = activeInternship?.end_date ? new Date(activeInternship.end_date) : null;
+  const activeTotalDays = activeStart && activeEnd
+    ? Math.max(1, Math.ceil((activeEnd.getTime() - activeStart.getTime()) / (1000 * 60 * 60 * 24)))
+    : 1;
+  const activeElapsedDays = activeStart
+    ? Math.max(0, Math.ceil((Date.now() - activeStart.getTime()) / (1000 * 60 * 60 * 24)))
+    : 0;
+  const activeProgress = activeInternship ? Math.min(100, Math.max(0, Math.round((activeElapsedDays / activeTotalDays) * 100))) : 0;
+  const activeDaysLeft = activeEnd ? Math.max(0, Math.ceil((activeEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : null;
+  const pendingApplications = applications.filter(a => ['APPLIED', 'SHORTLISTED'].includes(a.status)).length;
+  const primarySetupStep = onboardingSteps.find((step) => !step.complete);
+
+  const dashboardMetrics = [
+    {
+      label: 'Applications',
+      value: applications.length,
+      detail: `${pendingApplications} pending review`,
+      icon: FileText,
+      href: '/dashboard/student/applications'
+    },
+    {
+      label: 'Placement',
+      value: activeInternship ? 'Active' : 'None',
+      detail: activeInternship ? activeInternship.title : 'No active internship',
+      icon: Briefcase,
+      href: '/dashboard/student/internship'
+    },
+    {
+      label: 'Open roles',
+      value: opportunitiesCount,
+      detail: 'Matched opportunities',
+      icon: Search,
+      href: '/opportunities'
+    },
+    {
+      label: 'Trust level',
+      value: trustLevel,
+      detail: isAffiliationVerified ? 'Institution verified' : 'Verification needed',
+      icon: ShieldCheck,
+      href: '/dashboard/student/affiliation'
+    }
+  ];
+
+  const nextActions = [
+    {
+      title: primarySetupStep ? primarySetupStep.title : 'Browse verified internships',
+      description: primarySetupStep ? primarySetupStep.description : 'Your profile is ready for trusted opportunities.',
+      href: primarySetupStep ? primarySetupStep.href : '/opportunities',
+      icon: primarySetupStep ? Upload : Search,
+      cta: primarySetupStep ? primarySetupStep.action : 'Browse roles',
+      priority: 'Primary'
+    },
+    {
+      title: activeInternship ? 'Update today’s logbook' : 'Track applications',
+      description: activeInternship ? 'Keep daily evidence current for supervisor review.' : 'Monitor your application status and next employer steps.',
+      href: activeInternship ? '/dashboard/student/logbook' : '/dashboard/student/applications',
+      icon: activeInternship ? BookOpen : FileText,
+      cta: activeInternship ? 'Open logbook' : 'View applications',
+      priority: 'Workflow'
+    },
+    {
+      title: 'Build your evidence trail',
+      description: 'Keep documents and verified records ready for institutions and employers.',
+      href: '/dashboard/student/artifacts',
+      icon: Award,
+      cta: 'View artifacts',
+      priority: 'Trust'
+    }
+  ];
+
   return (
-    <div className={`min-vh-100 ${isDarkMode ? 'text-white' : 'bg-light'}`} style={{ backgroundColor: isDarkMode ? '#0f172a' : undefined }}>
+    <StudentLayout>
       <SEO 
         title="Student Dashboard"
         description="Manage your internship applications, track progress, and update your professional profile on EduLink KE."
       />
-      {/* Mobile Menu Overlay */}
-      {isMobileMenuOpen && (
-        <div 
-          className="d-lg-none position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-50" 
-          style={{ zIndex: 1039 }}
-          onClick={closeMobileMenu}
-        />
-      )}
-      
-      {/* Sidebar */}
-      <div className={`${isMobileMenuOpen ? 'd-block' : 'd-none'} d-lg-block position-fixed top-0 start-0 h-100 d-flex flex-column`} style={{ zIndex: 1040, width: '280px' }}>
-        <StudentSidebar isDarkMode={isDarkMode} />
-      </div>
-
-      {/* Main Content */}
-      <div 
-        className="d-flex flex-column min-vh-100 overflow-auto main-content-margin"
-        onClick={isMobileMenuOpen ? closeMobileMenu : undefined}
-      >
-        {/* Desktop margin adjustment */}
-        <style>{`
-          .main-content-margin {
-            margin-left: 0;
-            max-width: 100vw;
-            overflow-x: hidden;
-            box-sizing: border-box;
-          }
-          @media (min-width: 992px) {
-            .main-content-margin {
-              margin-left: 280px !important;
-              max-width: calc(100vw - 280px) !important;
-            }
-          }
-          .hover-lift:hover {
-            transform: translateY(-4px);
-          }
-          
-          /* Responsive adjustments for ProgressRing */
-          @media (min-width: 768px) {
-            .position-relative.d-inline-block svg {
-              max-width: 80px;
-              max-height: 80px;
-            }
-            .position-relative.d-inline-block .h6 {
-              font-size: 1rem;
-            }
-          }
-          /* Ensure proper content containment */
-          .container-fluid, .container {
-            max-width: 100% !important;
-          }
-        `}</style>
-        <div className="w-100" style={{ maxWidth: '100%', overflowX: 'hidden' }}>
-          {/* Header */}
-          <div className="px-4 px-lg-5 pt-4">
-          <StudentHeader
-            onMobileMenuClick={toggleMobileMenu}
-            isMobileMenuOpen={isMobileMenuOpen}
-          />
-        </div>
-
-          {/* Dashboard Content */}
-          {loading ? (
-            <StudentDashboardSkeleton />
-          ) : (
-            <div className="flex-grow-1 px-4 px-lg-5 pb-4">
-            {/* Welcome Section */}
-            <div className="row align-items-center mb-4">
-              <div className="col-lg-8">
-                <h1 className={`display-6 fw-bold mb-2 ${isDarkMode ? 'text-info' : ''}`} style={isDarkMode ? { textShadow: '0 0 10px rgba(32, 201, 151, 0.5)' } : {}}>
-                  Welcome back, {user ? user.firstName : 'Student'}!
-                </h1>
-                <p className={`mb-0 ${isDarkMode ? 'text-info opacity-75' : 'text-muted'}`} style={isDarkMode ? { textShadow: '0 0 6px rgba(32, 201, 151, 0.3)' } : {}}>
-                  Track your verification progress and unlock internship opportunities
-                </p>
-              </div>
-              <div className="col-lg-4 text-lg-end mt-3 mt-lg-0">
-                <div className="d-inline-block text-center">
-                  <div className={`text-uppercase fw-semibold small mb-2 ${isDarkMode ? 'text-info opacity-75' : 'text-muted'}`}>
-                    Profile Readiness
-                  </div>
-                  <ProgressRing progress={readinessScore} size={80} strokeWidth={8} />
-                </div>
+      {/* Dashboard Content */}
+      {loading ? (
+        <StudentDashboardSkeleton />
+      ) : (
+        <div className="edulink-dashboard">
+          <section className="edulink-hero">
+            <div className="edulink-hero-main">
+              <div className="student-header-label">EduLink student workspace</div>
+              <h1>Welcome back, {user ? user.firstName : 'Student'}.</h1>
+              <p>
+                Move from verified profile to trusted placement with a clear view of what needs action today.
+              </p>
+              <div className="edulink-hero-actions">
+                <Link
+                  to={activeInternship ? '/dashboard/student/logbook' : (primarySetupStep?.href || '/opportunities')}
+                  className="btn btn-primary d-inline-flex align-items-center gap-2"
+                >
+                  {activeInternship ? <BookOpen size={16} /> : <ShieldCheck size={16} />}
+                  {activeInternship ? 'Open today’s logbook' : primarySetupStep ? primarySetupStep.action : 'Browse verified roles'}
+                </Link>
+                <Link to="/opportunities" className="btn btn-outline-primary d-inline-flex align-items-center gap-2">
+                  <Search size={16} />
+                  Explore opportunities
+                </Link>
               </div>
             </div>
 
-            {/* Onboarding Readiness */}
-            <div className={`card mb-4 ${isDarkMode ? 'bg-dark border-secondary' : 'bg-white'}`} style={{ borderRadius: '16px', border: isDarkMode ? '1px solid #374151' : '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.08)' }}>
-              <div className="card-body p-4">
-                <div className="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3 mb-4">
-                  <div>
-                    <div className={`text-uppercase fw-semibold small mb-1 ${isDarkMode ? 'text-info opacity-75' : 'text-muted'}`}>
-                      Student onboarding
+            <div className="edulink-readiness-card">
+              <div>
+                <div className="student-header-label">Readiness passport</div>
+                <h2>{Math.round(readinessScore)}%</h2>
+                <p className="student-muted mb-0">
+                  {isReadyToApply ? 'Profile verified and ready for trusted applications.' : `${missingItems.length} item${missingItems.length === 1 ? '' : 's'} still need attention.`}
+                </p>
+              </div>
+              <ProgressRing progress={readinessScore} size={92} strokeWidth={9} />
+            </div>
+          </section>
+
+          <section className="edulink-metrics" aria-label="Student dashboard metrics">
+            {dashboardMetrics.map((metric) => {
+              const Icon = metric.icon;
+              return (
+                <Link to={metric.href} className="edulink-metric" key={metric.label}>
+                  <Icon size={20} />
+                  <span>{metric.label}</span>
+                  <strong>{metric.value}</strong>
+                  <small>{metric.detail}</small>
+                </Link>
+              );
+            })}
+          </section>
+
+          <section className="edulink-readiness-flow">
+            <div className="edulink-section-copy">
+              <span className="student-header-label">Student onboarding</span>
+              <h2>{isReadyToApply ? 'You are application-ready' : 'Complete the checks that build employer trust'}</h2>
+              <p>EduLink’s student journey is built around verification first, then matching, placement, logbooks, and evidence.</p>
+            </div>
+            <div className="edulink-check-grid">
+              {onboardingSteps.map((step) => {
+                const Icon = step.complete ? CheckCircle : step.pending ? Clock : AlertCircle;
+                return (
+                  <Link to={step.href} className={`edulink-check ${step.complete ? 'complete' : step.pending ? 'pending' : ''}`} key={step.title}>
+                    <Icon size={20} />
+                    <div>
+                      <strong>{step.title}</strong>
+                      <span>{step.description}</span>
                     </div>
-                    <h5 className={`fw-bold mb-1 ${isDarkMode ? 'text-info' : ''}`}>
-                      {isReadyToApply ? 'You are ready to apply' : 'Finish these steps to become application-ready'}
-                    </h5>
-                    <p className={`mb-0 ${isDarkMode ? 'text-light opacity-75' : 'text-muted'}`}>
-                      EduLink uses these checks to verify your profile and improve employer confidence.
-                    </p>
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
+
+          <div className="edulink-dashboard-flow">
+            <main>
+              <section className="edulink-placement-panel">
+                <div className="edulink-section-header">
+                  <div>
+                    <span className="student-header-label">Current placement</span>
+                    <h2>{activeInternship ? activeInternship.title : 'No active internship yet'}</h2>
                   </div>
-                  <Link
-                    to={isReadyToApply ? '/opportunities' : onboardingSteps.find((step) => !step.complete)?.href || '/dashboard/student/profile'}
-                    className={`btn ${isReadyToApply ? (isDarkMode ? 'btn-info' : 'btn-primary') : (isDarkMode ? 'btn-outline-info' : 'btn-outline-primary')}`}
-                  >
-                    {isReadyToApply ? (
-                      <>
-                        <Briefcase className="me-2" size={16} />
-                        Browse internships
-                      </>
-                    ) : (
-                      <>
-                        <ShieldCheck className="me-2" size={16} />
-                        Continue setup
-                      </>
-                    )}
+                  <Link to="/dashboard/student/internship" className="btn btn-sm btn-outline-primary">
+                    View details
                   </Link>
                 </div>
 
-                <div className="row g-3">
-                  {onboardingSteps.map((step) => {
-                    const Icon = step.complete ? CheckCircle : step.pending ? Clock : AlertCircle;
-                    const iconClass = step.complete
-                      ? 'text-success'
-                      : step.pending
-                        ? 'text-warning'
-                        : isDarkMode ? 'text-info' : 'text-primary';
+                {activeInternship ? (
+                  <>
+                    <div className="edulink-placement-meta">
+                      <span><Building2 size={15} /> {activeInternship.employer_name || activeInternship.employer_details?.name || 'Employer pending'}</span>
+                      <span><MapPin size={15} /> {activeInternship.location || 'Location pending'}</span>
+                      <span><Calendar size={15} /> Ends {activeEnd ? activeEnd.toLocaleDateString() : 'TBA'}</span>
+                    </div>
+                    <div className="edulink-progress-row">
+                      <div>
+                        <span className="student-header-label">Placement progress</span>
+                        <strong>{activeProgress}%</strong>
+                      </div>
+                      <div className="edulink-progress-track">
+                        <span style={{ width: `${activeProgress}%` }} />
+                      </div>
+                      <small>{activeDaysLeft !== null ? `${activeDaysLeft} days left` : 'Timeline pending'}</small>
+                    </div>
+                    <div className="edulink-placement-actions">
+                      <Link to="/dashboard/student/logbook" className="btn btn-primary">
+                        Update logbook
+                      </Link>
+                      <Link to="/dashboard/student/artifacts" className="btn btn-outline-primary">
+                        View evidence
+                      </Link>
+                    </div>
+                  </>
+                ) : (
+                  <div className="edulink-empty-workspace">
+                    <Briefcase size={28} />
+                    <p>Once you accept a verified opportunity, this area becomes your daily placement workspace.</p>
+                    <Link to="/opportunities" className="btn btn-primary btn-sm">Find opportunities</Link>
+                  </div>
+                )}
+              </section>
 
+              <section className="edulink-action-board">
+                <div className="edulink-section-header">
+                  <div>
+                    <span className="student-header-label">Next best actions</span>
+                    <h2>What to do next</h2>
+                  </div>
+                </div>
+                <div className="edulink-action-grid">
+                  {nextActions.map((action) => {
+                    const Icon = action.icon;
                     return (
-                      <div className="col-md-6 col-xl-3" key={step.title}>
-                        <div className={`h-100 p-3 rounded-3 border ${isDarkMode ? 'border-secondary bg-black bg-opacity-25' : 'bg-light'}`}>
-                          <div className="d-flex align-items-start gap-3">
-                            <Icon size={22} className={`${iconClass} flex-shrink-0 mt-1`} />
-                            <div>
-                              <h6 className={`fw-bold mb-1 ${isDarkMode ? 'text-white' : ''}`}>{step.title}</h6>
-                              <p className={`small mb-2 ${isDarkMode ? 'text-light opacity-75' : 'text-muted'}`}>{step.description}</p>
-                              {!step.complete && (
-                                <Link to={step.href} className={`small fw-semibold ${isDarkMode ? 'text-info' : 'text-primary'}`}>
-                                  {step.action}
-                                </Link>
-                              )}
-                            </div>
-                          </div>
-                        </div>
+                      <Link to={action.href} className="edulink-action-card" key={action.title}>
+                        <span>{action.priority}</span>
+                        <Icon size={22} />
+                        <strong>{action.title}</strong>
+                        <p>{action.description}</p>
+                        <small>{action.cta} <ArrowRight size={13} /></small>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </section>
+
+              <section className="edulink-table-panel">
+                <div className="edulink-section-header">
+                  <div>
+                    <span className="student-header-label">Applications</span>
+                    <h2>Recent activity</h2>
+                  </div>
+                  <Link to="/dashboard/student/applications" className="btn btn-sm btn-outline-primary">View all</Link>
+                </div>
+                {recentApplications.length > 0 ? (
+                  <div className="table-responsive">
+                    <table className="student-dashboard-table">
+                      <thead>
+                        <tr>
+                          <th>Company</th>
+                          <th>Position</th>
+                          <th>Status</th>
+                          <th>Applied</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {recentApplications.map((app, index) => (
+                          <tr key={index}>
+                            <td className="fw-semibold">{app.company}</td>
+                            <td>{app.position}</td>
+                            <td><span className={`badge bg-${app.statusColor}`}>{app.status}</span></td>
+                            <td className="student-muted small">{app.appliedDate}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="edulink-empty-workspace compact">
+                    <FileText size={24} />
+                    <p>No applications yet. Start with verified roles that match your profile.</p>
+                  </div>
+                )}
+              </section>
+            </main>
+
+            <aside>
+              <section className="edulink-side-panel">
+                <span className="student-header-label">Trust journey</span>
+                <h2>Level {trustLevel}</h2>
+                <div className="edulink-trust-steps">
+                  {['Documents', 'Institution', 'Internship', 'Certificate'].map((label, index) => {
+                    const complete = trustLevel >= index + 1;
+                    return (
+                      <div className={complete ? 'complete' : ''} key={label}>
+                        <span>{complete ? <CheckCircle size={14} /> : index + 1}</span>
+                        <strong>{label}</strong>
                       </div>
                     );
                   })}
                 </div>
-              </div>
-            </div>
+              </section>
 
-            {/* Quick Stats */}
-            <div className="row g-4 mb-5">
-              {quickStats.map((stat, index) => (
-            <div key={index} className="col-sm-6 col-lg-3">
-              <StatCard {...stat} />
-            </div>
-          ))}
-            </div>
-
-            {/* Active Internship Hub */}
-            {activeInternship && activeInternship.status === 'ACTIVE' && (
-              <ActiveInternshipWidget 
-                internship={activeInternship} 
-                isDarkMode={isDarkMode}
-                onQuickLogSubmit={handleQuickLogSubmit}
-              />
-            )}
-
-            {/* Main Content Grid */}
-            <div className="row g-4">
-              {/* Left Column */}
-              <div className="col-lg-8">
-                {/* Profile Completion Nudge */}
-                <ProfileNudge score={readinessScore} missingItems={missingItems} />
-
-                {/* Action Steps */}
-                <div className={`card mb-4 ${isDarkMode ? 'bg-dark border-secondary' : 'bg-white'}`} style={{ borderRadius: '16px', border: isDarkMode ? '1px solid #374151' : '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' }}>
-                  <div className="card-body p-4">
-                    <h5 className={`fw-bold mb-4 ${isDarkMode ? 'text-info' : ''}`} style={isDarkMode ? { textShadow: '0 0 8px rgba(32, 201, 151, 0.3)' } : {}}>
-                      <CheckCircle className={`me-2 ${isDarkMode ? 'text-info' : 'text-primary'}`} size={20} />
-                      Next Steps
-                    </h5>
-                    {actionSteps.map((step) => (
-                      <ActionStep key={step.number} {...step} />
+              <section className="edulink-side-panel">
+                <div className="edulink-section-header compact">
+                  <h2>Upcoming</h2>
+                  <Calendar size={18} />
+                </div>
+                {upcomingEvents.length > 0 ? (
+                  <div className="edulink-event-list">
+                    {upcomingEvents.map((event, index) => (
+                      <div key={index}>
+                        <strong>{event.title}</strong>
+                        <span>{event.date} at {event.time}</span>
+                      </div>
                     ))}
                   </div>
-                </div>
+                ) : (
+                  <p className="student-muted small mb-0">No interviews or deadlines scheduled yet.</p>
+                )}
+              </section>
 
-                {/* Recent Applications */}
-                <div className={`card ${isDarkMode ? 'bg-dark border-secondary' : 'bg-white'}`} style={{ borderRadius: '16px', border: isDarkMode ? '1px solid #374151' : '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' }}>
-                  <div className="card-body p-4">
-                    <div className="d-flex align-items-center justify-content-between mb-4">
-                      <h5 className={`fw-bold mb-0 ${isDarkMode ? 'text-info' : ''}`} style={isDarkMode ? { textShadow: '0 0 8px rgba(32, 201, 151, 0.3)' } : {}}>Recent Applications</h5>
-                      <Link 
-                        to="/dashboard/student/applications" 
-                        className={`btn btn-sm ${isDarkMode ? 'btn-outline-info' : 'btn-outline-primary'}`}
-                        aria-label="View all applications"
-                        title="View all applications"
-                      >
-                        View All
-                      </Link>
-                    </div>
-                    <div className="table-responsive" style={{ maxHeight: '300px', overflowY: 'auto' }} role="region" aria-label="Recent applications table">
-                      <table className={`table table-hover align-middle ${isDarkMode ? 'table-dark' : ''} mb-0`}>
-                        <thead className={`${isDarkMode ? 'table-dark' : ''} sticky-top bg-white`} style={{ zIndex: 1 }}>
-                          <tr>
-                            <th className={isDarkMode ? 'text-info border-secondary bg-dark' : 'bg-white'}>Company</th>
-                            <th className={isDarkMode ? 'text-info border-secondary bg-dark' : 'bg-white'}>Position</th>
-                            <th className={isDarkMode ? 'text-info border-secondary bg-dark' : 'bg-white'}>Status</th>
-                            <th className={isDarkMode ? 'text-info border-secondary bg-dark' : 'bg-white'}>Applied</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {recentApplications.map((app, index) => (
-                            <tr key={index} className={isDarkMode ? 'border-secondary' : ''}>
-                              <td className={`fw-semibold ${isDarkMode ? 'text-info' : ''}`} style={isDarkMode ? { textShadow: '0 0 8px rgba(32, 201, 151, 0.3)' } : {}}>{app.company}</td>
-                              <td className={isDarkMode ? 'text-info opacity-75' : ''} style={isDarkMode ? { textShadow: '0 0 6px rgba(32, 201, 151, 0.2)' } : {}}>{app.position}</td>
-                              <td>
-                                <span className={`badge ${isDarkMode ? 'bg-info' : `bg-${app.statusColor}`}`}>
-                                  {app.status}
-                                </span>
-                              </td>
-                              <td className={`small ${isDarkMode ? 'text-info opacity-75' : 'text-muted'}`} style={isDarkMode ? { textShadow: '0 0 4px rgba(32, 201, 151, 0.2)' } : {}}>{app.appliedDate}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+              <section className="edulink-side-panel">
+                <div className="edulink-section-header compact">
+                  <h2>Trust history</h2>
+                  <ShieldCheck size={18} />
+                </div>
+                {ledgerEvents.length > 0 ? (
+                  <div className="edulink-event-list">
+                    {ledgerEvents.slice(0, 4).map((event) => (
+                      <div key={event.id}>
+                        <strong>{event.event_type.split('_').join(' ').toLowerCase()}</strong>
+                        <span>{new Date(event.occurred_at).toLocaleDateString()}</span>
+                      </div>
+                    ))}
                   </div>
-                </div>
-              </div>
+                ) : (
+                  <p className="student-muted small mb-0">No trust events recorded yet.</p>
+                )}
+              </section>
 
-              {/* Right Column */}
-              <div className="col-lg-4">
-                {/* Trust Journey Roadmap */}
-                <div className="mb-4">
-                  <TrustJourneyRoadmap currentLevel={trustLevel} />
-                </div>
-
-                {/* Upcoming Events */}
-                <div className={`card mb-4 ${isDarkMode ? 'bg-dark border-secondary' : 'bg-white'}`} style={{ borderRadius: '16px', border: isDarkMode ? '1px solid #374151' : '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' }}>
-                  <div className="card-body p-4">
-                    <div className="d-flex align-items-center justify-content-between mb-4">
-                      <h5 className={`fw-bold mb-0 ${isDarkMode ? 'text-info' : ''}`} style={isDarkMode ? { textShadow: '0 0 8px rgba(32, 201, 151, 0.3)' } : {}}>
-                        <Calendar className={`me-2 ${isDarkMode ? 'text-info' : 'text-primary'}`} size={20} />
-                        Upcoming Events
-                      </h5>
-                      {/* No calendar page yet, redirect to applications where status is visible */}
-                      <Link 
-                        to="/dashboard/student/applications" 
-                        className={`btn btn-sm ${isDarkMode ? 'btn-outline-info' : 'btn-outline-primary'}`}
-                        aria-label="View all applications"
-                        title="View all applications"
-                      >
-                        View All
-                      </Link>
-                    </div>
-                    <div>
-                      {upcomingEvents.map((event: EventItem, index: number) => (
-                        <UpcomingEvent key={index} {...event} />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Trust Timeline */}
-                <div className={`card mb-4 ${isDarkMode ? 'bg-dark border-secondary' : 'bg-white'}`} style={{ borderRadius: '16px', border: isDarkMode ? '1px solid #374151' : '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' }}>
-                  <div className="card-body p-4">
-                    <h5 className={`fw-bold mb-4 ${isDarkMode ? 'text-info' : ''}`} style={isDarkMode ? { textShadow: '0 0 8px rgba(32, 201, 151, 0.3)' } : {}}>Trust History</h5>
-                    <TrustTimeline events={ledgerEvents} isDarkMode={isDarkMode} />
-                  </div>
-                </div>
-
-                {/* Quick Actions */}
-                <div className={`card ${isDarkMode ? 'bg-dark border-secondary' : 'bg-white'}`} style={{ borderRadius: '16px', border: isDarkMode ? '1px solid #374151' : '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' }}>
-                  <div className="card-body p-4">
-                    <h5 className={`fw-bold mb-4 ${isDarkMode ? 'text-info' : ''}`} style={isDarkMode ? { textShadow: '0 0 8px rgba(32, 201, 151, 0.3)' } : {}}>Quick Actions</h5>
-                    <div className="d-grid gap-2">
-                      <Link to="/opportunities" className={`btn ${isDarkMode ? 'btn-info' : 'btn-primary'}`}>
-                        <Search className="me-2" size={16} />
-                        Browse Internships
-                      </Link>
-                      <Link to="/dashboard/student/profile" className={`btn ${isDarkMode ? 'btn-outline-info' : 'btn-outline-primary'}`}>
-                        <FileText className="me-2" size={16} />
-                        Update Documents
-                      </Link>
-                      <Link to="/dashboard/student/affiliation" className={`btn ${isDarkMode ? 'btn-outline-info' : 'btn-outline-primary'}`}>
-                        <Building2 className="me-2" size={16} />
-                        Claim Affiliation
-                      </Link>
-                      <Link to="/dashboard/student/profile" className={`btn ${isDarkMode ? 'btn-outline-info' : 'btn-outline-secondary'}`}>
-                        <User className="me-2" size={16} />
-                        Edit Profile
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+              <section className="edulink-side-actions">
+                <Link to="/opportunities"><Search size={16} /> Browse internships</Link>
+                <Link to="/dashboard/student/profile"><User size={16} /> Edit profile</Link>
+                <Link to="/dashboard/student/affiliation"><Building2 size={16} /> Institution status</Link>
+              </section>
+            </aside>
           </div>
-          )}
         </div>
+          )}
         <ProfileWizard 
           show={showProfileWizard} 
           onHide={() => setShowProfileWizard(false)}
@@ -743,8 +648,7 @@ const StudentDashboard: React.FC = () => {
         background: rgba(255, 255, 255, 0.3);
       }
     `}</style>
-      </div>
-    </div>
+    </StudentLayout>
   );
 };
 

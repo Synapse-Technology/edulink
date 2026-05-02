@@ -149,14 +149,26 @@ def get_student_department_map(institution_id: str) -> dict:
     }
 
 
-def get_affiliated_student_ids(institution_id: str) -> List[UUID]:
+def get_affiliated_student_ids(
+    institution_id: str,
+    department_id: str = None,
+    cohort_id: str = None,
+) -> List[UUID]:
     """
-    Returns a list of student IDs affiliated with an institution.
+    Returns a list of approved student IDs affiliated with an institution.
+    Optional department/cohort filters support institution placement oversight
+    without exposing the application pipeline.
     """
-    return list(StudentInstitutionAffiliation.objects.filter(
-        institution_id=institution_id,
-        status=StudentInstitutionAffiliation.STATUS_APPROVED
-    ).values_list('student_id', flat=True))
+    filters = {
+        "institution_id": institution_id,
+        "status": StudentInstitutionAffiliation.STATUS_APPROVED,
+    }
+    if department_id:
+        filters["department_id"] = department_id
+    if cohort_id:
+        filters["cohort_id"] = cohort_id
+
+    return list(StudentInstitutionAffiliation.objects.filter(**filters).values_list('student_id', flat=True))
 
 
 def get_student_ids_by_trust_level(trust_level: int) -> List[str]:

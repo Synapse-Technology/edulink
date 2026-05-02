@@ -1,214 +1,563 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
+import { SEO } from '../components/common';
 
-const WhyUs: React.FC = () => {
-  return (
-    <div className="why-us-page">
-      {/* Page Title */}
-      <div className="page-title" data-aos="fade">
-        <div className="heading">
-          <div className="container">
-            <div className="row d-flex justify-content-center text-center">
-              <div className="col-lg-8">
-                <h1>Why Choose EduLink KE</h1>
-                <p className="mb-0">We are committed to bridging the gap between education and employment in Kenya by creating a dynamic ecosystem that benefits students, institutions, and employers alike.</p>
+const roleBenefits = [
+  {
+    title: 'Students',
+    eyebrow: 'Career transition',
+    icon: 'bi-mortarboard',
+    body:
+      'Move from campus to work with verified opportunities, placement declarations, logbooks, and shareable proof of experience.',
+    points: [
+      'Discover internal and external internship opportunities',
+      'Declare externally secured placements for institution approval',
+      'Build a record of verified workplace activity',
+      'Use certificates and artifacts as career proof',
+    ],
+  },
+  {
+    title: 'Institutions',
+    eyebrow: 'Placement governance',
+    icon: 'bi-bank',
+    body:
+      'Coordinate attachments and internships without leaking employer application workflows into institution monitoring.',
+    points: [
+      'Verify student affiliations and placement declarations',
+      'Monitor cohorts, current placements, and placement history',
+      'Assign institution assessors to review student progress',
+      'Certify completion from verified placement records',
+    ],
+  },
+  {
+    title: 'Employers',
+    eyebrow: 'Talent pipeline',
+    icon: 'bi-briefcase',
+    body:
+      'Post opportunities, manage applications, supervise interns, and identify students with verifiable work experience.',
+    points: [
+      'Publish EduLink-hosted opportunities',
+      'Manage employer-specific applications and interns',
+      'Assign employer supervisors for workplace review',
+      'Access stronger signals than CV claims alone',
+    ],
+  },
+];
+
+const workflow = [
+  {
+    title: 'Opportunity discovery',
+    text: 'Students find EduLink-hosted listings and curated external opportunities in one place.',
+  },
+  {
+    title: 'Application or external apply',
+    text: 'Internal applications stay in EduLink. External listings redirect to the source portal.',
+  },
+  {
+    title: 'Placement verification',
+    text: 'Institutions approve student-declared external placements before logbooks unlock.',
+  },
+  {
+    title: 'Evidence and supervision',
+    text: 'Students submit logbooks while institution assessors and employer supervisors review within their own scope.',
+  },
+  {
+    title: 'Talent proof',
+    text: 'Completed placements become trusted career evidence for students and future employer matching.',
+  },
+];
+
+const trustItems = [
+  'Role-separated access for students, institutions, employers, assessors, and supervisors',
+  'Application privacy between employer workflows and institution placement monitoring',
+  'Verifiable logbooks, placement history, and completion records',
+  'A growing talent pool of students with real workplace evidence',
+];
+
+const WhyUs: React.FC = () => (
+  <div className="why-us-page">
+    <SEO
+      title="Why EduLink KE"
+      description="EduLink KE helps students transition from education to employment through verified opportunities, placements, logbooks, certifications, and talent proof."
+      keywords="career transition platform Kenya, verified internships, student talent pool, attachment placement tracking"
+    />
+
+    <main>
+      <section className="why-hero">
+        <div className="container">
+          <div className="why-hero-grid">
+            <div>
+              <span className="why-eyebrow">Career transition infrastructure</span>
+              <h1>EduLink turns student work experience into trusted career proof.</h1>
+              <p>
+                Students need more than a list of vacancies. Institutions need
+                visibility into placements. Employers need better signals than
+                CV claims. EduLink connects the three with verified workflows.
+              </p>
+              <div className="why-hero-actions">
+                <Link to="/opportunities" className="btn btn-primary">
+                  Find Opportunities
+                </Link>
+                <Link to="/success-stories" className="btn btn-outline-primary">
+                  View Student Outcomes
+                </Link>
+              </div>
+            </div>
+
+            <div className="why-proof-panel" aria-label="EduLink platform proof points">
+              <div className="proof-row">
+                <span>01</span>
+                <strong>Verified placements</strong>
+              </div>
+              <div className="proof-row">
+                <span>02</span>
+                <strong>Structured logbooks</strong>
+              </div>
+              <div className="proof-row">
+                <span>03</span>
+                <strong>Scoped supervision</strong>
+              </div>
+              <div className="proof-row">
+                <span>04</span>
+                <strong>Talent pool readiness</strong>
               </div>
             </div>
           </div>
         </div>
-        <nav className="breadcrumbs">
-          <div className="container">
-            <ol>
-              <li><a href="/">Home</a></li>
-              <li className="current">Why Us</li>
-            </ol>
+      </section>
+
+      <section className="role-section">
+        <div className="container">
+          <div className="section-heading">
+            <span className="why-eyebrow">Who benefits</span>
+            <h2>Built for the full internship and attachment ecosystem</h2>
+            <p>
+              Each role gets the workflow it needs without leaking access into
+              another role’s responsibilities.
+            </p>
           </div>
-        </nav>
-      </div>
 
-      <main className="main">
-        {/* Benefits Section */}
-        <section id="benefits" className="benefits section">
-          <div className="container">
-            <div className="row gy-4">
-              <div className="col-lg-4" data-aos="fade-up" data-aos-delay="100">
-                <div className="card h-100">
-                  <div className="card-body">
-                    <i className="bi bi-mortarboard-fill icon"></i>
-                    <h3 className="card-title">For Students</h3>
-                    <ul>
-                      <li>Access exclusive, high-quality internships.</li>
-                      <li>Receive personalized career coaching and mentorship.</li>
-                      <li>Build a standout CV with skill-building workshops.</li>
-                      <li>Earn verifiable digital certifications.</li>
-                    </ul>
-                  </div>
+          <div className="role-grid">
+            {roleBenefits.map(role => (
+              <article className="role-card" key={role.title}>
+                <div className="role-card-icon">
+                  <i className={`bi ${role.icon}`}></i>
                 </div>
-              </div>
-
-              <div className="col-lg-4" data-aos="fade-up" data-aos-delay="200">
-                <div className="card h-100">
-                  <div className="card-body">
-                    <i className="bi bi-bank icon"></i>
-                    <h3 className="card-title">For Institutions</h3>
-                    <ul>
-                      <li>Bridge the gap between academia and industry needs.</li>
-                      <li>Gain real-time analytics on student performance.</li>
-                      <li>Refine curricula to enhance graduate employability.</li>
-                      <li>Reduce administrative overhead with our platform.</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-
-              <div className="col-lg-4" data-aos="fade-up" data-aos-delay="300">
-                <div className="card h-100">
-                  <div className="card-body">
-                    <i className="bi bi-briefcase-fill icon"></i>
-                    <h3 className="card-title">For Employers</h3>
-                    <ul>
-                      <li>Tap into a pipeline of Kenya's brightest talent.</li>
-                      <li>Connect with pre-vetted, job-ready students.</li>
-                      <li>Enhance your employer brand and visibility.</li>
-                      <li>Simplify and streamline your recruitment process.</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </div>
+                <span>{role.eyebrow}</span>
+                <h3>{role.title}</h3>
+                <p>{role.body}</p>
+                <ul>
+                  {role.points.map(point => (
+                    <li key={point}>{point}</li>
+                  ))}
+                </ul>
+              </article>
+            ))}
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* Features Section */}
-        <section id="features" className="features-section">
-          <div className="container">
-            <div className="row gy-4 align-items-center feature-item">
-              <div className="col-md-5" data-aos="fade-right">
-                <img src="/images/course-1.jpg" className="img-fluid" alt="" />
-              </div>
-              <div className="col-md-7" data-aos="fade-left">
-                <h3>The EduLink Advantage: A Curated Talent Pipeline</h3>
-                <p>Employers gain direct access to a curated pool of students who are not only academically proficient but also professionally trained, vetted, and ready to make an impact from day one.</p>
-                <ul>
-                  <li><i className="bi bi-patch-check-fill"></i><span>Pre-screened and qualified candidates.</span></li>
-                  <li><i className="bi bi-patch-check-fill"></i><span>Reduced hiring time and costs.</span></li>
-                  <li><i className="bi bi-patch-check-fill"></i><span>Access to motivated, high-potential talent.</span></li>
-                </ul>
-              </div>
+      <section className="workflow-section">
+        <div className="container">
+          <div className="section-heading compact">
+            <span className="why-eyebrow">How it works</span>
+            <h2>From opportunity discovery to a verified talent pool</h2>
+          </div>
+
+          <div className="workflow-list">
+            {workflow.map((item, index) => (
+              <article className="workflow-item" key={item.title}>
+                <div className="workflow-index">{index + 1}</div>
+                <div>
+                  <h3>{item.title}</h3>
+                  <p>{item.text}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="trust-section">
+        <div className="container">
+          <div className="trust-panel">
+            <div>
+              <span className="why-eyebrow">Why it matters</span>
+              <h2>A better signal between campus and employment</h2>
+              <p>
+                EduLink is not just an internship board. It creates the
+                verified evidence layer that helps students prove experience,
+                institutions govern placements, and employers identify stronger
+                early-career talent.
+              </p>
             </div>
+            <ul>
+              {trustItems.map(item => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
 
-            <div className="row gy-4 align-items-center feature-item">
-              <div className="col-md-5 order-1 order-md-2" data-aos="fade-left">
-                <img src="/images/course-2.jpg" className="img-fluid" alt="" />
-              </div>
-              <div className="col-md-7 order-2 order-md-1" data-aos="fade-right">
-                <h3>360° Career Readiness and Development</h3>
-                <p>
-                  Beyond job placements, we focus on holistic development. Our programs build confidence, professionalism, and critical 21st-century skills through targeted mentorship and hands-on training workshops.
-                </p>
-                <ul>
-                  <li><i className="bi bi-people-fill"></i><span>Soft skills training (communication, teamwork).</span></li>
-                  <li><i className="bi bi-tools"></i><span>Technical workshops relevant to industry needs.</span></li>
-                  <li><i className="bi bi-award-fill"></i><span>Mentorship from seasoned industry professionals.</span></li>
-                </ul>
-              </div>
+      <section className="why-cta">
+        <div className="container">
+          <div className="why-cta-panel">
+            <div>
+              <h2>Start with the workflow that fits your role.</h2>
+              <p>
+                Students can browse opportunities now. Institutions and
+                employers can request onboarding to manage verified placements.
+              </p>
             </div>
-
-            <div className="row gy-4 align-items-center feature-item">
-              <div className="col-md-5" data-aos="fade-right">
-                <img src="/images/course-3.jpg" className="img-fluid" alt="" />
-              </div>
-              <div className="col-md-7" data-aos="fade-left">
-                <h3>Actionable Performance Insights for Institutions</h3>
-                <p>We provide universities with powerful, data-driven dashboards to track student progress and gather feedback, closing the crucial loop between academic theory and real-world industry practice.</p>
-                <ul>
-                  <li><i className="bi bi-graph-up-arrow"></i><span>Track student engagement and success rates.</span></li>
-                  <li><i className="bi bi-file-earmark-text-fill"></i><span>Generate reports on graduate employability.</span></li>
-                  <li><i className="bi bi-lightbulb-fill"></i><span>Inform curriculum development with industry data.</span></li>
-                </ul>
-              </div>
+            <div className="why-cta-actions">
+              <Link to="/opportunities" className="btn btn-light">
+                Browse Opportunities
+              </Link>
+              <Link to="/institutions/request" className="btn btn-outline-light">
+                Institution Onboarding
+              </Link>
+              <Link to="/employer/onboarding" className="btn btn-outline-light">
+                Employer Onboarding
+              </Link>
             </div>
           </div>
-        </section>
-      </main>
+        </div>
+      </section>
+    </main>
 
-      <style>{`
-        .why-us-page .benefits .card .icon {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 64px;
-          height: 64px;
-          border-radius: 50%;
-          background: #f0fdf4;
-          color: var(--accent-color);
-          font-size: 28px;
-          margin-bottom: 15px;
-          transition: 0.3s;
+    <style>{`
+      .why-us-page {
+        background: #f8fafc;
+      }
+
+      .why-hero {
+        background: #ffffff;
+        border-bottom: 1px solid #e2e8f0;
+        padding: 64px 0;
+      }
+
+      .why-hero-grid {
+        align-items: center;
+        display: grid;
+        gap: 36px;
+        grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+      }
+
+      .why-eyebrow {
+        color: var(--accent-color);
+        display: inline-block;
+        font-size: 0.78rem;
+        font-weight: 800;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+      }
+
+      .why-hero h1 {
+        color: #0f172a;
+        font-size: 2.65rem;
+        font-weight: 850;
+        line-height: 1.08;
+        margin: 0 0 16px;
+        max-width: 820px;
+      }
+
+      .why-hero p,
+      .section-heading p,
+      .trust-panel p,
+      .why-cta-panel p {
+        color: #64748b;
+        line-height: 1.7;
+      }
+
+      .why-hero p {
+        font-size: 1.02rem;
+        margin: 0;
+        max-width: 720px;
+      }
+
+      .why-hero-actions,
+      .why-cta-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 24px;
+      }
+
+      .why-hero-actions .btn,
+      .why-cta-actions .btn {
+        border-radius: 7px;
+        font-weight: 800;
+      }
+
+      .why-proof-panel {
+        background: #0f172a;
+        border-radius: 8px;
+        color: #ffffff;
+        padding: 18px;
+      }
+
+      .proof-row {
+        align-items: center;
+        border-bottom: 1px solid rgba(255,255,255,0.12);
+        display: flex;
+        gap: 14px;
+        padding: 16px 4px;
+      }
+
+      .proof-row:last-child {
+        border-bottom: 0;
+      }
+
+      .proof-row span {
+        color: #67e8f9;
+        font-weight: 850;
+      }
+
+      .proof-row strong {
+        font-size: 1rem;
+      }
+
+      .role-section,
+      .workflow-section,
+      .trust-section {
+        padding: 56px 0;
+      }
+
+      .section-heading {
+        margin-bottom: 24px;
+        max-width: 780px;
+      }
+
+      .section-heading.compact {
+        max-width: 680px;
+      }
+
+      .section-heading h2,
+      .trust-panel h2,
+      .why-cta-panel h2 {
+        color: #0f172a;
+        font-size: 2rem;
+        font-weight: 850;
+        line-height: 1.16;
+        margin: 0 0 10px;
+      }
+
+      .section-heading p,
+      .trust-panel p,
+      .why-cta-panel p {
+        margin: 0;
+      }
+
+      .role-grid {
+        display: grid;
+        gap: 14px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .role-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 22px;
+      }
+
+      .role-card-icon {
+        align-items: center;
+        background: #e6f7f7;
+        border: 1px solid rgba(0,153,153,0.18);
+        border-radius: 8px;
+        color: var(--accent-color);
+        display: flex;
+        font-size: 1.45rem;
+        height: 46px;
+        justify-content: center;
+        margin-bottom: 16px;
+        width: 46px;
+      }
+
+      .role-card span {
+        color: var(--accent-color);
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 800;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+      }
+
+      .role-card h3 {
+        color: #0f172a;
+        font-size: 1.15rem;
+        font-weight: 850;
+        margin: 0 0 8px;
+      }
+
+      .role-card p {
+        color: #475569;
+        line-height: 1.68;
+        margin: 0 0 14px;
+      }
+
+      .role-card ul,
+      .trust-panel ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .role-card li,
+      .trust-panel li {
+        color: #475569;
+        line-height: 1.55;
+        margin-bottom: 10px;
+        padding-left: 24px;
+        position: relative;
+      }
+
+      .role-card li:before,
+      .trust-panel li:before {
+        color: var(--accent-color);
+        content: "✓";
+        font-weight: 900;
+        left: 0;
+        position: absolute;
+        top: 0;
+      }
+
+      .workflow-section {
+        background: #ffffff;
+        border-top: 1px solid #e2e8f0;
+        border-bottom: 1px solid #e2e8f0;
+      }
+
+      .workflow-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .workflow-item {
+        align-items: flex-start;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        display: grid;
+        gap: 16px;
+        grid-template-columns: 42px minmax(0, 1fr);
+        padding: 18px;
+      }
+
+      .workflow-index {
+        align-items: center;
+        background: #0f766e;
+        border-radius: 50%;
+        color: #ffffff;
+        display: flex;
+        font-weight: 850;
+        height: 36px;
+        justify-content: center;
+        width: 36px;
+      }
+
+      .workflow-item h3 {
+        color: #0f172a;
+        font-size: 1.02rem;
+        font-weight: 850;
+        margin: 0 0 4px;
+      }
+
+      .workflow-item p {
+        color: #64748b;
+        line-height: 1.65;
+        margin: 0;
+      }
+
+      .trust-panel {
+        align-items: start;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        display: grid;
+        gap: 30px;
+        grid-template-columns: minmax(0, 1fr) minmax(280px, 0.8fr);
+        padding: 28px;
+      }
+
+      .why-cta {
+        background: #0f766e;
+        color: #ffffff;
+        padding: 52px 0;
+      }
+
+      .why-cta-panel {
+        align-items: center;
+        display: flex;
+        gap: 28px;
+        justify-content: space-between;
+      }
+
+      .why-cta-panel h2 {
+        color: #ffffff;
+      }
+
+      .why-cta-panel p {
+        color: rgba(255,255,255,0.78);
+        max-width: 720px;
+      }
+
+      .why-cta-actions {
+        flex: 0 0 auto;
+        justify-content: flex-end;
+        margin-top: 0;
+      }
+
+      @media (max-width: 991.98px) {
+        .why-hero-grid,
+        .role-grid,
+        .trust-panel {
+          grid-template-columns: 1fr;
         }
-        .why-us-page .benefits .card {
-          border: 1px solid #e2e8f0;
-          transition: transform 0.3s, box-shadow 0.3s;
+
+        .why-cta-panel {
+          align-items: flex-start;
+          flex-direction: column;
         }
-        .why-us-page .benefits .card:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+
+        .why-cta-actions {
+          justify-content: flex-start;
         }
-        .why-us-page .benefits .card-body ul {
-          list-style: none;
-          padding: 0;
-        }
-        .why-us-page .benefits .card-body ul li {
-          padding-left: 28px;
-          position: relative;
-          margin-bottom: 12px;
-        }
-        .why-us-page .benefits .card-body ul li:before {
-          content: "✓";
-          position: absolute;
-          left: 0;
-          top: 1px;
-          color: var(--accent-color);
-          font-weight: bold;
-        }
-        .features-section {
-          padding: 60px 0;
-        }
-        .features-section .feature-item {
+      }
+
+      @media (max-width: 575.98px) {
+        .why-hero,
+        .role-section,
+        .workflow-section,
+        .trust-section,
+        .why-cta {
           padding: 40px 0;
         }
-        .features-section .feature-item img {
-          border-radius: 10px;
-          box-shadow: 0 5px 25px rgba(0,0,0,0.1);
+
+        .why-hero h1 {
+          font-size: 2rem;
         }
-        .features-section .feature-item h3 {
-          font-size: 24px;
-          font-weight: 700;
-          color: var(--default-color);
-          margin-bottom: 15px;
+
+        .section-heading h2,
+        .trust-panel h2,
+        .why-cta-panel h2 {
+          font-size: 1.55rem;
         }
-        .features-section .feature-item p {
-          color: #6c757d;
+
+        .why-hero-actions .btn,
+        .why-cta-actions,
+        .why-cta-actions .btn {
+          width: 100%;
         }
-        .features-section .feature-item ul {
-          list-style: none;
-          padding: 0;
-          margin-top: 15px;
+
+        .workflow-item {
+          grid-template-columns: 1fr;
         }
-        .features-section .feature-item ul li {
-          padding-left: 28px;
-          position: relative;
-          margin-bottom: 10px;
-        }
-        .features-section .feature-item ul i {
-          position: absolute;
-          left: 0;
-          top: 2px;
-          font-size: 20px;
-          color: var(--accent-color);
-        }
-      `}</style>
-    </div>
-  );
-};
+      }
+    `}</style>
+  </div>
+);
 
 export default WhyUs;

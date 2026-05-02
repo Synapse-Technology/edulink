@@ -42,13 +42,39 @@ class InternshipOpportunity(BaseModel):
         (LOCATION_REMOTE, "Remote"),
         (LOCATION_HYBRID, "Hybrid"),
     ]
+
+    APPLICATION_INTERNAL = "INTERNAL"
+    APPLICATION_EXTERNAL = "EXTERNAL"
+
+    APPLICATION_MODE_CHOICES = [
+        (APPLICATION_INTERNAL, "Apply in EduLink"),
+        (APPLICATION_EXTERNAL, "Apply on external site"),
+    ]
+
+    ORIGIN_EDULINK_INTERNAL = "EDULINK_INTERNAL"
+    ORIGIN_EXTERNAL_STUDENT_DECLARED = "EXTERNAL_STUDENT_DECLARED"
+    ORIGIN_ADMIN_CURATED_EXTERNAL = "ADMIN_CURATED_EXTERNAL"
+
+    ORIGIN_CHOICES = [
+        (ORIGIN_EDULINK_INTERNAL, "EduLink internal"),
+        (ORIGIN_EXTERNAL_STUDENT_DECLARED, "External student declared"),
+        (ORIGIN_ADMIN_CURATED_EXTERNAL, "Admin curated external"),
+    ]
     
     location = models.CharField(max_length=255, blank=True)
     location_type = models.CharField(max_length=20, choices=LOCATION_CHOICES, default=LOCATION_ONSITE)
+    application_mode = models.CharField(max_length=20, choices=APPLICATION_MODE_CHOICES, default=APPLICATION_INTERNAL)
+    origin = models.CharField(max_length=40, choices=ORIGIN_CHOICES, default=ORIGIN_EDULINK_INTERNAL)
     
     # Actors (The Provider)
     institution_id = models.UUIDField(null=True, blank=True, help_text="The institution owning this internship process")
     employer_id = models.UUIDField(null=True, blank=True, help_text="The employer providing the internship")
+    external_employer_name = models.CharField(max_length=255, blank=True)
+    external_source_name = models.CharField(max_length=255, blank=True)
+    external_apply_url = models.URLField(max_length=1000, blank=True)
+    external_reference = models.CharField(max_length=255, blank=True)
+    curated_by = models.UUIDField(null=True, blank=True)
+    last_verified_at = models.DateTimeField(null=True, blank=True)
     
     # State
     status = models.CharField(
@@ -127,6 +153,67 @@ class InternshipApplication(BaseModel):
         indexes = [
             models.Index(fields=["status"]),
             models.Index(fields=["student_id"]),
+        ]
+
+
+class ExternalPlacementDeclaration(BaseModel):
+    """
+    Student-declared placement secured outside EduLink.
+
+    Approval creates an ACTIVE InternshipApplication so logbooks and monitoring
+    can use the existing placement workflow without exposing external application
+    activity as an institution-managed application pipeline.
+    """
+    STATUS_PENDING = "PENDING"
+    STATUS_CHANGES_REQUESTED = "CHANGES_REQUESTED"
+    STATUS_APPROVED = "APPROVED"
+    STATUS_REJECTED = "REJECTED"
+
+    STATUS_CHOICES = [
+        (STATUS_PENDING, "Pending institution review"),
+        (STATUS_CHANGES_REQUESTED, "Changes requested"),
+        (STATUS_APPROVED, "Approved"),
+        (STATUS_REJECTED, "Rejected"),
+    ]
+
+    student_id = models.UUIDField()
+    institution_id = models.UUIDField()
+    application = models.ForeignKey(
+        InternshipApplication,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="external_declarations",
+    )
+    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default=STATUS_PENDING)
+
+    company_name = models.CharField(max_length=255)
+    company_contact_name = models.CharField(max_length=255, blank=True)
+    company_contact_email = models.EmailField(blank=True)
+    company_contact_phone = models.CharField(max_length=50, blank=True)
+    role_title = models.CharField(max_length=255)
+    location = models.CharField(max_length=255, blank=True)
+    location_type = models.CharField(
+        max_length=20,
+        choices=InternshipOpportunity.LOCATION_CHOICES,
+        default=InternshipOpportunity.LOCATION_ONSITE,
+    )
+    start_date = models.DateField()
+    end_date = models.DateField(null=True, blank=True)
+    source_url = models.URLField(max_length=1000, blank=True)
+    proof_document = models.FileField(upload_to="internships/external_placement_proofs/", blank=True)
+    student_notes = models.TextField(blank=True)
+    review_notes = models.TextField(blank=True)
+    reviewed_by = models.UUIDField(null=True, blank=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        app_label = "internships"
+        db_table = "external_placement_declarations"
+        indexes = [
+            models.Index(fields=["student_id"]),
+            models.Index(fields=["institution_id", "status"]),
+            models.Index(fields=["status"]),
         ]
 
 class InternshipEvidence(BaseModel):

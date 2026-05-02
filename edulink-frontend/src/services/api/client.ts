@@ -2,6 +2,7 @@ import axios from 'axios';
 import type { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
 import config from '../../config';
 import { ApiError, NetworkError, ValidationError, AuthenticationError } from '../errors/index';
+import { getUserFacingErrorMessage, getUserFacingFieldName } from '../../utils/userFacingErrors';
 
 // config is now the initialized object from the default export
 
@@ -189,15 +190,10 @@ class ApiClient {
 
           try {
             const refreshToken = this.getRefreshToken();
-            if (!refreshToken) {
-              this.processQueue(error);
-              this.clearAuth();
-              throw new AuthenticationError('Session expired. Please log in again.');
-            }
 
             const refreshResponse = await this.client.post(
               '/api/auth/token/refresh/',
-              { refresh: refreshToken },
+              refreshToken ? { refresh: refreshToken } : {},
               { headers: { 'skip-auth': 'true' } }
             );
             
@@ -263,10 +259,14 @@ class ApiClient {
     }
 
     const { status, data } = error.response;
-    const errorMessage = this.extractErrorMessage(data);
+    const backendMessage = this.extractErrorMessage(data);
+    const errorCode = this.extractErrorCode(data);
+    const errorMessage = getUserFacingErrorMessage(backendMessage, status, errorCode);
 
     // Preserve full backend response in data for ParsedErrorResponse
-    const fullErrorData = typeof data === 'object' ? data : { message: errorMessage };
+    const fullErrorData = typeof data === 'object'
+      ? { ...data, raw_message: backendMessage, message: errorMessage }
+      : { raw_message: backendMessage, message: errorMessage };
 
     switch (status) {
       case 400:
@@ -280,10 +280,14 @@ class ApiClient {
       case 422:
         return new ValidationError(errorMessage, fullErrorData);
       case 500:
-        return new ApiError('Internal server error. Please try again later.', status, fullErrorData);
+        return new ApiError(errorMessage, status, fullErrorData);
       default:
         return new ApiError(errorMessage, status, fullErrorData);
     }
+  }
+
+  private extractErrorCode(data: any): string | undefined {
+    return typeof data === 'object' ? data?.error_code || data?.code : undefined;
   }
 
   private extractErrorMessage(data: any): string {
@@ -299,9 +303,9 @@ class ApiClient {
         .filter(([key]) => !key.startsWith('_'))
         .map(([key, value]) => {
           if (Array.isArray(value)) {
-            return `${key}: ${value.join(', ')}`;
+            return `${getUserFacingFieldName(key)}: ${value.join(', ')}`;
           }
-          return `${key}: ${value}`;
+          return `${getUserFacingFieldName(key)}: ${value}`;
         });
       
       if (fieldErrors.length > 0) {

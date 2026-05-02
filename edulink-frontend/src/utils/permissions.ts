@@ -74,7 +74,7 @@ export const canReviewEvidence = (user: User | null): boolean => {
 export const canManageApplications = (user: User | null): boolean => {
   return (
     user !== null &&
-    ['employer_admin', 'institution_admin', 'supervisor', 'employer'].includes(user?.role)
+    ['employer_admin', 'institution_admin'].includes(user?.role)
   );
 };
 
@@ -122,12 +122,20 @@ export const canViewEmployerDashboard = (user: User | null): boolean => {
   return user !== null && ['employer', 'employer_admin'].includes(user?.role);
 };
 
+export const canViewEmployerSupervisorDashboard = (user: User | null): boolean => {
+  return user?.role === 'supervisor' && Boolean(user.employer_id);
+};
+
 /**
  * Check if user can view institution dashboard
  * Institution staff and admins
  */
 export const canViewInstitutionDashboard = (user: User | null): boolean => {
-  return user !== null && ['institution_admin', 'supervisor'].includes(user?.role);
+  return user !== null && user.role === 'institution_admin';
+};
+
+export const canViewInstitutionAssessorDashboard = (user: User | null): boolean => {
+  return user?.role === 'supervisor' && Boolean(user.institution_id);
 };
 
 /**
@@ -182,6 +190,14 @@ export const canAssignSupervisors = (user: User | null): boolean => {
  */
 export const isSupervisor = (user: User | null): boolean => {
   return user?.role === 'supervisor';
+};
+
+export const isEmployerSupervisor = (user: User | null): boolean => {
+  return user?.role === 'supervisor' && Boolean(user.employer_id);
+};
+
+export const isInstitutionAssessor = (user: User | null): boolean => {
+  return user?.role === 'supervisor' && Boolean(user.institution_id);
 };
 
 // ============================================================================

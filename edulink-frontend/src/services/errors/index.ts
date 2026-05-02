@@ -1,3 +1,5 @@
+import { getUserFacingErrorMessage, getUserFacingFieldName } from '../../utils/userFacingErrors';
+
 export class ApiError extends Error {
   public status?: number;
   public data?: any;
@@ -85,7 +87,9 @@ export const handleError = (error: any): ApiError => {
 
   if (error.response) {
     const { status, data } = error.response;
-    const message = data?.message || data?.error || data?.detail || 'An error occurred';
+    const rawMessage = data?.message || data?.error || data?.detail || 'An error occurred';
+    const errorCode = data?.error_code || data?.code;
+    const message = getUserFacingErrorMessage(rawMessage, status, errorCode);
 
     switch (status) {
       case 400:
@@ -111,19 +115,19 @@ export const handleError = (error: any): ApiError => {
     return new NetworkError('Network error. Please check your connection.');
   }
 
-  return new ApiError(error.message || 'An unexpected error occurred');
+  return new ApiError(getUserFacingErrorMessage(error.message, undefined));
 };
 
 // Error message formatter
 export const formatErrorMessage = (error: ApiError): string => {
   if (error instanceof ValidationError && error.fieldErrors) {
     const fieldMessages = Object.entries(error.fieldErrors)
-      .map(([field, messages]) => `${field}: ${messages.join(', ')}`)
+      .map(([field, messages]) => `${getUserFacingFieldName(field)}: ${messages.join(', ')}`)
       .join('; ');
-    return `${error.message} - ${fieldMessages}`;
+    return `${getUserFacingErrorMessage(error.message, error.status)} - ${fieldMessages}`;
   }
 
-  return error.message;
+  return getUserFacingErrorMessage(error.message, error.status);
 };
 
 // Error logger

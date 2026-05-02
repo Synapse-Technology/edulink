@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Briefcase, 
@@ -16,12 +16,12 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePusher } from '../../hooks/usePusher';
 import { useErrorHandler } from '../../hooks/useErrorHandler';
 import { showToast } from '../../utils/toast';
-import StudentSidebar from '../../components/dashboard/StudentSidebar';
-import StudentHeader from '../../components/dashboard/StudentHeader';
+import StudentLayout from '../../components/dashboard/StudentLayout';
 import { studentService } from '../../services/student/studentService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import StudentApplicationsSkeleton from '../../components/student/skeletons/StudentApplicationsSkeleton';
+import { getUserFacingErrorMessage } from '../../utils/userFacingErrors';
 
 const ApplicationStatusBadge = ({ status }: { status: string }) => {
   const getStatusConfig = (status: string) => {
@@ -74,8 +74,8 @@ const StudentApplications: React.FC = () => {
 
   const { handleError: handleApplicationError } = useErrorHandler({
     onNotFound: () => showToast.error('No applications found'),
-    onAuthError: () => showToast.error('Unauthorized access'),
-    onUnexpected: (error) => showToast.error(`Failed to load applications: ${error.message}`),
+    onAuthError: () => showToast.error('Please sign in again to view your applications.'),
+    onUnexpected: (error) => showToast.error(getUserFacingErrorMessage(error.message) || 'We could not load your applications. Please try again.'),
   });
 
   // Fetch applications using TanStack Query
@@ -122,55 +122,38 @@ const StudentApplications: React.FC = () => {
     }
   );
 
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
-
   return (
-    <div className={`min-vh-100 ${isDarkMode ? 'text-white' : 'bg-light'}`} style={{ backgroundColor: isDarkMode ? '#0f172a' : undefined }}>
-      {/* Sidebar & Mobile Menu (Reused from Dashboard pattern) */}
-      {isMobileMenuOpen && (
-        <div 
-          className="d-lg-none position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-50" 
-          style={{ zIndex: 1039 }}
-          onClick={() => setIsMobileMenuOpen(false)}
-        />
-      )}
-      
-      <div className={`${isMobileMenuOpen ? 'd-block' : 'd-none'} d-lg-block position-fixed top-0 start-0 h-100 d-flex flex-column`} style={{ zIndex: 1040, width: '280px' }}>
-        <StudentSidebar isDarkMode={isDarkMode} />
-      </div>
+    <StudentLayout>
+      <div className="student-workspace">
+          <section className="student-command-hero">
+            <div className="student-command-copy">
+              <span className="student-kicker">Application pipeline</span>
+              <h1>Application Tracker</h1>
+              <p>Follow each application from submission to placement decision, with every status connected to a clear next action.</p>
+              <div className="student-command-meta">
+                <span><Briefcase size={15} /> {applications.length} total</span>
+                <span><CheckCircle size={15} /> {applications.filter((app: any) => ['ACCEPTED', 'ACTIVE', 'COMPLETED', 'CERTIFIED'].includes(app.status)).length} progressing</span>
+                <span><Clock size={15} /> {applications.filter((app: any) => ['APPLIED', 'SHORTLISTED'].includes(app.status)).length} under review</span>
+              </div>
+            </div>
+            <div className="student-command-card">
+              <span className="student-kicker">Next move</span>
+              <strong>{applications.length || 0}</strong>
+              <p className="student-command-note mb-3">Track current submissions or browse verified opportunities that match your profile.</p>
+              <Link to="/opportunities" className="btn btn-primary btn-sm">Browse Opportunities</Link>
+            </div>
+          </section>
 
-      <div 
-        className="d-flex flex-column min-vh-100 overflow-auto main-content-margin"
-        onClick={isMobileMenuOpen ? () => setIsMobileMenuOpen(false) : undefined}
-      >
-        <style>{`
-          .main-content-margin {
-            margin-left: 0;
-            max-width: 100vw;
-          }
-          @media (min-width: 992px) {
-            .main-content-margin {
-              margin-left: 280px !important;
-              max-width: calc(100vw - 280px) !important;
-            }
-          }
-        `}</style>
-        
-        <div className="px-3 px-lg-5 pt-4">
-          <StudentHeader
-            onMobileMenuClick={toggleMobileMenu}
-            isMobileMenuOpen={isMobileMenuOpen}
-          />
-        </div>
-
-        <div className="flex-grow-1 px-3 px-lg-5 py-4">
-          <div className="d-flex align-items-center gap-3 mb-4">
+          <div className="student-page-heading mb-0">
+            <div className="d-flex align-items-center gap-3">
             <Link to="/dashboard/student" className={`btn btn-sm ${isDarkMode ? 'btn-outline-light' : 'btn-outline-secondary'}`}>
               <ArrowLeft size={16} />
             </Link>
-            <h1 className={`h3 fw-bold mb-0 ${isDarkMode ? 'text-info' : ''}`}>My Applications</h1>
+              <div>
+                <h1 className="h4">Tracked Applications</h1>
+                <p>Compact view of employer, status, and date submitted.</p>
+              </div>
+            </div>
 
             {isPolling && (
               <div className={`alert alert-warning mt-3 d-flex align-items-center gap-2 ${isDarkMode ? 'bg-dark border-warning-subtle' : ''}`} role="alert">
@@ -185,8 +168,8 @@ const StudentApplications: React.FC = () => {
           ) : isError ? (
             <div className="alert alert-danger">Failed to load applications. Please try again later.</div>
           ) : applications?.length === 0 ? (
-            <div className="card text-center p-5">
-              <div className="card-body">
+            <div className="student-panel text-center p-5">
+              <div className="student-panel-body">
                 <Briefcase size={48} className="mb-3 text-muted" />
                 <h5 className="fw-bold">No Applications Yet</h5>
                 <p className="text-muted">Start browsing opportunities to apply!</p>
@@ -196,32 +179,29 @@ const StudentApplications: React.FC = () => {
               </div>
             </div>
           ) : (
-            <div className="row g-4">
+            <div className="student-surface">
+              <div className="student-surface-body">
+              <div className="student-evidence-rail">
               {applications?.map((app: any) => (
-                <div key={app.id} className="col-12">
-                  <div className="card border-0 shadow-sm rounded-4">
-                    <div className="card-body p-4">
+                <div key={app.id} className="student-evidence-row">
+                  <div className="student-evidence-icon">
+                    {app.employer_details?.logo ? (
+                      <img
+                        src={app.employer_details.logo}
+                        alt={app.employer_details?.name || 'Employer'}
+                        className="rounded object-fit-cover"
+                        style={{ width: '28px', height: '28px' }}
+                      />
+                    ) : (
+                      <Building size={18} />
+                    )}
+                  </div>
+                  <div>
                       <div className="row align-items-center">
                         <div className="col-md-8">
-                          <div className="d-flex align-items-start">
-                            <div className="me-3">
-                              {app.employer_details?.logo ? (
-                                <img 
-                                  src={app.employer_details.logo} 
-                                  alt={app.employer_details?.name || 'Employer'} 
-                                  className="rounded-circle object-fit-cover border"
-                                  style={{ width: '48px', height: '48px' }}
-                                />
-                              ) : (
-                                <div className={`rounded-circle d-flex align-items-center justify-content-center border ${isDarkMode ? 'bg-dark border-secondary' : 'bg-light'}`} style={{ width: '48px', height: '48px' }}>
-                                  <Building size={24} className={isDarkMode ? 'text-secondary' : 'text-muted'} />
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex-grow-1">
                               <div className="d-flex align-items-start justify-content-between mb-1">
                                 <div>
-                                  <h5 className={`fw-bold mb-1 ${isDarkMode ? 'text-info' : 'text-primary'}`}>
+                                  <h5 className="fw-bold mb-1">
                                     {app.title}
                                   </h5>
                                   <p className={`mb-1 small ${isDarkMode ? 'text-light opacity-75' : 'text-muted'}`}>
@@ -236,10 +216,8 @@ const StudentApplications: React.FC = () => {
                               <p className={`mb-2 small ${isDarkMode ? 'text-light opacity-75' : 'text-muted'}`}>
                                 {app.department || 'General Department'}
                               </p>
-                            </div>
-                          </div>
                           
-                          <div className="d-flex flex-wrap gap-3 mt-2 ms-5 ps-2">
+                          <div className="d-flex flex-wrap gap-3 mt-2">
                             <div className={`d-flex align-items-center gap-1 small ${isDarkMode ? 'text-light opacity-75' : 'text-muted'}`}>
                               <MapPin size={14} />
                               <span>{app.location || 'Remote'} ({app.location_type})</span>
@@ -266,15 +244,15 @@ const StudentApplications: React.FC = () => {
                           </Link>
                         </div>
                       </div>
-                    </div>
                   </div>
                 </div>
               ))}
+              </div>
+              </div>
             </div>
           )}
-        </div>
       </div>
-    </div>
+    </StudentLayout>
   );
 };
 

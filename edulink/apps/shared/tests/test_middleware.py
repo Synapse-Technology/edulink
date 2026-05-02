@@ -7,9 +7,9 @@ at the view layer before they reach the client.
 
 import json
 from uuid import uuid4
-from django.test import TestCase, RequestFactory
+from django.test import RequestFactory, SimpleTestCase
 from django.core.exceptions import PermissionDenied, ObjectDoesNotExist, ValidationError as DjangoValidationError
-from django.db import IntegrityError
+from django.db import IntegrityError, OperationalError
 
 from edulink.apps.shared.middleware import ErrorHandlingMiddleware
 from edulink.apps.shared.error_handling import (
@@ -63,6 +63,10 @@ class MiddlewareTestHelper:
     @staticmethod
     def get_response_integrity_error(request):
         raise IntegrityError("UNIQUE constraint failed: test_table.email")
+
+    @staticmethod
+    def get_response_operational_error(request):
+        raise OperationalError("[Errno -3] Temporary failure in name resolution")
     
     @staticmethod
     def get_response_validation_error_django(request):
@@ -73,7 +77,7 @@ class MiddlewareTestHelper:
         raise ValueError("Completely unhandled error")
 
 
-class TestErrorHandlingMiddlewareDomainErrors(TestCase):
+class TestErrorHandlingMiddlewareDomainErrors(SimpleTestCase):
     """Test middleware handling of EduLink domain errors."""
 
     def setUp(self):
@@ -129,7 +133,7 @@ class TestErrorHandlingMiddlewareDomainErrors(TestCase):
         self.assertEqual(data["message"], "Test access denied.")
 
 
-class TestErrorHandlingMiddlewareDjangoExceptions(TestCase):
+class TestErrorHandlingMiddlewareDjangoExceptions(SimpleTestCase):
     """Test middleware conversion of Django exceptions."""
 
     def setUp(self):
@@ -170,6 +174,19 @@ class TestErrorHandlingMiddlewareDjangoExceptions(TestCase):
         self.assertEqual(data["error_code"], "CONFLICT")
         self.assertIn("already", data["message"].lower())
 
+    def test_middleware_converts_operational_error_to_transient_503(self):
+        """Database connectivity failures are retryable service outages, not generic 500s."""
+        middleware = ErrorHandlingMiddleware(MiddlewareTestHelper.get_response_operational_error)
+        request = self.factory.get('/api/internships/success-stories/')
+
+        response = middleware(request)
+
+        self.assertEqual(response.status_code, 503)
+        data = json.loads(response.content)
+        self.assertEqual(data["error_code"], "DATABASE_UNAVAILABLE")
+        self.assertEqual(data["status_code"], 503)
+        self.assertIn("temporarily unavailable", data["message"].lower())
+
     def test_middleware_converts_validation_error(self):
         """Django ValidationError converted to 400 ValidationError"""
         middleware = ErrorHandlingMiddleware(MiddlewareTestHelper.get_response_validation_error_django)
@@ -182,7 +199,7 @@ class TestErrorHandlingMiddlewareDjangoExceptions(TestCase):
         self.assertEqual(data["error_code"], "VALIDATION_ERROR")
 
 
-class TestErrorHandlingMiddlewareUnhandledExceptions(TestCase):
+class TestErrorHandlingMiddlewareUnhandledExceptions(SimpleTestCase):
     """Test middleware handling of unhandled exceptions."""
 
     def setUp(self):
@@ -217,7 +234,7 @@ class TestErrorHandlingMiddlewareUnhandledExceptions(TestCase):
         self.assertNotIn("line", response_str.lower())
 
 
-class TestMiddlewareResponseStructure(TestCase):
+class TestMiddlewareResponseStructure(SimpleTestCase):
     """Test that middleware responses follow standard format."""
 
     def setUp(self):

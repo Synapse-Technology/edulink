@@ -127,9 +127,12 @@ class ArtifactViewSet(viewsets.ReadOnlyModelViewSet):
             return Response({"error": "artifact_id required"}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
-            artifact = Artifact.objects.get(id=artifact_id)
-            # Verify permission
-            if artifact.student_id != request.user.student.id:
+            artifact = get_artifact_by_id(artifact_id)
+            if not artifact:
+                return Response({"error": "Artifact not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+            # Policy check (May I?) - Permission decisions belong in policies.py, not views
+            if not can_view_artifact(request.user, artifact):
                 return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
             
             return Response({
@@ -139,8 +142,6 @@ class ArtifactViewSet(viewsets.ReadOnlyModelViewSet):
                 "error_message": artifact.error_message,
                 "artifact_type": artifact.artifact_type
             })
-        except Artifact.DoesNotExist:
-            return Response({"error": "Artifact not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             logger.exception("Status check failed")
             return Response({"error": "Failed to check status"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

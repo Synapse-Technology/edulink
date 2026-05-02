@@ -9,8 +9,7 @@ import {
   Plus,
   Loader
 } from 'lucide-react';
-import StudentHeader from '../../components/dashboard/StudentHeader';
-import StudentSidebar from '../../components/dashboard/StudentSidebar';
+import StudentLayout from '../../components/dashboard/StudentLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { studentService } from '../../services/student/studentService';
@@ -19,11 +18,12 @@ import { showToast } from '../../utils/toast';
 import type { Affiliation, Institution } from '../../services/student/studentService';
 import StudentAffiliationSkeleton from '../../components/student/skeletons/StudentAffiliationSkeleton';
 import AffiliationDocumentUploader from '../../components/student/AffiliationDocumentUploader';
+import { getUserFacingErrorMessage } from '../../utils/userFacingErrors';
+import '../../styles/student-portal.css';
 
 const StudentAffiliation: React.FC = () => {
   const { user } = useAuth();
   const { isDarkMode } = useTheme();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [affiliations, setAffiliations] = useState<Affiliation[]>([]);
   const [studentId, setStudentId] = useState('');
@@ -104,7 +104,7 @@ const StudentAffiliation: React.FC = () => {
       showToast.success('Affiliation claimed successfully!');
     } catch (err: any) {
       console.error(err);
-      const errorMsg = err?.message || 'Failed to claim affiliation.';
+      const errorMsg = getUserFacingErrorMessage(err?.message, err?.status) || 'We could not submit your affiliation claim. Please try again.';
       setError(errorMsg);
       showToast.error(errorMsg);
     } finally {
@@ -221,26 +221,24 @@ const StudentAffiliation: React.FC = () => {
       const isVerified = currentAffiliation.status === 'approved' || currentAffiliation.status === 'verified';
 
       return (
-        <div className="row justify-content-center">
-          <div className="col-lg-8">
-            <div className={`card mb-4 ${isDarkMode ? 'bg-dark border-secondary' : 'bg-white'}`}>
-              <div className="card-body p-5 text-center">
-                {isVerified ? (
-                  <CheckCircle size={64} className="text-success mb-3" />
-                ) : (
-                  <Clock size={64} className="text-warning mb-3" />
-                )}
-                
-                <h2 className={`mb-3 ${isDarkMode ? 'text-white' : ''}`}>
+        <div className="student-workspace-grid">
+          <main>
+            <section className="student-surface">
+              <div className="student-surface-body">
+                <div className="student-surface-header">
+                  <div>
+                    <h2>
                   {currentAffiliation.institution_name || currentAffiliation.institution?.name}
-                </h2>
-                
-                <div className="mb-4">
-                  {getStatusBadge(currentAffiliation)}
+                    </h2>
+                    <p className="student-muted mb-0">
+                      {isVerified ? 'Your student status is trusted for applications and placement workflows.' : 'Your institution claim is moving through verification.'}
+                    </p>
+                  </div>
+                  <div>{getStatusBadge(currentAffiliation)}</div>
                 </div>
 
                 {isAutoVerified && (
-                  <div className={`d-flex justify-content-center align-items-start gap-2 ${isDarkMode ? 'text-light opacity-75' : 'text-muted'}`}>
+                  <div className={`d-flex align-items-start gap-2 ${isDarkMode ? 'text-light opacity-75' : 'text-muted'}`}>
                     <CheckCircle size={18} className="text-success flex-shrink-0 mt-1" />
                     <p className="mb-0">
                       Your student status was automatically verified using your institutional email. You can now apply for internships.
@@ -261,7 +259,7 @@ const StudentAffiliation: React.FC = () => {
                 )}
 
                 {isVerified && !isAutoVerified && (
-                  <div className={`d-flex justify-content-center align-items-start gap-2 ${isDarkMode ? 'text-light opacity-75' : 'text-muted'}`}>
+                  <div className={`d-flex align-items-start gap-2 ${isDarkMode ? 'text-light opacity-75' : 'text-muted'}`}>
                     <CheckCircle size={18} className="text-success flex-shrink-0 mt-1" />
                     <p className="mb-0">
                       Your student status has been verified by the institution admin. You can now apply for internships.
@@ -269,11 +267,37 @@ const StudentAffiliation: React.FC = () => {
                   </div>
                 )}
               </div>
-            </div>
+            </section>
+          </main>
+
+          <aside>
+            <section className="student-surface">
+              <div className="student-surface-body">
+                <div className="student-surface-header">
+                  <div>
+                    <h2>Verification Stage</h2>
+                    <p className="student-muted mb-0">Where this claim currently stands.</p>
+                  </div>
+                </div>
+                <div className="student-evidence-rail">
+                  <div className="student-evidence-row">
+                    <div className={`student-evidence-icon ${isVerified ? 'success' : 'warn'}`}>
+                      {isVerified ? <CheckCircle size={18} /> : <Clock size={18} />}
+                    </div>
+                    <div>
+                      <strong>{isVerified ? 'Verified' : 'Pending review'}</strong>
+                      <span>{hasDocument ? 'Document submitted for review.' : 'Document may be required.'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </aside>
 
             {/* Document Uploader for Pending Affiliations */}
             {isPending && !hasDocument && (
-              <div className="mt-4">
+              <div className="student-workspace-grid" style={{ gridColumn: '1 / -1' }}>
+                <main>
                 <AffiliationDocumentUploader
                   studentId={studentId}
                   affiliationId={currentAffiliation.id}
@@ -284,6 +308,7 @@ const StudentAffiliation: React.FC = () => {
                   }}
                   isDarkMode={isDarkMode}
                 />
+                </main>
               </div>
             )}
 
@@ -305,22 +330,23 @@ const StudentAffiliation: React.FC = () => {
                 </div>
               </div>
             )}
-          </div>
         </div>
       );
     }
 
     return (
-      <div className="row justify-content-center">
-        <div className="col-lg-8">
-          <div className={`card mb-4 ${isDarkMode ? 'bg-dark border-secondary' : 'bg-white'}`}>
-            <div className="card-body p-4">
-              <div className="text-center mb-4">
-                <Building2 size={48} className={`mb-3 ${isDarkMode ? 'text-info' : 'text-primary'}`} />
-                <h3 className={`fw-bold ${isDarkMode ? 'text-white' : ''}`}>Claim Your Institution</h3>
-                <p className={isDarkMode ? 'text-light opacity-75' : 'text-muted'}>
+      <div className="student-workspace-grid">
+        <main>
+          <section className="student-surface">
+            <div className="student-surface-body">
+              <div className="student-surface-header">
+                <div>
+                  <h2>Claim Your Institution</h2>
+                  <p className={isDarkMode ? 'text-light opacity-75 mb-0' : 'text-muted mb-0'}>
                   Search for your university or college to verify your student status.
                 </p>
+                </div>
+                <Building2 size={28} className={isDarkMode ? 'text-info' : 'text-primary'} />
               </div>
 
               {error && (
@@ -507,61 +533,36 @@ const StudentAffiliation: React.FC = () => {
                 )}
               </button>
             </div>
-          </div>
-        </div>
+          </section>
+        </main>
       </div>
     );
   };
 
   return (
-    <div className={`min-vh-100 ${isDarkMode ? 'text-white' : 'bg-light'}`} style={{ backgroundColor: isDarkMode ? '#0f172a' : undefined }}>
-      {/* Sidebar & Mobile Menu */}
-      {isMobileMenuOpen && (
-        <div 
-          className="d-lg-none position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-50" 
-          style={{ zIndex: 1039 }}
-          onClick={() => setIsMobileMenuOpen(false)}
-        />
-      )}
-      
-      <div className={`${isMobileMenuOpen ? 'd-block' : 'd-none'} d-lg-block position-fixed top-0 start-0 h-100 d-flex flex-column`} style={{ zIndex: 1040, width: '280px' }}>
-        <StudentSidebar isDarkMode={isDarkMode} />
-      </div>
-
-      <div 
-        className="d-flex flex-column min-vh-100 overflow-auto main-content-margin"
-        onClick={isMobileMenuOpen ? () => setIsMobileMenuOpen(false) : undefined}
-      >
-        <style>{`
-          .main-content-margin {
-            margin-left: 0;
-            max-width: 100vw;
-          }
-          @media (min-width: 992px) {
-            .main-content-margin {
-              margin-left: 280px !important;
-              max-width: calc(100vw - 280px) !important;
-            }
-          }
-          .hover-effect:hover {
-            background-color: rgba(17, 204, 173, 0.1) !important;
-          }
-        `}</style>
-        
-        <div className="px-4 px-lg-5 pt-4">
-          <StudentHeader
-            onMobileMenuClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            isMobileMenuOpen={isMobileMenuOpen}
-          />
+    <>
+      <StudentLayout>
+        <div className="student-workspace">
+        <section className="student-command-hero">
+          <div className="student-command-copy">
+            <span className="student-kicker">Institution trust</span>
+            <h1>Institution Affiliation</h1>
+            <p>Connect your student record to your institution so applications, verification, and attachment workflows can move with trust.</p>
+            <div className="student-command-meta">
+              <span><Building2 size={15} /> Institution claim</span>
+              <span><FileCheck size={15} /> Verification document</span>
+              <span><CheckCircle size={15} /> Application trust</span>
+            </div>
+          </div>
+          <div className="student-command-card">
+            <span className="student-kicker">Claims</span>
+            <strong>{affiliations.length}</strong>
+            <p className="student-command-note">Approved affiliation unlocks trusted student workflows.</p>
+          </div>
+        </section>
+        {renderContent()}
         </div>
-
-        <div className="flex-grow-1 px-4 px-lg-5 pb-4">
-          <h1 className={`display-6 fw-bold mb-4 ${isDarkMode ? 'text-info' : ''}`}>
-            Institution Affiliation
-          </h1>
-          {renderContent()}
-        </div>
-      </div>
+      </StudentLayout>
 
       {/* University Onboarding Request Modal */}
       {showOnboardingModal && (
@@ -755,8 +756,11 @@ const StudentAffiliation: React.FC = () => {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
         }
+        .hover-effect:hover {
+          background-color: rgba(17, 204, 173, 0.1) !important;
+        }
       `}</style>
-    </div>
+    </>
   );
 };
 

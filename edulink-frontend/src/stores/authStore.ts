@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import { authService } from '../services/auth/authService';
 import { adminAuthService } from '../services/auth/adminAuthService';
 import type { LoginCredentials, RegisterData } from '../services/auth/authService';
+import { inferPortalForUser } from '../utils/authRouting';
 
 interface User {
   id: string;
@@ -53,6 +54,19 @@ interface AuthState {
   setLoading: (loading: boolean) => void;
 }
 
+const mapAuthUser = (responseUser: any): User => ({
+  id: responseUser.id,
+  email: responseUser.email,
+  firstName: responseUser.first_name,
+  lastName: responseUser.last_name,
+  role: responseUser.role as User['role'],
+  trustLevel: responseUser.trustLevel,
+  trustPoints: responseUser.trustPoints,
+  avatar: responseUser.avatar_url || responseUser.avatar,
+  institution_id: responseUser.institution_id,
+  employer_id: responseUser.employer_id,
+});
+
 /**
  * Unified Auth Store - Zustand with persisted user + admin data
  *
@@ -82,26 +96,14 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true });
         try {
           const response = await authService.login(credentials);
-
-          const mappedUser: User = {
-            id: response.user.id,
-            email: response.user.email,
-            firstName: response.user.first_name,
-            lastName: response.user.last_name,
-            role: response.user.role as User['role'],
-            trustLevel: response.user.trustLevel,
-            trustPoints: response.user.trustPoints,
-            avatar: response.user.avatar_url || response.user.avatar,
-            institution_id: response.user.institution_id,
-            employer_id: response.user.employer_id,
-          };
+          const mappedUser = mapAuthUser(response.user);
 
           set({
             user: mappedUser,
             admin: null,
             isAuthenticated: true,
             isAdmin: false,
-            currentPortal: 'student',
+            currentPortal: inferPortalForUser(mappedUser),
             isLoading: false,
           });
         } catch (error) {
@@ -113,20 +115,8 @@ export const useAuthStore = create<AuthState>()(
       loginEmployer: async (credentials) => {
         set({ isLoading: true });
         try {
-          const response = await authService.loginEmployer(credentials);
-
-          const mappedUser: User = {
-            id: response.user.id,
-            email: response.user.email,
-            firstName: response.user.first_name,
-            lastName: response.user.last_name,
-            role: response.user.role as User['role'],
-            trustLevel: response.user.trustLevel,
-            trustPoints: response.user.trustPoints,
-            avatar: response.user.avatar_url || response.user.avatar,
-            institution_id: response.user.institution_id,
-            employer_id: response.user.employer_id,
-          };
+          const response = await authService.login(credentials);
+          const mappedUser = mapAuthUser(response.user);
 
           set({
             user: mappedUser,
@@ -145,20 +135,8 @@ export const useAuthStore = create<AuthState>()(
       loginInstitution: async (credentials) => {
         set({ isLoading: true });
         try {
-          const response = await authService.loginInstitution(credentials);
-
-          const mappedUser: User = {
-            id: response.user.id,
-            email: response.user.email,
-            firstName: response.user.first_name,
-            lastName: response.user.last_name,
-            role: response.user.role as User['role'],
-            trustLevel: response.user.trustLevel,
-            trustPoints: response.user.trustPoints,
-            avatar: response.user.avatar_url || response.user.avatar,
-            institution_id: response.user.institution_id,
-            employer_id: response.user.employer_id,
-          };
+          const response = await authService.login(credentials);
+          const mappedUser = mapAuthUser(response.user);
 
           set({
             user: mappedUser,
@@ -178,19 +156,7 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true });
         try {
           const response = await authService.register(data);
-
-          const mappedUser: User = {
-            id: response.user.id,
-            email: response.user.email,
-            firstName: response.user.first_name,
-            lastName: response.user.last_name,
-            role: response.user.role as User['role'],
-            trustLevel: response.user.trustLevel,
-            trustPoints: response.user.trustPoints,
-            avatar: response.user.avatar_url || response.user.avatar,
-            institution_id: response.user.institution_id,
-            employer_id: response.user.employer_id,
-          };
+          const mappedUser = mapAuthUser(response.user);
 
           set({
             user: mappedUser,

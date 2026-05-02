@@ -240,7 +240,7 @@ const AdminLanding: React.FC = () => {
                 Join hundreds of institutions and employers transforming their internship programs with Edulink.
               </p>
               <div className="admin-cta-actions">
-                <a href="/docs" className="admin-btn-primary">View Documentation</a>
+                <a href="/faq" className="admin-btn-primary">View FAQ</a>
                 <a href="mailto:support@edulink.jhubafrica.com" className="admin-btn-secondary" id="contact-support-btn">Contact Support</a>
               </div>
             </div>

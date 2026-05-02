@@ -6,6 +6,7 @@ import TableSkeleton from '../../../components/admin/skeletons/TableSkeleton';
 import { internshipService } from '../../../services/internship/internshipService';
 import { useErrorHandler } from '../../../hooks/useErrorHandler';
 import { showToast } from '../../../utils/toast';
+import { sanitizeAdminError } from '../../../utils/adminErrorSanitizer';
 import type { InternshipApplication } from '../../../services/internship/internshipService';
 import TrustBadge, { type TrustLevel } from '../../../components/common/TrustBadge';
 
@@ -37,7 +38,9 @@ const EmployerApplications: React.FC = () => {
       const recruitmentApps = apps.filter((app: any) => !['ACTIVE', 'COMPLETED'].includes(app.status));
       setApplications(recruitmentApps);
     } catch (error) {
-      console.error("Error:", error); showToast.error("An error occurred. Please try again.");
+      console.error("Error:", error);
+      const sanitized = sanitizeAdminError(error);
+      showToast.error(sanitized.message);
     } finally {
       setIsLoading(false);
     }

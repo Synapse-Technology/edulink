@@ -25,6 +25,7 @@ import {
 import { adminAuthService } from '../../../services';
 import AdminLayout from '../../../components/admin/AdminLayout';
 import InstitutionManagementSkeleton from '../../../components/admin/skeletons/InstitutionManagementSkeleton';
+import { sanitizeAdminError } from '../../../utils/adminErrorSanitizer';
 
 interface Institution {
   id: string;
@@ -126,11 +127,8 @@ const InstitutionManagement: React.FC = () => {
       setInstitutions(institutionsList);
       setPendingRequests(pendingList);
     } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message || 'Failed to load institution data');
-      } else {
-        setError('An unexpected error occurred');
-      }
+      const sanitized = sanitizeAdminError(err);
+      setError(sanitized.userMessage || 'Failed to load institution data');
     } finally {
       setIsLoading(false);
     }
@@ -153,11 +151,8 @@ const InstitutionManagement: React.FC = () => {
       fetchInstitutionData();
       
     } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message || 'Failed to approve request');
-      } else {
-        setError('An unexpected error occurred');
-      }
+      const sanitized = sanitizeAdminError(err);
+      setError(sanitized.userMessage || 'Failed to approve request');
     } finally {
       setIsProcessing(null);
     }
@@ -223,8 +218,9 @@ const InstitutionManagement: React.FC = () => {
         else if (data.message || data.error) {
           errorMessage = data.message || data.error;
         }
-      } else if (err instanceof Error) {
-        errorMessage = err.message;
+      } else {
+        const sanitized = sanitizeAdminError(err);
+        errorMessage = sanitized.userMessage || errorMessage;
       }
       
       setError(errorMessage);
@@ -246,11 +242,8 @@ const InstitutionManagement: React.FC = () => {
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message || 'Failed to export data');
-      } else {
-        setError('An unexpected error occurred');
-      }
+      const sanitized = sanitizeAdminError(err);
+      setError(sanitized.userMessage || 'Failed to export data');
     } finally {
       setIsExporting(false);
     }

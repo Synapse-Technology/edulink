@@ -2,9 +2,10 @@ from rest_framework import viewsets, status, filters, permissions
 from rest_framework.decorators import action, throttle_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.throttling import UserRateThrottle
 from django_filters.rest_framework import DjangoFilterBackend
+from django.db.models import Q
 from edulink.apps.shared.pagination import StandardResultsSetPagination, LargeResultsSetPagination
 from edulink.apps.shared.error_handling import AuthorizationError
 from .permissions import (
@@ -13,7 +14,16 @@ from .permissions import (
 )
 import logging
 
-from .models import InternshipOpportunity, InternshipApplication, InternshipEvidence, Incident, SupervisorAssignment, OpportunityStatus, ApplicationStatus
+from .models import (
+    InternshipOpportunity,
+    InternshipApplication,
+    InternshipEvidence,
+    Incident,
+    SupervisorAssignment,
+    OpportunityStatus,
+    ApplicationStatus,
+    ExternalPlacementDeclaration,
+)
 from .serializers import (
     InternshipOpportunitySerializer, InternshipApplicationSerializer, CreateInternshipSerializer, InternshipActionSerializer,
     SubmitEvidenceSerializer, ReviewEvidenceSerializer, IncidentSerializer, 
@@ -22,7 +32,9 @@ from .serializers import (
     InternshipEvidenceSerializer, SuccessStorySerializer,
     SubmitFinalFeedbackSerializer, InternshipApplySerializer, CreateSuccessStorySerializer,
     BulkExtendDeadlineSerializer, DeadlineAnalyticsSerializer,
-    SupervisorAssignmentSerializer, AcceptSupervisorAssignmentSerializer, RejectSupervisorAssignmentSerializer
+    SupervisorAssignmentSerializer, AcceptSupervisorAssignmentSerializer, RejectSupervisorAssignmentSerializer,
+    ExternalPlacementDeclarationSerializer, ExternalPlacementDeclarationCreateSerializer,
+    ExternalPlacementDeclarationReviewSerializer
 )
 from .filters import InternshipOpportunityFilter, InternshipApplicationFilter
 from .services import (
@@ -31,11 +43,14 @@ from .services import (
     certify_internship, submit_evidence, review_evidence, create_incident, resolve_incident, assign_supervisors,
     bulk_assign_institution_supervisors,
     create_success_story, submit_final_feedback, bulk_extend_opportunity_deadlines, get_deadline_analytics,
-    withdraw_application, create_supervisor_assignment, accept_supervisor_assignment, reject_supervisor_assignment
+    withdraw_application, create_supervisor_assignment, accept_supervisor_assignment, reject_supervisor_assignment,
+    declare_external_placement, approve_external_placement_declaration,
+    request_external_placement_changes, reject_external_placement_declaration
 )
 from .queries import (
     get_opportunities_for_user, get_applications_for_user, 
-    get_opportunity_by_id, get_application_by_id
+    get_opportunity_by_id, get_application_by_id,
+    get_external_placement_declarations_for_user
 )
 
 logger = logging.getLogger(__name__)
@@ -537,6 +552,99 @@ class ApplicationViewSet(viewsets.ReadOnlyModelViewSet):
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
+class ExternalPlacementDeclarationViewSet(viewsets.ModelViewSet):
+    """
+    Student-declared external placements.
+
+    Approval creates an ACTIVE placement so logbooks unlock through the existing
+    evidence workflow while employer review remains unavailable until employer
+    linking is implemented.
+    """
+    serializer_class = ExternalPlacementDeclarationSerializer
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+    pagination_class = StandardResultsSetPagination
+
+    def get_queryset(self):
+        return get_external_placement_declarations_for_user(self.request.user)
+
+    def get_serializer_class(self):
+        if self.action == "create":
+            return ExternalPlacementDeclarationCreateSerializer
+        if self.action in ["approve", "request_changes", "reject"]:
+            return ExternalPlacementDeclarationReviewSerializer
+        return ExternalPlacementDeclarationSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            declaration = declare_external_placement(
+                actor=request.user,
+                **serializer.validated_data,
+            )
+            return Response(
+                ExternalPlacementDeclarationSerializer(declaration, context={"request": request}).data,
+                status=status.HTTP_201_CREATED,
+            )
+        except AuthorizationError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_403_FORBIDDEN)
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=["post"])
+    def approve(self, request, pk=None):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            declaration = approve_external_placement_declaration(
+                actor=request.user,
+                declaration_id=pk,
+                review_notes=serializer.validated_data.get("review_notes", ""),
+            )
+            return Response(ExternalPlacementDeclarationSerializer(declaration, context={"request": request}).data)
+        except AuthorizationError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_403_FORBIDDEN)
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=["post"], url_path="request-changes")
+    def request_changes(self, request, pk=None):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            declaration = request_external_placement_changes(
+                actor=request.user,
+                declaration_id=pk,
+                review_notes=serializer.validated_data.get("review_notes", ""),
+            )
+            return Response(ExternalPlacementDeclarationSerializer(declaration, context={"request": request}).data)
+        except AuthorizationError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_403_FORBIDDEN)
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=["post"])
+    def reject(self, request, pk=None):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            declaration = reject_external_placement_declaration(
+                actor=request.user,
+                declaration_id=pk,
+                review_notes=serializer.validated_data.get("review_notes", ""),
+            )
+            return Response(ExternalPlacementDeclarationSerializer(declaration, context={"request": request}).data)
+        except AuthorizationError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_403_FORBIDDEN)
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
 # ==================== Phase 2.4: Supervisor Assignment ViewSet ====================
 
 class SupervisorAssignmentViewSet(viewsets.ReadOnlyModelViewSet):
@@ -563,20 +671,58 @@ class SupervisorAssignmentViewSet(viewsets.ReadOnlyModelViewSet):
         """
         user = self.request.user
         
-        if user.is_system_admin or user.is_employer_admin or user.is_institution_admin:
-            # Admins see all assignments
-            return SupervisorAssignment.objects.all()
+        if user.is_system_admin:
+            return SupervisorAssignment.objects.all().order_by("-created_at", "-id")
+
+        if user.is_employer_admin:
+            from edulink.apps.employers.queries import get_employer_for_user
+            employer = get_employer_for_user(user.id)
+            if employer:
+                return SupervisorAssignment.objects.filter(
+                    application__opportunity__employer_id=employer.id,
+                    assignment_type=SupervisorAssignment.ASSIGNMENT_EMPLOYER,
+                ).order_by("-created_at", "-id")
+            return SupervisorAssignment.objects.none()
+
+        if user.is_institution_admin:
+            from edulink.apps.institutions.queries import get_institution_for_user
+            inst = get_institution_for_user(str(user.id))
+            if inst:
+                return SupervisorAssignment.objects.filter(
+                    Q(application__opportunity__institution_id=inst.id) |
+                    Q(application__application_snapshot__institution_id=str(inst.id)),
+                    assignment_type=SupervisorAssignment.ASSIGNMENT_INSTITUTION,
+                ).distinct().order_by("-created_at", "-id")
+            return SupervisorAssignment.objects.none()
         
         if user.is_supervisor:
             # Supervisors see their own assignments
-            return SupervisorAssignment.objects.filter(supervisor_id=user.id)
+            from edulink.apps.employers.queries import get_supervisor_id_for_user
+            from edulink.apps.institutions.queries import get_institution_staff_id_for_user
+
+            filters = Q()
+            employer_supervisor_id = get_supervisor_id_for_user(user.id)
+            institution_staff_id = get_institution_staff_id_for_user(str(user.id))
+            if employer_supervisor_id:
+                filters |= Q(
+                    supervisor_id=employer_supervisor_id,
+                    assignment_type=SupervisorAssignment.ASSIGNMENT_EMPLOYER,
+                )
+            if institution_staff_id:
+                filters |= Q(
+                    supervisor_id=institution_staff_id,
+                    assignment_type=SupervisorAssignment.ASSIGNMENT_INSTITUTION,
+                )
+            if filters:
+                return SupervisorAssignment.objects.filter(filters).order_by("-created_at", "-id")
+            return SupervisorAssignment.objects.none()
         
         if user.is_student:
             # Students see assignments for their own applications
             from edulink.apps.students.queries import get_student_for_user
             student = get_student_for_user(str(user.id))
             if student:
-                return SupervisorAssignment.objects.filter(application__student_id=student.id)
+                return SupervisorAssignment.objects.filter(application__student_id=student.id).order_by("-created_at", "-id")
         
         return SupervisorAssignment.objects.none()
     
@@ -586,19 +732,42 @@ class SupervisorAssignmentViewSet(viewsets.ReadOnlyModelViewSet):
         """
         user = request.user
         
-        # Admins can access all
-        if user.is_system_admin or user.is_employer_admin or user.is_institution_admin:
+        # System admins can access all
+        if user.is_system_admin:
             return True
         
         # Supervisor can access their own
-        if user.is_supervisor and obj.supervisor_id == user.id:
-            return True
-        
+        if user.is_supervisor:
+            from .policies import can_view_supervisor_assignment
+            if can_view_supervisor_assignment(user, obj):
+                return True
+
+        if user.is_employer_admin:
+            from edulink.apps.employers.queries import get_employer_for_user
+            employer = get_employer_for_user(user.id)
+            if employer and obj.assignment_type == SupervisorAssignment.ASSIGNMENT_EMPLOYER:
+                return str(obj.application.opportunity.employer_id) == str(employer.id)
+
+        if user.is_institution_admin:
+            from edulink.apps.institutions.queries import get_institution_for_user
+            inst = get_institution_for_user(str(user.id))
+            if inst and obj.assignment_type == SupervisorAssignment.ASSIGNMENT_INSTITUTION:
+                return (
+                    str(obj.application.opportunity.institution_id) == str(inst.id)
+                    or str(obj.application.application_snapshot.get("institution_id")) == str(inst.id)
+                )
+
         # Student can access assignments for their application
         if user.is_student:
-            return obj.application.student_id == user.id
+            from edulink.apps.students.queries import get_student_for_user
+            student = get_student_for_user(str(user.id))
+            return bool(student and str(obj.application.student_id) == str(student.id))
         
         return False
+
+    def _can_act_on_assignment(self, user, assignment):
+        from .policies import can_accept_supervisor_assignment
+        return can_accept_supervisor_assignment(user, assignment)
     
     def get_permissions(self):
         if self.action in ['accept', 'reject']:
@@ -613,8 +782,8 @@ class SupervisorAssignmentViewSet(viewsets.ReadOnlyModelViewSet):
         """
         assignment = self.get_object()
         
-        # Permission check: Only supervisor can accept
-        if request.user.id != assignment.supervisor_id:
+        # Permission check: Only assigned domain supervisor can accept
+        if not self._can_act_on_assignment(request.user, assignment):
             return Response(
                 {"detail": "Only the assigned supervisor can accept this assignment"},
                 status=status.HTTP_403_FORBIDDEN
@@ -629,7 +798,7 @@ class SupervisorAssignmentViewSet(viewsets.ReadOnlyModelViewSet):
                 SupervisorAssignmentSerializer(assignment).data,
                 status=status.HTTP_200_OK
             )
-        except PermissionError as e:
+        except (AuthorizationError, PermissionError) as e:
             return Response(
                 {"detail": str(e)},
                 status=status.HTTP_403_FORBIDDEN
@@ -649,8 +818,8 @@ class SupervisorAssignmentViewSet(viewsets.ReadOnlyModelViewSet):
         """
         assignment = self.get_object()
         
-        # Permission check: Only supervisor can reject
-        if request.user.id != assignment.supervisor_id:
+        # Permission check: Only assigned domain supervisor can reject
+        if not self._can_act_on_assignment(request.user, assignment):
             return Response(
                 {"detail": "Only the assigned supervisor can reject this assignment"},
                 status=status.HTTP_403_FORBIDDEN
@@ -666,7 +835,7 @@ class SupervisorAssignmentViewSet(viewsets.ReadOnlyModelViewSet):
                 SupervisorAssignmentSerializer(assignment).data,
                 status=status.HTTP_200_OK
             )
-        except PermissionError as e:
+        except (AuthorizationError, PermissionError) as e:
             return Response(
                 {"detail": str(e)},
                 status=status.HTTP_403_FORBIDDEN

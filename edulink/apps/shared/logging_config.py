@@ -12,7 +12,7 @@ Provides:
 import json
 import logging
 import traceback
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any, Dict, Optional
 from uuid import UUID
 
@@ -30,7 +30,7 @@ class JSONFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         """Format log record as JSON."""
         log_data = {
-            "timestamp": datetime.utcfromtimestamp(record.created).isoformat(),
+            "timestamp": datetime.fromtimestamp(record.created, UTC).isoformat(),
             "level": record.levelname,
             "logger": record.name,
             "message": record.getMessage(),
@@ -203,10 +203,10 @@ class ErrorMetricsCollector:
         # Keep timestamp history for trend analysis
         if error_code not in self._timestamps:
             self._timestamps[error_code] = []
-        self._timestamps[error_code].append(datetime.utcnow())
+        self._timestamps[error_code].append(datetime.now(UTC))
 
         # Clean old timestamps (older than 1 hour)
-        cutoff = datetime.utcnow().timestamp() - 3600
+        cutoff = datetime.now(UTC).timestamp() - 3600
         self._timestamps[error_code] = [
             ts for ts in self._timestamps[error_code]
             if ts.timestamp() > cutoff
@@ -225,7 +225,7 @@ class ErrorMetricsCollector:
         if error_code not in self._timestamps:
             return 0
 
-        cutoff = datetime.utcnow().timestamp() - window_seconds
+        cutoff = datetime.now(UTC).timestamp() - window_seconds
         return len([
             ts for ts in self._timestamps[error_code]
             if ts.timestamp() > cutoff

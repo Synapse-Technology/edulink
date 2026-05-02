@@ -7,6 +7,7 @@ import { useAuth } from '../../../../contexts/AuthContext';
 import { employerService, type EmployerStaffProfileRequestCreate } from '../../../../services/employer/employerService';
 import { useFeedbackModal } from '../../../../hooks/useFeedbackModal';
 import { FeedbackModal } from '../../../../components/common';
+import { sanitizeAdminError } from '../../../../utils/adminErrorSanitizer';
 
 const SupervisorProfile: React.FC = () => {
   const { user } = useAuth();
@@ -39,9 +40,8 @@ const SupervisorProfile: React.FC = () => {
       // Optional: Reset form or keep it? Keeping it shows what they requested.
     } catch (error: any) {
       console.error('Failed to submit profile update request:', error);
-      // Backend returns validation errors in detail usually
-      const message = error.response?.data?.detail || 'Failed to submit request';
-      toast.error(message);
+      const sanitized = sanitizeAdminError(error);
+      toast.error(sanitized.userMessage || 'Failed to submit request');
     } finally {
       setIsSubmitting(false);
     }

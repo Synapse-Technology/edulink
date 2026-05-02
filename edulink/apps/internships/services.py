@@ -6,7 +6,7 @@ from django.conf import settings
 from django.utils import timezone
 
 if TYPE_CHECKING:
-    from .models import SuccessStory, SupervisorAssignment
+    from .models import SuccessStory, SupervisorAssignment, ExternalPlacementDeclaration
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,15 @@ from edulink.apps.shared.error_handling import (
     NotFoundError,
     ErrorContext,
 )
-from .models import InternshipOpportunity, InternshipApplication, OpportunityStatus, ApplicationStatus, InternshipEvidence, Incident
+from .models import (
+    InternshipOpportunity,
+    InternshipApplication,
+    OpportunityStatus,
+    ApplicationStatus,
+    InternshipEvidence,
+    Incident,
+    ExternalPlacementDeclaration,
+)
 from .workflows import opportunity_workflow, application_workflow
 from .policies import (
     can_create_internship, 
@@ -28,7 +36,9 @@ from .policies import (
     can_flag_misconduct,
     can_submit_final_feedback,
     can_assign_supervisor,
-    can_bulk_assign_supervisors
+    can_bulk_assign_supervisors,
+    can_declare_external_placement,
+    can_review_external_placement_declaration,
 )
 
 PENDING_EVIDENCE_STATUSES = [
@@ -204,6 +214,12 @@ def create_internship_opportunity(
     duration: str = "",
     application_deadline=None,
     is_institution_restricted: bool = False,
+    application_mode: str = InternshipOpportunity.APPLICATION_INTERNAL,
+    origin: str = InternshipOpportunity.ORIGIN_EDULINK_INTERNAL,
+    external_employer_name: str = "",
+    external_source_name: str = "",
+    external_apply_url: str = "",
+    external_reference: str = "",
     **kwargs
 ) -> InternshipOpportunity:
     """
@@ -223,6 +239,20 @@ def create_internship_opportunity(
     if skills is None:
         skills = []
 
+    if application_mode == InternshipOpportunity.APPLICATION_EXTERNAL:
+        if not external_apply_url:
+            raise ValidationError(
+                user_message="External opportunities require an application URL.",
+                developer_message="Missing external_apply_url for external opportunity",
+                context=ErrorContext().with_user_id(actor.id).build(),
+            )
+        if not external_employer_name and not employer_id:
+            raise ValidationError(
+                user_message="External opportunities require an employer name.",
+                developer_message="Missing external employer context",
+                context=ErrorContext().with_user_id(actor.id).build(),
+            )
+
     opportunity = InternshipOpportunity.objects.create(
         title=title,
         description=description,
@@ -238,7 +268,15 @@ def create_internship_opportunity(
         end_date=end_date,
         duration=duration,
         application_deadline=application_deadline,
-        is_institution_restricted=is_institution_restricted
+        is_institution_restricted=is_institution_restricted,
+        application_mode=application_mode,
+        origin=origin,
+        external_employer_name=external_employer_name,
+        external_source_name=external_source_name,
+        external_apply_url=external_apply_url,
+        external_reference=external_reference,
+        curated_by=actor.id if origin == InternshipOpportunity.ORIGIN_ADMIN_CURATED_EXTERNAL else None,
+        last_verified_at=timezone.now() if origin == InternshipOpportunity.ORIGIN_ADMIN_CURATED_EXTERNAL else None,
     )
     
     # Record creation event manually since it's not a transition
@@ -310,6 +348,13 @@ def apply_for_internship(actor, opportunity_id: UUID, cover_letter: str = "") ->
         )
 
     opportunity = InternshipOpportunity.objects.get(id=opportunity_id)
+    if opportunity.application_mode == InternshipOpportunity.APPLICATION_EXTERNAL:
+        raise ConflictError(
+            user_message="This opportunity uses an external application portal. Apply on the original site, then declare the placement if selected.",
+            developer_message=f"Attempted internal apply for external opportunity {opportunity_id}",
+            context=ErrorContext().with_resource("opportunity", opportunity_id).build(),
+        )
+
     if opportunity.status != OpportunityStatus.OPEN:
         raise ConflictError(
             user_message=f"This internship opportunity is {opportunity.status.lower()} and is not accepting applications.",
@@ -453,6 +498,220 @@ def apply_for_internship(actor, opportunity_id: UUID, cover_letter: str = "") ->
         )
         
     return application
+
+
+def declare_external_placement(
+    *,
+    actor,
+    institution_id: UUID,
+    company_name: str,
+    role_title: str,
+    start_date,
+    end_date=None,
+    company_contact_name: str = "",
+    company_contact_email: str = "",
+    company_contact_phone: str = "",
+    location: str = "",
+    location_type: str = InternshipOpportunity.LOCATION_ONSITE,
+    source_url: str = "",
+    proof_document=None,
+    student_notes: str = "",
+) -> ExternalPlacementDeclaration:
+    """
+    Student declares a placement secured outside EduLink.
+    This does not unlock logbooks until the institution approves it.
+    """
+    if not can_declare_external_placement(actor, institution_id):
+        raise AuthorizationError(
+            user_message="You can only declare placements for your approved institution.",
+            developer_message=f"User {actor.id} cannot declare placement for institution {institution_id}",
+            context=ErrorContext().with_user_id(actor.id).build(),
+        )
+
+    student = get_student_for_user(str(actor.id))
+    if not student:
+        raise ConflictError(
+            user_message="Your student profile could not be found.",
+            developer_message=f"No student profile for user {actor.id}",
+            context=ErrorContext().with_user_id(actor.id).build(),
+        )
+
+    if end_date and end_date < start_date:
+        raise ValidationError(
+            user_message="End date cannot be before start date.",
+            developer_message=f"Invalid external placement dates: {start_date} -> {end_date}",
+            context=ErrorContext().with_resource("student", student.id).build(),
+        )
+
+    return ExternalPlacementDeclaration.objects.create(
+        student_id=student.id,
+        institution_id=institution_id,
+        company_name=company_name,
+        company_contact_name=company_contact_name,
+        company_contact_email=company_contact_email,
+        company_contact_phone=company_contact_phone,
+        role_title=role_title,
+        location=location,
+        location_type=location_type,
+        start_date=start_date,
+        end_date=end_date,
+        source_url=source_url,
+        proof_document=proof_document,
+        student_notes=student_notes,
+    )
+
+
+@transaction.atomic
+def approve_external_placement_declaration(
+    *,
+    actor,
+    declaration_id: UUID,
+    review_notes: str = "",
+) -> ExternalPlacementDeclaration:
+    """
+    Institution approves an external placement and creates an ACTIVE placement
+    application. Employer review remains unavailable until a future employer-link
+    workflow attaches an employer domain to the placement.
+    """
+    declaration = ExternalPlacementDeclaration.objects.select_for_update().get(id=declaration_id)
+
+    if not can_review_external_placement_declaration(actor, declaration):
+        raise AuthorizationError(
+            user_message="You are not authorized to approve this placement declaration.",
+            developer_message=f"User {actor.id} cannot approve declaration {declaration_id}",
+            context=ErrorContext().with_user_id(actor.id).with_resource("external_placement_declaration", declaration_id).build(),
+        )
+
+    if declaration.status == ExternalPlacementDeclaration.STATUS_APPROVED:
+        return declaration
+
+    if declaration.status == ExternalPlacementDeclaration.STATUS_REJECTED:
+        raise ConflictError(
+            user_message="Rejected placement declarations cannot be approved.",
+            developer_message=f"Declaration {declaration_id} is rejected",
+            context=ErrorContext().with_resource("external_placement_declaration", declaration_id).build(),
+        )
+
+    student = _get_student_for_external_declaration(declaration)
+
+    opportunity = InternshipOpportunity.objects.create(
+        title=declaration.role_title,
+        description=(
+            f"External placement declared by student and verified by institution. "
+            f"Company: {declaration.company_name}"
+        ),
+        department=getattr(student, "course_of_study", "") or "",
+        capacity=1,
+        location=declaration.location,
+        location_type=declaration.location_type,
+        institution_id=declaration.institution_id,
+        status=OpportunityStatus.CLOSED,
+        start_date=declaration.start_date,
+        end_date=declaration.end_date,
+        duration="",
+        application_mode=InternshipOpportunity.APPLICATION_EXTERNAL,
+        origin=InternshipOpportunity.ORIGIN_EXTERNAL_STUDENT_DECLARED,
+        external_employer_name=declaration.company_name,
+        external_source_name="Student declaration",
+        external_apply_url=declaration.source_url,
+        curated_by=actor.id,
+        last_verified_at=timezone.now(),
+    )
+
+    application = InternshipApplication.objects.create(
+        opportunity=opportunity,
+        student_id=declaration.student_id,
+        status=ApplicationStatus.ACTIVE,
+        application_snapshot={
+            "institution_id": str(declaration.institution_id),
+            "placement_origin": InternshipOpportunity.ORIGIN_EXTERNAL_STUDENT_DECLARED,
+            "employer_review": "UNAVAILABLE_UNTIL_EMPLOYER_LINKED",
+            "institution_review": "REQUIRED",
+            "external_company_name": declaration.company_name,
+            "external_declaration_id": str(declaration.id),
+        },
+    )
+
+    declaration.application = application
+    declaration.status = ExternalPlacementDeclaration.STATUS_APPROVED
+    declaration.review_notes = review_notes
+    declaration.reviewed_by = actor.id
+    declaration.reviewed_at = timezone.now()
+    declaration.save(update_fields=["application", "status", "review_notes", "reviewed_by", "reviewed_at", "updated_at"])
+
+    return declaration
+
+
+def request_external_placement_changes(
+    *,
+    actor,
+    declaration_id: UUID,
+    review_notes: str = "",
+) -> ExternalPlacementDeclaration:
+    return _review_external_placement_declaration(
+        actor=actor,
+        declaration_id=declaration_id,
+        status=ExternalPlacementDeclaration.STATUS_CHANGES_REQUESTED,
+        review_notes=review_notes,
+    )
+
+
+def reject_external_placement_declaration(
+    *,
+    actor,
+    declaration_id: UUID,
+    review_notes: str = "",
+) -> ExternalPlacementDeclaration:
+    return _review_external_placement_declaration(
+        actor=actor,
+        declaration_id=declaration_id,
+        status=ExternalPlacementDeclaration.STATUS_REJECTED,
+        review_notes=review_notes,
+    )
+
+
+def _review_external_placement_declaration(
+    *,
+    actor,
+    declaration_id: UUID,
+    status: str,
+    review_notes: str = "",
+) -> ExternalPlacementDeclaration:
+    declaration = ExternalPlacementDeclaration.objects.get(id=declaration_id)
+
+    if not can_review_external_placement_declaration(actor, declaration):
+        raise AuthorizationError(
+            user_message="You are not authorized to review this placement declaration.",
+            developer_message=f"User {actor.id} cannot review declaration {declaration_id}",
+            context=ErrorContext().with_user_id(actor.id).with_resource("external_placement_declaration", declaration_id).build(),
+        )
+
+    if declaration.status == ExternalPlacementDeclaration.STATUS_APPROVED:
+        raise ConflictError(
+            user_message="Approved placement declarations cannot be changed from this review action.",
+            developer_message=f"Declaration {declaration_id} is already approved",
+            context=ErrorContext().with_resource("external_placement_declaration", declaration_id).build(),
+        )
+
+    declaration.status = status
+    declaration.review_notes = review_notes
+    declaration.reviewed_by = actor.id
+    declaration.reviewed_at = timezone.now()
+    declaration.save(update_fields=["status", "review_notes", "reviewed_by", "reviewed_at", "updated_at"])
+    return declaration
+
+
+def _get_student_for_external_declaration(declaration: ExternalPlacementDeclaration):
+    from edulink.apps.students.queries import get_student_by_id
+
+    student = get_student_by_id(declaration.student_id)
+    if not student:
+        raise ConflictError(
+            user_message="The declaring student could not be found.",
+            developer_message=f"No student for declaration {declaration.id}",
+            context=ErrorContext().with_resource("external_placement_declaration", declaration.id).build(),
+        )
+    return student
 
 def submit_evidence(actor, application_id: UUID, title: str, file: any, description: str = "", evidence_type: str = InternshipEvidence.TYPE_OTHER, metadata: dict = None) -> InternshipEvidence:
     application = InternshipApplication.objects.get(id=application_id)
@@ -953,10 +1212,22 @@ def assign_supervisors(actor, application_id: UUID, supervisor_id: UUID, type: s
             context=ErrorContext().with_user_id(actor.id).with_resource("application", application_id).build(),
         )
 
+    supervisor_user_id = _validate_supervisor_assignment_target(
+        application=application,
+        supervisor_id=supervisor_id,
+        assignment_type=type,
+    )
+
     if type == 'employer':
         application.employer_supervisor_id = supervisor_id
     elif type == 'institution':
         application.institution_supervisor_id = supervisor_id
+    else:
+        raise ValidationError(
+            user_message="Supervisor type must be either employer or institution.",
+            developer_message=f"Invalid supervisor assignment type: {type}",
+            context=ErrorContext().with_resource("application", application_id).build(),
+        )
     
     application.save()
     
@@ -983,7 +1254,7 @@ def assign_supervisors(actor, application_id: UUID, supervisor_id: UUID, type: s
         if emp: employer_name = emp.name
         
     send_supervisor_assigned_notification(
-        supervisor_id=str(supervisor_id),
+        supervisor_id=str(supervisor_user_id),
         student_name=student_name,
         opportunity_title=application.opportunity.title,
         role_type=type,
@@ -994,6 +1265,57 @@ def assign_supervisors(actor, application_id: UUID, supervisor_id: UUID, type: s
     )
     
     return application
+
+
+def _validate_supervisor_assignment_target(
+    *,
+    application: InternshipApplication,
+    supervisor_id: UUID,
+    assignment_type: str,
+) -> UUID:
+    """
+    Validate that the supervisor profile belongs to the correct domain.
+    Returns the linked user ID for notifications.
+    """
+    if assignment_type == "employer":
+        if not application.opportunity.employer_id:
+            raise ValidationError(
+                user_message="This application is not linked to an employer supervisor domain.",
+                developer_message=f"Application {application.id} has no employer-owned opportunity",
+                context=ErrorContext().with_resource("application", application.id).build(),
+            )
+
+        from edulink.apps.employers.queries import get_supervisor_by_id
+        supervisor = get_supervisor_by_id(supervisor_id)
+        if not supervisor or str(supervisor.employer_id) != str(application.opportunity.employer_id):
+            raise AuthorizationError(
+                user_message="The selected supervisor does not belong to this employer.",
+                developer_message=f"Supervisor {supervisor_id} is not attached to employer {application.opportunity.employer_id}",
+                context=ErrorContext().with_resource("application", application.id).build(),
+            )
+        return supervisor.user_id
+
+    if assignment_type == "institution":
+        from edulink.apps.institutions.queries import get_institution_staff_by_id
+        from edulink.apps.students.queries import get_student_approved_affiliation
+
+        staff = get_institution_staff_by_id(staff_id=supervisor_id)
+        affiliation = get_student_approved_affiliation(application.student_id)
+        institution_id = application.opportunity.institution_id or (affiliation.institution_id if affiliation else None)
+
+        if not staff or not institution_id or str(staff.institution_id) != str(institution_id):
+            raise AuthorizationError(
+                user_message="The selected assessor does not belong to the student's institution.",
+                developer_message=f"Staff {supervisor_id} is not attached to institution {institution_id}",
+                context=ErrorContext().with_resource("application", application.id).build(),
+            )
+        return staff.user_id
+
+    raise ValidationError(
+        user_message="Supervisor type must be either employer or institution.",
+        developer_message=f"Invalid supervisor assignment type: {assignment_type}",
+        context=ErrorContext().with_resource("application", application.id).build(),
+    )
 
 def bulk_assign_institution_supervisors(
     *,
@@ -1852,6 +2174,13 @@ def create_supervisor_assignment(*, actor, application_id: UUID, supervisor_id: 
                 .with_resource("application", application.id)
                 .build(),
         )
+
+    normalized_type = assignment_type.lower()
+    supervisor_user_id = _validate_supervisor_assignment_target(
+        application=application,
+        supervisor_id=supervisor_id,
+        assignment_type=normalized_type,
+    )
     
     # Create assignment in PENDING state (supervisor must accept)
     with transaction.atomic():
@@ -1886,7 +2215,7 @@ def create_supervisor_assignment(*, actor, application_id: UUID, supervisor_id: 
             student_name = student.user.get_full_name() or student.user.username if student else "Student"
             
             send_supervisor_assignment_notification(
-                supervisor_id=str(supervisor_id),
+                supervisor_id=str(supervisor_user_id),
                 student_name=student_name,
                 opportunity_title=application.opportunity.title,
                 assignment_type=assignment_type,
@@ -1918,11 +2247,13 @@ def accept_supervisor_assignment(actor, assignment_id: UUID) -> "SupervisorAssig
     
     assignment = SupervisorAssignment.objects.select_for_update().get(id=assignment_id)
     
+    from .policies import can_accept_supervisor_assignment
+
     # Only the assigned supervisor can accept
-    if actor.id != assignment.supervisor_id:
+    if not can_accept_supervisor_assignment(actor, assignment):
         raise AuthorizationError(
             user_message="Only the assigned supervisor can accept this assignment.",
-            developer_message=f"User {actor.id} is not the assigned supervisor (expected: {assignment.supervisor_id})",
+            developer_message=f"User {actor.id} is not the assigned {assignment.assignment_type} supervisor profile {assignment.supervisor_id}",
             context=ErrorContext()
                 .with_user_id(actor.id)
                 .with_resource("assignment", assignment_id)
@@ -1979,11 +2310,13 @@ def reject_supervisor_assignment(actor, assignment_id: UUID, reason: str = None)
     
     assignment = SupervisorAssignment.objects.select_for_update().get(id=assignment_id)
     
+    from .policies import can_reject_supervisor_assignment
+
     # Only the assigned supervisor can reject
-    if actor.id != assignment.supervisor_id:
+    if not can_reject_supervisor_assignment(actor, assignment):
         raise AuthorizationError(
             user_message="Only the assigned supervisor can reject this assignment.",
-            developer_message=f"User {actor.id} is not the assigned supervisor (expected: {assignment.supervisor_id})",
+            developer_message=f"User {actor.id} is not the assigned {assignment.assignment_type} supervisor profile {assignment.supervisor_id}",
             context=ErrorContext()
                 .with_user_id(actor.id)
                 .with_resource("assignment", assignment_id)

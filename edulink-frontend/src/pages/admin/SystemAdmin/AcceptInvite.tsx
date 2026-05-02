@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Eye, EyeOff, Shield, AlertCircle, User, Lock, CheckCircle, ArrowRight } from 'lucide-react';
 import adminAuthService from '../../../services/auth/adminAuthService';
+import { sanitizeAdminError } from '../../../utils/adminErrorSanitizer';
 
 const AcceptInvite: React.FC = () => {
   const navigate = useNavigate();
@@ -77,8 +78,8 @@ const AcceptInvite: React.FC = () => {
         navigate('/admin/login');
       }, 3000);
     } catch (err: any) {
-      const errorMessage = err.response?.data?.error || err.message || 'Failed to accept invitation. Please try again.';
-      setError(errorMessage);
+      const sanitized = sanitizeAdminError(err);
+      setError(sanitized.userMessage || 'Failed to accept invitation. Please try again.');
     } finally {
       setIsLoading(false);
     }

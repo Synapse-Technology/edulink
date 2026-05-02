@@ -14,8 +14,7 @@ import {
   Lock,
   FileDown
 } from 'lucide-react';
-import StudentSidebar from '../../components/dashboard/StudentSidebar';
-import StudentHeader from '../../components/dashboard/StudentHeader';
+import StudentLayout from '../../components/dashboard/StudentLayout';
 import { studentService } from '../../services/student/studentService';
 import { artifactService } from '../../services/reports/artifactService';
 import { useAuth } from '../../contexts/AuthContext';
@@ -37,6 +36,7 @@ import bootstrap5Plugin from '@fullcalendar/bootstrap5';
 import 'bootstrap/dist/css/bootstrap.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import StudentInternshipSkeleton from '../../components/student/skeletons/StudentInternshipSkeleton';
+import '../../styles/student-portal.css';
 
 const StudentLogbook: React.FC = () => {
   const { user } = useAuth();
@@ -52,7 +52,6 @@ const StudentLogbook: React.FC = () => {
     void error;
     void setError;
   }, [user, error]);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [generatingReport, setGeneratingReport] = useState(false);
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>(window.innerWidth < 768 ? 'list' : 'calendar');
 
@@ -290,8 +289,7 @@ const StudentLogbook: React.FC = () => {
       logError(err, { action: 'Generate Logbook PDF' });
       showError(
         'Generation Failed',
-        message,
-        err.message
+        message
       );
     }
   };
@@ -317,15 +315,12 @@ const StudentLogbook: React.FC = () => {
       if (toastId) showToast.dismiss(toastId);
       showError(
         'Download Failed',
-        'Failed to generate report. Ensure you have accepted logbook entries.',
-        err.message
+        'Failed to generate report. Ensure you have accepted logbook entries.'
       );
     } finally {
       setGeneratingReport(false);
     }
   };
-
-  const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
 
   const handleQuickAddToday = () => {
     const today = getLocalDateString(new Date());
@@ -359,35 +354,8 @@ const StudentLogbook: React.FC = () => {
   }));
 
   return (
-    <div className={`min-vh-100 ${isDarkMode ? 'text-white' : 'bg-light'}`} style={{ backgroundColor: isDarkMode ? '#0f172a' : undefined }}>
-      {/* Sidebar & Mobile Menu */}
-      {isMobileMenuOpen && (
-        <div 
-          className="d-lg-none position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-50" 
-          style={{ zIndex: 1039 }}
-          onClick={() => setIsMobileMenuOpen(false)}
-        />
-      )}
-      
-      <div className={`${isMobileMenuOpen ? 'd-block' : 'd-none'} d-lg-block position-fixed top-0 start-0 h-100 d-flex flex-column`} style={{ zIndex: 1040, width: '280px' }}>
-        <StudentSidebar isDarkMode={isDarkMode} />
-      </div>
-
-      <div 
-        className="d-flex flex-column min-vh-100 overflow-auto main-content-margin"
-        onClick={isMobileMenuOpen ? () => setIsMobileMenuOpen(false) : undefined}
-      >
+    <StudentLayout>
         <style>{`
-          .main-content-margin {
-            margin-left: 0;
-            max-width: 100vw;
-          }
-          @media (min-width: 992px) {
-            .main-content-margin {
-              margin-left: 280px !important;
-              max-width: calc(100vw - 280px) !important;
-            }
-          }
           .fc {
             --fc-border-color: ${isDarkMode ? '#334155' : '#e5e7eb'};
             --fc-button-bg-color: #0d6efd;
@@ -517,13 +485,6 @@ const StudentLogbook: React.FC = () => {
             }
           }
         `}</style>
-        
-        <div className="px-3 px-lg-5 pt-4">
-          <StudentHeader
-            onMobileMenuClick={toggleMobileMenu}
-            isMobileMenuOpen={isMobileMenuOpen}
-          />
-        </div>
 
         {loading ? (
           <StudentInternshipSkeleton isDarkMode={isDarkMode} />
@@ -536,38 +497,32 @@ const StudentLogbook: React.FC = () => {
             <p className="text-muted max-w-md">You need an active internship to access the logbook. Check your placement status in the dashboard.</p>
           </div>
         ) : (
-          <div className="flex-grow-1 px-3 px-lg-5 pb-5">
-            {/* Header & Title */}
-            <div className="row align-items-center mb-4 g-3">
-              <div className="col-md-7">
-                <div className="d-flex align-items-center gap-3 mb-2">
-                  <div className={`p-2 rounded-3 ${isDarkMode ? 'bg-primary bg-opacity-20' : 'bg-primary bg-opacity-10'}`}>
-                    <CalendarIcon size={24} className="text-primary" />
-                  </div>
-                  <h2 className={`fw-bold mb-0 ${isDarkMode ? 'text-white' : 'text-dark'}`}>Logbook & History</h2>
+          <div className="student-workspace">
+            <section className="student-command-hero">
+              <div className="student-command-copy">
+                <span className="student-kicker">Evidence capture</span>
+                <h1>Logbook & History</h1>
+                <p>Record this week’s work, submit it for supervisor review, and keep a clear audit trail of your professional growth.</p>
+                <div className="student-command-meta">
+                  <span><Briefcase size={15} /> {internship.title}</span>
+                  <span><CalendarIcon size={15} /> Week of {currentWeekStart.toLocaleDateString()}</span>
+                  <span><FileText size={15} /> {Object.keys(logbookEntries).length} day{Object.keys(logbookEntries).length === 1 ? '' : 's'} drafted</span>
                 </div>
-                <p className={`${isDarkMode ? 'text-light opacity-75' : 'text-muted'} mb-0`}>
-                  Document your professional journey and learning progress.
-                </p>
               </div>
-              <div className="col-md-5 d-flex flex-column flex-sm-row justify-content-md-end gap-3 align-items-sm-center">
+              <div className="student-command-card">
+                <span className="student-kicker">Current week</span>
+                  <strong>{Object.keys(logbookEntries).length}/5</strong>
+                <p className="student-command-note mb-3">Capture meaningful work notes before submitting for review.</p>
                 <button 
-                  className="btn btn-primary rounded-pill px-4 py-2 d-flex align-items-center gap-2 shadow-sm btn-animate order-1 order-sm-0"
+                  className="btn btn-primary btn-sm d-flex align-items-center gap-2"
                   onClick={handleQuickAddToday}
                   disabled={internship && ['COMPLETED', 'CERTIFIED', 'TERMINATED'].includes(internship.status)}
                 >
                   <Plus size={18} />
                   <span>{internship && ['COMPLETED', 'CERTIFIED', 'TERMINATED'].includes(internship.status) ? 'Logbook Locked' : 'Log Today'}</span>
                 </button>
-                <div className={`d-inline-flex align-items-center gap-2 px-3 py-2 rounded-pill ${isDarkMode ? 'bg-secondary bg-opacity-25' : 'bg-white shadow-sm'}`}>
-                  <div className="position-relative">
-                    <div className="rounded-circle bg-success" style={{ width: '8px', height: '8px' }}></div>
-                    <div className="position-absolute top-0 start-0 rounded-circle bg-success animate-ping" style={{ width: '8px', height: '8px', opacity: 0.5 }}></div>
-                  </div>
-                  <span className={`small fw-semibold ${isDarkMode ? 'text-light' : 'text-dark'}`}>{internship.title}</span>
-                </div>
               </div>
-            </div>
+            </section>
 
             <div className="row g-4 mb-5">
               {/* Main Calendar Card */}
@@ -1052,8 +1007,7 @@ const StudentLogbook: React.FC = () => {
             <FeedbackModal {...feedbackProps} />
           </div>
         )}
-      </div>
-    </div>
+    </StudentLayout>
   );
 };
 

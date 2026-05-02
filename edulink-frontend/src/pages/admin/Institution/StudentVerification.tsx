@@ -7,6 +7,7 @@ import { useFeedbackModal } from '../../../hooks/useFeedbackModal';
 import { Info } from 'lucide-react';
 import toast from 'react-hot-toast';
 import InstitutionTableSkeleton from '../../../components/admin/skeletons/InstitutionTableSkeleton';
+import { sanitizeAdminError } from '../../../utils/adminErrorSanitizer';
 
 const StudentVerification: React.FC = () => {
   const [activeTab, setActiveTab] = useState('queue');
@@ -125,8 +126,8 @@ const StudentVerification: React.FC = () => {
       fetchPendingVerifications();
     } catch (error: any) {
       console.error(error);
-      const message = error.response?.data?.error || error.response?.data?.detail || error.message || 'Failed to verify student';
-      toast.error(message);
+      const sanitized = sanitizeAdminError(error);
+      toast.error(sanitized.userMessage || 'Failed to verify student');
     } finally {
       setIsSubmittingVerify(false);
     }
@@ -206,11 +207,11 @@ const StudentVerification: React.FC = () => {
           setActiveTab('queue'); 
         } catch (error: any) {
           console.error(error);
-          const message = error.response?.data?.error || error.response?.data?.detail || error.message;
+          const sanitized = sanitizeAdminError(error);
           showError(
             'Bulk Verification Failed',
             'An error occurred while processing the bulk verification file.',
-            message
+            sanitized.details
           );
         } finally {
           setIsConfirmingBulk(false);

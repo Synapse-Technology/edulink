@@ -7,6 +7,7 @@ import type { InternshipApplication } from '../../../services/internship/interns
 import { DocumentPreviewModal, FeedbackModal } from '../../../components/common';
 import InternshipLifecyclePanel from '../../../components/internship/InternshipLifecyclePanel';
 import { useFeedbackModal } from '../../../hooks/useFeedbackModal';
+import { sanitizeAdminError } from '../../../utils/adminErrorSanitizer';
 
 const EmployerApplicationDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -61,9 +62,10 @@ const EmployerApplicationDetail: React.FC = () => {
       await fetchApplication(application.id);
       showSuccess('Final Assessment Saved', 'Completion readiness has been updated.');
     } catch (error: any) {
+      const sanitized = sanitizeAdminError(error);
       showError(
         'Assessment Failed',
-        error.response?.data?.detail || error.message || 'Failed to submit final feedback'
+        sanitized.userMessage || 'Failed to submit final feedback'
       );
     } finally {
       setIsProcessing(false);
@@ -96,7 +98,8 @@ const EmployerApplicationDetail: React.FC = () => {
       showSuccess('Success', `Application has been ${actionLabel} successfully.`);
     } catch (error: any) {
        console.error('Failed to update status:', error);
-       showError('Error', error.response?.data?.detail || error.message || 'Failed to update application status');
+       const sanitized = sanitizeAdminError(error);
+       showError('Error', sanitized.userMessage || 'Failed to update application status');
     } finally {
       setIsProcessing(false);
     }

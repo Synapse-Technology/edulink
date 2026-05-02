@@ -31,6 +31,7 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({
 }) => {
   const [showDetails, setShowDetails] = useState(false);
   const [copied, setCopied] = useState(false);
+  const canShowTechnicalDetails = Boolean(details && import.meta.env.DEV);
 
   const getVariantStyles = () => {
     switch (variant) {
@@ -109,7 +110,7 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({
           <p className="lead fs-6 text-secondary mb-0">{message}</p>
         </div>
 
-        {details && (
+        {canShowTechnicalDetails && (
           <div className="mt-4">
             <div 
               className="d-flex align-items-center justify-content-center cursor-pointer text-muted small user-select-none"

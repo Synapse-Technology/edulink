@@ -44,7 +44,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
     // Log to console in development
-    if (typeof window !== 'undefined' && (window as any).__DEV__) {
+    if (import.meta.env.DEV) {
       console.error('Error caught by boundary:', error);
       console.error('Error info:', errorInfo);
     }
@@ -109,7 +109,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
               </p>
 
               {/* Dev error details (only in dev mode) */}
-              {typeof window !== 'undefined' && (window as any).__DEV__ && this.state.error && (
+              {import.meta.env.DEV && this.state.error && (
                 <div className="mb-3 p-2 bg-gray-50 rounded border border-gray-200">
                   <p className="text-xs font-mono text-gray-600 break-words">
                     {sanitizeErrorMessage(this.state.error.toString())}

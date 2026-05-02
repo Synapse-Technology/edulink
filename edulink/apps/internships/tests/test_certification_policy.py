@@ -52,7 +52,7 @@ class TestCertificationPolicy(SimpleTestCase):
             # Assert
             self.assertTrue(result, "Institution admin should be able to review evidence for their student")
 
-    def test_institution_admin_can_view_student_application(self):
+    def test_institution_admin_cannot_view_external_student_application_in_application_workflow(self):
         # Setup IDs
         inst_id = uuid4()
         student_id = uuid4()
@@ -96,7 +96,10 @@ class TestCertificationPolicy(SimpleTestCase):
             result = can_view_application(actor, application)
             
             # Assert
-            self.assertTrue(result, "Institution admin should be able to view their student's application")
+            self.assertFalse(
+                result,
+                "Application workflow visibility should be scoped to the opportunity owner",
+            )
 
     def test_supervisor_cannot_review_evidence_certified_internship(self):
         # Setup IDs

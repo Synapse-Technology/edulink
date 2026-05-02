@@ -54,7 +54,7 @@ const InternshipLifecyclePanel: React.FC<InternshipLifecyclePanelProps> = ({
   const isTerminal = terminalStatuses.includes(application.status);
 
   return (
-    <section className={`card border-0 shadow-sm ${dark ? 'bg-secondary text-white' : 'bg-white'}`}>
+    <section className={`card lifecycle-card border-0 shadow-sm ${dark ? 'bg-secondary text-white' : 'bg-white'}`}>
       <div className={`card-body ${compact ? 'p-3' : 'p-4'}`}>
         <div className="d-flex align-items-start justify-content-between gap-3 mb-3">
           <div>
@@ -136,14 +136,17 @@ const InternshipLifecyclePanel: React.FC<InternshipLifecyclePanelProps> = ({
       <style>{`
         .lifecycle-strip {
           gap: 4px;
+          max-width: 100%;
           overflow-x: auto;
+          overflow-y: hidden;
           padding: 4px 0 8px;
+          overscroll-behavior-x: contain;
         }
 
         .lifecycle-step {
           position: relative;
-          min-width: 104px;
-          flex: 1 0 104px;
+          min-width: ${compact ? '92px' : '104px'};
+          flex: 1 0 ${compact ? '92px' : '104px'};
           text-align: center;
           font-size: 11px;
         }
@@ -190,6 +193,12 @@ const InternshipLifecyclePanel: React.FC<InternshipLifecyclePanelProps> = ({
         .lifecycle-label {
           font-weight: 700;
           line-height: 1.2;
+        }
+
+        .lifecycle-card {
+          width: 100%;
+          max-width: 100%;
+          overflow: hidden;
         }
       `}</style>
     </section>

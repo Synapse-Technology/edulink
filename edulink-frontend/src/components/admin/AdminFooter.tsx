@@ -11,22 +11,20 @@ const AdminFooter: React.FC<AdminFooterProps> = ({ className = '' }) => {
   const footerLinks = {
     admin: [
       { name: 'Dashboard', href: '/dashboard/admin' },
-      { name: 'Students', href: '/admin/students' },
-      { name: 'Employers', href: '/admin/employers' },
+      { name: 'Users', href: '/admin/users' },
+      { name: 'Institutions', href: '/admin/institutions' },
+      { name: 'Employer Requests', href: '/admin/employers/requests' },
       { name: 'Analytics', href: '/admin/analytics' },
-      { name: 'Settings', href: '/admin/settings' },
     ],
     support: [
-      { name: 'Help Center', href: '/help' },
-      { name: 'Documentation', href: '/docs' },
-      { name: 'API Reference', href: '/api' },
-      { name: 'Status', href: '/status' },
+      { name: 'Support Center', href: '/support' },
+      { name: 'FAQ', href: '/faq' },
+      { name: 'Contact', href: '/contact' },
+      { name: 'System Health', href: '/admin/health' },
     ],
     legal: [
       { name: 'Privacy Policy', href: '/privacy' },
       { name: 'Terms of Service', href: '/terms' },
-      { name: 'Cookie Policy', href: '/cookies' },
-      { name: 'Data Processing', href: '/data-processing' },
     ],
   };
 
@@ -115,7 +113,6 @@ const AdminFooter: React.FC<AdminFooterProps> = ({ className = '' }) => {
             <div className="admin-footer-bottom-links">
               <Link to="/privacy" className="admin-footer-bottom-link">Privacy</Link>
               <Link to="/terms" className="admin-footer-bottom-link">Terms</Link>
-              <Link to="/cookies" className="admin-footer-bottom-link">Cookies</Link>
             </div>
           </div>
         </div>

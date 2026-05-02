@@ -44,15 +44,16 @@ const TrustJourneyRoadmap: React.FC<TrustJourneyRoadmapProps> = ({ currentLevel 
   const { isDarkMode } = useTheme();
 
   return (
-    <div className={`card border-0 shadow-sm rounded-4 overflow-hidden ${isDarkMode ? 'bg-dark text-white' : 'bg-white text-dark'}`}>
-      <div className="card-body p-4">
-        <h5 className="fw-bold mb-4 d-flex align-items-center gap-2">
+    <section className={isDarkMode ? 'text-white' : 'text-dark'}>
+      <div className="student-section-header">
+        <h5 className="student-section-title d-flex align-items-center gap-2">
           <ShieldCheck className="text-primary" size={20} />
-          Your Trust Journey
+          Trust journey
         </h5>
+      </div>
         
         <div className="position-relative">
-          <div className="d-flex flex-column gap-4">
+          <div className="student-trust-list">
             {STEPS.map((step, index) => {
               const isCompleted = currentLevel >= step.level;
               const isCurrent = currentLevel === step.level - 1;
@@ -108,8 +109,7 @@ const TrustJourneyRoadmap: React.FC<TrustJourneyRoadmapProps> = ({ currentLevel 
             })}
           </div>
         </div>
-      </div>
-    </div>
+    </section>
   );
 };
 

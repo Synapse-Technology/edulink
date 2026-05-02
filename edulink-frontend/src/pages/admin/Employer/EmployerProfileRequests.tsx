@@ -5,6 +5,7 @@ import { FeedbackModal } from '../../../components/common';
 import { useFeedbackModal } from '../../../hooks/useFeedbackModal';
 import { EmployerLayout } from '../../../components/admin/employer';
 import { employerService, type EmployerStaffProfileRequest } from '../../../services/employer/employerService';
+import { sanitizeAdminError } from '../../../utils/adminErrorSanitizer';
 
 const EmployerProfileRequests: React.FC = () => {
   const [requests, setRequests] = useState<EmployerStaffProfileRequest[]>([]);
@@ -54,10 +55,11 @@ const EmployerProfileRequests: React.FC = () => {
       setRequests(prev => prev.filter(req => req.id !== requestId));
     } catch (error: any) {
       console.error(`Failed to ${action} request:`, error);
+      const sanitized = sanitizeAdminError(error);
       showError(
         'Action Failed',
         `Failed to ${action} the request.`,
-        error.message || 'Unknown error occurred'
+        sanitized.details
       );
     } finally {
       setProcessingId(null);

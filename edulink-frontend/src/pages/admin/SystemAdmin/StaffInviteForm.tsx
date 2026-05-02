@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { UserPlus, Mail, Shield, AlertCircle, CheckCircle, ArrowLeft, Key, Lock, UserCheck, Eye, Crown } from 'lucide-react';
 import { adminAuthService } from '../../../services/auth/adminAuthService';
 import AdminLayout from '../../../components/admin/AdminLayout';
+import { sanitizeAdminError } from '../../../utils/adminErrorSanitizer';
 
 interface InviteFormData {
   email: string;
@@ -54,7 +55,8 @@ const StaffInviteForm: React.FC = () => {
         navigate('/admin/staff');
       }, 3000);
     } catch (err: any) {
-      setError(err.message || 'Failed to send invitation');
+      const sanitized = sanitizeAdminError(err);
+      setError(sanitized.userMessage || 'Failed to send invitation');
     } finally {
       setIsLoading(false);
     }

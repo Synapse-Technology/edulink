@@ -6,6 +6,7 @@ import { showToast } from '../../../utils/toast';
 import TrustBadge, { type TrustLevel } from '../../../components/common/TrustBadge';
 import InstitutionTableSkeleton from '../../../components/admin/skeletons/InstitutionTableSkeleton';
 import { Search, Filter, Users, UserPlus, ShieldCheck, Edit2, Settings } from 'lucide-react';
+import { sanitizeAdminError } from '../../../utils/adminErrorSanitizer';
 
 const InstitutionStudents: React.FC = () => {
   const [students, setStudents] = useState<AffiliatedStudent[]>([]);
@@ -115,7 +116,8 @@ const InstitutionStudents: React.FC = () => {
       setShowEditModal(false);
       fetchData();
     } catch (error: any) {
-      showToast.error(error.message || 'Failed to update affiliation');
+      const sanitized = sanitizeAdminError(error);
+      showToast.error(sanitized.userMessage || 'Failed to update affiliation');
     } finally {
       setIsUpdatingAffiliation(false);
     }
@@ -135,7 +137,8 @@ const InstitutionStudents: React.FC = () => {
       setShowAssignModal(false);
       fetchData(); // Refresh list
     } catch (error: any) {
-      showToast.error(error.message || 'Failed to assign supervisor');
+      const sanitized = sanitizeAdminError(error);
+      showToast.error(sanitized.userMessage || 'Failed to assign supervisor');
     } finally {
       setIsAssigning(false);
     }

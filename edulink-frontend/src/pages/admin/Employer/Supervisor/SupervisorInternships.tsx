@@ -8,6 +8,7 @@ import { SupervisorLayout } from '../../../../components/admin/employer';
 import SupervisorTableSkeleton from '../../../../components/admin/skeletons/SupervisorTableSkeleton';
 import { FeedbackModal } from '../../../../components/common';
 import { useFeedbackModal } from '../../../../hooks/useFeedbackModal';
+import { sanitizeAdminError } from '../../../../utils/adminErrorSanitizer';
 
 const SupervisorInternships: React.FC = () => {
   const [internships, setInternships] = useState<InternshipApplication[]>([]);
@@ -43,8 +44,8 @@ const SupervisorInternships: React.FC = () => {
           showSuccess('Internship Completed', "The internship has been marked as completed successfully!");
           fetchInternships(); // Refresh list
         } catch (err: any) {
-          const message = err.response?.data?.detail || "Failed to complete internship. Check accepted evidence, final feedback, and unresolved incidents.";
-          showError('Completion Failed', "We could not mark the internship as completed.", message);
+          const sanitized = sanitizeAdminError(err);
+          showError('Completion Failed', "We could not mark the internship as completed.", sanitized.details);
         }
       }
     });

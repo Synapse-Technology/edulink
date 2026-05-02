@@ -3,6 +3,7 @@ import { Card, Table, Button, Badge, Form, InputGroup, Row, Col, Alert } from 'r
 import { Search, Plus, BookOpen, MoreHorizontal, Briefcase } from 'lucide-react';
 import { internshipService } from '../../../services/internship/internshipService';
 import { institutionService } from '../../../services/institution/institutionService';
+import { sanitizeAdminError } from '../../../utils/adminErrorSanitizer';
 import type { InternshipOpportunity } from '../../../services/internship/internshipService';
 import InstitutionTableSkeleton from '../../../components/admin/skeletons/InstitutionTableSkeleton';
 
@@ -39,7 +40,8 @@ const InstitutionInternships: React.FC = () => {
       setInternships(response.results || []);
     } catch (err: any) {
       console.error("Failed to fetch internships", err);
-      setError("Failed to load internships.");
+      const sanitized = sanitizeAdminError(err);
+      setError(sanitized.message);
     } finally {
       setLoading(false);
     }

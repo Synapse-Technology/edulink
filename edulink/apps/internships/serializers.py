@@ -1,5 +1,15 @@
 from rest_framework import serializers
-from .models import InternshipOpportunity, InternshipApplication, InternshipEvidence, Incident, SuccessStory, SupervisorAssignment, OpportunityStatus, ApplicationStatus
+from .models import (
+    InternshipOpportunity,
+    InternshipApplication,
+    InternshipEvidence,
+    Incident,
+    SuccessStory,
+    SupervisorAssignment,
+    ExternalPlacementDeclaration,
+    OpportunityStatus,
+    ApplicationStatus,
+)
 
 class SuccessStorySerializer(serializers.ModelSerializer):
     student_name = serializers.SerializerMethodField()
@@ -251,6 +261,28 @@ class CreateInternshipSerializer(serializers.Serializer):
     duration = serializers.CharField(required=False, allow_blank=True)
     application_deadline = serializers.DateTimeField(required=False, allow_null=True)
     is_institution_restricted = serializers.BooleanField(required=False, default=False)
+    application_mode = serializers.ChoiceField(
+        choices=InternshipOpportunity.APPLICATION_MODE_CHOICES,
+        required=False,
+        default=InternshipOpportunity.APPLICATION_INTERNAL,
+    )
+    origin = serializers.ChoiceField(
+        choices=InternshipOpportunity.ORIGIN_CHOICES,
+        required=False,
+        default=InternshipOpportunity.ORIGIN_EDULINK_INTERNAL,
+    )
+    external_employer_name = serializers.CharField(required=False, allow_blank=True)
+    external_source_name = serializers.CharField(required=False, allow_blank=True)
+    external_apply_url = serializers.URLField(required=False, allow_blank=True)
+    external_reference = serializers.CharField(required=False, allow_blank=True)
+
+    def validate(self, attrs):
+        if attrs.get("application_mode") == InternshipOpportunity.APPLICATION_EXTERNAL:
+            if not attrs.get("external_apply_url"):
+                raise serializers.ValidationError("External opportunities require an application URL.")
+            if not attrs.get("external_employer_name") and not attrs.get("employer_id"):
+                raise serializers.ValidationError("External opportunities require an employer name or linked employer.")
+        return attrs
 
 
 class InternshipActionSerializer(serializers.Serializer):
@@ -348,6 +380,107 @@ class SubmitEvidenceSerializer(serializers.Serializer):
     file = serializers.FileField(required=False)
     evidence_type = serializers.ChoiceField(choices=InternshipEvidence.TYPE_CHOICES, default=InternshipEvidence.TYPE_OTHER)
     metadata = serializers.JSONField(required=False, default=dict)
+
+
+class ExternalPlacementDeclarationSerializer(serializers.ModelSerializer):
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
+    student_info = serializers.SerializerMethodField()
+    institution_name = serializers.SerializerMethodField()
+    application_status = serializers.CharField(source="application.status", read_only=True)
+
+    class Meta:
+        model = ExternalPlacementDeclaration
+        fields = [
+            "id",
+            "student_id",
+            "institution_id",
+            "application",
+            "application_status",
+            "status",
+            "status_display",
+            "company_name",
+            "company_contact_name",
+            "company_contact_email",
+            "company_contact_phone",
+            "role_title",
+            "location",
+            "location_type",
+            "start_date",
+            "end_date",
+            "source_url",
+            "proof_document",
+            "student_notes",
+            "review_notes",
+            "reviewed_by",
+            "reviewed_at",
+            "student_info",
+            "institution_name",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "student_id",
+            "application",
+            "application_status",
+            "status",
+            "status_display",
+            "review_notes",
+            "reviewed_by",
+            "reviewed_at",
+            "student_info",
+            "institution_name",
+            "created_at",
+            "updated_at",
+        ]
+
+    def get_student_info(self, obj):
+        from edulink.apps.students.queries import get_student_by_id
+
+        student = get_student_by_id(obj.student_id)
+        if not student:
+            return None
+        return {
+            "id": str(student.id),
+            "name": f"{student.user.first_name} {student.user.last_name}",
+            "email": student.email,
+            "registration_number": student.registration_number,
+        }
+
+    def get_institution_name(self, obj):
+        from edulink.apps.institutions.queries import get_institution_by_id
+
+        institution = get_institution_by_id(institution_id=obj.institution_id)
+        return institution.name if institution else None
+
+
+class ExternalPlacementDeclarationCreateSerializer(serializers.Serializer):
+    institution_id = serializers.UUIDField()
+    company_name = serializers.CharField(max_length=255)
+    company_contact_name = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    company_contact_email = serializers.EmailField(required=False, allow_blank=True)
+    company_contact_phone = serializers.CharField(max_length=50, required=False, allow_blank=True)
+    role_title = serializers.CharField(max_length=255)
+    location = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    location_type = serializers.ChoiceField(
+        choices=InternshipOpportunity.LOCATION_CHOICES,
+        default=InternshipOpportunity.LOCATION_ONSITE,
+    )
+    start_date = serializers.DateField()
+    end_date = serializers.DateField(required=False, allow_null=True)
+    source_url = serializers.URLField(required=False, allow_blank=True)
+    proof_document = serializers.FileField(required=False)
+    student_notes = serializers.CharField(required=False, allow_blank=True)
+
+    def validate(self, attrs):
+        end_date = attrs.get("end_date")
+        if end_date and end_date < attrs["start_date"]:
+            raise serializers.ValidationError("End date cannot be before start date.")
+        return attrs
+
+
+class ExternalPlacementDeclarationReviewSerializer(serializers.Serializer):
+    review_notes = serializers.CharField(required=False, allow_blank=True)
 
 class ReviewEvidenceSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=[

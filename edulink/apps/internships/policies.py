@@ -5,7 +5,7 @@ from edulink.apps.institutions.queries import get_institution_for_user, get_inst
 from edulink.apps.students.queries import get_student_for_user, get_student_approved_affiliation
 from edulink.apps.employers.policies import can_post_internship as employer_can_post
 from edulink.apps.employers.queries import get_employer_by_id, get_employer_for_user, get_employer_supervisor_by_user
-from .models import InternshipOpportunity, InternshipApplication, OpportunityStatus, ApplicationStatus
+from .models import InternshipOpportunity, InternshipApplication, OpportunityStatus, ApplicationStatus, ExternalPlacementDeclaration
 
 def get_actor_institution_id(actor) -> Optional[UUID]:
     """Helper to get institution ID for an admin user."""
@@ -19,6 +19,9 @@ def can_create_internship(actor, institution_id: Optional[UUID] = None, employer
     Institution Admins can create internships for their institution.
     Employer Admins can create internships for their employer (if trusted).
     """
+    if getattr(actor, "is_system_admin", False) is True:
+        return True
+
     authorized_as_institution = False
     authorized_as_employer = False
 
@@ -71,15 +74,11 @@ def can_view_application(actor, application: InternshipApplication) -> bool:
     # The owner of the opportunity
     opportunity = application.opportunity
     if actor.is_institution_admin:
+        if opportunity.origin == InternshipOpportunity.ORIGIN_EXTERNAL_STUDENT_DECLARED:
+            return False
         if opportunity.institution_id:
             if get_actor_institution_id(actor) == opportunity.institution_id:
                 return True
-        
-        # Also allow if the student belongs to the institution
-        affiliation = get_student_approved_affiliation(application.student_id)
-        if affiliation and affiliation.institution_id:
-             if can_create_internship(actor, institution_id=affiliation.institution_id):
-                 return True
 
     if actor.is_employer_admin and opportunity.employer_id:
         employer = get_employer_for_user(actor.id)
@@ -197,6 +196,8 @@ def can_transition_opportunity(actor, opportunity: InternshipOpportunity, target
     
     # DRAFT -> OPEN
     if current_state == OpportunityStatus.DRAFT and target_state == OpportunityStatus.OPEN:
+        if getattr(actor, "is_system_admin", False) is True:
+            return True
         if opportunity.institution_id and can_create_internship(actor, institution_id=opportunity.institution_id):
             return True
         if opportunity.employer_id and can_create_internship(actor, employer_id=opportunity.employer_id):
@@ -205,6 +206,8 @@ def can_transition_opportunity(actor, opportunity: InternshipOpportunity, target
         
     # OPEN -> CLOSED
     if current_state == OpportunityStatus.OPEN and target_state == OpportunityStatus.CLOSED:
+        if getattr(actor, "is_system_admin", False) is True:
+            return True
         if opportunity.institution_id and can_create_internship(actor, institution_id=opportunity.institution_id):
             return True
         if opportunity.employer_id and can_create_internship(actor, employer_id=opportunity.employer_id):
@@ -431,7 +434,7 @@ def can_accept_supervisor_assignment(actor, assignment) -> bool:
     Enforcement: Only the person named in the assignment can accept it.
     This prevents admins or others from auto-accepting on their behalf.
     """
-    return actor.id == assignment.supervisor_id
+    return _actor_matches_supervisor_assignment(actor, assignment)
 
 
 def can_reject_supervisor_assignment(actor, assignment) -> bool:
@@ -442,27 +445,102 @@ def can_reject_supervisor_assignment(actor, assignment) -> bool:
     Enforcement: Only the assigned supervisor can reject their own assignment.
     Admin cannot force rejection; supervisor has agency.
     """
-    return actor.id == assignment.supervisor_id
+    return _actor_matches_supervisor_assignment(actor, assignment)
+
+
+def _actor_matches_supervisor_assignment(actor, assignment) -> bool:
+    """
+    Supervisor assignments store domain profile IDs, not global user-role identity.
+    Resolve the actor through the assignment domain before comparing.
+    """
+    if not actor.is_authenticated or not actor.is_supervisor:
+        return False
+
+    if assignment.assignment_type == "EMPLOYER":
+        from edulink.apps.employers.queries import get_supervisor_id_for_user
+        supervisor_id = get_supervisor_id_for_user(actor.id)
+        return bool(supervisor_id and str(supervisor_id) == str(assignment.supervisor_id))
+
+    if assignment.assignment_type == "INSTITUTION":
+        from edulink.apps.institutions.queries import get_institution_staff_id_for_user
+        staff_id = get_institution_staff_id_for_user(str(actor.id))
+        return bool(staff_id and str(staff_id) == str(assignment.supervisor_id))
+
+    return False
 
 
 def can_view_supervisor_assignment(actor, assignment) -> bool:
     """
     Determine if actor can view a supervisor assignment details.
-    Allowed: The assigned supervisor, admins, or related students/supervisors
+    Allowed: The assigned supervisor, scoped domain admins, system admins, or
+    the student who owns the application.
     """
     # Supervisor can view their own assignment
-    if actor.id == assignment.supervisor_id:
+    if _actor_matches_supervisor_assignment(actor, assignment):
         return True
     
-    # Admins can view any assignment
-    if actor.is_employer_admin or actor.is_institution_admin or actor.is_system_admin:
+    if actor.is_system_admin:
         return True
+
+    if actor.is_employer_admin and assignment.assignment_type == "EMPLOYER":
+        from edulink.apps.employers.queries import get_employer_for_user
+        employer = get_employer_for_user(actor.id)
+        return bool(
+            employer
+            and str(assignment.application.opportunity.employer_id) == str(employer.id)
+        )
+
+    if actor.is_institution_admin and assignment.assignment_type == "INSTITUTION":
+        from edulink.apps.institutions.queries import get_institution_for_user
+        institution = get_institution_for_user(str(actor.id))
+        if not institution:
+            return False
+        snapshot_institution_id = assignment.application.application_snapshot.get("institution_id")
+        return (
+            str(assignment.application.opportunity.institution_id) == str(institution.id)
+            or str(snapshot_institution_id) == str(institution.id)
+        )
     
     # Student can view assignments for their own application
-    if actor.id == assignment.application.student_id:
-        return True
+    if actor.is_student:
+        from edulink.apps.students.queries import get_student_for_user
+        student = get_student_for_user(str(actor.id))
+        return bool(student and str(student.id) == str(assignment.application.student_id))
     
     return False
+
+
+def can_declare_external_placement(actor, institution_id: UUID) -> bool:
+    if not actor.is_student:
+        return False
+
+    student = get_student_for_user(str(actor.id))
+    if not student:
+        return False
+
+    affiliation = get_student_approved_affiliation(student.id)
+    return bool(affiliation and str(affiliation.institution_id) == str(institution_id))
+
+
+def can_review_external_placement_declaration(actor, declaration: ExternalPlacementDeclaration) -> bool:
+    if actor.is_system_admin:
+        return True
+
+    if not actor.is_institution_admin:
+        return False
+
+    return get_actor_institution_id(actor) == declaration.institution_id
+
+
+def can_view_external_placement_declaration(actor, declaration: ExternalPlacementDeclaration) -> bool:
+    if can_review_external_placement_declaration(actor, declaration):
+        return True
+
+    if not actor.is_student:
+        return False
+
+    student = get_student_for_user(str(actor.id))
+    return bool(student and str(student.id) == str(declaration.student_id))
 
 
 def can_transition_internship(actor, internship, target_state: str) -> bool:

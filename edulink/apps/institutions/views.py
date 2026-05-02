@@ -1184,7 +1184,11 @@ class PlacementMonitoringViewSet(viewsets.ViewSet):
         if not inst:
             return Response({"detail": "No institution found."}, status=status.HTTP_404_NOT_FOUND)
             
-        data = get_active_placements_for_monitoring(institution_id=str(inst.id))
+        data = get_active_placements_for_monitoring(
+            institution_id=str(inst.id),
+            department_id=request.query_params.get("department_id"),
+            cohort_id=request.query_params.get("cohort_id"),
+        )
         serializer = PlacementMonitoringSerializer(data, many=True)
         return Response(serializer.data)
 
@@ -1202,7 +1206,11 @@ class InstitutionReportsViewSet(viewsets.ViewSet):
         if not inst:
             return Response({"detail": "No institution found."}, status=status.HTTP_404_NOT_FOUND)
             
-        stats = get_institution_placement_stats(str(inst.id))
+        stats = get_institution_placement_stats(
+            str(inst.id),
+            department_id=request.query_params.get("department_id"),
+            cohort_id=request.query_params.get("cohort_id"),
+        )
         return Response(stats)
 
     @action(detail=False, methods=['get'], url_path='time-to-placement')
@@ -1229,7 +1237,11 @@ class InstitutionReportsViewSet(viewsets.ViewSet):
         if not inst:
             return Response({"detail": "No institution found."}, status=status.HTTP_404_NOT_FOUND)
             
-        export_rows = get_institution_placement_export_data(institution_id=str(inst.id))
+        export_rows = get_institution_placement_export_data(
+            institution_id=str(inst.id),
+            department_id=request.query_params.get("department_id"),
+            cohort_id=request.query_params.get("cohort_id"),
+        )
         
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = f'attachment; filename="placement_report_{inst.id}.csv"'

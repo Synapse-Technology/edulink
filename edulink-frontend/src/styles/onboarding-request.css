@@ -1,0 +1,447 @@
+.onboarding-page {
+  min-height: 100vh;
+  background: #f7f9fc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.onboarding-shell {
+  width: 100%;
+  min-height: 100vh;
+  background: #fff;
+  overflow: hidden;
+}
+
+.onboarding-brand-panel {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  color: #fff;
+  background:
+    linear-gradient(145deg, #082f49 0%, #0f766e 58%, #155e75 100%);
+}
+
+.onboarding-brand-panel.employer {
+  background:
+    linear-gradient(145deg, #111827 0%, #1d4ed8 58%, #0f766e 100%);
+}
+
+.onboarding-brand-panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 42px 42px;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.onboarding-brand-content {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  padding: clamp(40px, 6vw, 76px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.onboarding-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.onboarding-brand-title {
+  max-width: 470px;
+  margin: 28px 0 16px;
+  font-size: clamp(2.25rem, 4vw, 4.15rem);
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: 0;
+  color: #ffffff;
+  text-shadow: 0 2px 22px rgba(0, 0, 0, 0.28);
+}
+
+.onboarding-brand-copy {
+  max-width: 520px;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 1.04rem;
+  line-height: 1.7;
+}
+
+.onboarding-proof-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 32px;
+}
+
+.onboarding-proof {
+  padding: 0 0 0 14px;
+  border-left: 2px solid rgba(255, 255, 255, 0.34);
+}
+
+.onboarding-proof strong {
+  display: block;
+  font-size: 1.15rem;
+  color: #ffffff;
+}
+
+.onboarding-proof span {
+  display: block;
+  margin-top: 4px;
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 0.78rem;
+}
+
+.onboarding-checklist {
+  display: grid;
+  gap: 14px;
+}
+
+.onboarding-check {
+  display: grid;
+  grid-template-columns: 38px 1fr;
+  gap: 14px;
+  align-items: start;
+  padding: 0 0 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.onboarding-check i {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #083344;
+  background: #e0f7fa;
+}
+
+.onboarding-check h5 {
+  margin: 0 0 4px;
+  font-size: 0.98rem;
+  font-weight: 800;
+}
+
+.onboarding-check p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.78);
+  line-height: 1.5;
+  font-size: 0.88rem;
+}
+
+.onboarding-form-panel {
+  min-height: 100vh;
+  padding: clamp(28px, 5vw, 64px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-left: 1px solid #e2e8f0;
+}
+
+.onboarding-form-inner {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.onboarding-mobile-brief {
+  display: none;
+}
+
+.onboarding-form-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 26px;
+}
+
+.onboarding-eyebrow {
+  margin-bottom: 8px;
+  color: #0f766e;
+  font-size: 0.77rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.onboarding-form-top h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1.72rem;
+  font-weight: 800;
+}
+
+.onboarding-form-top p {
+  margin: 8px 0 0;
+  color: #64748b;
+}
+
+.onboarding-login-link {
+  white-space: nowrap;
+  text-align: right;
+  color: #64748b;
+  font-size: 0.86rem;
+}
+
+.onboarding-login-link a {
+  display: block;
+  color: #0f766e;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.onboarding-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  margin-bottom: 30px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.onboarding-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  background: #fff;
+  border-right: 1px solid #e2e8f0;
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.onboarding-step:last-child {
+  border-right: 0;
+}
+
+.onboarding-step span {
+  width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: #64748b;
+  background: #e2e8f0;
+}
+
+.onboarding-step.active {
+  color: #0f766e;
+  background: #f0fdfa;
+}
+
+.onboarding-step.active span {
+  color: #fff;
+  background: #0f766e;
+}
+
+.onboarding-section-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.onboarding-section-title .step-number {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #0f766e;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+}
+
+.onboarding-section-title h5 {
+  margin: 0;
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.onboarding-section-title p {
+  margin: 2px 0 0;
+  color: #64748b;
+  font-size: 0.86rem;
+}
+
+.onboarding-form-panel .form-control,
+.onboarding-form-panel .form-select {
+  min-height: 46px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  color: #0f172a;
+  box-shadow: none;
+}
+
+.onboarding-form-panel textarea.form-control {
+  min-height: auto;
+}
+
+.onboarding-form-panel .form-control:focus,
+.onboarding-form-panel .form-select:focus {
+  border-color: #0f766e;
+  box-shadow: 0 0 0 0.18rem rgba(15, 118, 110, 0.14);
+}
+
+.onboarding-primary-btn {
+  border: 0;
+  background: #0f766e;
+  color: #fff;
+  font-weight: 800;
+}
+
+.onboarding-primary-btn:hover,
+.onboarding-primary-btn:focus {
+  background: #115e59;
+  color: #fff;
+}
+
+.onboarding-review-card {
+  padding: 18px 0;
+  border: 1px solid #e2e8f0;
+  border-left: 0;
+  border-right: 0;
+  border-radius: 0;
+  background: #fff;
+}
+
+.onboarding-review-card h6 {
+  color: #0f766e;
+  font-weight: 800;
+}
+
+.onboarding-note {
+  border: 1px solid #99f6e4;
+  border-radius: 8px;
+  background: #ecfeff;
+  color: #115e59;
+}
+
+.onboarding-success-card {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 0;
+  border: 0;
+  background: #fff;
+  box-shadow: none;
+}
+
+.onboarding-success-icon {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 20px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #0f766e;
+  background: #ccfbf1;
+  font-size: 2rem;
+}
+
+.onboarding-tracking-code {
+  display: inline-block;
+  padding: 16px 20px;
+  border: 1px dashed #0f766e;
+  border-radius: 8px;
+  background: #f0fdfa;
+}
+
+.onboarding-tracking-code strong {
+  display: block;
+  color: #0f172a;
+  font-size: 1.9rem;
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 991.98px) {
+  .onboarding-page {
+    align-items: stretch;
+    padding: 0;
+  }
+
+  .onboarding-shell {
+    min-height: 100vh;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .onboarding-form-panel {
+    min-height: 100vh;
+    padding: 28px 18px;
+    border-left: 0;
+  }
+
+  .onboarding-mobile-brief {
+    display: block;
+    margin-bottom: 26px;
+    padding-bottom: 22px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .onboarding-mobile-brief .onboarding-kicker {
+    background: #ecfeff;
+    border-color: #99f6e4;
+    color: #0f766e;
+  }
+
+  .onboarding-mobile-brief h1 {
+    margin: 18px 0 10px;
+    color: #0f172a;
+    font-size: 2rem;
+    line-height: 1.08;
+    font-weight: 800;
+  }
+
+  .onboarding-mobile-brief p {
+    margin: 0;
+    color: #475569;
+    line-height: 1.6;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .onboarding-form-top {
+    display: block;
+  }
+
+  .onboarding-login-link {
+    margin-top: 14px;
+    text-align: left;
+  }
+
+  .onboarding-steps {
+    grid-template-columns: 1fr;
+  }
+
+  .onboarding-step {
+    min-height: 44px;
+  }
+
+  .onboarding-success-card {
+    padding: 24px;
+  }
+}
