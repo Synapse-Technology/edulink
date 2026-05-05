@@ -1336,13 +1336,12 @@ def _send_email_notification_sync(*, notification_id: str, recipient_email: str,
 
                 email_msg = EmailMessage(
                     subject=subject,
-                    body=plain_message,
+                    body=plain_message,  # Plain text body (multipart/mixed by default)
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     to=[recipient_email],
                     connection=connection,
                 )
-                email_msg.content_subtype = "html"
-                # Attach the HTML version
+                # Attach HTML as alternative (creates multipart/alternative)
                 email_msg.attach_alternative(html_message, "text/html")
 
                 # If a dedicated support email is configured, set Reply-To so replies route there
