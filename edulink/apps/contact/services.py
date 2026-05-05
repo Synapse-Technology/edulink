@@ -1,5 +1,6 @@
 import logging
 from django.db import transaction
+from django_q.tasks import async_task
 from .models import ContactSubmission
 from edulink.apps.ledger.services import record_event
 from edulink.apps.shared.error_handling import (
@@ -8,6 +9,33 @@ from edulink.apps.shared.error_handling import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _send_contact_submission_notifications(submission_id: str) -> None:
+    """
+    Send contact submission confirmation/admin notifications out-of-band.
+    This keeps the public contact endpoint responsive even if email or push integrations are slow.
+    """
+    try:
+        submission = ContactSubmission.objects.get(id=submission_id)
+    except ContactSubmission.DoesNotExist:
+        logger.warning("Contact submission %s not found for async notifications", submission_id)
+        return
+
+    from edulink.apps.notifications.services import (
+        send_contact_submission_confirmation,
+        send_contact_submission_admin_notification,
+    )
+
+    try:
+        send_contact_submission_confirmation(submission=submission)
+        send_contact_submission_admin_notification(submission=submission)
+    except Exception as e:
+        logger.error(
+            "Failed to trigger contact notifications for submission %s: %s",
+            submission_id,
+            e,
+        )
 
 @transaction.atomic
 def create_contact_submission(*, name: str, email: str, subject: str, message: str) -> ContactSubmission:
@@ -34,20 +62,13 @@ def create_contact_submission(*, name: str, email: str, subject: str, message: s
         }
     )
 
-    # Trigger notifications (Auto-reply to user and alert to admin)
-    from edulink.apps.notifications.services import (
-        send_contact_submission_confirmation,
-        send_contact_submission_admin_notification
+    # Trigger notifications asynchronously after commit to avoid request timeouts.
+    transaction.on_commit(
+        lambda: async_task(
+            "edulink.apps.contact.services._send_contact_submission_notifications",
+            str(submission.id),
+        )
     )
-    
-    try:
-        # Auto-reply to the person who submitted the form
-        send_contact_submission_confirmation(submission=submission)
-        
-        # Notify the internal support/admin team
-        send_contact_submission_admin_notification(submission=submission)
-    except Exception as e:
-        logger.error(f"Failed to trigger contact notifications for submission {submission.id}: {e}")
 
     return submission
 
