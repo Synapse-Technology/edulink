@@ -713,7 +713,7 @@ def _get_student_for_external_declaration(declaration: ExternalPlacementDeclarat
         )
     return student
 
-def submit_evidence(actor, application_id: UUID, title: str, file: any, description: str = "", evidence_type: str = InternshipEvidence.TYPE_OTHER, metadata: dict = None) -> InternshipEvidence:
+def submit_evidence(actor, application_id: UUID, title: str, file: any = None, description: str = "", evidence_type: str = InternshipEvidence.TYPE_OTHER, metadata: dict = None) -> InternshipEvidence:
     application = InternshipApplication.objects.get(id=application_id)
     if not can_submit_evidence(actor, application):
         raise AuthorizationError(
@@ -725,16 +725,19 @@ def submit_evidence(actor, application_id: UUID, title: str, file: any, descript
     if metadata is None:
         metadata = {}
         
-    evidence = InternshipEvidence.objects.create(
-        application=application,
-        submitted_by=actor.id,
-        title=title,
-        description=description,
-        file=file,
-        evidence_type=evidence_type,
-        metadata=metadata,
-        status=InternshipEvidence.STATUS_SUBMITTED
-    )
+    evidence_kwargs = {
+        "application": application,
+        "submitted_by": actor.id,
+        "title": title,
+        "description": description,
+        "evidence_type": evidence_type,
+        "metadata": metadata,
+        "status": InternshipEvidence.STATUS_SUBMITTED,
+    }
+    if file is not None:
+        evidence_kwargs["file"] = file
+
+    evidence = InternshipEvidence.objects.create(**evidence_kwargs)
     
     from edulink.apps.ledger.services import record_event
     record_event(
