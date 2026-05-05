@@ -17,9 +17,9 @@ python-dotenv==1.0.1
 django-q2==1.6.1
 pusher==3.3.2
 
-# Cloud Storage
-cloudinary==1.40.0
-django-cloudinary-storage==0.3.0
+# Cloud Storage (Supabase via S3)
+boto3==1.28.85
+django-storages[s3]==1.14.2
 
 # PDF Generation
 reportlab==4.5.0

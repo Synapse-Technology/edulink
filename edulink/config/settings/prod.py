@@ -75,34 +75,38 @@ CORS_ALLOWED_ORIGINS = [
 
 # Production Apps
 INSTALLED_APPS += [
-    "cloudinary_storage",
-    "cloudinary",
+    "storages",
 ]
 
-# Media Storage (Cloudinary)
-# Render Free tier has an ephemeral file system. We use Cloudinary for persistent media storage.
-CLOUDINARY_STORAGE = {
-    'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
-    'API_KEY': os.environ.get('CLOUDINARY_API_KEY'),
-    'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
-}
-
-cloudinary_values = [
-    CLOUDINARY_STORAGE['CLOUD_NAME'],
-    CLOUDINARY_STORAGE['API_KEY'],
-    CLOUDINARY_STORAGE['API_SECRET'],
-]
-cloudinary_set_count = sum(1 for value in cloudinary_values if value)
-
-if 0 < cloudinary_set_count < 3:
-    raise ImproperlyConfigured(
-        "Incomplete Cloudinary configuration. Set CLOUDINARY_CLOUD_NAME, "
-        "CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET together."
-    )
-
-if cloudinary_set_count == 3:
+# Media Storage (Supabase via S3)
+# Use S3-compatible Supabase Storage for persistent media storage
+if all([
+    os.environ.get('SUPABASE_S3_ACCESS_KEY'),
+    os.environ.get('SUPABASE_S3_SECRET_KEY'),
+    os.environ.get('SUPABASE_S3_ENDPOINT'),
+]):
     STORAGES["default"] = {
-        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+        "OPTIONS": {
+            "access_key": os.environ.get('SUPABASE_S3_ACCESS_KEY'),
+            "secret_key": os.environ.get('SUPABASE_S3_SECRET_KEY'),
+            "storage_bucket_name": os.environ.get('SUPABASE_S3_BUCKET', 'edulink-files'),
+            "endpoint_url": os.environ.get('SUPABASE_S3_ENDPOINT'),
+            "region_name": "auto",
+            "use_ssl": True,
+            "verify": True,
+            "default_acl": "private",  # All files private by default; RLS policies grant access
+            "file_overwrite": False,
+        }
+    }
+else:
+    # Fallback to local storage if Supabase not configured
+    STORAGES["default"] = {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+        "OPTIONS": {
+            "location": os.path.join(BASE_DIR, "media"),
+            "base_url": "/media/",
+        }
     }
 
 # Site Configuration
