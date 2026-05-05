@@ -1224,6 +1224,8 @@ def send_email_notification(*, recipient_email: str, subject: str, template_name
                 "password_reset": Notification.TYPE_PASSWORD_RESET,
                 "institution_approval": Notification.TYPE_INSTITUTION_ONBOARDED,
                 "institution_rejection": Notification.TYPE_INSTITUTION_ONBOARDED,
+                "internship_application_submitted": Notification.TYPE_INTERNSHIP_APPLICATION_SUBMITTED,
+                "evidence_reviewed": Notification.TYPE_LOGBOOK_REVIEWED,
             }
             notification_type = template_to_type.get(template_name, Notification.TYPE_EMAIL_VERIFICATION)
             if template_name not in template_to_type:
