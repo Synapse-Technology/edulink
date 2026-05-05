@@ -90,7 +90,7 @@ if all([
         "OPTIONS": {
             "access_key": os.environ.get('SUPABASE_S3_ACCESS_KEY'),
             "secret_key": os.environ.get('SUPABASE_S3_SECRET_KEY'),
-            "storage_bucket_name": os.environ.get('SUPABASE_S3_BUCKET', 'edulink-files'),
+            "bucket_name": os.environ.get('SUPABASE_S3_BUCKET', 'artifacts'),
             "endpoint_url": os.environ.get('SUPABASE_S3_ENDPOINT'),
             "region_name": "auto",
             "use_ssl": True,
