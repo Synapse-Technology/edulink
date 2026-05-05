@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Table, Button, Badge, Form, InputGroup, Row, Col, Alert, Spinner } from 'react-bootstrap';
-import { Search, AlertTriangle, CheckCircle, Clock, Filter } from 'lucide-react';
+import { Card, Table, Button, Badge, Form, InputGroup, Row, Col } from 'react-bootstrap';
+import { Search, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 import { internshipService } from '../../../services/internship/internshipService';
 import type { Incident } from '../../../services/internship/internshipService';
 import { toast } from 'react-hot-toast';

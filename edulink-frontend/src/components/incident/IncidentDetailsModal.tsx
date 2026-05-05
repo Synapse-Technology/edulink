@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Modal, Button, Form, Spinner, Alert, Badge, Row, Col } from 'react-bootstrap';
-import { AlertTriangle, CheckCircle, XCircle, Clock, User } from 'lucide-react';
+import { Modal, Button, Form, Spinner, Alert, Badge } from 'react-bootstrap';
+import { AlertTriangle, Clock, User } from 'lucide-react';
 import { internshipService } from '../../services/internship/internshipService';
 import type { Incident } from '../../services/internship/internshipService';
 import { toast } from 'react-hot-toast';
