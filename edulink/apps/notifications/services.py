@@ -18,6 +18,7 @@ import uuid
 import time
 import ssl
 from smtplib import SMTPDataError, SMTPException
+import socket
 
 from edulink.apps.ledger.services import record_event
 from edulink.apps.shared.error_handling import (
@@ -1286,6 +1287,20 @@ def _send_email_notification_sync(*, notification_id: str, recipient_email: str,
         logger.error(f"Notification record {notification_id} not found for background task.")
         return False
 
+    # Guard: if SMTP backend is configured but no EMAIL_HOST provided, fail fast
+    # to avoid blocking the web worker when Django Q is running in sync mode.
+    try:
+        if getattr(settings, 'EMAIL_BACKEND', '').endswith('smtp.EmailBackend') and not getattr(settings, 'EMAIL_HOST', ''):
+            error_msg = "SMTP Email backend configured but EMAIL_HOST is not set."
+            logger.error(error_msg)
+            notification.status = Notification.STATUS_FAILED
+            notification.failure_reason = error_msg
+            notification.save()
+            return False
+    except Exception:
+        # Non-critical guard failure; continue to attempt send and let exceptions be handled normally
+        logger.exception("Error while validating email host configuration")
+
     max_retries = 3
     retry_delay = 2  # seconds
 
@@ -1295,12 +1310,12 @@ def _send_email_notification_sync(*, notification_id: str, recipient_email: str,
             html_message = render_to_string(f"notifications/emails/{template_name}.html", context)
             plain_message = strip_tags(html_message)
             
-            # Send email
+            # Send email with a short connect timeout to avoid blocking workers
             from django.core.mail import get_connection
-            
+
             # For development with Mailtrap port 2525
             connection = None
-            if settings.DEBUG and settings.EMAIL_PORT == '2525' and not settings.EMAIL_USE_TLS:
+            if settings.DEBUG and str(getattr(settings, 'EMAIL_PORT', '')) == '2525' and not getattr(settings, 'EMAIL_USE_TLS', False):
                 try:
                     ssl_ctx = ssl._create_unverified_context()
                     connection = get_connection(
@@ -1311,15 +1326,44 @@ def _send_email_notification_sync(*, notification_id: str, recipient_email: str,
                 except Exception as ssl_err:
                     logger.warning(f"Failed to create unverified SSL context: {ssl_err}")
 
-            send_mail(
-                subject=subject,
-                message=plain_message,
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[recipient_email],
-                html_message=html_message,
-                fail_silently=False,
-                connection=connection
-            )
+            # Temporarily set a socket default timeout so smtplib.create_connection doesn't block indefinitely.
+            old_default_timeout = socket.getdefaulttimeout()
+            connect_timeout = getattr(settings, 'EMAIL_CONNECT_TIMEOUT', 5)
+            try:
+                socket.setdefaulttimeout(connect_timeout)
+                # Use EmailMessage to support Reply-To header so user replies go to support
+                from django.core.mail import EmailMessage
+
+                email_msg = EmailMessage(
+                    subject=subject,
+                    body=plain_message,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    to=[recipient_email],
+                    connection=connection,
+                )
+                email_msg.content_subtype = "html"
+                # Attach the HTML version
+                email_msg.attach_alternative(html_message, "text/html")
+
+                # If a dedicated support email is configured, set Reply-To so replies route there
+                reply_to = None
+                try:
+                    reply_to = getattr(settings, 'SUPPORT_EMAIL', None) or getattr(settings, 'DEFAULT_FROM_EMAIL', None)
+                except Exception:
+                    reply_to = None
+
+                if reply_to:
+                    email_msg.extra_headers = email_msg.extra_headers or {}
+                    email_msg.extra_headers['Reply-To'] = reply_to
+
+                email_msg.send(fail_silently=False)
+            finally:
+                # Restore previous global socket timeout
+                try:
+                    socket.setdefaulttimeout(old_default_timeout)
+                except Exception:
+                    # If restoring fails, log and continue; not critical
+                    logger.debug("Failed to restore previous socket default timeout")
             
             # Update notification status
             notification.status = Notification.STATUS_SENT
@@ -1386,11 +1430,53 @@ def _send_email_notification_sync(*, notification_id: str, recipient_email: str,
             
             logger.error(f"Failed to send email to {recipient_email}: {error_msg}")
             return False
+        except socket.timeout as e:
+            error_msg = f"SMTP connect timed out after {connect_timeout}s: {e}"
+            logger.error(error_msg)
+            notification.status = Notification.STATUS_FAILED
+            notification.failure_reason = error_msg
+            notification.retry_count = notification.retry_count + 1
+            notification.save()
+
+            ledger_actor_id = uuid.UUID(actor_id) if actor_id else None
+            record_event(
+                event_type="EMAIL_FAILED",
+                actor_id=ledger_actor_id,
+                entity_type="Notification",
+                entity_id=str(notification.id),
+                payload={
+                    "recipient_email": recipient_email,
+                    "subject": subject,
+                    "template": template_name,
+                    "error": error_msg,
+                    "attempt": attempt + 1,
+                    "failed_at": timezone.now().isoformat(),
+                    "success": False
+                }
+            )
+
+            return False
+        except (OSError, SystemExit) as e:
+            # OSError can include underlying socket errors. SystemExit may be raised
+            # if the process is being shut down; catch and log to avoid unhandled exits.
+            error_msg = f"Email sending aborted due to system/network error: {e}"
+            logger.error(error_msg)
+            try:
+                notification.status = Notification.STATUS_FAILED
+                notification.failure_reason = error_msg
+                notification.retry_count = notification.retry_count + 1
+                notification.save()
+            except Exception:
+                logger.exception("Failed to mark notification as failed after OSError/SystemExit")
+            return False
         except Exception as e:
             logger.error(f"Unexpected error sending email: {e}")
             notification.status = Notification.STATUS_FAILED
             notification.failure_reason = str(e)
-            notification.save()
+            try:
+                notification.save()
+            except Exception:
+                logger.exception("Failed to save notification failure state")
             return False
     
     return False

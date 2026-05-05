@@ -58,8 +58,10 @@ DATABASES = {
 }
 
 # Email backend for production
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = os.environ.get("EMAIL_HOST", "")
+EMAIL_BACKEND = os.environ.get("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
+# Default to the base settings EMAIL_HOST when no env var is provided to avoid
+# attempting to connect to an empty hostname which causes blocking socket errors.
+EMAIL_HOST = os.environ.get("EMAIL_HOST", EMAIL_HOST if 'EMAIL_HOST' in globals() else "")
 EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
 # Allow overriding TLS usage from env (defaults to True in prod)
 EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "True").lower() in {"1", "true", "yes"}
@@ -125,6 +127,8 @@ else:
 BACKEND_URL = os.environ.get("BACKEND_URL", os.environ.get("SITE_URL", "https://api.edulinkcareer.me/"))
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "https://edulinkcareer.me")
 SITE_URL = FRONTEND_URL
+# Admin/support email for production. Can be overridden via env var SUPPORT_EMAIL.
+SUPPORT_EMAIL = os.environ.get("SUPPORT_EMAIL", "synapsetechnology14@gmail.com")
 
 # WhiteNoise Configuration
 # Use StaticFilesStorage to avoid build failures due to missing files or compression errors.
@@ -144,7 +148,10 @@ Q_CLUSTER = {
     'queue_limit': 500,
     'label': 'Django Q',
     'orm': 'default',
-    'sync': os.getenv('DJANGO_Q_SYNC', 'True').lower() == 'true', # Default to True for Free Tier/Render
+    # In production prefer asynchronous background workers. Set DJANGO_Q_SYNC=true
+    # only for debugging. Default is False to avoid running tasks inline during
+    # web requests which can block when external services (SMTP) are unreachable.
+    'sync': os.getenv('DJANGO_Q_SYNC', 'False').lower() == 'true',
     'retry': 120,      # Consider task failed if not finished in 120s
     'max_attempts': 3,  # Automatically retry tasks up to 3 times on failure
     'ack_failures': True,
