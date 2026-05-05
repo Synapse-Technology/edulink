@@ -21,12 +21,15 @@ ALLOWED_HOSTS = [
     "edulink.jhubafrica.com",
     "www.edulink.jhubafrica.com",
     ".onrender.com",  # Allow all Render subdomains
+    ".edulinkcareer.me"
 ]
 
 CSRF_TRUSTED_ORIGINS = [
     "https://edulink.jhubafrica.com",
     "https://www.edulink.jhubafrica.com",
     "https://edulink-frontend-mb63.onrender.com",
+    "https://edulinkcareer.me",
+    "https://www.edulinkcareer.me",
 ]
 
 # Add Render host to trusted origins if present
@@ -61,6 +64,7 @@ EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "Edulink <no-reply@edulinkcareer.me>")
 
 # Logging
 LOGGING["root"]["level"] = "WARNING"
@@ -71,6 +75,8 @@ CORS_ALLOWED_ORIGINS = [
     "https://edulink.jhubafrica.com",
     "https://www.edulink.jhubafrica.com",
     "https://edulink-frontend-mb63.onrender.com",
+    "https://edulinkcareer.me",
+    "https://www.edulinkcareer.me",
 ]
 
 # Production Apps
@@ -110,8 +116,8 @@ else:
     }
 
 # Site Configuration
-BACKEND_URL = os.environ.get("BACKEND_URL", os.environ.get("SITE_URL", "https://edulink-backend-2ren.onrender.com/"))
-FRONTEND_URL = os.environ.get("FRONTEND_URL", "https://edulink-frontend-mb63.onrender.com/")
+BACKEND_URL = os.environ.get("BACKEND_URL", os.environ.get("SITE_URL", "https://api.edulinkcareer.me/"))
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "https://edulinkcareer.me")
 SITE_URL = FRONTEND_URL
 
 # WhiteNoise Configuration
