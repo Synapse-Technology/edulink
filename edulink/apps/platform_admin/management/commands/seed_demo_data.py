@@ -90,6 +90,14 @@ class Command(BaseCommand):
                 password=password,
                 is_staff=True,
             ),
+            "institution_supervisor": self._user(
+                email="demo.assessor@jkuat.ac.ke",
+                username="demo_institution_supervisor",
+                first_name="Dr. Amina",
+                last_name="Njeri",
+                role="supervisor",
+                password=password,
+            ),
             "employer_admin": self._user(
                 email="demo.employer@greenbyte.co.ke",
                 username="demo_employer_admin",
@@ -146,6 +154,16 @@ class Command(BaseCommand):
             user=users["institution_admin"],
             defaults={"role": InstitutionStaff.ROLE_ADMIN, "is_active": True},
         )
+        institution_supervisor, _ = InstitutionStaff.objects.update_or_create(
+            institution=institution,
+            user=users["institution_supervisor"],
+            defaults={
+                "role": InstitutionStaff.ROLE_SUPERVISOR,
+                "department": department.name,
+                "cohort": cohort.name,
+                "is_active": True,
+            },
+        )
 
         employer_admin = self._supervisor_profile(
             employer_greenbyte,
@@ -197,7 +215,7 @@ class Command(BaseCommand):
         applications = self._applications(
             students=students,
             opportunities=opportunities,
-            institution_supervisor_id=users["institution_admin"].id,
+            institution_supervisor_id=institution_supervisor.id,
             employer_supervisor_id=employer_supervisor.id,
         )
 

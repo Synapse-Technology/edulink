@@ -1205,11 +1205,19 @@ class InstitutionReportsViewSet(viewsets.ViewSet):
         inst = get_institution_for_user(str(request.user.id))
         if not inst:
             return Response({"detail": "No institution found."}, status=status.HTTP_404_NOT_FOUND)
-            
+        
+        # Get optional filters
+        department_id = request.query_params.get("department_id")
+        cohort_id = request.query_params.get("cohort_id")
+        date_from = request.query_params.get("date_from")
+        date_to = request.query_params.get("date_to")
+        
         stats = get_institution_placement_stats(
             str(inst.id),
-            department_id=request.query_params.get("department_id"),
-            cohort_id=request.query_params.get("cohort_id"),
+            department_id=department_id,
+            cohort_id=cohort_id,
+            date_from=date_from,
+            date_to=date_to,
         )
         return Response(stats)
 
@@ -1220,8 +1228,16 @@ class InstitutionReportsViewSet(viewsets.ViewSet):
         inst = get_institution_for_user(str(request.user.id))
         if not inst:
             return Response({"detail": "No institution found."}, status=status.HTTP_404_NOT_FOUND)
-            
-        stats = get_time_to_placement_stats(str(inst.id))
+        
+        # Support optional filtering by department and cohort
+        department_id = request.query_params.get('department_id')
+        cohort_id = request.query_params.get('cohort_id')
+        
+        stats = get_time_to_placement_stats(
+            str(inst.id),
+            department_id=department_id,
+            cohort_id=cohort_id,
+        )
         return Response(stats)
         
     @action(detail=False, methods=['get'], url_path='export')

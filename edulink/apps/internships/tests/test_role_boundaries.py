@@ -4,9 +4,11 @@ from rest_framework.test import APIClient
 from edulink.apps.accounts.models import User
 from edulink.apps.employers.models import Employer, Supervisor
 from edulink.apps.institutions.models import Institution, InstitutionStaff
+from edulink.apps.institutions.queries import get_institution_supervisor_by_id
 from edulink.apps.institutions.policies import is_institution_staff
 from edulink.apps.internships.models import (
     ApplicationStatus,
+    InternshipEvidence,
     InternshipApplication,
     InternshipOpportunity,
     OpportunityStatus,
@@ -16,6 +18,9 @@ from edulink.apps.internships.policies import (
     can_accept_supervisor_assignment,
     can_view_supervisor_assignment,
 )
+from edulink.apps.internships.serializers import InternshipApplicationSerializer
+from edulink.apps.internships.services import assign_supervisors
+from edulink.apps.shared.error_handling import AuthorizationError
 from edulink.apps.students.models import Student
 
 
@@ -166,6 +171,61 @@ def test_institution_assessor_is_institution_staff(institution_assessor_user):
 
 
 @pytest.mark.django_db
+def test_institution_admin_is_not_resolved_as_institution_supervisor(institution_admin):
+    admin_staff = InstitutionStaff.objects.get(user=institution_admin)
+
+    assert get_institution_supervisor_by_id(supervisor_id=admin_staff.id) is None
+    assert get_institution_supervisor_by_id(supervisor_id=institution_admin.id) is None
+
+
+@pytest.mark.django_db
+def test_student_application_serializer_does_not_show_admin_as_institution_supervisor(
+    institution_admin,
+    institution_application,
+):
+    institution_application.institution_supervisor_id = institution_admin.id
+    institution_application.save(update_fields=["institution_supervisor_id", "updated_at"])
+
+    data = InternshipApplicationSerializer(institution_application).data
+
+    assert data["institution_supervisor_details"] is None
+
+
+@pytest.mark.django_db
+def test_institution_supervisor_assignment_rejects_admin_staff(
+    institution_admin,
+    institution_application,
+):
+    admin_staff = InstitutionStaff.objects.get(user=institution_admin)
+
+    with pytest.raises(AuthorizationError):
+        assign_supervisors(
+            institution_admin,
+            application_id=institution_application.id,
+            supervisor_id=admin_staff.id,
+            type="institution",
+        )
+
+
+@pytest.mark.django_db
+def test_institution_supervisor_assignment_normalizes_user_id_to_staff_profile_id(
+    institution_admin,
+    institution_application,
+    institution_assessor_user,
+):
+    assessor_user, assessor_staff = institution_assessor_user
+
+    application = assign_supervisors(
+        institution_admin,
+        application_id=institution_application.id,
+        supervisor_id=assessor_user.id,
+        type="institution",
+    )
+
+    assert application.institution_supervisor_id == assessor_staff.id
+
+
+@pytest.mark.django_db
 def test_assignment_acceptance_uses_domain_profile_id(
     employer_application,
     employer_supervisor_user,
@@ -190,6 +250,68 @@ def test_assignment_acceptance_uses_domain_profile_id(
     assert can_accept_supervisor_assignment(employer_user, institution_assignment) is False
     assert can_accept_supervisor_assignment(institution_user, institution_assignment) is True
     assert can_accept_supervisor_assignment(institution_user, employer_assignment) is False
+
+
+@pytest.mark.django_db
+def test_institution_assessor_can_retrieve_assigned_application_by_profile_id(
+    institution_application,
+    institution_assessor_user,
+):
+    assessor_user, assessor_staff = institution_assessor_user
+    institution_application.institution_supervisor_id = assessor_staff.id
+    institution_application.save(update_fields=["institution_supervisor_id", "updated_at"])
+
+    client = APIClient()
+    client.force_authenticate(user=assessor_user)
+    response = client.get(f"/api/internships/applications/{institution_application.id}/")
+
+    assert response.status_code == 200
+    assert response.data["id"] == str(institution_application.id)
+
+
+@pytest.mark.django_db
+def test_pending_evidence_for_assessor_only_includes_active_reviewable_work(
+    institution_application,
+    institution_assessor_user,
+):
+    from edulink.apps.internships.queries import get_pending_evidence_for_user
+
+    assessor_user, assessor_staff = institution_assessor_user
+    institution_application.institution_supervisor_id = assessor_staff.id
+    institution_application.status = ApplicationStatus.ACTIVE
+    institution_application.save(update_fields=["institution_supervisor_id", "status", "updated_at"])
+    active_evidence = InternshipEvidence.objects.create(
+        application=institution_application,
+        submitted_by=institution_application.student_id,
+        title="Active logbook",
+        evidence_type=InternshipEvidence.TYPE_LOGBOOK,
+        status=InternshipEvidence.STATUS_SUBMITTED,
+    )
+
+    completed_opportunity = InternshipOpportunity.objects.create(
+        title="Completed placement",
+        description="Completed role boundary fixture",
+        institution_id=institution_application.opportunity.institution_id,
+        status=OpportunityStatus.OPEN,
+    )
+    completed_application = InternshipApplication.objects.create(
+        opportunity=completed_opportunity,
+        student_id=institution_application.student_id,
+        institution_supervisor_id=assessor_staff.id,
+        status=ApplicationStatus.COMPLETED,
+    )
+    completed_evidence = InternshipEvidence.objects.create(
+        application=completed_application,
+        submitted_by=completed_application.student_id,
+        title="Completed logbook",
+        evidence_type=InternshipEvidence.TYPE_LOGBOOK,
+        status=InternshipEvidence.STATUS_SUBMITTED,
+    )
+
+    pending_ids = {item.id for item in get_pending_evidence_for_user(assessor_user)}
+
+    assert active_evidence.id in pending_ids
+    assert completed_evidence.id not in pending_ids
 
 
 @pytest.mark.django_db

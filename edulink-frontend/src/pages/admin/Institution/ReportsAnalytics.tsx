@@ -15,26 +15,39 @@ const ReportsAnalytics: React.FC = () => {
     const [placementStats, setPlacementStats] = useState<PlacementStats | null>(null);
     const [timeStats, setTimeStats] = useState<TimeToPlacementStats | null>(null);
     const [exporting, setExporting] = useState(false);
+    
+    // Date range filters
+    const [dateFrom, setDateFrom] = useState<string>('');
+    const [dateTo, setDateTo] = useState<string>('');
+
+    const fetchData = async (from?: string, to?: string) => {
+        setLoading(true);
+        try {
+            const filters: any = {};
+            if (from) filters.date_from = from;
+            if (to) filters.date_to = to;
+            
+            const [pStats, tStats] = await Promise.all([
+                institutionService.getPlacementSuccessStats(filters),
+                institutionService.getTimeToPlacementStats(filters)
+            ]);
+            setPlacementStats(pStats);
+            setTimeStats(tStats);
+        } catch (err: any) {
+            const sanitized = sanitizeAdminError(err);
+            setError(sanitized.userMessage || 'Failed to load analytics data');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const [pStats, tStats] = await Promise.all([
-                    institutionService.getPlacementSuccessStats(),
-                    institutionService.getTimeToPlacementStats()
-                ]);
-                setPlacementStats(pStats);
-                setTimeStats(tStats);
-            } catch (err: any) {
-                const sanitized = sanitizeAdminError(err);
-                setError(sanitized.userMessage || 'Failed to load analytics data');
-            } finally {
-                setLoading(false);
-            }
-        };
-
         fetchData();
     }, []);
+
+    const handleDateFilterChange = () => {
+        fetchData(dateFrom || undefined, dateTo || undefined);
+    };
 
     const handleExport = async () => {
         setExporting(true);
@@ -98,6 +111,55 @@ const ReportsAnalytics: React.FC = () => {
             </div>
 
             {error && <Alert variant="danger" className="rounded-3 shadow-sm">{error}</Alert>}
+
+            {/* Date Range Filters */}
+            <Card className="border-0 shadow-sm rounded-4 mb-4 bg-white">
+                <Card.Body className="p-4">
+                    <div className="d-flex justify-content-between align-items-center mb-3">
+                        <h6 className="fw-bold mb-0">Filter Analytics by Date Range</h6>
+                    </div>
+                    <Row className="g-3">
+                        <Col md={3}>
+                            <label className="small fw-bold text-muted mb-2 d-block">From Date</label>
+                            <input 
+                                type="date" 
+                                className="form-control rounded-2"
+                                value={dateFrom}
+                                onChange={(e) => setDateFrom(e.target.value)}
+                            />
+                        </Col>
+                        <Col md={3}>
+                            <label className="small fw-bold text-muted mb-2 d-block">To Date</label>
+                            <input 
+                                type="date" 
+                                className="form-control rounded-2"
+                                value={dateTo}
+                                onChange={(e) => setDateTo(e.target.value)}
+                            />
+                        </Col>
+                        <Col md={6} className="d-flex align-items-end">
+                            <Button 
+                                variant="primary" 
+                                onClick={handleDateFilterChange}
+                                className="rounded-2 me-2"
+                            >
+                                Apply Filter
+                            </Button>
+                            <Button 
+                                variant="outline-secondary" 
+                                onClick={() => {
+                                    setDateFrom('');
+                                    setDateTo('');
+                                    fetchData();
+                                }}
+                                className="rounded-2"
+                            >
+                                Clear Filters
+                            </Button>
+                        </Col>
+                    </Row>
+                </Card.Body>
+            </Card>
 
             {/* Top Level Summary Cards */}
             <Row className="mb-4 g-4">
@@ -207,6 +269,73 @@ const ReportsAnalytics: React.FC = () => {
                                     </tbody>
                                 </Table>
                             </div>
+                        </Card.Body>
+                    </Card>
+                </Col>
+            </Row>
+
+            {/* Cohort Performance */}
+            <Row className="mb-4 g-4">
+                <Col lg={12}>
+                    <Card className="border-0 shadow-sm rounded-4 h-100">
+                        <Card.Body className="p-4">
+                            <div className="d-flex justify-content-between align-items-center mb-4">
+                                <h5 className="fw-bold mb-0 d-flex align-items-center">
+                                    <Users size={20} className="me-2 text-info" />
+                                    Cohort Performance
+                                </h5>
+                            </div>
+                            {placementStats?.cohorts && placementStats.cohorts.length > 0 ? (
+                                <div className="table-responsive">
+                                    <Table hover borderless className="align-middle">
+                                        <thead className="bg-light bg-opacity-50">
+                                            <tr className="text-muted small text-uppercase fw-bold">
+                                                <th className="py-3">Cohort</th>
+                                                <th className="py-3">Placement Rate</th>
+                                                <th className="py-3">Active/Total</th>
+                                                <th className="py-3">Certified</th>
+                                                <th className="py-3">Avg Time to Placement</th>
+                                                <th className="py-3 text-end">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {placementStats.cohorts.map((cohort, idx) => (
+                                                <tr key={idx} className="border-bottom border-light">
+                                                    <td className="py-3 fw-bold">{cohort.name}</td>
+                                                    <td className="py-3">
+                                                        <div className="d-flex align-items-center gap-2">
+                                                            <div className="flex-grow-1" style={{ minWidth: '80px' }}>
+                                                                <ProgressBar now={cohort.placement_rate} variant="info" style={{ height: '4px' }} />
+                                                            </div>
+                                                            <span className="small fw-bold">{cohort.placement_rate}%</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-3 text-muted">
+                                                        <span className="text-dark fw-bold">{cohort.placements}</span> / {cohort.total_students}
+                                                    </td>
+                                                    <td className="py-3">
+                                                        <div className={`px-3 py-1 rounded-pill d-inline-block small fw-bold ${cohort.certified > 0 ? 'bg-success bg-opacity-10 text-success' : 'bg-light text-muted border'}`}>
+                                                            {cohort.certified} Certified
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-3 text-muted">
+                                                        <span className="badge bg-light text-dark">{cohort.avg_time_to_placement} days</span>
+                                                    </td>
+                                                    <td className="py-3 text-end">
+                                                        <Button variant="link" className="text-primary p-0 small fw-bold text-decoration-none">
+                                                            View Details
+                                                        </Button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </Table>
+                                </div>
+                            ) : (
+                                <div className="text-center py-5">
+                                    <p className="text-muted">No cohort data available</p>
+                                </div>
+                            )}
                         </Card.Body>
                     </Card>
                 </Col>

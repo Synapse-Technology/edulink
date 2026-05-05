@@ -13,6 +13,7 @@ import {
   GraduationCap,
   Award,
   ClipboardCheck,
+  AlertTriangle,
 } from 'lucide-react';
 import { useAuthStore } from '../../../stores/authStore';
 import { institutionService } from '../../../services/institution/institutionService';
@@ -121,6 +122,12 @@ const InstitutionSidebar: React.FC<InstitutionSidebarProps> = ({
       label: 'Student Verification',
       icon: FileText,
       path: '/institution/dashboard/verification',
+    },
+    {
+      id: 'incidents',
+      label: 'Incident Management',
+      icon: AlertTriangle,
+      path: '/institution/dashboard/incidents',
     },
     {
       id: 'settings',

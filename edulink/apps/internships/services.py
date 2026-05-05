@@ -1212,16 +1212,16 @@ def assign_supervisors(actor, application_id: UUID, supervisor_id: UUID, type: s
             context=ErrorContext().with_user_id(actor.id).with_resource("application", application_id).build(),
         )
 
-    supervisor_user_id = _validate_supervisor_assignment_target(
+    supervisor_profile_id, supervisor_user_id = _validate_supervisor_assignment_target(
         application=application,
         supervisor_id=supervisor_id,
         assignment_type=type,
     )
 
     if type == 'employer':
-        application.employer_supervisor_id = supervisor_id
+        application.employer_supervisor_id = supervisor_profile_id
     elif type == 'institution':
-        application.institution_supervisor_id = supervisor_id
+        application.institution_supervisor_id = supervisor_profile_id
     else:
         raise ValidationError(
             user_message="Supervisor type must be either employer or institution.",
@@ -1272,10 +1272,10 @@ def _validate_supervisor_assignment_target(
     application: InternshipApplication,
     supervisor_id: UUID,
     assignment_type: str,
-) -> UUID:
+) -> tuple[UUID, UUID]:
     """
     Validate that the supervisor profile belongs to the correct domain.
-    Returns the linked user ID for notifications.
+    Returns (supervisor profile ID, linked user ID).
     """
     if assignment_type == "employer":
         if not application.opportunity.employer_id:
@@ -1293,13 +1293,13 @@ def _validate_supervisor_assignment_target(
                 developer_message=f"Supervisor {supervisor_id} is not attached to employer {application.opportunity.employer_id}",
                 context=ErrorContext().with_resource("application", application.id).build(),
             )
-        return supervisor.user_id
+        return supervisor.id, supervisor.user_id
 
     if assignment_type == "institution":
-        from edulink.apps.institutions.queries import get_institution_staff_by_id
+        from edulink.apps.institutions.queries import get_institution_supervisor_by_id
         from edulink.apps.students.queries import get_student_approved_affiliation
 
-        staff = get_institution_staff_by_id(staff_id=supervisor_id)
+        staff = get_institution_supervisor_by_id(supervisor_id=supervisor_id)
         affiliation = get_student_approved_affiliation(application.student_id)
         institution_id = application.opportunity.institution_id or (affiliation.institution_id if affiliation else None)
 
@@ -1309,7 +1309,7 @@ def _validate_supervisor_assignment_target(
                 developer_message=f"Staff {supervisor_id} is not attached to institution {institution_id}",
                 context=ErrorContext().with_resource("application", application.id).build(),
             )
-        return staff.user_id
+        return staff.id, staff.user_id
 
     raise ValidationError(
         user_message="Supervisor type must be either employer or institution.",
@@ -1456,11 +1456,34 @@ def bulk_assign_institution_supervisors(
         "message": f"Successfully assigned {assigned_count} students to {len(supervisors)} supervisors."
     }
 
-def review_evidence(actor, evidence_id: UUID, status: str, notes: str = "", private_notes: str = "") -> InternshipEvidence:
+@transaction.atomic
+def review_evidence(
+    actor,
+    evidence_id: UUID,
+    status: str,
+    notes: str = "",
+    private_notes: str = "",
+    application_id: UUID | None = None,
+) -> InternshipEvidence:
     from django.utils import timezone
     from .workflows import evidence_workflow
     
-    evidence = InternshipEvidence.objects.select_for_update().get(id=evidence_id)
+    evidence_queryset = InternshipEvidence.objects.select_for_update()
+    if application_id is not None:
+        evidence_queryset = evidence_queryset.filter(application_id=application_id)
+
+    try:
+        evidence = evidence_queryset.get(id=evidence_id)
+    except InternshipEvidence.DoesNotExist:
+        raise NotFoundError(
+            user_message="Evidence not found for this application.",
+            developer_message=f"Evidence {evidence_id} was not found for application {application_id}",
+            context=ErrorContext()
+                .with_resource("evidence", evidence_id)
+                .with_resource("application", application_id)
+                .build(),
+        )
+
     application = evidence.application
     old_status = evidence.status
     
@@ -2176,7 +2199,7 @@ def create_supervisor_assignment(*, actor, application_id: UUID, supervisor_id: 
         )
 
     normalized_type = assignment_type.lower()
-    supervisor_user_id = _validate_supervisor_assignment_target(
+    supervisor_profile_id, supervisor_user_id = _validate_supervisor_assignment_target(
         application=application,
         supervisor_id=supervisor_id,
         assignment_type=normalized_type,
@@ -2186,7 +2209,7 @@ def create_supervisor_assignment(*, actor, application_id: UUID, supervisor_id: 
     with transaction.atomic():
         assignment = SupervisorAssignment.objects.create(
             application=application,
-            supervisor_id=supervisor_id,
+            supervisor_id=supervisor_profile_id,
             assigned_by_id=actor.id,
             assignment_type=assignment_type,
             status=SupervisorAssignment.STATUS_PENDING
@@ -2200,7 +2223,7 @@ def create_supervisor_assignment(*, actor, application_id: UUID, supervisor_id: 
             entity_type="supervisor_assignment",
             payload={
                 "application_id": str(application.id),
-                "supervisor_id": str(supervisor_id),
+                "supervisor_id": str(supervisor_profile_id),
                 "assignment_type": assignment_type,
                 "assigned_by": str(actor.id)
             }

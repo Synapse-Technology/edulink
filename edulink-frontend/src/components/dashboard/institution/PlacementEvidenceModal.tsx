@@ -53,7 +53,7 @@ const PlacementEvidenceModal: React.FC<PlacementEvidenceModalProps> = ({ show, o
     }
   };
 
-  const handleReview = async (evidenceId: string, status: 'ACCEPTED' | 'REJECTED') => {
+  const handleReview = async (evidenceId: string, status: 'ACCEPTED' | 'REJECTED' | 'REVISION_REQUIRED') => {
     try {
       setActionLoading(true);
       await internshipService.reviewEvidence(placement.id, evidenceId, status, reviewNotes);
@@ -202,6 +202,15 @@ const PlacementEvidenceModal: React.FC<PlacementEvidenceModalProps> = ({ show, o
                                   disabled={actionLoading}
                                 >
                                   Cancel
+                                </Button>
+                                <Button 
+                                  variant="outline-info" 
+                                  size="sm" 
+                                  onClick={() => handleReview(item.id, 'REVISION_REQUIRED')}
+                                  disabled={actionLoading || !reviewNotes.trim()}
+                                  title="Request student to revise and resubmit"
+                                >
+                                  Request Revision
                                 </Button>
                                 <Button 
                                   variant="danger" 

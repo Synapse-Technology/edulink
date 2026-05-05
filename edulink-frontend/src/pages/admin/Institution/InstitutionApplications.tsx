@@ -22,6 +22,7 @@ const InstitutionApplications: React.FC = () => {
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [showRejectionForm, setShowRejectionForm] = useState(false);
 
   useEffect(() => {
     fetchApplications();
@@ -62,6 +63,7 @@ const InstitutionApplications: React.FC = () => {
   const openReviewModal = (app: InternshipApplication) => {
     setSelectedApp(app);
     setRejectionReason('');
+    setShowRejectionForm(false);
     setShowReviewModal(true);
   };
 
@@ -209,7 +211,7 @@ const InstitutionApplications: React.FC = () => {
       </Card>
 
       {/* Review Modal */}
-      <Modal show={showReviewModal} onHide={() => setShowReviewModal(false)} size="lg" centered>
+      <Modal show={showReviewModal} onHide={() => { setShowReviewModal(false); setShowRejectionForm(false); }} size="lg" centered>
         <Modal.Header closeButton>
           <Modal.Title>Review Application</Modal.Title>
         </Modal.Header>
@@ -257,53 +259,133 @@ const InstitutionApplications: React.FC = () => {
 
               {selectedApp.status === 'APPLIED' && (
                 <div className="mt-4 pt-3 border-top">
-                  <h6 className="mb-3">Take Action</h6>
-                  <div className="d-flex gap-3">
-                    <Button 
-                      variant="outline-danger" 
-                      className="flex-grow-1"
-                      onClick={() => handleProcessApplication('REJECT')}
-                      disabled={processing}
-                    >
-                      <XCircle size={18} className="me-2" />
-                      Reject
-                    </Button>
-                    <Button 
-                      variant="outline-primary" 
-                      className="flex-grow-1"
-                      onClick={() => handleProcessApplication('SHORTLIST')}
-                      disabled={processing}
-                    >
-                      <CheckCircle size={18} className="me-2" />
-                      Shortlist
-                    </Button>
-                  </div>
+                  {!showRejectionForm ? (
+                    <>
+                      <h6 className="mb-3">Take Action</h6>
+                      <div className="d-flex gap-3">
+                        <Button 
+                          variant="outline-danger" 
+                          className="flex-grow-1"
+                          onClick={() => setShowRejectionForm(true)}
+                          disabled={processing}
+                        >
+                          <XCircle size={18} className="me-2" />
+                          Reject
+                        </Button>
+                        <Button 
+                          variant="outline-primary" 
+                          className="flex-grow-1"
+                          onClick={() => handleProcessApplication('SHORTLIST')}
+                          disabled={processing}
+                        >
+                          <CheckCircle size={18} className="me-2" />
+                          Shortlist
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <h6 className="mb-3">Rejection Reason</h6>
+                      <Form.Group className="mb-3">
+                        <Form.Label>Please provide a reason for rejection (student will see this):</Form.Label>
+                        <Form.Control
+                          as="textarea"
+                          rows={4}
+                          placeholder="e.g., 'Skills did not match the role requirements', 'Availability conflicts with position timeline'"
+                          value={rejectionReason}
+                          onChange={(e) => setRejectionReason(e.target.value)}
+                          disabled={processing}
+                        />
+                        <Form.Text className="d-block mt-2 text-muted">
+                          This message will be sent to the student's dashboard
+                        </Form.Text>
+                      </Form.Group>
+                      <div className="d-flex gap-3">
+                        <Button 
+                          variant="outline-secondary" 
+                          className="flex-grow-1"
+                          onClick={() => setShowRejectionForm(false)}
+                          disabled={processing}
+                        >
+                          Cancel
+                        </Button>
+                        <Button 
+                          variant="danger" 
+                          className="flex-grow-1"
+                          onClick={() => handleProcessApplication('REJECT')}
+                          disabled={processing || !rejectionReason.trim()}
+                        >
+                          Confirm Rejection
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 
               {selectedApp.status === 'SHORTLISTED' && (
                 <div className="mt-4 pt-3 border-top">
-                  <h6 className="mb-3">Final Decision</h6>
-                  <div className="d-flex gap-3">
-                    <Button 
-                      variant="outline-danger" 
-                      className="flex-grow-1"
-                      onClick={() => handleProcessApplication('REJECT')}
-                      disabled={processing}
-                    >
-                      <XCircle size={18} className="me-2" />
-                      Reject
-                    </Button>
-                    <Button 
-                      variant="success" 
-                      className="flex-grow-1"
-                      onClick={() => handleProcessApplication('ACCEPT')}
-                      disabled={processing}
-                    >
-                      <CheckCircle size={18} className="me-2" />
-                      Accept Candidate
-                    </Button>
-                  </div>
+                  {!showRejectionForm ? (
+                    <>
+                      <h6 className="mb-3">Final Decision</h6>
+                      <div className="d-flex gap-3">
+                        <Button 
+                          variant="outline-danger" 
+                          className="flex-grow-1"
+                          onClick={() => setShowRejectionForm(true)}
+                          disabled={processing}
+                        >
+                          <XCircle size={18} className="me-2" />
+                          Reject
+                        </Button>
+                        <Button 
+                          variant="success" 
+                          className="flex-grow-1"
+                          onClick={() => handleProcessApplication('ACCEPT')}
+                          disabled={processing}
+                        >
+                          <CheckCircle size={18} className="me-2" />
+                          Accept Candidate
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <h6 className="mb-3">Rejection Reason</h6>
+                      <Form.Group className="mb-3">
+                        <Form.Label>Please provide a reason for rejection (student will see this):</Form.Label>
+                        <Form.Control
+                          as="textarea"
+                          rows={4}
+                          placeholder="e.g., 'Position filled by another candidate', 'Decided to move forward with other applicants'"
+                          value={rejectionReason}
+                          onChange={(e) => setRejectionReason(e.target.value)}
+                          disabled={processing}
+                        />
+                        <Form.Text className="d-block mt-2 text-muted">
+                          This message will be sent to the student's dashboard
+                        </Form.Text>
+                      </Form.Group>
+                      <div className="d-flex gap-3">
+                        <Button 
+                          variant="outline-secondary" 
+                          className="flex-grow-1"
+                          onClick={() => setShowRejectionForm(false)}
+                          disabled={processing}
+                        >
+                          Cancel
+                        </Button>
+                        <Button 
+                          variant="danger" 
+                          className="flex-grow-1"
+                          onClick={() => handleProcessApplication('REJECT')}
+                          disabled={processing || !rejectionReason.trim()}
+                        >
+                          Confirm Rejection
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
               {selectedApp.status === 'ACCEPTED' && (

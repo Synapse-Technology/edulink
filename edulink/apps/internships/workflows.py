@@ -361,8 +361,15 @@ class SupervisorAssignmentWorkflow:
         # 1. Validate state machine
         self._validate_transition_path(assignment.status, target_state)
         
-        # 2. Authority check: Only supervisor can accept/reject their own assignment
-        if actor.id != assignment.supervisor_id:
+        # 2. Authority check: Only supervisor can accept/reject their own assignment.
+        # Assignment IDs are domain profile IDs, not necessarily account user IDs.
+        from .policies import can_accept_supervisor_assignment, can_reject_supervisor_assignment
+        can_transition = (
+            can_accept_supervisor_assignment(actor, assignment)
+            if target_state == "ACCEPTED"
+            else can_reject_supervisor_assignment(actor, assignment)
+        )
+        if not can_transition:
             raise PermissionError("Only the assigned supervisor can accept or reject their assignment")
         
         # 3. Execute

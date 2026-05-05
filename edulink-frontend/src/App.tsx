@@ -48,6 +48,7 @@ const InstitutionApplications = lazy(() => import('./pages/admin/Institution/Ins
 const InstitutionCertifications = lazy(() => import('./pages/admin/Institution/InstitutionCertifications'));
 const ExternalPlacements = lazy(() => import('./pages/admin/Institution/ExternalPlacements'));
 const StudentVerification = lazy(() => import('./pages/admin/Institution/StudentVerification'));
+const InstitutionIncidentsManagement = lazy(() => import('./pages/admin/Institution/InstitutionIncidentsManagement'));
 const InstitutionSettings = lazy(() => import('./pages/admin/Institution/InstitutionSettings'));
 const AcademicStructure = lazy(() => import('./components/admin/institution/AcademicStructure'));
 const SupervisorDashboard = lazy(() => import('./pages/admin/Institution/supervisor/SupervisorDashboard'));
@@ -530,6 +531,16 @@ function App() {
                 <ProtectedRoute role={['institution', 'institution_admin']}>
                   <InstitutionLayout>
                     <StudentVerification />
+                  </InstitutionLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/institution/dashboard/incidents"
+              element={
+                <ProtectedRoute role={['institution', 'institution_admin']}>
+                  <InstitutionLayout>
+                    <InstitutionIncidentsManagement />
                   </InstitutionLayout>
                 </ProtectedRoute>
               }

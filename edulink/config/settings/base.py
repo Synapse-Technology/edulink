@@ -353,17 +353,26 @@ LOGGING = {
             "level": "DEBUG",
             "propagate": False,
         },
+        "psycopg": {
+            "handlers": ["console"],
+            "level": "WARNING",
+            "propagate": False,
+        },
     },
 }
 
-# Debug: Log cookie configuration at startup
+# Optional diagnostics: set EDULINK_LOG_COOKIE_CONFIG=true when debugging
+# cross-site cookie/session issues.
 import sys
-if "runserver" in sys.argv or "gunicorn" in sys.argv[0]:
+if (
+    os.getenv("EDULINK_LOG_COOKIE_CONFIG", "False").lower() in {"1", "true", "yes"}
+    and ("runserver" in sys.argv or "gunicorn" in sys.argv[0])
+):
     import logging
     logger = logging.getLogger(__name__)
-    logger.warning(f"🔍 SESSION_COOKIE_DOMAIN={SESSION_COOKIE_DOMAIN}")
-    logger.warning(f"🔍 SESSION_COOKIE_SECURE={SESSION_COOKIE_SECURE}")
-    logger.warning(f"🔍 CSRF_COOKIE_DOMAIN={CSRF_COOKIE_DOMAIN}")
-    logger.warning(f"🔍 CSRF_COOKIE_SECURE={CSRF_COOKIE_SECURE}")
-    logger.warning(f"🔍 CORS_ALLOWED_ORIGINS={CORS_ALLOWED_ORIGINS}")
-    logger.warning(f"🔍 CORS_ALLOW_CREDENTIALS={CORS_ALLOW_CREDENTIALS}")
+    logger.info(f"SESSION_COOKIE_DOMAIN={SESSION_COOKIE_DOMAIN}")
+    logger.info(f"SESSION_COOKIE_SECURE={SESSION_COOKIE_SECURE}")
+    logger.info(f"CSRF_COOKIE_DOMAIN={CSRF_COOKIE_DOMAIN}")
+    logger.info(f"CSRF_COOKIE_SECURE={CSRF_COOKIE_SECURE}")
+    logger.info(f"CORS_ALLOWED_ORIGINS={CORS_ALLOWED_ORIGINS}")
+    logger.info(f"CORS_ALLOW_CREDENTIALS={CORS_ALLOW_CREDENTIALS}")

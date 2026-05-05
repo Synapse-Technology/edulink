@@ -122,6 +122,14 @@ export interface PlacementStats {
     total_students: number;
     placement_rate: number;
   }>;
+  cohorts: Array<{
+    name: string;
+    placements: number;
+    certified: number;
+    total_students: number;
+    placement_rate: number;
+    avg_time_to_placement: number;
+  }>;
   quality_control: {
     evidence_count: number;
     avg_evidence_per_placement: number;
@@ -134,6 +142,7 @@ export interface PlacementStats {
 export interface TimeToPlacementStats {
     average_days: number;
     median_days: number;
+    sample_size: number;
 }
 
 class InstitutionService {
@@ -179,9 +188,16 @@ class InstitutionService {
     }
   }
 
-  async getPlacementSuccessStats(): Promise<PlacementStats> {
+  async getPlacementSuccessStats(filters?: { 
+    department_id?: string; 
+    cohort_id?: string; 
+    date_from?: string; 
+    date_to?: string; 
+  }): Promise<PlacementStats> {
     try {
-      const response = await this.client.get<PlacementStats>('/api/institutions/institution-reports/placement-success/');
+      const response = await this.client.get<PlacementStats>('/api/institutions/institution-reports/placement-success/', { 
+        params: filters 
+      });
       return response;
     } catch (error) {
        if (error instanceof ApiError) throw error;
@@ -189,9 +205,14 @@ class InstitutionService {
     }
   }
 
-  async getTimeToPlacementStats(): Promise<TimeToPlacementStats> {
+  async getTimeToPlacementStats(filters?: { 
+    department_id?: string; 
+    cohort_id?: string; 
+  }): Promise<TimeToPlacementStats> {
     try {
-      const response = await this.client.get<TimeToPlacementStats>('/api/institutions/institution-reports/time-to-placement/');
+      const response = await this.client.get<TimeToPlacementStats>('/api/institutions/institution-reports/time-to-placement/', { 
+        params: filters 
+      });
       return response;
     } catch (error) {
        if (error instanceof ApiError) throw error;

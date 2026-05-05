@@ -15,6 +15,7 @@ const SupervisorLogbooks: React.FC = () => {
   // Review Modal State
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [selectedEvidence, setSelectedEvidence] = useState<InternshipEvidence | null>(null);
+  const [selectedEvidenceIndex, setSelectedEvidenceIndex] = useState(0);
   const [reviewNotes, setReviewNotes] = useState('');
   const [privateNotes, setPrivateNotes] = useState('');
   const [reviewAction, setReviewAction] = useState<'ACCEPTED' | 'REJECTED' | 'REVISION_REQUIRED' | null>(null);
@@ -45,12 +46,27 @@ const SupervisorLogbooks: React.FC = () => {
     }
   };
 
-  const handleReviewClick = (evidence: InternshipEvidence, action: 'ACCEPTED' | 'REJECTED' | 'REVISION_REQUIRED') => {
+  const handleReviewClick = (evidence: InternshipEvidence, action: 'ACCEPTED' | 'REJECTED' | 'REVISION_REQUIRED', index: number) => {
     setSelectedEvidence(evidence);
+    setSelectedEvidenceIndex(index);
     setReviewAction(action);
     setReviewNotes(evidence.institution_review_notes || '');
     setPrivateNotes(evidence.institution_private_notes || '');
     setShowReviewModal(true);
+  };
+
+  const navigateToNext = () => {
+    if (selectedEvidenceIndex < evidenceList.length - 1) {
+      const nextEvidence = evidenceList[selectedEvidenceIndex + 1];
+      handleReviewClick(nextEvidence, 'ACCEPTED', selectedEvidenceIndex + 1);
+    }
+  };
+
+  const navigateToPrevious = () => {
+    if (selectedEvidenceIndex > 0) {
+      const prevEvidence = evidenceList[selectedEvidenceIndex - 1];
+      handleReviewClick(prevEvidence, 'ACCEPTED', selectedEvidenceIndex - 1);
+    }
   };
 
   const handleReviewSubmit = async () => {
@@ -212,7 +228,7 @@ const SupervisorLogbooks: React.FC = () => {
                           variant="light" 
                           size="sm" 
                           className="border text-primary hover-lift d-flex align-items-center"
-                          onClick={() => handleReviewClick(evidence, 'ACCEPTED')}
+                          onClick={() => handleReviewClick(evidence, 'ACCEPTED', evidenceList.indexOf(evidence))}
                         >
                           <FileText size={14} className="me-1" /> Review
                         </Button>
@@ -243,9 +259,38 @@ const SupervisorLogbooks: React.FC = () => {
       {/* Review Modal */}
       <Modal show={showReviewModal} onHide={() => setShowReviewModal(false)} centered size="lg">
         <Modal.Header closeButton className="border-0 pb-0">
-          <Modal.Title className="fw-bold">
-            Review Weekly Logbook
-          </Modal.Title>
+          <div className="d-flex justify-content-between align-items-center w-100">
+            <Modal.Title className="fw-bold">
+              Review Weekly Logbook
+            </Modal.Title>
+            <div className="d-flex align-items-center gap-3">
+              <small className="text-muted">
+                {evidenceList.length > 0 && `${selectedEvidenceIndex + 1} of ${evidenceList.length}`}
+              </small>
+              <div className="d-flex gap-2">
+                <Button 
+                  variant="outline-secondary" 
+                  size="sm" 
+                  onClick={navigateToPrevious}
+                  disabled={selectedEvidenceIndex === 0}
+                  className="px-2"
+                  title="Previous item (Keyboard: ← Arrow)"
+                >
+                  ← Prev
+                </Button>
+                <Button 
+                  variant="outline-secondary" 
+                  size="sm" 
+                  onClick={navigateToNext}
+                  disabled={selectedEvidenceIndex >= evidenceList.length - 1}
+                  className="px-2"
+                  title="Next item (Keyboard: → Arrow)"
+                >
+                  Next →
+                </Button>
+              </div>
+            </div>
+          </div>
         </Modal.Header>
         <Modal.Body className="pt-3">
           <div className="mb-4">

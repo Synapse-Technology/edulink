@@ -8,6 +8,10 @@ from urllib.request import urlopen
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.db import transaction
+try:
+    import cloudinary
+except ImportError:
+    cloudinary = None
 from edulink.apps.shared.error_handling import (
     ValidationError,
     NotFoundError,
@@ -48,6 +52,10 @@ from edulink.apps.notifications.services import (
 def resolve_artifact_file_for_download(*, artifact):
     """
     Resolve artifact binary content from the configured storage backend.
+    
+    For Cloudinary-stored files:
+    - Generates signed URLs (with authentication) to bypass 401 errors
+    - Falls back to direct URL if signing not available
 
     Returns:
     - ("stream", file_like) when storage open succeeds
@@ -69,11 +77,8 @@ def resolve_artifact_file_for_download(*, artifact):
         open_error = exc
         logger.warning(f"Storage open failed for artifact {artifact.id}; attempting URL fallback")
 
-    artifact_url = None
-    try:
-        artifact_url = artifact.file.url
-    except Exception:
-        artifact_url = None
+    # Try to generate signed URL for Cloudinary storage
+    artifact_url = _get_signed_cloudinary_url(artifact) or _get_artifact_url(artifact)
 
     if not artifact_url:
         raise open_error
@@ -85,9 +90,53 @@ def resolve_artifact_file_for_download(*, artifact):
         if exc.code == 404:
             logger.warning(f"Artifact URL missing for {artifact.id}: {artifact_url}")
             raise NotFoundError(user_message="File not found")
+        logger.warning(f"HTTP {exc.code} fetching {artifact_url} for {artifact.id}")
         raise open_error
     except Exception:
         raise open_error
+
+def _get_signed_cloudinary_url(artifact):
+    """
+    Generate a signed Cloudinary URL for private resources.
+    
+    Returns None if not using Cloudinary or signing fails.
+    """
+    if not cloudinary or not hasattr(artifact.file.storage, '__class__'):
+        return None
+    
+    storage_class = str(type(artifact.file.storage)).lower()
+    if 'cloudinary' not in storage_class:
+        return None
+    
+    try:
+        # Get the public ID (file name without extension)
+        file_name = artifact.file.name
+        # Convert path to Cloudinary public_id format
+        # e.g., 'artifacts/2026/05/logbook_...' -> 'artifacts/2026/05/logbook_...'
+        public_id = file_name.rsplit('.', 1)[0] if '.' in file_name else file_name
+        
+        # Generate signed URL valid for 1 hour
+        from cloudinary.utils import cloudinary_url
+        url, options = cloudinary_url(
+            public_id,
+            sign_url=True,
+            type='upload',
+            resource_type='auto',
+            secure=True,
+            expires_in=3600,
+        )
+        logger.debug(f"Generated signed Cloudinary URL for {artifact.id}")
+        return url
+    except Exception as exc:
+        logger.warning(f"Failed to generate signed Cloudinary URL for {artifact.id}: {exc}")
+        return None
+
+def _get_artifact_url(artifact):
+    """Get the standard artifact URL."""
+    try:
+        return artifact.file.url
+    except Exception:
+        return None
 
 def _draw_chess_pattern(c, x, y, size=8, color=colors.HexColor("#1ab8aa")):
     """Draws a 3x3 chess pattern at (x,y)"""

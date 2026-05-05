@@ -33,6 +33,35 @@ def get_institution_staff_by_id(*, staff_id: UUID) -> Optional[InstitutionStaff]
         return None
 
 
+def get_institution_supervisor_by_id(*, supervisor_id: UUID) -> Optional[InstitutionStaff]:
+    """
+    Get an active institution supervisor by staff profile ID or linked user ID.
+
+    Institution admins are staff too, but they are coordinators, not assessors.
+    Supervisor assignment/display code must use this helper so admin staff cannot
+    be mistaken for assigned institution supervisors.
+    """
+    try:
+        return (
+            InstitutionStaff.objects.select_related("user")
+            .filter(
+                id=supervisor_id,
+                role=InstitutionStaff.ROLE_SUPERVISOR,
+                is_active=True,
+            )
+            .first()
+            or InstitutionStaff.objects.select_related("user")
+            .filter(
+                user_id=supervisor_id,
+                role=InstitutionStaff.ROLE_SUPERVISOR,
+                is_active=True,
+            )
+            .first()
+        )
+    except (ValueError, TypeError):
+        return None
+
+
 def get_institution_by_id(*, institution_id: UUID) -> Institution:
     return Institution.objects.get(id=institution_id)
 

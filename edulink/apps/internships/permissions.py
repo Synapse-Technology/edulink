@@ -62,7 +62,7 @@ class CanViewApplication(permissions.BasePermission):
                 return True
         
         # Supervisors can view applications they're assigned to
-        if user.is_supervisor or user.is_institution_staff:
+        if user.is_supervisor or getattr(user, "is_institution_staff", False):
             from edulink.apps.internships.queries import check_supervisor_assigned_to_application
             if check_supervisor_assigned_to_application(str(user.id), str(obj.id)):
                 return True
@@ -153,12 +153,8 @@ class CanReviewEvidence(permissions.BasePermission):
         
         # Institution/Employer admins can review for their organization
         if user.is_institution_admin or user.is_employer_admin:
-            # Get the application
-            from .models import InternshipApplication
             try:
-                application = InternshipApplication.objects.get(
-                    internship_evidence__id=obj.id
-                )
+                application = obj.application
                 
                 if user.is_institution_admin:
                     from edulink.apps.institutions.queries import get_institution_for_user
@@ -175,12 +171,9 @@ class CanReviewEvidence(permissions.BasePermission):
                 pass
         
         # Supervisors assigned to the application can review
-        if user.is_supervisor or user.is_institution_staff:
-            from .models import InternshipApplication
+        if user.is_supervisor or getattr(user, "is_institution_staff", False):
             try:
-                application = InternshipApplication.objects.get(
-                    internship_evidence__id=obj.id
-                )
+                application = obj.application
                 from edulink.apps.internships.queries import check_supervisor_assigned_to_application
                 if check_supervisor_assigned_to_application(str(user.id), str(application.id)):
                     return True
@@ -257,7 +250,7 @@ class CanViewIncident(permissions.BasePermission):
                 return True
         
         # Supervisors view for their applications
-        if user.is_supervisor or user.is_institution_staff:
+        if user.is_supervisor or getattr(user, "is_institution_staff", False):
             from edulink.apps.internships.queries import check_supervisor_assigned_to_application
             if check_supervisor_assigned_to_application(str(user.id), str(obj.application.id)):
                 return True

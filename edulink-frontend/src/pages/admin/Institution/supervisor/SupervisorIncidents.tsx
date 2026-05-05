@@ -3,12 +3,15 @@ import { Table, Button, Badge, Form, Modal, Alert, Spinner } from 'react-bootstr
 import { AlertTriangle, Plus, CheckCircle, Clock } from 'lucide-react';
 import { useOutletContext } from 'react-router-dom';
 import { internshipService } from '../../../../services/internship/internshipService';
+import type { Incident } from '../../../../services/internship/internshipService';
 import { toast } from 'react-hot-toast';
 import type { SupervisorDashboardContext } from './SupervisorDashboard';
 import SupervisorTableSkeleton from '../../../../components/admin/skeletons/SupervisorTableSkeleton';
+import IncidentDetailsModal from '../../../../components/incident/IncidentDetailsModal';
 
 const SupervisorIncidents: React.FC = () => {
   const { internships, incidents: initialIncidents } = useOutletContext<SupervisorDashboardContext>();
+  const activeInternships = internships.filter(internship => internship.status === 'ACTIVE');
   const [incidents, setIncidents] = useState(initialIncidents);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -19,6 +22,10 @@ const SupervisorIncidents: React.FC = () => {
   const [incidentTitle, setIncidentTitle] = useState('');
   const [incidentDescription, setIncidentDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  // Details Modal State
+  const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -57,12 +64,40 @@ const SupervisorIncidents: React.FC = () => {
     }
   };
 
+  const handleViewDetails = (incident: Incident) => {
+    setSelectedIncident(incident);
+    setShowDetailsModal(true);
+  };
+
+  const handleIncidentUpdate = (updated: Incident) => {
+    setIncidents(prev => prev.map(inc => (inc.id === updated.id ? updated : inc)));
+    setSelectedIncident(updated);
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'OPEN': 
         return (
           <Badge bg="danger" className="bg-danger bg-opacity-10 text-danger border border-danger-subtle px-3 py-2 fw-medium rounded-3">
             Open
+          </Badge>
+        );
+      case 'ASSIGNED': 
+        return (
+          <Badge bg="warning" className="bg-warning bg-opacity-10 text-warning border border-warning-subtle px-3 py-2 fw-medium rounded-3">
+            Assigned
+          </Badge>
+        );
+      case 'INVESTIGATING': 
+        return (
+          <Badge bg="info" className="bg-info bg-opacity-10 text-info border border-info-subtle px-3 py-2 fw-medium rounded-3">
+            Investigating
+          </Badge>
+        );
+      case 'PENDING_APPROVAL': 
+        return (
+          <Badge bg="primary" className="bg-primary bg-opacity-10 text-primary border border-primary-subtle px-3 py-2 fw-medium rounded-3">
+            Pending Approval
           </Badge>
         );
       case 'RESOLVED': 
@@ -171,13 +206,13 @@ const SupervisorIncidents: React.FC = () => {
                         </div>
                       </td>
                       <td className="text-end pe-4 py-3">
-                        {incident.status === 'RESOLVED' ? (
-                           <span className="badge bg-success bg-opacity-10 text-success border border-success-subtle rounded-pill px-3">
-                             <CheckCircle size={14} className="me-1 mb-1"/> Resolved
-                           </span>
-                        ) : (
-                          <span className="text-muted small">-</span>
-                        )}
+                        <Button
+                          variant="outline-primary"
+                          size="sm"
+                          onClick={() => handleViewDetails(incident)}
+                        >
+                          View Details
+                        </Button>
                       </td>
                     </tr>
                   ))
@@ -223,7 +258,7 @@ const SupervisorIncidents: React.FC = () => {
                 className="bg-light border-0 py-2"
               >
                 <option value="">-- Select Internship --</option>
-                {internships.map(internship => (
+                {activeInternships.map(internship => (
                   <option key={internship.id} value={internship.id}>
                     {internship.student_info?.name || 'Unknown Student'} - {internship.title}
                   </option>
@@ -266,6 +301,17 @@ const SupervisorIncidents: React.FC = () => {
           </Modal.Footer>
         </Form>
       </Modal>
+
+      {/* Incident Details Modal */}
+      {selectedIncident && (
+        <IncidentDetailsModal
+          show={showDetailsModal}
+          onHide={() => setShowDetailsModal(false)}
+          incident={selectedIncident}
+          onUpdate={handleIncidentUpdate}
+          isAdmin={false}
+        />
+      )}
 
       <style>{`
         .hover-lift {

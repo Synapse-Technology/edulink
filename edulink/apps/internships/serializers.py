@@ -216,8 +216,8 @@ class InternshipApplicationSerializer(serializers.ModelSerializer):
     def get_institution_supervisor_details(self, obj):
         if not obj.institution_supervisor_id:
             return None
-        from edulink.apps.institutions.queries import get_institution_staff_by_id
-        supervisor = get_institution_staff_by_id(staff_id=obj.institution_supervisor_id)
+        from edulink.apps.institutions.queries import get_institution_supervisor_by_id
+        supervisor = get_institution_supervisor_by_id(supervisor_id=obj.institution_supervisor_id)
         if supervisor:
             return {
                 "id": str(supervisor.id),

@@ -145,3 +145,37 @@ class SupervisorLogbookTests(TestCase):
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.assertIn("Not authorized", str(response.data['detail']))
+
+    def test_review_rejects_evidence_from_different_application(self):
+        """Evidence reviewed through an application route must belong to that application."""
+        other_opportunity = Internship.objects.create(
+            title="Research Intern",
+            description="Research placement",
+            institution_id=self.institution.id,
+            status=InternshipState.OPEN,
+            start_date=timezone.now().date(),
+        )
+        other_application = InternshipApplication.objects.create(
+            opportunity=other_opportunity,
+            student_id=self.student.id,
+            institution_supervisor_id=self.supervisor_user.id,
+            status=InternshipState.ACTIVE,
+        )
+        other_evidence = InternshipEvidence.objects.create(
+            application=other_application,
+            submitted_by=self.student_user.id,
+            title="Other Week Logbook",
+            evidence_type=InternshipEvidence.TYPE_LOGBOOK,
+            status=InternshipEvidence.STATUS_SUBMITTED,
+        )
+
+        self.client.force_authenticate(user=self.supervisor_user)
+        url = f"/api/internships/applications/{self.application.id}/review-evidence/{other_evidence.id}/"
+        response = self.client.post(
+            url,
+            {"status": InternshipEvidence.STATUS_ACCEPTED},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("Evidence not found", response.data["detail"])

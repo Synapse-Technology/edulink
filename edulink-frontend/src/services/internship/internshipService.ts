@@ -273,16 +273,31 @@ export interface Incident {
   reported_by: string;
   title: string;
   description: string;
-  status: 'OPEN' | 'RESOLVED' | 'DISMISSED';
+  status: 'OPEN' | 'ASSIGNED' | 'INVESTIGATING' | 'PENDING_APPROVAL' | 'RESOLVED' | 'DISMISSED';
+  investigator_id?: string;
+  assigned_at?: string;
+  investigation_notes?: string;
   resolution_notes?: string;
   resolved_at?: string;
   resolved_by?: string;
   created_at: string;
+  updated_at?: string;
   internship_title?: string;
   student_info?: {
     id: string;
     name: string;
     email: string;
+  };
+  metadata?: {
+    events: Array<{
+      event_type: string;
+      from_state: string;
+      to_state: string;
+      actor_id: string;
+      actor_role: string;
+      actor_name: string;
+      timestamp: string;
+    }>;
   };
 }
 
@@ -725,6 +740,73 @@ class InternshipService {
     } catch (error) {
       if (error instanceof ApiError) throw error;
       throw new Error('Failed to fetch incidents');
+    }
+  }
+
+  async getIncidentDetails(incidentId: string): Promise<Incident> {
+    try {
+      const response = await this.client.get<Incident>(
+        `/api/internships/incidents/${incidentId}/`
+      );
+      return response;
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new Error('Failed to fetch incident details');
+    }
+  }
+
+  async assignIncidentInvestigator(
+    applicationId: string,
+    incidentId: string,
+    investigatorId: string
+  ): Promise<Incident> {
+    try {
+      const response = await this.client.post<Incident>(
+        `/api/internships/applications/${applicationId}/assign_incident_investigator/${incidentId}/`,
+        { investigator_id: investigatorId }
+      );
+      return response;
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new Error('Failed to assign investigator');
+    }
+  }
+
+  async startIncidentInvestigation(
+    applicationId: string,
+    incidentId: string,
+    investigationNotes: string
+  ): Promise<Incident> {
+    try {
+      const response = await this.client.post<Incident>(
+        `/api/internships/applications/${applicationId}/start_incident_investigation/${incidentId}/`,
+        { investigation_notes: investigationNotes }
+      );
+      return response;
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new Error('Failed to start investigation');
+    }
+  }
+
+  async resolveIncident(
+    applicationId: string,
+    incidentId: string,
+    resolution: 'RESOLVED' | 'DISMISSED',
+    resolutionNotes: string
+  ): Promise<Incident> {
+    try {
+      const response = await this.client.post<Incident>(
+        `/api/internships/applications/${applicationId}/resolve_incident/${incidentId}/`,
+        {
+          resolution_notes: resolutionNotes,
+          status: resolution
+        }
+      );
+      return response;
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new Error('Failed to resolve incident');
     }
   }
 

@@ -168,7 +168,7 @@ const SupervisorStudents: React.FC = () => {
                    ))
                  ) : (
                    <tr>
-                      <td colSpan={4} className="text-center py-5">
+                      <td colSpan={5} className="text-center py-5">
                         <div className="d-flex flex-column align-items-center py-4">
                           <div className="bg-light rounded-circle p-4 mb-3">
                             <Users size={48} className="text-muted opacity-50" />

@@ -27,16 +27,23 @@ def check_supervisor_assigned_to_application(supervisor_id: str, application_id:
     Returns True if supervisor is either institution or employer supervisor for the application.
     """
     try:
+        supervisor_ids = {str(supervisor_id)}
+
+        from edulink.apps.employers.queries import get_supervisor_id_for_user
+        employer_supervisor_id = get_supervisor_id_for_user(supervisor_id)
+        if employer_supervisor_id:
+            supervisor_ids.add(str(employer_supervisor_id))
+
+        from edulink.apps.institutions.queries import get_institution_supervisor_by_id
+        institution_supervisor = get_institution_supervisor_by_id(supervisor_id=supervisor_id)
+        if institution_supervisor:
+            supervisor_ids.add(str(institution_supervisor.id))
+
         return InternshipApplication.objects.filter(
             id=application_id,
-            status__in=[
-                ApplicationStatus.ACTIVE,
-                ApplicationStatus.COMPLETED,
-                ApplicationStatus.ACCEPTED
-            ]
         ).filter(
-            Q(employer_supervisor_id=supervisor_id) | 
-            Q(institution_supervisor_id=supervisor_id)
+            Q(employer_supervisor_id__in=supervisor_ids) |
+            Q(institution_supervisor_id__in=supervisor_ids)
         ).exists()
     except:
         return False
@@ -185,7 +192,10 @@ def get_pending_evidence_for_user(user) -> QuerySet[InternshipEvidence]:
         return InternshipEvidence.objects.none()
         
     if user.is_system_admin:
-        return InternshipEvidence.objects.filter(status=InternshipEvidence.STATUS_SUBMITTED).select_related('application', 'application__opportunity')
+        return InternshipEvidence.objects.filter(
+            application__status=ApplicationStatus.ACTIVE,
+            status=InternshipEvidence.STATUS_SUBMITTED,
+        ).select_related('application', 'application__opportunity')
 
     if user.is_institution_admin:
         from edulink.apps.institutions.queries import get_institution_for_user
@@ -196,6 +206,7 @@ def get_pending_evidence_for_user(user) -> QuerySet[InternshipEvidence]:
             return InternshipEvidence.objects.filter(
                 Q(application__opportunity__institution_id=inst.id) |
                 Q(application__student_id__in=affiliated_student_ids),
+                application__status=ApplicationStatus.ACTIVE,
                 institution_review_status__isnull=True
             ).select_related('application', 'application__opportunity').distinct()
 
@@ -205,6 +216,7 @@ def get_pending_evidence_for_user(user) -> QuerySet[InternshipEvidence]:
         if employer:
             return InternshipEvidence.objects.filter(
                 application__opportunity__employer_id=employer.id,
+                application__status=ApplicationStatus.ACTIVE,
                 employer_review_status__isnull=True
             ).select_related('application', 'application__opportunity').distinct()
 
@@ -217,15 +229,31 @@ def get_pending_evidence_for_user(user) -> QuerySet[InternshipEvidence]:
         
         filters = Q()
         if employer_supervisor_id:
-            filters |= Q(application__employer_supervisor_id=employer_supervisor_id, employer_review_status__isnull=True)
+            filters |= Q(
+                application__employer_supervisor_id=employer_supervisor_id,
+                application__status=ApplicationStatus.ACTIVE,
+                employer_review_status__isnull=True,
+            )
         if institution_supervisor_id:
-            filters |= Q(application__institution_supervisor_id=institution_supervisor_id, institution_review_status__isnull=True)
+            filters |= Q(
+                application__institution_supervisor_id=institution_supervisor_id,
+                application__status=ApplicationStatus.ACTIVE,
+                institution_review_status__isnull=True,
+            )
             
         if not employer_supervisor_id and not institution_supervisor_id:
             user_id = user.id if isinstance(user.id, UUID) else UUID(str(user.id))
             filters = (
-                Q(application__employer_supervisor_id=user_id, employer_review_status__isnull=True) | 
-                Q(application__institution_supervisor_id=user_id, institution_review_status__isnull=True)
+                Q(
+                    application__employer_supervisor_id=user_id,
+                    application__status=ApplicationStatus.ACTIVE,
+                    employer_review_status__isnull=True,
+                ) |
+                Q(
+                    application__institution_supervisor_id=user_id,
+                    application__status=ApplicationStatus.ACTIVE,
+                    institution_review_status__isnull=True,
+                )
             )
         
         return InternshipEvidence.objects.filter(filters).select_related('application', 'application__opportunity')
@@ -314,6 +342,103 @@ PLACEMENT_STATUSES = [
     ApplicationStatus.COMPLETED,
     ApplicationStatus.CERTIFIED,
 ]
+
+
+def get_audit_readiness_score(
+    institution_id: str,
+    department_id: str = None,
+    cohort_id: str = None,
+) -> int:
+    """
+    Calculate institution's audit readiness score (0-100).
+    
+    Measures compliance across four dimensions:
+    1. Student Verification (40% weight): % of students verified before placement
+    2. Evidence Quality (30% weight): % of placements with submitted evidence
+    3. Incident Resolution (20% weight): % of incidents resolved/closed
+    4. Supervisor Assignment (10% weight): % of placements with both supervisors assigned
+    
+    Args:
+        institution_id: The institution UUID
+        department_id: Optional department filter
+        cohort_id: Optional cohort filter
+    
+    Returns:
+        Score from 0-100 (integer)
+    """
+    from edulink.apps.students.queries import get_affiliated_student_ids
+    
+    # Get affiliated students
+    affiliated_student_ids = list(get_affiliated_student_ids(
+        institution_id,
+        department_id=department_id,
+        cohort_id=cohort_id,
+    ))
+    
+    if not affiliated_student_ids:
+        return 100  # Default to 100 if no students
+    
+    # 1. Student Verification Score (40% weight)
+    # Percentage of students with verified status
+    from edulink.apps.students.models import Student
+    total_students = len(affiliated_student_ids)
+    verified_students = Student.objects.filter(
+        id__in=affiliated_student_ids,
+        is_verified=True
+    ).count()
+    verification_score = (verified_students / total_students * 100) if total_students > 0 else 0
+    
+    # 2. Evidence Quality Score (30% weight)
+    # Percentage of active placements with submitted evidence
+    placements = InternshipApplication.objects.filter(
+        student_id__in=affiliated_student_ids,
+        status__in=PLACEMENT_STATUSES,
+    )
+    total_placements = placements.count()
+    
+    if total_placements > 0:
+        placements_with_evidence = placements.filter(evidence__isnull=False).distinct().count()
+        evidence_score = (placements_with_evidence / total_placements * 100)
+    else:
+        evidence_score = 100  # Default to 100 if no placements
+    
+    # 3. Incident Resolution Score (20% weight)
+    # Percentage of incidents that are resolved/closed
+    incidents = Incident.objects.filter(
+        application__student_id__in=affiliated_student_ids,
+    )
+    total_incidents = incidents.count()
+    
+    if total_incidents > 0:
+        # Assume incidents with 'resolved' or 'closed' status are resolved
+        resolved_incidents = incidents.filter(
+            status__in=['RESOLVED', 'CLOSED']
+        ).count()
+        incident_score = (resolved_incidents / total_incidents * 100)
+    else:
+        incident_score = 100  # Default to 100 if no incidents
+    
+    # 4. Supervisor Assignment Score (10% weight)
+    # Percentage of placements with both supervisors assigned
+    placements_with_both_supervisors = placements.filter(
+        institution_supervisor_id__isnull=False,
+        employer_supervisor_id__isnull=False,
+    ).count()
+    
+    if total_placements > 0:
+        supervisor_score = (placements_with_both_supervisors / total_placements * 100)
+    else:
+        supervisor_score = 100  # Default to 100 if no placements
+    
+    # Calculate weighted score
+    weighted_score = (
+        (verification_score * 0.40) +
+        (evidence_score * 0.30) +
+        (incident_score * 0.20) +
+        (supervisor_score * 0.10)
+    )
+    
+    return round(weighted_score)
 
 
 def get_active_placements_for_institution(
@@ -406,8 +531,8 @@ def get_supervisor_for_student(student_id: UUID) -> Optional[dict]:
     ).order_by('-updated_at').first()
     
     if app and app.institution_supervisor_id:
-        from edulink.apps.institutions.queries import get_institution_staff_by_id
-        staff = get_institution_staff_by_id(staff_id=app.institution_supervisor_id)
+        from edulink.apps.institutions.queries import get_institution_supervisor_by_id
+        staff = get_institution_supervisor_by_id(supervisor_id=app.institution_supervisor_id)
         if staff:
             return {
                 "name": f"{staff.user.first_name} {staff.user.last_name}",
@@ -419,16 +544,47 @@ def get_institution_placement_stats(
     institution_id: str,
     department_id: str = None,
     cohort_id: str = None,
+    date_from: str = None,
+    date_to: str = None,
 ) -> dict:
     """
     Returns rich, insightful placement analytics for institutional admins.
     Includes conversion funnels, department performance, and audit metrics.
+    
+    Args:
+        institution_id: The institution UUID
+        department_id: Optional department filter
+        cohort_id: Optional cohort filter
+        date_from: Optional start date (YYYY-MM-DD format)
+        date_to: Optional end date (YYYY-MM-DD format)
     """
     from edulink.apps.students.queries import get_affiliated_student_ids, get_student_department_map
+    from datetime import date as dateclass
     
     now = timezone.now()
-    last_month = now - timedelta(days=30)
-    prev_month = last_month - timedelta(days=30)
+    
+    # Parse date range if provided
+    if date_from:
+        try:
+            date_from_obj = timezone.make_aware(timezone.datetime.strptime(date_from, '%Y-%m-%d'))
+        except:
+            date_from_obj = None
+    else:
+        date_from_obj = now - timedelta(days=30)
+    
+    if date_to:
+        try:
+            # Set to end of day
+            date_to_obj = timezone.make_aware(timezone.datetime.strptime(date_to, '%Y-%m-%d').replace(hour=23, minute=59, second=59))
+        except:
+            date_to_obj = now
+    else:
+        date_to_obj = now
+    
+    # Calculate trend period (compare with the same duration before date_from)
+    date_range_days = (date_to_obj - date_from_obj).days
+    prev_from = date_from_obj - timedelta(days=date_range_days + 1)
+    prev_to = date_from_obj
 
     # 1. Base query for all applications related to this institution
     # (Students affiliated with this institution)
@@ -498,6 +654,54 @@ def get_institution_placement_stats(
         # Remove student_ids before returning
         del data["student_ids"]
 
+    # 3b. Cohort Performance
+    # Build cohort map from affiliations
+    from edulink.apps.students.models import StudentInstitutionAffiliation
+    from edulink.apps.institutions.models import Cohort
+    
+    affiliations = StudentInstitutionAffiliation.objects.filter(
+        institution_id=institution_id,
+        status=StudentInstitutionAffiliation.STATUS_APPROVED
+    ).values('student_id', 'cohort_id')
+    
+    if department_id or cohort_id:
+        affiliations = affiliations.filter(student_id__in=affiliated_student_ids)
+    
+    # Get cohort names
+    cohort_ids = list(set([aff['cohort_id'] for aff in affiliations if aff['cohort_id']]))
+    cohort_names_map = {str(c.id): c.name for c in Cohort.objects.filter(id__in=cohort_ids)}
+    
+    cohort_map = {}
+    for aff in affiliations:
+        cohort_id = aff['cohort_id'] or "Unassigned"
+        cohort_id_str = str(cohort_id) if cohort_id != "Unassigned" else "Unassigned"
+        cohort_name = cohort_names_map.get(cohort_id_str, "Unassigned") if cohort_id_str != "Unassigned" else "Unassigned"
+        
+        if cohort_id_str not in cohort_map:
+            cohort_map[cohort_id_str] = {"name": cohort_name, "student_ids": [], "placements": 0, "certified": 0}
+        cohort_map[cohort_id_str]["student_ids"].append(aff['student_id'])
+    
+    for cohort_id_str, data in cohort_map.items():
+        cohort_apps = all_placements.filter(student_id__in=data["student_ids"])
+        data["placements"] = cohort_apps.count()
+        data["certified"] = cohort_apps.filter(status=ApplicationStatus.CERTIFIED).count()
+        data["total_students"] = len(data["student_ids"])
+        data["placement_rate"] = round((data["placements"] / data["total_students"]) * 100, 1) if data["total_students"] else 0
+        # Calculate avg time to placement for this cohort
+        cohort_placements = cohort_apps.select_related('opportunity')
+        if cohort_placements.exists():
+            cohort_times = []
+            for app in cohort_placements:
+                if app.opportunity and app.opportunity.start_date:
+                    days = (app.opportunity.start_date - app.created_at.date()).days
+                    if days >= 0:
+                        cohort_times.append(days)
+            data["avg_time_to_placement"] = round(sum(cohort_times) / len(cohort_times)) if cohort_times else 0
+        else:
+            data["avg_time_to_placement"] = 0
+        # Remove student_ids before returning
+        del data["student_ids"]
+
     # 4. Audit & Quality Control Metrics
     # Logbook submission frequency
     total_active_completed = all_placements
@@ -509,9 +713,16 @@ def get_institution_placement_stats(
     unresolved_incidents = Incident.objects.filter(application__in=all_placements, status=Incident.STATUS_OPEN).count()
 
     # 5. Trends
-    total_last_30 = all_placements.filter(created_at__gte=last_month).count()
-    total_prev_30 = all_placements.filter(created_at__gte=prev_month, created_at__lt=last_month).count()
-    total_trend = calculate_trend(total_last_30, total_prev_30)
+    total_current = all_placements.filter(created_at__gte=date_from_obj, created_at__lte=date_to_obj).count()
+    total_previous = all_placements.filter(created_at__gte=prev_from, created_at__lt=prev_to).count()
+    total_trend = calculate_trend(total_current, total_previous)
+
+    # Calculate real audit readiness score
+    audit_score = get_audit_readiness_score(
+        institution_id,
+        department_id=department_id,
+        cohort_id=cohort_id,
+    )
 
     return {
         "summary": {
@@ -524,12 +735,13 @@ def get_institution_placement_stats(
         },
         "funnel": funnel,
         "departments": list(dept_map.values()),
+        "cohorts": list(cohort_map.values()),
         "quality_control": {
             "evidence_count": total_evidence,
             "avg_evidence_per_placement": evidence_per_placement,
             "total_incidents": total_incidents,
             "unresolved_incidents": unresolved_incidents,
-            "audit_readiness_score": 85, # Mock score for now based on evidence/incidents
+            "audit_readiness_score": audit_score,
         }
     }
 
@@ -547,10 +759,82 @@ def get_export_data(
         cohort_id=cohort_id,
     ).select_related('opportunity')
 
-def get_time_to_placement_stats(institution_id: str) -> dict:
+def get_time_to_placement_stats(
+    institution_id: str,
+    department_id: str = None,
+    cohort_id: str = None,
+) -> dict:
+    """
+    Calculate real time-to-placement metrics for an institution.
+    
+    Measures the number of days from when a student applied (application created_at)
+    to when the internship actually started (opportunity.start_date).
+    
+    Only includes applications that have reached a placement state (ACTIVE, COMPLETED, CERTIFIED).
+    
+    Args:
+        institution_id: The institution UUID
+        department_id: Optional department filter
+        cohort_id: Optional cohort filter
+    
+    Returns:
+        Dict with 'average_days' and 'median_days' (integers)
+    """
+    from edulink.apps.students.queries import get_affiliated_student_ids
+    from django.db.models import F, ExpressionWrapper, fields, FloatField
+    from statistics import median, mean
+    from decimal import Decimal
+    
+    # Get all students affiliated with this institution
+    affiliated_student_ids = get_affiliated_student_ids(
+        institution_id,
+        department_id=department_id,
+        cohort_id=cohort_id,
+    )
+    
+    # Get applications that have reached placement status
+    # and have both created_at and opportunity.start_date
+    placements = InternshipApplication.objects.filter(
+        student_id__in=affiliated_student_ids,
+        status__in=PLACEMENT_STATUSES,
+        opportunity__start_date__isnull=False,  # Only include if start_date is set
+    ).select_related('opportunity')
+    
+    if not placements.exists():
+        # Return defaults if no placements yet
+        return {
+            "average_days": 0,
+            "median_days": 0,
+            "sample_size": 0,
+        }
+    
+    # Calculate days for each placement
+    days_list = []
+    for application in placements:
+        if application.opportunity.start_date:
+            # Calculate days from application creation to internship start
+            application_date = application.created_at.date()
+            start_date = application.opportunity.start_date
+            days = (start_date - application_date).days
+            # Only include if positive (shouldn't happen, but defensive)
+            if days >= 0:
+                days_list.append(days)
+    
+    if not days_list:
+        return {
+            "average_days": 0,
+            "median_days": 0,
+            "sample_size": 0,
+        }
+    
+    # Calculate average and median
+    average_days = round(mean(days_list))
+    median_days = median(days_list)
+    
     return {
-        "average_days": 14, 
-        "median_days": 12 
+        "average_days": average_days,
+        "median_days": median_days,
+        "sample_size": len(days_list),
     }
 
 def get_published_success_stories() -> QuerySet[SuccessStory]:

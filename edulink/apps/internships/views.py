@@ -401,6 +401,7 @@ class ApplicationViewSet(viewsets.ReadOnlyModelViewSet):
             evidence = review_evidence(
                 actor=request.user,
                 evidence_id=evidence_id,
+                application_id=pk,
                 status=serializer.validated_data['status'],
                 notes=serializer.validated_data.get('notes', ''),
                 private_notes=serializer.validated_data.get('private_notes', '')

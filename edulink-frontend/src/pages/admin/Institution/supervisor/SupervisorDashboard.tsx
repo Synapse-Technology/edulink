@@ -34,7 +34,12 @@ const SupervisorDashboard: React.FC = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [applicationsResponse, evidenceResponse, incidentsResponse] = await Promise.all([
+        const [
+          profileResponse,
+          applicationsResponse,
+          evidenceResponse,
+          incidentsResponse
+        ] = await Promise.all([
           institutionService.getSupervisorProfile(),
           internshipService.getApplications(),
           internshipService.getPendingEvidence(),
@@ -45,10 +50,13 @@ const SupervisorDashboard: React.FC = () => {
         const applicationsData = Array.isArray(applicationsResponse) ? applicationsResponse : (applicationsResponse as any)?.results || [];
         const evidenceData = Array.isArray(evidenceResponse) ? evidenceResponse : (evidenceResponse as any)?.results || [];
         const incidentsData = Array.isArray(incidentsResponse) ? incidentsResponse : (incidentsResponse as any)?.results || [];
+        const assignedPlacements = applicationsData.filter((application: InternshipApplication) =>
+          ['ACCEPTED', 'ACTIVE', 'COMPLETED', 'CERTIFIED'].includes(application.status)
+        );
         
-        setProfile(applicationsResponse);
-        setInternships(applicationsData);
-        setRecentEvidence(evidenceData);
+        setProfile(profileResponse);
+        setInternships(assignedPlacements);
+        setRecentEvidence(evidenceData.filter((e: InternshipEvidence) => e.evidence_type === 'LOGBOOK'));
         setIncidents(incidentsData);
       } catch (err: any) {
         const sanitized = sanitizeAdminError(err);
