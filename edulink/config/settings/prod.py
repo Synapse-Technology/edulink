@@ -61,10 +61,16 @@ DATABASES = {
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = os.environ.get("EMAIL_HOST", "")
 EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
-EMAIL_USE_TLS = True
+# Allow overriding TLS usage from env (defaults to True in prod)
+EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "True").lower() in {"1", "true", "yes"}
 EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "Edulink <no-reply@edulinkcareer.me>")
+
+# Socket connect timeout (seconds) used by the notification email sender to avoid
+# blocking background workers when SMTP is unreachable. Configure in Render
+# environment as `EMAIL_CONNECT_TIMEOUT`. Defaults to 5 seconds.
+EMAIL_CONNECT_TIMEOUT = int(os.environ.get("EMAIL_CONNECT_TIMEOUT", "5"))
 
 # Logging
 LOGGING["root"]["level"] = "WARNING"
