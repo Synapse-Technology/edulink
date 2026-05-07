@@ -6,7 +6,6 @@ import {
   CheckSquare,
   FileText,
   Info,
-  ShieldCheck,
   Sparkles,
   TrendingUp,
   UserCog,
