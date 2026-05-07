@@ -57,21 +57,21 @@ const SupervisorLogbooks: React.FC = () => {
     setShowReviewModal(true);
   };
 
-  const handleReviewSubmit = async () => {
-    if (!selectedEvidence || !reviewAction) return;
+  const handleReviewSubmit = async (action: 'ACCEPTED' | 'REJECTED' | 'REVISION_REQUIRED' | null = reviewAction) => {
+    if (!selectedEvidence || !action) return;
 
     try {
       setSubmitting(true);
       await internshipService.reviewEvidence(
         selectedEvidence.application,
         selectedEvidence.id,
-        reviewAction,
+        action,
         reviewNotes,
         privateNotes
       );
       
-      const actionLabel = reviewAction === 'ACCEPTED' ? 'approved' : 
-                         reviewAction === 'REVISION_REQUIRED' ? 'sent for revision' : 'rejected';
+      const actionLabel = action === 'ACCEPTED' ? 'approved' : 
+                         action === 'REVISION_REQUIRED' ? 'sent for revision' : 'rejected';
       
       showSuccess(
         'Review Complete',
@@ -371,7 +371,7 @@ const SupervisorLogbooks: React.FC = () => {
             <div className="d-flex gap-2">
               <Button 
                 variant="outline-danger" 
-                onClick={() => { setReviewAction('REJECTED'); handleReviewSubmit(); }}
+                onClick={() => handleReviewSubmit('REJECTED')}
                 disabled={submitting}
                 className="px-3 rounded-3 small d-flex align-items-center gap-2"
               >
@@ -379,7 +379,7 @@ const SupervisorLogbooks: React.FC = () => {
               </Button>
               <Button 
                 variant="outline-info" 
-                onClick={() => { setReviewAction('REVISION_REQUIRED'); handleReviewSubmit(); }}
+                onClick={() => handleReviewSubmit('REVISION_REQUIRED')}
                 disabled={submitting}
                 className="px-3 rounded-3 small d-flex align-items-center gap-2"
               >
@@ -387,7 +387,7 @@ const SupervisorLogbooks: React.FC = () => {
               </Button>
               <Button 
                 variant="success" 
-                onClick={() => { setReviewAction('ACCEPTED'); handleReviewSubmit(); }}
+                onClick={() => handleReviewSubmit('ACCEPTED')}
                 disabled={submitting}
                 className="px-4 rounded-3 small text-white d-flex align-items-center gap-2"
               >

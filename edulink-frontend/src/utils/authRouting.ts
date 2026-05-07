@@ -1,5 +1,15 @@
-export type Portal = 'student' | 'employer' | 'institution' | 'admin';
-export type ProtectedPortal = 'institution' | 'employer';
+import {
+  hasPortalAccess as userHasPortalAccess,
+  inferPortalForUser as inferUserPortal,
+  isEmployerAdmin,
+  isEmployerSupervisor,
+  isInstitutionAdmin,
+  isInstitutionAssessor,
+  type Portal,
+  type ProtectedPortal,
+} from './roleAccess';
+
+export type { Portal, ProtectedPortal };
 
 export interface AuthRouteUser {
   role: string;
@@ -8,27 +18,7 @@ export interface AuthRouteUser {
 }
 
 export const inferPortalForUser = (user: AuthRouteUser | null): Portal | null => {
-  if (!user) return null;
-
-  if (user.role === 'system_admin') {
-    return 'admin';
-  }
-  if (user.role === 'employer' || user.role === 'employer_admin') {
-    return 'employer';
-  }
-  if (user.role === 'institution' || user.role === 'institution_admin') {
-    return 'institution';
-  }
-  if (user.role === 'supervisor') {
-    if (user.employer_id && !user.institution_id) {
-      return 'employer';
-    }
-    if (user.institution_id) {
-      return 'institution';
-    }
-  }
-
-  return 'student';
+  return inferUserPortal(user);
 };
 
 export const getDashboardPath = (
@@ -37,23 +27,23 @@ export const getDashboardPath = (
 ): string => {
   if (!user) return '/dashboard/student';
 
-  if (user.role === 'employer' || user.role === 'employer_admin') {
+  if (isEmployerAdmin(user)) {
     return '/employer/dashboard';
   }
-  if (user.role === 'institution' || user.role === 'institution_admin') {
+  if (isInstitutionAdmin(user)) {
     return '/institution/dashboard';
   }
   if (user.role === 'supervisor') {
-    if (currentPortal === 'employer' && user.employer_id) {
+    if (currentPortal === 'employer' && isEmployerSupervisor(user)) {
       return '/employer/supervisor/dashboard';
     }
-    if (currentPortal === 'institution' && user.institution_id) {
+    if (currentPortal === 'institution' && isInstitutionAssessor(user)) {
       return '/institution/supervisor-dashboard';
     }
-    if (user.employer_id && !user.institution_id) {
+    if (isEmployerSupervisor(user) && !isInstitutionAssessor(user)) {
       return '/employer/supervisor/dashboard';
     }
-    if (user.institution_id) {
+    if (isInstitutionAssessor(user)) {
       return '/institution/supervisor-dashboard';
     }
     return '/login';
@@ -68,14 +58,7 @@ export const hasPortalAccess = (
   user: AuthRouteUser,
   portal?: ProtectedPortal
 ): boolean => {
-  if (!portal) return true;
-  if (portal === 'institution') {
-    return ['institution', 'institution_admin'].includes(user.role) || (user.role === 'supervisor' && Boolean(user.institution_id));
-  }
-  if (portal === 'employer') {
-    return ['employer', 'employer_admin'].includes(user.role) || (user.role === 'supervisor' && Boolean(user.employer_id));
-  }
-  return true;
+  return userHasPortalAccess(user, portal);
 };
 
 export const portalMatchesUser = (
@@ -85,10 +68,10 @@ export const portalMatchesUser = (
   if (portal === 'admin') return user.role === 'system_admin';
   if (portal === 'student') return user.role === 'student';
   if (portal === 'employer') {
-    return ['employer', 'employer_admin'].includes(user.role) || (user.role === 'supervisor' && Boolean(user.employer_id));
+    return isEmployerAdmin(user) || isEmployerSupervisor(user);
   }
   if (portal === 'institution') {
-    return ['institution', 'institution_admin'].includes(user.role) || (user.role === 'supervisor' && Boolean(user.institution_id));
+    return isInstitutionAdmin(user) || isInstitutionAssessor(user);
   }
   return false;
 };

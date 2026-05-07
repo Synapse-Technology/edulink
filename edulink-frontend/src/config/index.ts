@@ -3,7 +3,7 @@ export const config = {
   // API Configuration
   api: {
     baseURL: import.meta.env.VITE_API_BASE_URL || 
-             (import.meta.env.PROD ? 'https://edulink-backend-2ren.onrender.com' : 'http://localhost:8000'),
+             (import.meta.env.PROD ? 'https://api.edulinkcareer.me' : 'http://localhost:8000'),
     timeout: 30000, // 30 seconds
     retryAttempts: 3,
     retryDelay: 1000, // 1 second
@@ -200,7 +200,7 @@ export const getConfig = () => {
     api: {
       ...config.api,
       baseURL: import.meta.env.VITE_API_BASE_URL || 
-               (isProd ? 'https://edulink-backend-2ren.onrender.com' : 'http://localhost:8000'),
+               (isProd ? 'https://api.edulinkcareer.me' : 'http://localhost:8000'),
     }
   };
 
@@ -223,7 +223,7 @@ export const getConfig = () => {
         ...baseConfig,
         api: {
           ...baseConfig.api,
-          baseURL: import.meta.env.VITE_API_BASE_URL || 'https://edulink-backend-2ren.onrender.com', // Default to prod backend if staging not set
+          baseURL: import.meta.env.VITE_API_BASE_URL || 'https://api.edulinkcareer.me',
         },
       };
     
@@ -232,7 +232,7 @@ export const getConfig = () => {
         ...baseConfig,
         api: {
           ...baseConfig.api,
-          baseURL: import.meta.env.VITE_API_BASE_URL || 'https://edulink-backend-2ren.onrender.com',
+          baseURL: import.meta.env.VITE_API_BASE_URL || 'https://api.edulinkcareer.me',
         },
         security: {
           ...config.security,

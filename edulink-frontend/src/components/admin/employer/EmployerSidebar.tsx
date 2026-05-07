@@ -1,16 +1,17 @@
 import React from 'react';
-import { NavLink, Link } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import {
-  LayoutDashboard,
   Briefcase,
-  Users,
-  FileText,
-  Settings,
-  X,
   Building2,
   CheckSquare,
-  UserCog,
+  FileText,
   GraduationCap,
+  LayoutDashboard,
+  Settings,
+  ShieldCheck,
+  UserCog,
+  Users,
+  X,
 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { employerService } from '../../../services/employer/employerService';
@@ -20,6 +21,207 @@ interface EmployerSidebarProps {
   onClose?: () => void;
   isMobile?: boolean;
 }
+
+const STYLES = `
+  .es-sidebar {
+    width: 280px;
+    z-index: 1050;
+    background:
+      radial-gradient(circle at top left, rgba(26,92,255,0.16), transparent 34%),
+      var(--el-sidebar);
+    border-right: 1px solid rgba(255,255,255,0.08);
+    color: #fff;
+    transition: transform 0.28s ease;
+  }
+
+  .es-brand {
+    padding: 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .es-brand-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #fff;
+    text-decoration: none;
+  }
+
+  .es-logo {
+    width: 42px;
+    height: 42px;
+    border-radius: 15px;
+    background: var(--el-accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    box-shadow: 0 12px 28px rgba(26,92,255,0.28);
+  }
+
+  .es-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .es-brand-title {
+    font-size: 15px;
+    font-weight: 800;
+    line-height: 1.1;
+    margin: 0;
+  }
+
+  .es-brand-sub {
+    font-size: 11px;
+    color: rgba(255,255,255,0.54);
+    margin: 3px 0 0;
+  }
+
+  .es-close {
+    margin-left: auto;
+    border: none;
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.7);
+    width: 34px;
+    height: 34px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .es-nav-wrap {
+    padding: 18px 14px;
+    overflow-y: auto;
+  }
+
+  .es-section-label {
+    display: block;
+    color: rgba(255,255,255,0.38);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin: 18px 10px 9px;
+  }
+
+  .es-section-label:first-child {
+    margin-top: 0;
+  }
+
+  .es-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .es-nav-link {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: rgba(255,255,255,0.62);
+    text-decoration: none;
+    border-radius: 15px;
+    padding: 11px 12px;
+    font-size: 13px;
+    font-weight: 650;
+    transition: color 0.15s ease, background 0.15s ease, transform 0.12s ease;
+  }
+
+  .es-nav-link:hover {
+    color: #fff;
+    background: rgba(255,255,255,0.07);
+  }
+
+  .es-nav-link.active {
+    color: #fff;
+    background: rgba(26,92,255,0.18);
+    box-shadow: inset 0 0 0 1px rgba(77,127,255,0.28);
+  }
+
+  .es-nav-link.active::before {
+    content: '';
+    position: absolute;
+    left: -14px;
+    top: 10px;
+    bottom: 10px;
+    width: 3px;
+    border-radius: 999px;
+    background: var(--el-accent);
+  }
+
+  .es-trust-card {
+    margin: 10px 14px 16px;
+    padding: 14px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, rgba(26,92,255,0.16), rgba(255,255,255,0.05));
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .es-trust-top {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 750;
+    margin-bottom: 6px;
+  }
+
+  .es-trust-copy {
+    color: rgba(255,255,255,0.52);
+    font-size: 11px;
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  .es-footer {
+    padding: 16px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    background: rgba(0,0,0,0.18);
+  }
+
+  .es-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .es-user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 13px;
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+
+  .es-user-name {
+    color: #fff;
+    font-size: 13px;
+    font-weight: 750;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .es-user-email {
+    color: rgba(255,255,255,0.48);
+    font-size: 11px;
+    margin: 2px 0 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+`;
 
 const EmployerSidebar: React.FC<EmployerSidebarProps> = ({
   isOpen = true,
@@ -44,18 +246,8 @@ const EmployerSidebar: React.FC<EmployerSidebarProps> = ({
     fetchEmployerLogo();
   }, [user]);
 
-  const sidebarClasses = `admin-sidebar bg-dark text-white d-flex flex-column h-100 transition-all ${
-    isMobile
-      ? 'position-fixed top-0 start-0 w-75 shadow-lg'
-      : 'position-fixed top-0 start-0'
-  }`;
-
-  const style = {
-    width: '260px',
-    zIndex: 1050,
+  const sidebarStyle: React.CSSProperties = {
     transform: isMobile && !isOpen ? 'translateX(-100%)' : 'translateX(0)',
-    transition: 'transform 0.3s ease-in-out',
-    borderRight: '1px solid rgba(255,255,255,0.1)',
   };
 
   const NavItem = ({
@@ -65,161 +257,104 @@ const EmployerSidebar: React.FC<EmployerSidebarProps> = ({
     end = false,
   }: {
     to: string;
-    icon: any;
+    icon: React.ElementType;
     label: string;
     end?: boolean;
   }) => (
     <NavLink
       to={to}
       end={end}
-      className={({ isActive }) =>
-        `nav-link d-flex align-items-center px-3 py-2.5 mb-1 rounded transition-colors ${
-          isActive
-            ? 'bg-primary text-white shadow-sm'
-            : 'text-white-50 hover-text-white hover-bg-white-10'
-        }`
-      }
-      onClick={() => isMobile && onClose && onClose()}
-      style={{ fontSize: '0.95rem' }}
+      className={({ isActive }) => `es-nav-link${isActive ? ' active' : ''}`}
+      onClick={() => isMobile && onClose?.()}
     >
-      <Icon size={18} className="me-3" />
+      <Icon size={18} />
       <span>{label}</span>
     </NavLink>
   );
 
   return (
-    <aside className={sidebarClasses} style={style}>
-      {/* Sidebar Header */}
-      <div className="d-flex align-items-center justify-content-between p-3 border-bottom border-secondary">
-        <Link
-          to="/employer/dashboard"
-          className="text-decoration-none text-white d-flex align-items-center gap-2"
-        >
-          {employerLogo ? (
-            <img
-              src={employerLogo}
-              alt="Logo"
-              className="rounded object-fit-cover bg-white"
-              style={{ width: '32px', height: '32px' }}
-            />
-          ) : (
-            <div className="bg-primary rounded p-1">
-              <Building2 size={24} className="text-white" />
+    <aside
+      className={`es-sidebar position-fixed top-0 start-0 d-flex flex-column h-100 ${
+        isMobile ? 'shadow-lg' : ''
+      }`}
+      style={sidebarStyle}
+    >
+      <style>{STYLES}</style>
+
+      <div className="es-brand">
+        <div className="d-flex align-items-center">
+          <Link to="/employer/dashboard" className="es-brand-link">
+            <div className="es-logo">
+              {employerLogo ? (
+                <img src={employerLogo} alt="Employer logo" />
+              ) : (
+                <Building2 size={23} />
+              )}
             </div>
+
+            <div>
+              <p className="es-brand-title">Employer Console</p>
+              <p className="es-brand-sub">EduLink operations</p>
+            </div>
+          </Link>
+
+          {isMobile && (
+            <button type="button" className="es-close" onClick={onClose}>
+              <X size={18} />
+            </button>
           )}
-          <div>
-            <h6 className="mb-0 fw-bold">EduLink</h6>
-            <small className="text-white-50" style={{ fontSize: '0.7rem' }}>
-              Employer Portal
-            </small>
-          </div>
-        </Link>
-        {isMobile && (
-          <button className="btn btn-link text-white-50 p-0" onClick={onClose}>
-            <X size={24} />
-          </button>
-        )}
+        </div>
       </div>
 
-      {/* Navigation */}
-      <div className="flex-grow-1 overflow-auto p-3 custom-scrollbar">
-        <small
-          className="text-uppercase text-white-50 fw-bold mb-2 d-block px-3"
-          style={{ fontSize: '0.75rem' }}
-        >
-          Main Menu
-        </small>
-        <nav className="nav flex-column mb-4">
-          <NavItem
-            to="/employer/dashboard"
-            icon={LayoutDashboard}
-            label="Dashboard"
-            end
-          />
-          <NavItem
-            to="/employer/dashboard/opportunities"
-            icon={Briefcase}
-            label="My Opportunities"
-          />
-          <NavItem
-            to="/employer/dashboard/applications"
-            icon={FileText}
-            label="Applications"
-          />
-          <NavItem
-            to="/employer/dashboard/interns"
-            icon={GraduationCap}
-            label="My Interns"
-          />
-          <NavItem
-            to="/employer/dashboard/supervisors"
-            icon={Users}
-            label="Supervisors"
-          />
+      <div className="es-nav-wrap flex-grow-1">
+        <span className="es-section-label">Command</span>
+        <nav className="es-nav">
+          <NavItem to="/employer/dashboard" icon={LayoutDashboard} label="Overview" end />
+          <NavItem to="/employer/dashboard/opportunities" icon={Briefcase} label="Opportunities" />
+          <NavItem to="/employer/dashboard/applications" icon={FileText} label="Applications" />
+        </nav>
+
+        <span className="es-section-label">Talent Operations</span>
+        <nav className="es-nav">
+          <NavItem to="/employer/dashboard/interns" icon={GraduationCap} label="Interns" />
+          <NavItem to="/employer/dashboard/supervisors" icon={Users} label="Supervisors" />
+          {user?.role === 'employer_admin' && (
+            <NavItem to="/employer/dashboard/reviews" icon={CheckSquare} label="Reviews & Approvals" />
+          )}
         </nav>
 
         {user?.role === 'employer_admin' && (
           <>
-            <small
-              className="text-uppercase text-white-50 fw-bold mb-2 d-block px-3"
-              style={{ fontSize: '0.75rem' }}
-            >
-              Management
-            </small>
-            <nav className="nav flex-column mb-4">
-              <NavItem
-                to="/employer/dashboard/profile-requests"
-                icon={UserCog}
-                label="Profile Requests"
-              />
-              <NavItem
-                to="/employer/dashboard/reviews"
-                icon={CheckSquare}
-                label="Reviews & Approvals"
-              />
+            <span className="es-section-label">Administration</span>
+            <nav className="es-nav">
+              <NavItem to="/employer/dashboard/profile-requests" icon={UserCog} label="Profile Requests" />
+              <NavItem to="/employer/dashboard/profile" icon={Building2} label="Company Profile" />
+              <NavItem to="/employer/dashboard/settings" icon={Settings} label="Settings" />
             </nav>
           </>
         )}
-
-        <small
-          className="text-uppercase text-white-50 fw-bold mb-2 d-block px-3"
-          style={{ fontSize: '0.75rem' }}
-        >
-          Settings
-        </small>
-        <nav className="nav flex-column mb-4">
-          <NavItem
-            to="/employer/dashboard/profile"
-            icon={Building2}
-            label="Company Profile"
-          />
-          <NavItem
-            to="/employer/dashboard/settings"
-            icon={Settings}
-            label="Settings"
-          />
-        </nav>
       </div>
 
-      {/* User Info Footer */}
-      <div className="p-3 border-top border-secondary bg-black bg-opacity-25">
-        <div className="d-flex align-items-center">
-          <div
-            className="rounded-circle bg-secondary d-flex align-items-center justify-content-center text-white me-2"
-            style={{ width: '32px', height: '32px' }}
-          >
+      <div className="es-trust-card">
+        <div className="es-trust-top">
+          <ShieldCheck size={15} />
+          Employer trust layer
+        </div>
+        <p className="es-trust-copy">
+          Verified employers get better applicant confidence and smoother institution workflows.
+        </p>
+      </div>
+
+      <div className="es-footer">
+        <div className="es-user">
+          <div className="es-user-avatar">
             {user?.firstName?.charAt(0) || 'E'}
           </div>
-          <div className="overflow-hidden">
-            <p className="mb-0 text-white small fw-bold text-truncate">
+          <div className="min-w-0">
+            <p className="es-user-name">
               {user?.firstName} {user?.lastName}
             </p>
-            <p
-              className="mb-0 text-white-50 x-small text-truncate"
-              style={{ fontSize: '0.7rem' }}
-            >
-              {user?.email}
-            </p>
+            <p className="es-user-email">{user?.email}</p>
           </div>
         </div>
       </div>

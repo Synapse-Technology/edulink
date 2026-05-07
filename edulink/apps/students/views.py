@@ -117,8 +117,16 @@ class StudentViewSet(viewsets.ModelViewSet):
         Creates one lazily if it doesn't exist.
         """
         from .services import get_or_create_student_profile
+
+        if not is_student(request.user):
+            return Response(
+                {"detail": "Only student accounts can access a student profile."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         
         student = get_or_create_student_profile(user=request.user)
+        compute_student_trust_tier(student_id=str(student.id))
+        student.refresh_from_db(fields=["trust_level", "trust_points"])
         serializer = self.get_serializer(student)
         return Response(serializer.data)
 
@@ -140,7 +148,9 @@ class StudentViewSet(viewsets.ModelViewSet):
     def profile_readiness(self, request, pk=None):
         """Get student's profile readiness score and breakdown"""
         student = self.get_object()
+        from edulink.apps.trust.queries import calculate_student_trust_state
         readiness_data = calculate_profile_readiness(student_id=str(student.id))
+        readiness_data["trust"] = calculate_student_trust_state(student_id=str(student.id))
         return Response(readiness_data)
 
     @action(detail=True, methods=['get'])
@@ -291,10 +301,20 @@ class StudentViewSet(viewsets.ModelViewSet):
         student = self.get_object()
         serializer = StudentActivityApproveSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+
+        from .policies import can_supervisor_approve_activity
+        if not can_supervisor_approve_activity(
+            supervisor_id=str(request.user.id),
+            student_id=str(student.id),
+        ):
+            return Response(
+                {"detail": "Only an assigned supervisor can approve this student activity."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         
         approve_supervisor_activity(
             student_id=str(student.id),
-            supervisor_id=str(serializer.validated_data['supervisor_id']),
+            supervisor_id=str(request.user.id),
             activity_id=serializer.validated_data['activity_id']
         )
         
@@ -352,7 +372,7 @@ class StudentViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        students = get_students_by_trust_level(level=tier_level)
+        students = self.filter_queryset(self.get_queryset().filter(trust_level=tier_level))
         
         serializer = self.get_serializer(students, many=True)
         return Response({

@@ -26,7 +26,7 @@ from edulink.apps.employers.constants import (
 
 from edulink.apps.students.queries import get_student_details_for_trust
 from edulink.apps.students.services import update_student_trust_level
-from edulink.apps.students.constants import TRUST_EVENT_POINTS, TRUST_TIER_THRESHOLDS
+from edulink.apps.trust.queries import calculate_student_trust_state
 
 from edulink.apps.internships.queries import check_institution_has_internships, count_completed_internships_for_employer
 
@@ -332,8 +332,6 @@ def get_employer_trust_progress(employer_id: UUID) -> dict:
 # Student Trust
 # -----------------------------------------------------------------------------
 
-from edulink.apps.students.constants import TRUST_EVENT_POINTS, TRUST_TIER_THRESHOLDS
-
 def compute_student_trust_tier(*, student_id: str) -> dict:
     """
     Compute the full student trust tier from ledger events.
@@ -341,21 +339,7 @@ def compute_student_trust_tier(*, student_id: str) -> dict:
     """
     student_uuid = UUID(str(student_id))
     student = get_student_details_for_trust(student_id=student_uuid)
-    
-    events = get_events_for_entity(entity_id=student_id, entity_type="Student")
-    score = sum(TRUST_EVENT_POINTS.get(event.event_type, 0) for event in events)
-    tier = {"level": 0, "name": "Self-Registered"}
-    for min_score, max_score, level, name in TRUST_TIER_THRESHOLDS:
-        if min_score <= score <= max_score:
-            tier = {"level": level, "name": name}
-            break
-    trust_state = {
-        "student_id": student_id,
-        "score": score,
-        "tier_level": tier["level"],
-        "tier_name": tier["name"],
-        "tier_label": tier["name"],
-    }
+    trust_state = calculate_student_trust_state(student_id=str(student_uuid))
     score = trust_state["score"]
     tier_level = trust_state["tier_level"]
 

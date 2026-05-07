@@ -1,14 +1,16 @@
 
 import pytest
 from unittest.mock import patch
+from datetime import date
 from uuid import uuid4
 from edulink.apps.accounts.models import User
-from edulink.apps.institutions.models import Institution
-from edulink.apps.employers.models import Employer
+from edulink.apps.institutions.models import Institution, InstitutionStaff
+from edulink.apps.employers.models import Employer, Supervisor
 from edulink.apps.students.models import Student
 from edulink.apps.internships.models import InternshipOpportunity, InternshipApplication, ApplicationStatus
 from edulink.apps.internships.services import submit_final_feedback, apply_for_internship
 from edulink.apps.notifications.models import Notification
+from edulink.apps.shared.error_handling import AuthorizationError
 
 @pytest.fixture
 def institution():
@@ -40,13 +42,15 @@ def opportunity(institution, employer):
         description="Code",
         institution_id=institution.id,
         employer_id=employer.id,
-        status="OPEN"
+        status="OPEN",
+        start_date=date(2026, 5, 4),
+        end_date=date(2026, 5, 8),
     )
 
 @pytest.fixture
 def application(opportunity, student_user, employer_admin):
     # Use service to apply to ensure consistent state
-    from edulink.apps.internships.services import process_application, start_internship, accept_offer
+    from edulink.apps.internships.services import assign_supervisors, process_application, start_internship, accept_offer
     
     app = apply_for_internship(student_user, opportunity.id)
     
@@ -55,6 +59,26 @@ def application(opportunity, student_user, employer_admin):
     process_application(employer_admin, app.id, "shortlist")
     # 2. Accept
     accept_offer(employer_admin, app.id)
+    assign_supervisors(
+        employer_admin,
+        application_id=app.id,
+        supervisor_id=Supervisor.objects.get(user=employer_admin).id,
+        type="employer",
+    )
+    assessor_user = User.objects.create_user(
+        username="inst_assessor",
+        email="inst.assessor@test.com",
+        password="password",
+        role=User.ROLE_SUPERVISOR,
+    )
+    assessor = InstitutionStaff.objects.create(
+        institution_id=opportunity.institution_id,
+        user=assessor_user,
+        role=InstitutionStaff.ROLE_SUPERVISOR,
+        is_active=True,
+    )
+    app.institution_supervisor_id = assessor.id
+    app.save(update_fields=["institution_supervisor_id", "updated_at"])
     # 3. Start
     app = start_internship(employer_admin, app.id)
     
@@ -96,3 +120,56 @@ class TestFinalFeedback:
             ).first()
             assert notification is not None
             assert str(notification.related_entity_id) == str(application.id)
+
+    def test_final_feedback_is_split_by_assessment_role(self, employer_admin, application):
+        assessor = User.objects.get(username="inst_assessor")
+
+        submit_final_feedback(
+            actor=employer_admin,
+            application_id=application.id,
+            feedback="Employer confirms strong workplace performance.",
+            rating=5,
+        )
+        submit_final_feedback(
+            actor=assessor,
+            application_id=application.id,
+            feedback="Institution confirms academic attachment requirements.",
+            rating=4,
+        )
+
+        application.refresh_from_db()
+        assert application.employer_final_feedback == "Employer confirms strong workplace performance."
+        assert application.employer_final_rating == 5
+        assert application.institution_final_feedback == "Institution confirms academic attachment requirements."
+        assert application.institution_final_rating == 4
+        assert "Employer assessment:" in application.final_feedback
+        assert "Institution assessment:" in application.final_feedback
+        assert application.final_rating == 4
+
+    def test_assigned_employer_supervisor_writes_employer_assessment_lane(self, application):
+        supervisor = Supervisor.objects.get(id=application.employer_supervisor_id)
+
+        submit_final_feedback(
+            actor=supervisor.user,
+            application_id=application.id,
+            feedback="Supervisor confirms workplace requirements were met.",
+            rating=5,
+        )
+
+        application.refresh_from_db()
+        assert application.employer_final_feedback == "Supervisor confirms workplace requirements were met."
+        assert application.employer_final_rating == 5
+        assert application.employer_final_feedback_by == supervisor.user_id
+        assert application.institution_final_feedback == ""
+
+    def test_final_feedback_is_frozen_after_certification(self, employer_admin, application):
+        application.status = ApplicationStatus.CERTIFIED
+        application.save(update_fields=["status", "updated_at"])
+
+        with pytest.raises(AuthorizationError):
+            submit_final_feedback(
+                actor=employer_admin,
+                application_id=application.id,
+                feedback="Late assessment should not mutate certified records.",
+                rating=5,
+            )

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, Table, Button, Badge, Form, InputGroup, Row, Col, Modal, Alert, Nav } from 'react-bootstrap';
-import { Search, FileText, CheckCircle, Award, User, AlertTriangle } from 'lucide-react';
+import { Search, FileText, CheckCircle, Award, User, AlertTriangle, Star } from 'lucide-react';
 import { internshipService } from '../../../services/internship/internshipService';
 import type { InternshipApplication } from '../../../services/internship/internshipService';
 import TrustBadge, { type TrustLevel } from '../../../components/common/TrustBadge';
@@ -22,6 +22,8 @@ const InstitutionCertifications: React.FC = () => {
   const [selectedApp, setSelectedApp] = useState<InternshipApplication | null>(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [finalFeedback, setFinalFeedback] = useState('');
+  const [finalRating, setFinalRating] = useState(5);
 
   useEffect(() => {
     fetchApplications();
@@ -30,11 +32,8 @@ const InstitutionCertifications: React.FC = () => {
   const fetchApplications = async () => {
     try {
       setLoading(true);
-      // Fetch all apps and we will filter locally for now, or backend could support better filtering
-      const apps = await internshipService.getApplications({});
-      // Filter only COMPLETED or CERTIFIED
-      const relevantApps = apps.filter(app => ['COMPLETED', 'CERTIFIED'].includes(app.status));
-      setApplications(relevantApps);
+      const apps = await internshipService.getCertificationApplications();
+      setApplications(apps);
     } catch (err) {
       console.error("Failed to fetch applications", err);
       toast.error("Failed to load certifications");
@@ -62,7 +61,33 @@ const InstitutionCertifications: React.FC = () => {
 
   const openReviewModal = (app: InternshipApplication) => {
     setSelectedApp(app);
+    setFinalFeedback(app.institution_final_feedback || '');
+    setFinalRating(app.institution_final_rating || 5);
     setShowReviewModal(true);
+  };
+
+  const handleSaveFinalAssessment = async () => {
+    if (!selectedApp || !finalFeedback.trim()) {
+      toast.error('Add the institution final assessment before saving');
+      return;
+    }
+
+    try {
+      setProcessing(true);
+      const updated = await internshipService.submitFinalFeedback(
+        selectedApp.id,
+        finalFeedback.trim(),
+        finalRating
+      );
+      setSelectedApp(updated);
+      toast.success('Institution assessment saved');
+      fetchApplications();
+    } catch (error) {
+      console.error('Failed to save final assessment:', error);
+      toast.error('Failed to save final assessment');
+    } finally {
+      setProcessing(false);
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -267,9 +292,59 @@ const InstitutionCertifications: React.FC = () => {
                 <Col md={6}>
                   <h6 className="text-uppercase text-muted small fw-bold mb-3">Academic Status</h6>
                   <p className="mb-1"><strong>Logbooks:</strong> {selectedApp.logbook_count || 0} submitted</p>
+                  <p className="mb-1"><strong>Employer Assessment:</strong> {selectedApp.employer_final_feedback ? `${selectedApp.employer_final_rating || '-'} / 5` : 'Pending'}</p>
+                  <p className="mb-1"><strong>Institution Assessment:</strong> {selectedApp.institution_final_feedback ? `${selectedApp.institution_final_rating || '-'} / 5` : 'Pending'}</p>
                   <p className="mb-0"><strong>Current Status:</strong> {getStatusBadge(selectedApp.status)}</p>
                 </Col>
               </Row>
+
+              {selectedApp.can_feedback && selectedApp.status !== 'CERTIFIED' && (
+                <div className="mb-4 p-3 border rounded bg-light">
+                  <div className="d-flex align-items-center justify-content-between mb-3">
+                    <h6 className="text-uppercase text-muted small fw-bold mb-0 d-flex align-items-center gap-2">
+                      <Star size={14} />
+                      Institution Final Assessment
+                    </h6>
+                    <Badge bg={selectedApp.institution_final_feedback ? 'success' : 'warning'} text={selectedApp.institution_final_feedback ? undefined : 'dark'}>
+                      {selectedApp.institution_final_feedback ? 'Saved' : 'Required'}
+                    </Badge>
+                  </div>
+                  <Row className="g-3">
+                    <Col md={3}>
+                      <Form.Label className="small fw-semibold">Rating</Form.Label>
+                      <Form.Select
+                        value={finalRating}
+                        onChange={(event) => setFinalRating(Number(event.target.value))}
+                        disabled={processing}
+                      >
+                        {[5, 4, 3, 2, 1].map((rating) => (
+                          <option key={rating} value={rating}>{rating} / 5</option>
+                        ))}
+                      </Form.Select>
+                    </Col>
+                    <Col md={9}>
+                      <Form.Label className="small fw-semibold">Academic assessment</Form.Label>
+                      <Form.Control
+                        as="textarea"
+                        rows={3}
+                        value={finalFeedback}
+                        onChange={(event) => setFinalFeedback(event.target.value)}
+                        placeholder="Summarize logbook compliance, supervision outcome, conduct, and certification readiness."
+                        disabled={processing}
+                      />
+                    </Col>
+                  </Row>
+                  <Button
+                    variant="outline-primary"
+                    className="mt-3 d-inline-flex align-items-center gap-2"
+                    onClick={handleSaveFinalAssessment}
+                    disabled={processing || !finalFeedback.trim()}
+                  >
+                    <Star size={16} />
+                    Save Assessment
+                  </Button>
+                </div>
+              )}
 
               <div className="mb-4">
                 <InternshipLifecyclePanel

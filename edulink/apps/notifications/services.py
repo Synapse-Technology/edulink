@@ -4,7 +4,7 @@ Handles email notifications, SMS, and other communication channels.
 Follows architecture rules: pure business logic, no HTTP handling, triggers events.
 """
 
-from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives, send_mail
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.conf import settings
@@ -1227,6 +1227,16 @@ def send_email_notification(*, recipient_email: str, subject: str, template_name
                 "institution_rejection": Notification.TYPE_INSTITUTION_ONBOARDED,
                 "internship_application_submitted": Notification.TYPE_INTERNSHIP_APPLICATION_SUBMITTED,
                 "evidence_reviewed": Notification.TYPE_LOGBOOK_REVIEWED,
+                "certificate_generated": Notification.TYPE_CERTIFICATE_GENERATED,
+                "performance_summary_generated": Notification.TYPE_PERFORMANCE_SUMMARY_GENERATED,
+                "logbook_report_generated": Notification.TYPE_LOGBOOK_REPORT_GENERATED,
+                "internship_final_feedback_submitted": Notification.TYPE_INTERNSHIP_FINAL_FEEDBACK_SUBMITTED,
+                "supervisor_assigned": Notification.TYPE_SUPERVISOR_ASSIGNED,
+                "incident_resolved": Notification.TYPE_INCIDENT_RESOLVED,
+                "incident_reported": Notification.TYPE_INCIDENT_REPORTED,
+                "document_uploaded": Notification.TYPE_DOCUMENT_UPLOADED,
+                "document_verified": Notification.TYPE_DOCUMENT_VERIFIED,
+                "trust_tier_changed": Notification.TYPE_TRUST_TIER_CHANGED,
             }
             notification_type = template_to_type.get(template_name, Notification.TYPE_EMAIL_VERIFICATION)
             if template_name not in template_to_type:
@@ -1331,17 +1341,13 @@ def _send_email_notification_sync(*, notification_id: str, recipient_email: str,
             connect_timeout = getattr(settings, 'EMAIL_CONNECT_TIMEOUT', 5)
             try:
                 socket.setdefaulttimeout(connect_timeout)
-                # Use EmailMessage to support Reply-To header so user replies go to support
-                from django.core.mail import EmailMessage
-
-                email_msg = EmailMessage(
+                email_msg = EmailMultiAlternatives(
                     subject=subject,
-                    body=plain_message,  # Plain text body (multipart/mixed by default)
+                    body=plain_message,
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     to=[recipient_email],
                     connection=connection,
                 )
-                # Attach HTML as alternative (creates multipart/alternative)
                 email_msg.attach_alternative(html_message, "text/html")
 
                 # If a dedicated support email is configured, set Reply-To so replies route there

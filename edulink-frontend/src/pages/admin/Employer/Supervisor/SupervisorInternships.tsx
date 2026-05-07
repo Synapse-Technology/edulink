@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Badge, Alert } from 'react-bootstrap';
-import { Users, FileText, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Table, Badge, Alert, Modal, Form, Button, Spinner } from 'react-bootstrap';
+import { Users, FileText, AlertTriangle, CheckCircle, Star } from 'lucide-react';
 import { internshipService } from '../../../../services/internship/internshipService';
 import type { InternshipApplication } from '../../../../services/internship/internshipService';
 import { Link } from 'react-router-dom';
@@ -14,6 +14,10 @@ const SupervisorInternships: React.FC = () => {
   const [internships, setInternships] = useState<InternshipApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [assessmentApplication, setAssessmentApplication] = useState<InternshipApplication | null>(null);
+  const [finalFeedback, setFinalFeedback] = useState('');
+  const [finalRating, setFinalRating] = useState(5);
+  const [submittingAssessment, setSubmittingAssessment] = useState(false);
   const { feedbackProps, showError, showSuccess, showConfirm } = useFeedbackModal();
 
   useEffect(() => {
@@ -49,6 +53,36 @@ const SupervisorInternships: React.FC = () => {
         }
       }
     });
+  };
+
+  const openAssessmentModal = (internship: InternshipApplication) => {
+    setAssessmentApplication(internship);
+    setFinalFeedback(internship.employer_final_feedback || '');
+    setFinalRating(internship.employer_final_rating || 5);
+  };
+
+  const handleSubmitFinalAssessment = async () => {
+    if (!assessmentApplication || !finalFeedback.trim()) {
+      showError('Assessment Required', 'Add your final assessment before saving.');
+      return;
+    }
+
+    try {
+      setSubmittingAssessment(true);
+      await internshipService.submitFinalFeedback(
+        assessmentApplication.id,
+        finalFeedback.trim(),
+        finalRating
+      );
+      showSuccess('Assessment Saved', 'Employer final assessment has been saved.');
+      setAssessmentApplication(null);
+      fetchInternships();
+    } catch (err: any) {
+      const sanitized = sanitizeAdminError(err);
+      showError('Assessment Failed', sanitized.userMessage || 'We could not save the final assessment.', sanitized.details);
+    } finally {
+      setSubmittingAssessment(false);
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -162,6 +196,15 @@ const SupervisorInternships: React.FC = () => {
                                  <span className="fw-medium">Complete</span>
                                </button>
                              )}
+                             {internship.can_feedback && ['ACTIVE', 'COMPLETED'].includes(internship.status) && (
+                               <button
+                                 onClick={() => openAssessmentModal(internship)}
+                                 className={`btn btn-sm ${internship.employer_final_feedback ? 'btn-outline-secondary' : 'btn-outline-primary'} d-flex align-items-center transition-all hover-lift`}
+                               >
+                                 <Star size={14} className="me-2" />
+                                 <span className="fw-medium">{internship.employer_final_feedback ? 'Edit Assessment' : 'Final Assessment'}</span>
+                               </button>
+                             )}
                              <Link 
                                to={`/employer/supervisor/internships/${internship.id}/logbook`}
                                className="btn btn-sm btn-light border d-flex align-items-center transition-all hover-lift"
@@ -207,6 +250,62 @@ const SupervisorInternships: React.FC = () => {
           </div>
         </div>
       </div>
+      <Modal
+        show={!!assessmentApplication}
+        onHide={() => setAssessmentApplication(null)}
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title className="h5 fw-bold">Employer Final Assessment</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <div className="mb-3">
+            <div className="fw-semibold">{assessmentApplication?.student_info?.name || 'Assigned intern'}</div>
+            <small className="text-muted">{assessmentApplication?.title}</small>
+          </div>
+          <Form.Group className="mb-3">
+            <Form.Label className="small fw-semibold">Rating</Form.Label>
+            <Form.Select
+              value={finalRating}
+              onChange={(event) => setFinalRating(Number(event.target.value))}
+              disabled={submittingAssessment}
+            >
+              {[5, 4, 3, 2, 1].map((rating) => (
+                <option key={rating} value={rating}>{rating} / 5</option>
+              ))}
+            </Form.Select>
+          </Form.Group>
+          <Form.Group>
+            <Form.Label className="small fw-semibold">Workplace assessment</Form.Label>
+            <Form.Control
+              as="textarea"
+              rows={5}
+              value={finalFeedback}
+              onChange={(event) => setFinalFeedback(event.target.value)}
+              placeholder="Summarize reliability, skill growth, workplace conduct, attendance, and readiness for completion."
+              disabled={submittingAssessment}
+            />
+          </Form.Group>
+          {assessmentApplication?.completion_readiness?.missing?.length ? (
+            <Alert variant="warning" className="small mt-3 mb-0">
+              Completion still needs: {assessmentApplication.completion_readiness.missing.join(', ')}
+            </Alert>
+          ) : null}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="light" onClick={() => setAssessmentApplication(null)} disabled={submittingAssessment}>
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            onClick={handleSubmitFinalAssessment}
+            disabled={submittingAssessment || !finalFeedback.trim()}
+          >
+            {submittingAssessment ? <Spinner size="sm" animation="border" className="me-2" /> : null}
+            Save Assessment
+          </Button>
+        </Modal.Footer>
+      </Modal>
       <FeedbackModal {...feedbackProps} />
       
       <style>{`

@@ -137,6 +137,17 @@ export interface PlacementStats {
     unresolved_incidents: number;
     audit_readiness_score: number;
   };
+  source_breakdown: {
+    managed_edulink: number;
+    external_declared: number;
+    employer_sourced: number;
+    managed_applications: number;
+    external_declarations: number;
+  };
+  date_range: {
+    from: string;
+    to: string;
+  };
 }
 
 export interface TimeToPlacementStats {
@@ -207,7 +218,9 @@ class InstitutionService {
 
   async getTimeToPlacementStats(filters?: { 
     department_id?: string; 
-    cohort_id?: string; 
+    cohort_id?: string;
+    date_from?: string;
+    date_to?: string;
   }): Promise<TimeToPlacementStats> {
     try {
       const response = await this.client.get<TimeToPlacementStats>('/api/institutions/institution-reports/time-to-placement/', { 
@@ -220,9 +233,15 @@ class InstitutionService {
     }
   }
 
-  async exportReport(): Promise<Blob> {
+  async exportReport(filters?: {
+    department_id?: string;
+    cohort_id?: string;
+    date_from?: string;
+    date_to?: string;
+  }): Promise<Blob> {
     try {
         const response = await this.client.get<Blob>('/api/institutions/institution-reports/export/', {
+            params: filters,
             responseType: 'blob'
         });
         return response;

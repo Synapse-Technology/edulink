@@ -35,6 +35,7 @@ from edulink.apps.internships.queries import (
     get_incidents_for_application,
     get_success_story_for_application
 )
+from edulink.apps.internships.logbook_format import normalize_logbook_metadata
 from edulink.apps.students.queries import get_student_by_id, get_student_approved_affiliation
 from edulink.apps.employers.queries import get_employer_by_id, get_supervisor_by_id
 from edulink.apps.institutions.queries import get_institution_by_id, get_institution_staff_by_id
@@ -560,14 +561,16 @@ def _generate_logbook_report_native(context):
     elements = []
     
     # 1. Report Title
-    elements.append(Paragraph("INTERNSHIP LOGBOOK REPORT", style_title))
+    elements.append(Paragraph("INDUSTRIAL ATTACHMENT STUDENT LOGBOOK", style_title))
     elements.append(Spacer(1, 10))
     
     # 2. Student & Engagement Info (as a Table)
     info_data = [
-        [Paragraph("STUDENT", style_label), Paragraph(context.get('student_name', ''), style_value),
-         Paragraph("HOST ORG", style_label), Paragraph(context.get('employer_name', ''), style_value)],
-        [Paragraph("POSITION", style_label), Paragraph(context.get('position', ''), style_value),
+        [Paragraph("NAME OF STUDENT", style_label), Paragraph(context.get('student_name', ''), style_value),
+         Paragraph("REG NUMBER", style_label), Paragraph(context.get('registration_number', 'N/A'), style_value)],
+        [Paragraph("COURSE / DEPARTMENT", style_label), Paragraph(context.get('department', 'N/A'), style_value),
+         Paragraph("HOST ORGANIZATION", style_label), Paragraph(context.get('employer_name', ''), style_value)],
+        [Paragraph("ATTACHMENT POSITION", style_label), Paragraph(context.get('position', ''), style_value),
          Paragraph("INSTITUTION", style_label), Paragraph(context.get('institution_name', ''), style_value)],
         [Paragraph("PERIOD", style_label), Paragraph(f"{context.get('start_date', '')} — {context.get('end_date', '')}", style_value),
          Paragraph("LOGBOOKS", style_label), Paragraph(str(len(context.get('logbooks', []))), style_value)]
@@ -583,6 +586,13 @@ def _generate_logbook_report_native(context):
     ]))
     elements.append(info_table)
     elements.append(Spacer(1, 20))
+    elements.append(Paragraph("Logbook Standard", style_section_header))
+    elements.append(Paragraph(
+        "Daily work must be recorded clearly for Monday to Friday, including the description of work done and new skills learnt. "
+        "Each week must include the trainee's weekly report and supervisor comments where applicable.",
+        style_normal
+    ))
+    elements.append(Spacer(1, 10))
     
     # 3. Iterate Logbooks
     logbooks = context.get('logbooks', [])
@@ -596,7 +606,8 @@ def _generate_logbook_report_native(context):
         # We will just use logical spacing and flow.
         
         # Logbook Header
-        elements.append(Paragraph(f"Logbook #{i+1}: {log.get('title', 'Untitled')}", style_section_header))
+        week_ending = log.get("week_ending_date") or "N/A"
+        elements.append(Paragraph(f"Week {i+1} Progress Chart - Week Ending: {week_ending}", style_section_header))
         
         # Meta row
         elements.append(Paragraph(f"Submitted: {log.get('submitted_at', 'N/A')}  |  Status: Verified", style_label))
@@ -609,17 +620,20 @@ def _generate_logbook_report_native(context):
             elements.append(Spacer(1, 10))
             
         # Daily Entries Table
-        entries = log.get('daily_entries', {})
+        entries = log.get('daily_entries', [])
         if entries:
             # Table Data
-            table_data = [[Paragraph("DATE", style_label), Paragraph("ACTIVITY & REFLECTION", style_label)]]
-            for date_str, activity in entries.items():
+            table_data = [[Paragraph("DAY", style_label), Paragraph("DESCRIPTION OF WORK DONE AND NEW SKILLS LEARNT", style_label)]]
+            for entry in entries:
                 table_data.append([
-                    Paragraph(date_str, style_normal),
-                    Paragraph(activity, style_normal)
+                    Paragraph(entry.get("day") or entry.get("label", ""), style_value),
+                    Paragraph(
+                        f"{entry.get('date', '')}<br/>{entry.get('description') or 'No activity recorded.'}",
+                        style_normal,
+                    )
                 ])
                 
-            entry_table = Table(table_data, colWidths=[35*mm, 135*mm])
+            entry_table = Table(table_data, colWidths=[25*mm, 145*mm])
             entry_table.setStyle(TableStyle([
                 ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#f9fafb")),
                 ('VALIGN', (0,0), (-1,-1), 'TOP'),
@@ -629,6 +643,24 @@ def _generate_logbook_report_native(context):
             ]))
             elements.append(entry_table)
             elements.append(Spacer(1, 10))
+
+        weekly_summary = log.get("weekly_summary")
+        elements.append(Paragraph("Trainee's Weekly Report", style_log_title))
+        elements.append(Paragraph(weekly_summary or "No weekly summary recorded.", style_normal))
+        elements.append(Spacer(1, 10))
+        signature_data = [
+            [Paragraph("Student Signature / Digital Confirmation", style_label), Paragraph("Date", style_label)],
+            [Paragraph(context.get("student_name", "N/A"), style_normal), Paragraph(log.get("submitted_at", "N/A"), style_normal)],
+        ]
+        signature_table = Table(signature_data, colWidths=[110*mm, 60*mm])
+        signature_table.setStyle(TableStyle([
+            ('VALIGN', (0,0), (-1,-1), 'TOP'),
+            ('LINEABOVE', (0,1), (-1,1), 0.5, colors.HexColor("#9ca3af")),
+            ('TOPPADDING', (0,0), (-1,-1), 6),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+        ]))
+        elements.append(signature_table)
+        elements.append(Spacer(1, 8))
             
         # Reviews
         emp_notes = log.get('employer_notes')
@@ -705,6 +737,14 @@ def _get_student_institution_info(student_id: UUID) -> str:
             return institution.name
             
     return "N/A"
+
+
+def _safe_text(value, default="N/A") -> str:
+    if value is None:
+        return default
+    if isinstance(value, (str, int, float)):
+        return str(value)
+    return default
 
 @transaction.atomic
 def generate_completion_certificate(*, application_id: UUID, actor_id: UUID) -> Artifact:
@@ -1028,10 +1068,14 @@ def generate_logbook_report(*, application_id: UUID, actor_id: UUID) -> Artifact
     
     logbooks_data = []
     for item in evidence_items:
+        metadata = normalize_logbook_metadata(item.metadata)
         logbooks_data.append({
             "title": item.title,
             "description": item.description,
-            "daily_entries": item.metadata.get("entries", {}),
+            "week_start_date": metadata.get("week_start_date"),
+            "week_ending_date": metadata.get("week_ending_date"),
+            "daily_entries": metadata.get("daily_entries", []),
+            "weekly_summary": metadata.get("weekly_summary", ""),
             "employer_notes": item.employer_review_notes,
             "institution_notes": item.institution_review_notes,
             "submitted_at": item.created_at.strftime("%d %b %Y")
@@ -1040,6 +1084,8 @@ def generate_logbook_report(*, application_id: UUID, actor_id: UUID) -> Artifact
     context = {
         "application_id": str(application_id),
         "student_name": f"{student.user.first_name} {student.user.last_name}" if student else "N/A",
+        "registration_number": _safe_text(getattr(student, "registration_number", None)) if student else "N/A",
+        "department": _safe_text(opportunity.department or getattr(student, "course_of_study", None)) if student else _safe_text(opportunity.department),
         "position": opportunity.title,
         "employer_name": employer_name,
         "institution_name": institution_name,

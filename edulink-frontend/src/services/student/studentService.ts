@@ -1,5 +1,6 @@
 import { apiClient as client } from '../api/client';
 import { internshipService, type InternshipApplication, type InternshipEvidence } from '../internship/internshipService';
+import type { StudentTrustState } from '../trust/trustService';
 
 export interface StudentProfile {
   id: string;
@@ -122,10 +123,8 @@ class StudentService {
       const response = await internshipService.getApplications();
       const applications = Array.isArray(response) ? response : (response as any).results || [];
       
-      // Find most recent active or completed internship
-      const engagement = applications.find((app: any) => 
-        ['ACTIVE', 'COMPLETED', 'CERTIFIED'].includes(app.status)
-      );
+      const engagement = applications.find((app: any) => app.status === 'ACTIVE')
+        || applications.find((app: any) => ['COMPLETED', 'CERTIFIED'].includes(app.status));
       return engagement || null;
     } catch (error) {
       // Rethrow to preserve ApiError types
@@ -135,7 +134,9 @@ class StudentService {
 
   async submitLogbook(applicationId: string, data: { 
     weekStartDate: string; 
-    entries: Record<string, string>; 
+    entries: Record<string, string>;
+    weeklySummary?: string;
+    metadata?: unknown;
     file?: File 
   }): Promise<InternshipEvidence> {
     try {
@@ -147,8 +148,9 @@ class StudentService {
       formData.append('title', title);
       formData.append('description', description);
       formData.append('evidence_type', evidenceType);
-      formData.append('metadata', JSON.stringify({
+      formData.append('metadata', JSON.stringify(data.metadata || {
         week_start_date: data.weekStartDate,
+        weekly_summary: data.weeklySummary || '',
         entries: data.entries
       }));
       if (data.file) {
@@ -163,6 +165,42 @@ class StudentService {
       return response;
     } catch (error) {
       // Rethrow all errors to preserve ApiError status codes
+      throw error;
+    }
+  }
+
+  async resubmitLogbook(applicationId: string, evidenceId: string, data: {
+    weekStartDate: string;
+    entries: Record<string, string>;
+    weeklySummary?: string;
+    metadata?: unknown;
+    file?: File
+  }): Promise<InternshipEvidence> {
+    try {
+      const title = `Weekly Logbook - ${data.weekStartDate}`;
+      const formData = new FormData();
+      formData.append('title', title);
+      formData.append('description', 'Weekly logbook resubmission');
+      formData.append('evidence_type', 'LOGBOOK');
+      formData.append('metadata', JSON.stringify(data.metadata || {
+        week_start_date: data.weekStartDate,
+        weekly_summary: data.weeklySummary || '',
+        entries: data.entries
+      }));
+      if (data.file) {
+        formData.append('file', data.file);
+      }
+
+      return await client.post<InternshipEvidence>(
+        `/api/internships/applications/${applicationId}/resubmit-evidence/${evidenceId}/`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+    } catch (error) {
       throw error;
     }
   }
@@ -226,9 +264,9 @@ class StudentService {
     }
   }
 
-  async getProfileReadiness(studentId: string): Promise<{ score: number; breakdown: Record<string, boolean> }> {
+  async getProfileReadiness(studentId: string): Promise<{ score: number; breakdown: Record<string, boolean>; trust?: StudentTrustState }> {
     try {
-      const response = await client.get<{ score: number; breakdown: Record<string, boolean> }>(`/api/students/${studentId}/profile_readiness/`);
+      const response = await client.get<{ score: number; breakdown: Record<string, boolean>; trust?: StudentTrustState }>(`/api/students/${studentId}/profile_readiness/`);
       return response;
     } catch (error) {
       // Rethrow all errors to preserve ApiError status codes

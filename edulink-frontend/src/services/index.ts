@@ -3,7 +3,9 @@ export { authService } from './auth/authService';
 export { adminAuthService } from './auth/adminAuthService';
 export { institutionService } from './institution/institutionService';
 export { ledgerService } from './ledger/ledgerService';
+export { trustService } from './trust/trustService';
 export * from './errors';
+export * from './trust/trustService';
 
 // Re-export types
 export type { 

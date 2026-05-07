@@ -371,6 +371,14 @@ def invite_supervisor(
     """
     employer = Employer.objects.get(id=employer_id)
     actor = get_user_by_id(user_id=actor_id)
+    from .policies import can_manage_employer
+
+    if not actor or not can_manage_employer(actor, employer):
+        raise AuthorizationError(
+            user_message="Only employer administrators can invite staff.",
+            developer_message=f"User {actor_id} cannot manage employer {employer_id}",
+            context=ErrorContext().with_user_id(actor_id).with_resource("employer", employer_id).build(),
+        )
     
     # Check if user is already a supervisor for this employer
     if Supervisor.objects.filter(employer=employer, user__email=email, is_active=True).exists():
@@ -457,22 +465,38 @@ def activate_supervisor_invite(
     
     # Check if user exists
     user_created = False
+    required_user_role = (
+        User.ROLE_EMPLOYER_ADMIN
+        if invite.role == Supervisor.ROLE_ADMIN
+        else User.ROLE_SUPERVISOR
+    )
     if User.objects.filter(email=invite.email).exists():
         user = User.objects.get(email=invite.email)
+        if user.role != required_user_role:
+            raise ConflictError(
+                user_message="This invite cannot be activated because the email belongs to a different account type.",
+                developer_message=f"Invite role {invite.role} expected user role {required_user_role}, found {user.role}",
+                context=ErrorContext().with_user_id(str(user.id)).with_resource("employer_invite", invite_id).build(),
+            )
+        if Supervisor.objects.filter(user=user, is_active=True).exclude(employer=invite.employer).exists():
+            raise ConflictError(
+                user_message="This account is already attached to another employer workspace.",
+                developer_message=f"User {user.id} already has an active employer staff profile",
+                context=ErrorContext().with_user_id(str(user.id)).with_resource("employer_invite", invite_id).build(),
+            )
+        if Supervisor.objects.filter(user=user, employer=invite.employer, is_active=True).exists():
+            raise ConflictError(
+                user_message="This account is already active in this employer workspace.",
+                developer_message=f"User {user.id} already active for employer {invite.employer_id}",
+                context=ErrorContext().with_user_id(str(user.id)).with_resource("employer_invite", invite_id).build(),
+            )
     else:
-        # Determine user role based on invite role
-        # invite.role comes from Supervisor.ROLE_CHOICES (ADMIN or SUPERVISOR)
-        # We map this to User.ROLE_CHOICES (employer_admin or supervisor)
-        user_role = "supervisor" # Default to supervisor
-        if invite.role == "ADMIN":
-            user_role = "employer_admin"
-            
         user = create_activated_user(
             email=invite.email,
             password=password,
             first_name=first_name,
             last_name=last_name,
-            role=user_role,
+            role=required_user_role,
             phone_number=phone_number,
         )
         user_created = True
@@ -561,12 +585,22 @@ def remove_supervisor(
     Remove a supervisor (soft delete).
     """
     try:
-        supervisor = Supervisor.objects.get(id=supervisor_id)
+        supervisor = Supervisor.objects.select_related("employer", "user").get(id=supervisor_id)
     except Supervisor.DoesNotExist:
         raise NotFoundError(
             user_message="Supervisor not found.",
             developer_message="Supervisor not found in database",
             context=ErrorContext().build(),
+        )
+
+    actor = get_user_by_id(user_id=actor_id)
+    from .policies import can_manage_employer
+
+    if not actor or not can_manage_employer(actor, supervisor.employer):
+        raise AuthorizationError(
+            user_message="Only employer administrators can remove staff.",
+            developer_message=f"User {actor_id} cannot manage employer {supervisor.employer_id}",
+            context=ErrorContext().with_user_id(actor_id).with_resource("supervisor", supervisor_id).build(),
         )
         
     if str(supervisor.user.id) == str(actor_id):

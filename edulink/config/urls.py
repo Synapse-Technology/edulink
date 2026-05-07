@@ -8,6 +8,8 @@ from django.conf.urls.static import static
 from django.http import JsonResponse
 from django.views.static import serve
 from django.urls import re_path
+import os
+from django.conf import settings
 
 def health_check(request):
     return JsonResponse({"status": "healthy"})
@@ -41,5 +43,20 @@ urlpatterns = [
 # Note: In production, it's better to use a dedicated storage provider like Cloudinary or S3
 urlpatterns += [
     re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
+]
+
+# Serve a few legacy root/static assets that some external scripts request
+# These are small placeholders to avoid noisy 404s in the logs. Files live
+# under the edulink/static/ directory in the repository and will be picked
+# up by collectstatic / WhiteNoise in production.
+legacy_static_root = os.path.join(settings.BASE_DIR, 'edulink', 'static')
+
+urlpatterns += [
+    re_path(r'^robots.txt$', serve, {'path': 'robots.txt', 'document_root': legacy_static_root}),
+    re_path(r'^js/(?P<path>.*)$', serve, {'document_root': legacy_static_root}),
+    re_path(r'^assets/(?P<path>.*)$', serve, {'document_root': legacy_static_root}),
+    re_path(r'^bot-connect.js$', serve, {'path': 'bot-connect.js', 'document_root': legacy_static_root}),
+    re_path(r'^css/(?P<path>.*)$', serve, {'document_root': legacy_static_root}),
+    re_path(r'^static/(?P<path>.*)$', serve, {'document_root': legacy_static_root}),
 ]
 

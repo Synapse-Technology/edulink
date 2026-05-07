@@ -301,6 +301,8 @@ def get_student_dashboard_stats(*, student_id: str) -> dict:
 
     internship_stats = get_student_internship_dashboard_stats(student_id=student_id)
     readiness = calculate_profile_readiness(student_id=student_id)
+    from edulink.apps.trust.queries import calculate_student_trust_state
+    trust_state = calculate_student_trust_state(student_id=student_id)
     score = readiness.get("score", 0)
 
     profile_stats = {
@@ -311,6 +313,7 @@ def get_student_dashboard_stats(*, student_id: str) -> dict:
 
     combined = dict(internship_stats)
     combined["profile"] = profile_stats
+    combined["trust"] = trust_state
     return combined
 
 

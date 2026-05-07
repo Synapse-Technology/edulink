@@ -6,7 +6,7 @@ from django.db.models import QuerySet, Q, Count
 from django.conf import settings
 from edulink.apps.institutions.queries import get_institution_for_user, get_institution_staff_id_for_user
 from edulink.apps.employers.queries import get_employer_for_user, get_supervisor_id_for_user
-from edulink.apps.students.queries import get_student_for_user, get_total_students_count
+from edulink.apps.students.queries import get_student_for_user, get_total_students_count, get_affiliated_student_ids
 from .models import (
     InternshipOpportunity,
     InternshipApplication,
@@ -164,6 +164,29 @@ def get_applications_for_user(user) -> QuerySet[InternshipApplication]:
         return queryset.filter(filters)
 
     return InternshipApplication.objects.none()
+
+
+def get_certification_applications_for_institution_user(user) -> QuerySet[InternshipApplication]:
+    """
+    Returns completed/certified placements an institution admin can certify or audit.
+
+    This intentionally differs from the institution application workflow feed:
+    certification is based on affiliated student outcomes, including employer
+    sourced and student-declared external placements.
+    """
+    queryset = InternshipApplication.objects.select_related('opportunity').order_by('-updated_at', '-id')
+    if not user.is_authenticated or not user.is_institution_admin:
+        return InternshipApplication.objects.none()
+
+    institution = get_institution_for_user(str(user.id))
+    if not institution:
+        return InternshipApplication.objects.none()
+
+    affiliated_student_ids = get_affiliated_student_ids(str(institution.id))
+    return queryset.filter(
+        student_id__in=affiliated_student_ids,
+        status__in=[ApplicationStatus.COMPLETED, ApplicationStatus.CERTIFIED],
+    )
 
 def get_opportunity_by_id(opportunity_id: UUID) -> Optional[InternshipOpportunity]:
     try:
@@ -521,6 +544,38 @@ def calculate_trend(current_count: int, previous_count: int) -> float:
         return 100.0 if current_count > 0 else 0.0
     return round(((current_count - previous_count) / previous_count) * 100, 1)
 
+
+def _parse_analytics_date_range(date_from: str = None, date_to: str = None) -> tuple:
+    now = timezone.now()
+    default_from = now - timedelta(days=30)
+
+    if date_from:
+        try:
+            date_from_obj = timezone.make_aware(timezone.datetime.strptime(date_from, '%Y-%m-%d'))
+        except ValueError:
+            date_from_obj = default_from
+    else:
+        date_from_obj = default_from
+
+    if date_to:
+        try:
+            date_to_obj = timezone.make_aware(
+                timezone.datetime.strptime(date_to, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
+            )
+        except ValueError:
+            date_to_obj = now
+    else:
+        date_to_obj = now
+
+    if date_to_obj < date_from_obj:
+        date_from_obj, date_to_obj = date_to_obj, date_from_obj
+
+    return date_from_obj, date_to_obj
+
+
+def _filter_applications_by_date_range(queryset, date_from_obj, date_to_obj):
+    return queryset.filter(created_at__gte=date_from_obj, created_at__lte=date_to_obj)
+
 def get_supervisor_for_student(student_id: UUID) -> Optional[dict]:
     """
     Returns the assigned institution supervisor for a student's active or recent internship.
@@ -559,27 +614,7 @@ def get_institution_placement_stats(
         date_to: Optional end date (YYYY-MM-DD format)
     """
     from edulink.apps.students.queries import get_affiliated_student_ids, get_student_department_map
-    from datetime import date as dateclass
-    
-    now = timezone.now()
-    
-    # Parse date range if provided
-    if date_from:
-        try:
-            date_from_obj = timezone.make_aware(timezone.datetime.strptime(date_from, '%Y-%m-%d'))
-        except:
-            date_from_obj = None
-    else:
-        date_from_obj = now - timedelta(days=30)
-    
-    if date_to:
-        try:
-            # Set to end of day
-            date_to_obj = timezone.make_aware(timezone.datetime.strptime(date_to, '%Y-%m-%d').replace(hour=23, minute=59, second=59))
-        except:
-            date_to_obj = now
-    else:
-        date_to_obj = now
+    date_from_obj, date_to_obj = _parse_analytics_date_range(date_from, date_to)
     
     # Calculate trend period (compare with the same duration before date_from)
     date_range_days = (date_to_obj - date_from_obj).days
@@ -593,14 +628,36 @@ def get_institution_placement_stats(
         department_id=department_id,
         cohort_id=cohort_id,
     )
-    all_placements = InternshipApplication.objects.filter(
+    all_placements_lifetime = InternshipApplication.objects.filter(
         student_id__in=affiliated_student_ids,
         status__in=PLACEMENT_STATUSES,
+    )
+    all_placements = _filter_applications_by_date_range(
+        all_placements_lifetime,
+        date_from_obj,
+        date_to_obj,
     )
     
     # Management-specific apps (only those hosted by the institution)
     # This is what the admin actually manages in the "Applications" page
-    institutional_apps = InternshipApplication.objects.filter(opportunity__institution_id=institution_id)
+    institutional_apps_lifetime = InternshipApplication.objects.filter(
+        opportunity__institution_id=institution_id,
+    ).exclude(opportunity__origin=InternshipOpportunity.ORIGIN_EXTERNAL_STUDENT_DECLARED)
+    institutional_apps = _filter_applications_by_date_range(
+        institutional_apps_lifetime,
+        date_from_obj,
+        date_to_obj,
+    )
+
+    external_declared_placements = all_placements.filter(
+        opportunity__origin=InternshipOpportunity.ORIGIN_EXTERNAL_STUDENT_DECLARED
+    )
+    managed_placements = all_placements.filter(
+        opportunity__institution_id=institution_id,
+    ).exclude(opportunity__origin=InternshipOpportunity.ORIGIN_EXTERNAL_STUDENT_DECLARED)
+    employer_sourced_placements = all_placements.exclude(
+        opportunity__institution_id=institution_id
+    ).exclude(opportunity__origin=InternshipOpportunity.ORIGIN_EXTERNAL_STUDENT_DECLARED)
     
     total_placements_count = all_placements.count()
     total_students = (
@@ -673,8 +730,8 @@ def get_institution_placement_stats(
     
     cohort_map = {}
     for aff in affiliations:
-        cohort_id = aff['cohort_id'] or "Unassigned"
-        cohort_id_str = str(cohort_id) if cohort_id != "Unassigned" else "Unassigned"
+        aff_cohort_id = aff['cohort_id'] or "Unassigned"
+        cohort_id_str = str(aff_cohort_id) if aff_cohort_id != "Unassigned" else "Unassigned"
         cohort_name = cohort_names_map.get(cohort_id_str, "Unassigned") if cohort_id_str != "Unassigned" else "Unassigned"
         
         if cohort_id_str not in cohort_map:
@@ -713,8 +770,8 @@ def get_institution_placement_stats(
     unresolved_incidents = Incident.objects.filter(application__in=all_placements, status=Incident.STATUS_OPEN).count()
 
     # 5. Trends
-    total_current = all_placements.filter(created_at__gte=date_from_obj, created_at__lte=date_to_obj).count()
-    total_previous = all_placements.filter(created_at__gte=prev_from, created_at__lt=prev_to).count()
+    total_current = all_placements.count()
+    total_previous = all_placements_lifetime.filter(created_at__gte=prev_from, created_at__lt=prev_to).count()
     total_trend = calculate_trend(total_current, total_previous)
 
     # Calculate real audit readiness score
@@ -734,6 +791,17 @@ def get_institution_placement_stats(
             "total_trend": total_trend,
         },
         "funnel": funnel,
+        "source_breakdown": {
+            "managed_edulink": managed_placements.values_list('student_id', flat=True).distinct().count(),
+            "external_declared": external_declared_placements.values_list('student_id', flat=True).distinct().count(),
+            "employer_sourced": employer_sourced_placements.values_list('student_id', flat=True).distinct().count(),
+            "managed_applications": institutional_apps.count(),
+            "external_declarations": external_declared_placements.count(),
+        },
+        "date_range": {
+            "from": date_from_obj.date().isoformat(),
+            "to": date_to_obj.date().isoformat(),
+        },
         "departments": list(dept_map.values()),
         "cohorts": list(cohort_map.values()),
         "quality_control": {
@@ -749,20 +817,28 @@ def get_export_data(
     institution_id: str,
     department_id: str = None,
     cohort_id: str = None,
+    date_from: str = None,
+    date_to: str = None,
 ) -> QuerySet[InternshipApplication]:
     """
     Returns full data for export.
     """
-    return get_active_placements_for_institution(
+    qs = get_active_placements_for_institution(
         institution_id,
         department_id=department_id,
         cohort_id=cohort_id,
     ).select_related('opportunity')
+    if date_from or date_to:
+        date_from_obj, date_to_obj = _parse_analytics_date_range(date_from, date_to)
+        qs = _filter_applications_by_date_range(qs, date_from_obj, date_to_obj)
+    return qs
 
 def get_time_to_placement_stats(
     institution_id: str,
     department_id: str = None,
     cohort_id: str = None,
+    date_from: str = None,
+    date_to: str = None,
 ) -> dict:
     """
     Calculate real time-to-placement metrics for an institution.
@@ -799,6 +875,10 @@ def get_time_to_placement_stats(
         status__in=PLACEMENT_STATUSES,
         opportunity__start_date__isnull=False,  # Only include if start_date is set
     ).select_related('opportunity')
+
+    if date_from or date_to:
+        date_from_obj, date_to_obj = _parse_analytics_date_range(date_from, date_to)
+        placements = _filter_applications_by_date_range(placements, date_from_obj, date_to_obj)
     
     if not placements.exists():
         # Return defaults if no placements yet

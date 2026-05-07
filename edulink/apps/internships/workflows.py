@@ -2,6 +2,7 @@ from django.db import transaction
 from typing import Dict, Any
 from edulink.apps.ledger.services import record_event
 from .models import InternshipOpportunity, InternshipApplication, OpportunityStatus, ApplicationStatus, InternshipEvidence, Incident, SupervisorAssignment
+from .logbook_format import get_logbook_week_start, get_required_week_start_dates
 from .policies import can_transition_opportunity, can_transition_application
 
 class OpportunityWorkflow:
@@ -109,6 +110,26 @@ class ApplicationWorkflow:
             ]
             if application.evidence.filter(status__in=pending_statuses).exists():
                  raise ValueError("Internship cannot be completed with pending evidence reviews.")
+
+            required_weeks = get_required_week_start_dates(
+                application.opportunity.start_date,
+                application.opportunity.end_date,
+            )
+            if required_weeks:
+                accepted_weeks = {
+                    week_start
+                    for week_start in (
+                        get_logbook_week_start(evidence.metadata)
+                        for evidence in application.evidence.filter(
+                            evidence_type=InternshipEvidence.TYPE_LOGBOOK,
+                            status=InternshipEvidence.STATUS_ACCEPTED,
+                        )
+                    )
+                    if week_start
+                }
+                missing_weeks = [week for week in required_weeks if week not in accepted_weeks]
+                if missing_weeks:
+                    raise ValueError("Internship cannot be completed until every attachment week has an accepted logbook.")
 
             open_incident_statuses = [
                 Incident.STATUS_OPEN,

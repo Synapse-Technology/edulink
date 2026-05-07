@@ -261,8 +261,11 @@ def get_user_trust_info(user):
             Student = apps.get_model('students', 'Student')
             profile = Student.objects.filter(user=user).first()
             if profile:
-                info["trustLevel"] = profile.trust_level
-                info["trustPoints"] = profile.trust_points
+                from edulink.apps.trust.services import compute_student_trust_tier
+
+                trust_info = compute_student_trust_tier(student_id=str(profile.id))
+                info["trustLevel"] = trust_info["tier_level"]
+                info["trustPoints"] = trust_info["score"]
         elif user.role in ['employer', 'employer_admin', 'supervisor']:
             Supervisor = apps.get_model('employers', 'Supervisor')
             supervisor = Supervisor.objects.filter(user=user, is_active=True).first()

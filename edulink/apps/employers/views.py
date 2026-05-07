@@ -6,6 +6,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.conf import settings
 from django_filters.rest_framework import DjangoFilterBackend
+from edulink.apps.shared.error_handling import AuthorizationError
 
 from .models import EmployerRequest, Employer, Supervisor
 from .serializers import (
@@ -263,6 +264,8 @@ class EmployerSupervisorViewSet(viewsets.ModelViewSet):
         employer = get_employer_for_user(request.user.id)
         if not employer:
             return Response({"detail": "No employer found for this user."}, status=status.HTTP_404_NOT_FOUND)
+        if not can_manage_employer(request.user, employer):
+            return Response({"detail": "Only employer administrators can invite staff."}, status=status.HTTP_403_FORBIDDEN)
             
         serializer = EmployerSupervisorInviteSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -283,6 +286,8 @@ class EmployerSupervisorViewSet(viewsets.ModelViewSet):
         try:
             remove_supervisor(supervisor_id=kwargs['pk'], actor_id=str(request.user.id))
             return Response(status=status.HTTP_204_NO_CONTENT)
+        except AuthorizationError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_403_FORBIDDEN)
         except ValueError as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 

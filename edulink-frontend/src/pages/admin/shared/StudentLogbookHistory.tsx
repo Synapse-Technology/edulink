@@ -44,7 +44,7 @@ const StudentLogbookHistory: React.FC = () => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   // Determine user role for private notes
-  const isEmployerSupervisor = (user?.id === application?.employer_supervisor_details?.user_id) || (user?.id === application?.employer_supervisor_id) || user?.role === 'employer_admin' || user?.role === 'employer';
+  const isEmployerSupervisor = (user?.id === application?.employer_supervisor_details?.user_id) || (user?.id === application?.employer_supervisor_id) || user?.role === 'employer_admin';
   
   // Read-only mode if application is COMPLETED or CERTIFIED
   const isReadOnly = application?.status === 'COMPLETED' || application?.status === 'CERTIFIED' || application?.status === 'TERMINATED';
@@ -94,15 +94,15 @@ const StudentLogbookHistory: React.FC = () => {
     setShowReviewModal(true);
   };
 
-  const handleReviewSubmit = async () => {
-    if (!selectedEvidence || !reviewAction || !applicationId) return;
+  const handleReviewSubmit = async (action: 'ACCEPTED' | 'REJECTED' | 'REVISION_REQUIRED' | null = reviewAction) => {
+    if (!selectedEvidence || !action || !applicationId) return;
 
     try {
       setSubmitting(true);
       await internshipService.reviewEvidence(
         applicationId,
         selectedEvidence.id,
-        reviewAction,
+        action,
         reviewNotes,
         privateNotes
       );
@@ -401,7 +401,7 @@ const StudentLogbookHistory: React.FC = () => {
           <div className="d-flex gap-2">
             <Button 
               variant="outline-danger" 
-              onClick={() => { setReviewAction('REJECTED'); handleReviewSubmit(); }}
+              onClick={() => handleReviewSubmit('REJECTED')}
               disabled={submitting}
               className="px-3 rounded-3 small d-flex align-items-center gap-2"
             >
@@ -409,7 +409,7 @@ const StudentLogbookHistory: React.FC = () => {
             </Button>
             <Button 
               variant="outline-info" 
-              onClick={() => { setReviewAction('REVISION_REQUIRED'); handleReviewSubmit(); }}
+              onClick={() => handleReviewSubmit('REVISION_REQUIRED')}
               disabled={submitting}
               className="px-3 rounded-3 small d-flex align-items-center gap-2"
             >
@@ -417,7 +417,7 @@ const StudentLogbookHistory: React.FC = () => {
             </Button>
             <Button 
               variant="success" 
-              onClick={() => { setReviewAction('ACCEPTED'); handleReviewSubmit(); }}
+              onClick={() => handleReviewSubmit('ACCEPTED')}
               disabled={submitting}
               className="px-4 rounded-3 small text-white d-flex align-items-center gap-2"
             >

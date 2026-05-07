@@ -49,10 +49,17 @@ const ReportsAnalytics: React.FC = () => {
         fetchData(dateFrom || undefined, dateTo || undefined);
     };
 
+    const buildDateFilters = () => {
+        const filters: any = {};
+        if (dateFrom) filters.date_from = dateFrom;
+        if (dateTo) filters.date_to = dateTo;
+        return filters;
+    };
+
     const handleExport = async () => {
         setExporting(true);
         try {
-            const blob = await institutionService.exportReport();
+            const blob = await institutionService.exportReport(buildDateFilters());
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -76,6 +83,7 @@ const ReportsAnalytics: React.FC = () => {
     const summary = placementStats?.summary;
     const funnel = placementStats?.funnel;
     const quality = placementStats?.quality_control;
+    const sources = placementStats?.source_breakdown;
 
     return (
         <div className="p-4 bg-light min-vh-100">
@@ -181,6 +189,30 @@ const ReportsAnalytics: React.FC = () => {
                                 <h2 className="display-6 fw-bold mb-1">{stat.value}</h2>
                                 <p className="text-muted small mb-0 fw-medium">{stat.title}</p>
                                 <div className="mt-2 text-muted small">{stat.sub}</div>
+                            </Card.Body>
+                        </Card>
+                    </Col>
+                ))}
+            </Row>
+
+            <Row className="mb-4 g-4">
+                {[
+                    { title: "EduLink Managed", value: sources?.managed_edulink || 0, sub: `${sources?.managed_applications || 0} institution-run applications`, icon: Shield, color: "primary" },
+                    { title: "Employer Sourced", value: sources?.employer_sourced || 0, sub: "Affiliated students placed through employer opportunities", icon: Users, color: "success" },
+                    { title: "External Declared", value: sources?.external_declared || 0, sub: `${sources?.external_declarations || 0} approved outside placements`, icon: Activity, color: "warning" },
+                ].map((stat, idx) => (
+                    <Col key={idx} lg={4} md={6}>
+                        <Card className="border-0 shadow-sm rounded-4 h-100">
+                            <Card.Body className="p-4">
+                                <div className="d-flex align-items-center justify-content-between mb-3">
+                                    <div className={`bg-${stat.color} bg-opacity-10 p-3 rounded-3`}>
+                                        <stat.icon className={`text-${stat.color}`} size={22} />
+                                    </div>
+                                    <Badge bg="light" className="text-muted border">Source</Badge>
+                                </div>
+                                <h3 className="fw-bold mb-1">{stat.value}</h3>
+                                <p className="text-muted small mb-1 fw-medium">{stat.title}</p>
+                                <div className="text-muted small">{stat.sub}</div>
                             </Card.Body>
                         </Card>
                     </Col>

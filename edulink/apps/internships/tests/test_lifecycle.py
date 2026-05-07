@@ -1,5 +1,6 @@
 
 import pytest
+import json
 from uuid import uuid4
 from django.urls import reverse
 from rest_framework import status
@@ -44,16 +45,24 @@ def employer_supervisor(employer_admin):
     return user, emp
 
 @pytest.fixture
+def institution_assessor(institution_admin):
+    _, inst = institution_admin
+    user = User.objects.create_user(username="inst_assessor", email="inst.assessor@test.com", password="password", role=User.ROLE_SUPERVISOR)
+    staff = InstitutionStaff.objects.create(institution=inst, user=user, role=InstitutionStaff.ROLE_SUPERVISOR, is_active=True)
+    return user, staff
+
+@pytest.fixture
 def student():
     user = User.objects.create_user(username="student_user", email="student@test.com", password="password", role=User.ROLE_STUDENT, first_name="John", last_name="Doe")
     Student.objects.create(user_id=user.id, email=user.email)
     return user
 
 @pytest.mark.django_db
-def test_internship_lifecycle(api_client, institution_admin, employer_admin, employer_supervisor, student):
+def test_internship_lifecycle(api_client, institution_admin, employer_admin, employer_supervisor, institution_assessor, student):
     inst_user, inst = institution_admin
     emp_user, emp = employer_admin
     sup_user, _ = employer_supervisor
+    assessor_user, assessor_staff = institution_assessor
     client = api_client
     
     # 1. Employer Admin creates Opportunity
@@ -65,7 +74,9 @@ def test_internship_lifecycle(api_client, institution_admin, employer_admin, emp
         "capacity": 5,
         "location_type": Internship.LOCATION_REMOTE,
         "employer_id": str(emp.id),
-        "institution_id": str(inst.id) # Targeted opportunity
+        "institution_id": str(inst.id), # Targeted opportunity
+        "start_date": "2026-05-04",
+        "end_date": "2026-05-08",
     }
     
     # Using service directly or API? API is better to test integration.
@@ -110,7 +121,12 @@ def test_internship_lifecycle(api_client, institution_admin, employer_admin, emp
     url_assign = reverse('application-assign-supervisor', args=[app_id])
     response = client.post(url_assign, {'supervisor_id': str(sup_user.id), 'type': 'employer'}, format='json')
     assert response.status_code == status.HTTP_200_OK
-    assert response.data['employer_supervisor_id'] == str(sup_user.id)
+    assert response.data['employer_supervisor_id'] == str(Supervisor.objects.get(user=sup_user).id)
+
+    client.force_authenticate(user=inst_user)
+    response = client.post(url_assign, {'supervisor_id': str(assessor_user.id), 'type': 'institution'}, format='json')
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data['institution_supervisor_id'] == str(assessor_staff.id)
     
     # 7. Start Internship (ACCEPTED -> ACTIVE)
     client.force_authenticate(user=emp_user)
@@ -129,7 +145,11 @@ def test_internship_lifecycle(api_client, institution_admin, employer_admin, emp
     response = client.post(url_submit, {
         'title': 'Week 1 Log',
         'file': file,
-        'evidence_type': 'LOGBOOK'
+        'evidence_type': 'LOGBOOK',
+        'metadata': json.dumps({
+            "week_start_date": "2026-05-04",
+            "entries": {"2026-05-04": "Wrote code"}
+        }),
     }, format='multipart')
     assert response.status_code == status.HTTP_201_CREATED
     evidence_id = response.data['id']
@@ -198,6 +218,13 @@ def test_internship_lifecycle(api_client, institution_admin, employer_admin, emp
     client.force_authenticate(user=sup_user)
     response = client.post(url_feedback, {
         'feedback': 'Strong performance throughout the placement.',
+        'rating': 5
+    }, format='json')
+    assert response.status_code == status.HTTP_200_OK
+
+    client.force_authenticate(user=assessor_user)
+    response = client.post(url_feedback, {
+        'feedback': 'Academic attachment requirements were met.',
         'rating': 5
     }, format='json')
     assert response.status_code == status.HTTP_200_OK

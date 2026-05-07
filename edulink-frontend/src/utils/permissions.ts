@@ -12,6 +12,11 @@
  */
 
 import type { User } from '../types';
+import {
+  isEmployerSupervisor as hasEmployerSupervisorPortal,
+  isInstitutionAssessor as hasInstitutionAssessorPortal,
+  isSupervisor as hasSupervisorRole,
+} from './roleAccess';
 
 /**
  * Admin User Type (from AdminAuthContext)
@@ -119,11 +124,11 @@ export const canManageOpportunityPublication = (
  * Employers and employer admins
  */
 export const canViewEmployerDashboard = (user: User | null): boolean => {
-  return user !== null && ['employer', 'employer_admin'].includes(user?.role);
+  return user !== null && user.role === 'employer_admin';
 };
 
 export const canViewEmployerSupervisorDashboard = (user: User | null): boolean => {
-  return user?.role === 'supervisor' && Boolean(user.employer_id);
+  return hasEmployerSupervisorPortal(user);
 };
 
 /**
@@ -135,7 +140,7 @@ export const canViewInstitutionDashboard = (user: User | null): boolean => {
 };
 
 export const canViewInstitutionAssessorDashboard = (user: User | null): boolean => {
-  return user?.role === 'supervisor' && Boolean(user.institution_id);
+  return hasInstitutionAssessorPortal(user);
 };
 
 /**
@@ -189,15 +194,15 @@ export const canAssignSupervisors = (user: User | null): boolean => {
  * Check if user is a supervisor (can evaluate internships)
  */
 export const isSupervisor = (user: User | null): boolean => {
-  return user?.role === 'supervisor';
+  return hasSupervisorRole(user);
 };
 
 export const isEmployerSupervisor = (user: User | null): boolean => {
-  return user?.role === 'supervisor' && Boolean(user.employer_id);
+  return hasEmployerSupervisorPortal(user);
 };
 
 export const isInstitutionAssessor = (user: User | null): boolean => {
-  return user?.role === 'supervisor' && Boolean(user.institution_id);
+  return hasInstitutionAssessorPortal(user);
 };
 
 // ============================================================================

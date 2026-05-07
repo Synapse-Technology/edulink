@@ -141,6 +141,14 @@ class InternshipApplication(BaseModel):
     # Final Feedback (Authored by supervisors upon completion)
     final_feedback = models.TextField(blank=True, help_text="Authoritative feedback from supervisor(s)")
     final_rating = models.PositiveIntegerField(null=True, blank=True, help_text="Numeric rating (1-5)")
+    employer_final_feedback = models.TextField(blank=True, help_text="Final assessment from employer supervisor")
+    employer_final_rating = models.PositiveIntegerField(null=True, blank=True, help_text="Employer supervisor rating (1-5)")
+    employer_final_feedback_by = models.UUIDField(null=True, blank=True)
+    employer_final_feedback_at = models.DateTimeField(null=True, blank=True)
+    institution_final_feedback = models.TextField(blank=True, help_text="Final assessment from institution assessor")
+    institution_final_rating = models.PositiveIntegerField(null=True, blank=True, help_text="Institution assessor rating (1-5)")
+    institution_final_feedback_by = models.UUIDField(null=True, blank=True)
+    institution_final_feedback_at = models.DateTimeField(null=True, blank=True)
     
     # Withdrawal metadata
     withdrawn_at = models.DateTimeField(null=True, blank=True, help_text="When student withdrew")

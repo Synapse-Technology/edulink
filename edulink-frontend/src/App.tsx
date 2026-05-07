@@ -115,7 +115,7 @@ const AdminRoute = ({ children }: { children: ReactNode }) => (
 );
 
 const EmployerAdminRoute = ({ children }: { children: ReactNode }) => (
-  <ProtectedRoute role={['employer', 'employer_admin']}>
+  <ProtectedRoute role="employer_admin" portal="employer">
     {children}
   </ProtectedRoute>
 );
@@ -330,7 +330,7 @@ function App() {
                     <Route
                       index
                       element={
-                        <ProtectedRoute>
+                        <ProtectedRoute role="student">
                           <StudentDashboard />
                         </ProtectedRoute>
                       }
@@ -338,7 +338,7 @@ function App() {
                     <Route
                       path="applications"
                       element={
-                        <ProtectedRoute>
+                        <ProtectedRoute role="student">
                           <StudentApplications />
                         </ProtectedRoute>
                       }
@@ -346,7 +346,7 @@ function App() {
                     <Route
                       path="applications/:id"
                       element={
-                        <ProtectedRoute>
+                        <ProtectedRoute role="student">
                           <StudentApplicationDetail />
                         </ProtectedRoute>
                       }
@@ -354,7 +354,7 @@ function App() {
                     <Route
                       path="internship"
                       element={
-                        <ProtectedRoute>
+                        <ProtectedRoute role="student">
                           <StudentInternship />
                         </ProtectedRoute>
                       }
@@ -370,7 +370,7 @@ function App() {
                     <Route
                       path="logbook"
                       element={
-                        <ProtectedRoute>
+                        <ProtectedRoute role="student">
                           <StudentLogbook />
                         </ProtectedRoute>
                       }
@@ -378,7 +378,7 @@ function App() {
                     <Route
                       path="logbook/:evidenceId"
                       element={
-                        <ProtectedRoute>
+                        <ProtectedRoute role="student">
                           <StudentLogbookDetail />
                         </ProtectedRoute>
                       }
@@ -386,7 +386,7 @@ function App() {
                     <Route
                       path="artifacts"
                       element={
-                        <ProtectedRoute>
+                        <ProtectedRoute role="student">
                           <StudentArtifacts />
                         </ProtectedRoute>
                       }
@@ -394,7 +394,7 @@ function App() {
                     <Route
                       path="notifications"
                       element={
-                        <ProtectedRoute>
+                        <ProtectedRoute role="student">
                           <StudentNotifications />
                         </ProtectedRoute>
                       }
@@ -402,7 +402,7 @@ function App() {
                     <Route
                       path="profile"
                       element={
-                        <ProtectedRoute>
+                        <ProtectedRoute role="student">
                           <StudentProfile />
                         </ProtectedRoute>
                       }
@@ -410,7 +410,7 @@ function App() {
                     <Route
                       path="affiliation"
                       element={
-                        <ProtectedRoute>
+                        <ProtectedRoute role="student">
                           <StudentAffiliation />
                         </ProtectedRoute>
                       }
@@ -442,7 +442,7 @@ function App() {
             <Route
               path="/institution/dashboard"
               element={
-                <ProtectedRoute role={['institution', 'institution_admin']}>
+                <ProtectedRoute role="institution_admin" portal="institution">
                   <InstitutionDashboard />
                 </ProtectedRoute>
               }
@@ -450,7 +450,7 @@ function App() {
             <Route
               path="/institution/dashboard/reports"
               element={
-                <ProtectedRoute role={['institution', 'institution_admin']}>
+                <ProtectedRoute role="institution_admin" portal="institution">
                   <InstitutionLayout>
                     <ReportsAnalytics />
                   </InstitutionLayout>
@@ -460,7 +460,7 @@ function App() {
             <Route
               path="/institution/dashboard/students"
               element={
-                <ProtectedRoute role={['institution', 'institution_admin']}>
+                <ProtectedRoute role="institution_admin" portal="institution">
                   <InstitutionLayout>
                     <InstitutionStudents />
                   </InstitutionLayout>
@@ -470,7 +470,7 @@ function App() {
             <Route
               path="/institution/dashboard/staff"
               element={
-                <ProtectedRoute role={['institution', 'institution_admin']}>
+                <ProtectedRoute role="institution_admin" portal="institution">
                   <InstitutionLayout>
                     <InstitutionStaff />
                   </InstitutionLayout>
@@ -480,7 +480,7 @@ function App() {
             <Route
               path="/institution/dashboard/academic"
               element={
-                <ProtectedRoute role={['institution', 'institution_admin']}>
+                <ProtectedRoute role="institution_admin" portal="institution">
                   <InstitutionLayout>
                     <AcademicStructure />
                   </InstitutionLayout>
@@ -490,7 +490,7 @@ function App() {
             <Route
               path="/institution/dashboard/internships"
               element={
-                <ProtectedRoute role={['institution', 'institution_admin']}>
+                <ProtectedRoute role="institution_admin" portal="institution">
                   <InstitutionLayout>
                     <InstitutionInternships />
                   </InstitutionLayout>
@@ -500,7 +500,7 @@ function App() {
             <Route
               path="/institution/dashboard/external-placements"
               element={
-                <ProtectedRoute role={['institution', 'institution_admin']}>
+                <ProtectedRoute role="institution_admin" portal="institution">
                   <ExternalPlacements />
                 </ProtectedRoute>
               }
@@ -508,7 +508,7 @@ function App() {
             <Route
               path="/institution/dashboard/applications"
               element={
-                <ProtectedRoute role={['institution', 'institution_admin']}>
+                <ProtectedRoute role="institution_admin" portal="institution">
                   <InstitutionLayout>
                     <InstitutionApplications />
                   </InstitutionLayout>
@@ -518,7 +518,7 @@ function App() {
             <Route
               path="/institution/dashboard/certifications"
               element={
-                <ProtectedRoute role={['institution', 'institution_admin']}>
+                <ProtectedRoute role="institution_admin" portal="institution">
                   <InstitutionLayout>
                     <InstitutionCertifications />
                   </InstitutionLayout>
@@ -528,7 +528,7 @@ function App() {
             <Route
               path="/institution/dashboard/verification"
               element={
-                <ProtectedRoute role={['institution', 'institution_admin']}>
+                <ProtectedRoute role="institution_admin" portal="institution">
                   <InstitutionLayout>
                     <StudentVerification />
                   </InstitutionLayout>
@@ -538,7 +538,7 @@ function App() {
             <Route
               path="/institution/dashboard/incidents"
               element={
-                <ProtectedRoute role={['institution', 'institution_admin']}>
+                <ProtectedRoute role="institution_admin" portal="institution">
                   <InstitutionLayout>
                     <InstitutionIncidentsManagement />
                   </InstitutionLayout>
@@ -548,7 +548,7 @@ function App() {
             <Route
               path="/institution/dashboard/settings"
               element={
-                <ProtectedRoute role={['institution', 'institution_admin']}>
+                <ProtectedRoute role="institution_admin" portal="institution">
                   <InstitutionLayout>
                     <InstitutionSettings />
                   </InstitutionLayout>

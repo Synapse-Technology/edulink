@@ -116,9 +116,9 @@ export function formatCountdownMessage(rateLimitInfo: RateLimitInfo): string {
 export function getTierUpgradeMessage(currentTrustLevel: number): string {
   switch (currentTrustLevel) {
     case 0:
-      return 'Complete your profile and get verified to increase to 5 applications per month (Trust Level 1).';
+      return 'Upload your required documents to increase to 5 applications per month.';
     case 1:
-      return 'Continue building your profile history. Level 2 offers unlimited applications.';
+      return 'Get your institution affiliation approved. Institution Verified students get expanded application access.';
     default:
       return '';
   }

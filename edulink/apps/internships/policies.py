@@ -6,6 +6,11 @@ from edulink.apps.students.queries import get_student_for_user, get_student_appr
 from edulink.apps.employers.policies import can_post_internship as employer_can_post
 from edulink.apps.employers.queries import get_employer_by_id, get_employer_for_user, get_employer_supervisor_by_user
 from .models import InternshipOpportunity, InternshipApplication, OpportunityStatus, ApplicationStatus, ExternalPlacementDeclaration
+from .roles import (
+    is_assigned_employer_supervisor,
+    is_assigned_institution_supervisor,
+    is_assigned_supervisor,
+)
 
 def get_actor_institution_id(actor) -> Optional[UUID]:
     """Helper to get institution ID for an admin user."""
@@ -86,15 +91,11 @@ def can_view_application(actor, application: InternshipApplication) -> bool:
             return True
             
     # Supervisors
-    if application.institution_supervisor_id:
-        staff = get_institution_staff_profile(str(actor.id))
-        if staff and (str(application.institution_supervisor_id) == str(staff.id) or str(application.institution_supervisor_id) == str(actor.id)):
-            return True
+    if is_assigned_institution_supervisor(actor, application):
+        return True
             
-    if application.employer_supervisor_id and opportunity.employer_id:
-        supervisor = get_employer_supervisor_by_user(user_id=actor.id, employer_id=opportunity.employer_id)
-        if supervisor and (str(application.employer_supervisor_id) == str(supervisor.id) or str(application.employer_supervisor_id) == str(actor.id)):
-            return True
+    if is_assigned_employer_supervisor(actor, application):
+        return True
         
     return False
 
@@ -120,17 +121,11 @@ def can_review_evidence(actor, application: InternshipApplication) -> bool:
         return False
         
     # Check if assigned supervisor
-    if application.employer_supervisor_id:
-        opportunity = application.opportunity
-        if opportunity.employer_id:
-            supervisor = get_employer_supervisor_by_user(user_id=actor.id, employer_id=opportunity.employer_id)
-            if supervisor and (str(application.employer_supervisor_id) == str(supervisor.id) or str(application.employer_supervisor_id) == str(actor.id)):
-                return True
+    if is_assigned_employer_supervisor(actor, application):
+        return True
 
-    if application.institution_supervisor_id:
-        staff = get_institution_staff_profile(str(actor.id))
-        if staff and (str(application.institution_supervisor_id) == str(staff.id) or str(application.institution_supervisor_id) == str(actor.id)):
-            return True
+    if is_assigned_institution_supervisor(actor, application):
+        return True
         
     # Institution Admins should also be able to review
     opportunity = application.opportunity
@@ -158,17 +153,11 @@ def can_flag_misconduct(actor, application: InternshipApplication) -> bool:
         return False
         
     # Check if assigned supervisor
-    if application.employer_supervisor_id:
-        opportunity = application.opportunity
-        if opportunity.employer_id:
-            supervisor = get_employer_supervisor_by_user(user_id=actor.id, employer_id=opportunity.employer_id)
-            if supervisor and (str(application.employer_supervisor_id) == str(supervisor.id) or str(application.employer_supervisor_id) == str(actor.id)):
-                return True
+    if is_assigned_employer_supervisor(actor, application):
+        return True
 
-    if application.institution_supervisor_id:
-        staff = get_institution_staff_profile(str(actor.id))
-        if staff and (str(application.institution_supervisor_id) == str(staff.id) or str(application.institution_supervisor_id) == str(actor.id)):
-            return True
+    if is_assigned_institution_supervisor(actor, application):
+        return True
         
     opportunity = application.opportunity
     
@@ -249,15 +238,11 @@ def can_transition_application(actor, application: InternshipApplication, target
             return True
         
         # Supervisors
-        if application.institution_supervisor_id:
-            staff = get_institution_staff_profile(str(actor.id))
-            if staff and (str(application.institution_supervisor_id) == str(staff.id) or str(application.institution_supervisor_id) == str(actor.id)) and not opportunity.employer_id:
-                return True
+        if is_assigned_institution_supervisor(actor, application) and not opportunity.employer_id:
+            return True
 
-        if application.employer_supervisor_id and opportunity.employer_id:
-            supervisor = get_employer_supervisor_by_user(user_id=actor.id, employer_id=opportunity.employer_id)
-            if supervisor and (str(application.employer_supervisor_id) == str(supervisor.id) or str(application.employer_supervisor_id) == str(actor.id)):
-                return True
+        if is_assigned_employer_supervisor(actor, application) and opportunity.employer_id:
+            return True
 
         return False
 
@@ -290,25 +275,11 @@ def can_submit_final_feedback(actor, application: InternshipApplication) -> bool
     """
     Assigned supervisors or admins can submit final feedback.
     """
-    # Valid states for feedback: ACTIVE, COMPLETED, CERTIFIED
-    if application.status not in [ApplicationStatus.ACTIVE, ApplicationStatus.COMPLETED, ApplicationStatus.CERTIFIED]:
+    # Certification freezes both assessment lanes for audit integrity.
+    if application.status not in [ApplicationStatus.ACTIVE, ApplicationStatus.COMPLETED]:
         return False
 
-    # Check if assigned supervisor
-    is_assigned = False
-    if application.employer_supervisor_id:
-        opportunity = application.opportunity
-        if opportunity.employer_id:
-            supervisor = get_employer_supervisor_by_user(user_id=actor.id, employer_id=opportunity.employer_id)
-            if supervisor and (str(application.employer_supervisor_id) == str(supervisor.id) or str(application.employer_supervisor_id) == str(actor.id)):
-                is_assigned = True
-
-    if not is_assigned and application.institution_supervisor_id:
-        staff = get_institution_staff_profile(str(actor.id))
-        if staff and (str(application.institution_supervisor_id) == str(staff.id) or str(application.institution_supervisor_id) == str(actor.id)):
-            is_assigned = True
-
-    if is_assigned:
+    if is_assigned_supervisor(actor, application):
         return True
 
     # Admins
@@ -373,12 +344,39 @@ def can_withdraw_application(actor, application: InternshipApplication) -> bool:
 
 # Incident Authorization Policies
 
+def can_manage_incident(actor, incident) -> bool:
+    """
+    Admin incident authority is scoped to the placement domain.
+    Employer admins manage incidents for employer-owned placements only.
+    Institution admins manage incidents for institution-owned or affiliated-student placements.
+    """
+    if actor.is_system_admin:
+        return True
+
+    application = incident.application
+    opportunity = application.opportunity
+
+    if actor.is_employer_admin and opportunity.employer_id:
+        return can_create_internship(actor, employer_id=opportunity.employer_id)
+
+    if actor.is_institution_admin:
+        if opportunity.institution_id and can_create_internship(actor, institution_id=opportunity.institution_id):
+            return True
+        affiliation = get_student_approved_affiliation(application.student_id)
+        return bool(
+            affiliation
+            and affiliation.institution_id
+            and can_create_internship(actor, institution_id=affiliation.institution_id)
+        )
+
+    return False
+
 def can_assign_incident_investigator(actor, incident) -> bool:
     """
     Determine if actor can assign an investigator to an incident.
     Allowed: Employer Admin, Institution Admin, System Admin
     """
-    return actor.is_employer_admin or actor.is_institution_admin or actor.is_system_admin
+    return can_manage_incident(actor, incident)
 
 
 def can_investigate_incident(actor, incident) -> bool:
@@ -391,7 +389,7 @@ def can_investigate_incident(actor, incident) -> bool:
         return True
     
     # Admins can investigate any incident
-    return actor.is_employer_admin or actor.is_institution_admin or actor.is_system_admin
+    return can_manage_incident(actor, incident)
 
 
 def can_propose_incident_resolution(actor, incident) -> bool:
@@ -401,7 +399,7 @@ def can_propose_incident_resolution(actor, incident) -> bool:
     """
     # Only the investigator or admins can propose
     is_investigator = incident.investigator_id and actor.id == incident.investigator_id
-    is_admin = actor.is_employer_admin or actor.is_institution_admin or actor.is_system_admin
+    is_admin = can_manage_incident(actor, incident)
     
     return is_investigator or is_admin
 
@@ -413,7 +411,7 @@ def can_approve_incident_resolution(actor, incident) -> bool:
     
     This enforces separation of concerns: investigator proposes, admin approves.
     """
-    return actor.is_employer_admin or actor.is_institution_admin or actor.is_system_admin
+    return can_manage_incident(actor, incident)
 
 
 def can_dismiss_incident(actor, incident) -> bool:
@@ -421,7 +419,7 @@ def can_dismiss_incident(actor, incident) -> bool:
     Determine if actor can dismiss an incident.
     Allowed: Admins only (requires justification)
     """
-    return actor.is_employer_admin or actor.is_institution_admin or actor.is_system_admin
+    return can_manage_incident(actor, incident)
 
 
 # ==================== Phase 2.4: Supervisor Assignment Acceptance Policies ====================

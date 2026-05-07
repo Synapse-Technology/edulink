@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Briefcase, 
+import {
+  Briefcase,
   Send,
   Calendar as CalendarIcon,
   Clock,
@@ -12,195 +12,933 @@ import {
   FileText,
   ArrowRight,
   Lock,
-  FileDown
+  FileDown,
+  X,
+  Eye,
+  RotateCcw,
+  TrendingUp,
+  BookOpen,
+  Sparkles,
 } from 'lucide-react';
 import StudentLayout from '../../components/dashboard/StudentLayout';
 import { studentService } from '../../services/student/studentService';
 import { artifactService } from '../../services/reports/artifactService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
-
 import { showToast } from '../../utils/toast';
 import { getErrorMessage, logError } from '../../utils/errorMapper';
 import { dateFormatter } from '../../utils/dateFormatter';
 import type { Internship } from '../../types/internship';
 import { Link } from 'react-router-dom';
-import { Badge } from 'react-bootstrap';
 import { FeedbackModal } from '../../components/common';
 import { useFeedbackModal } from '../../hooks/useFeedbackModal';
 import { generateLogbookPDF } from '../../utils/pdfGenerator';
-import FullCalendar from '@fullcalendar/react';
-import dayGridPlugin from '@fullcalendar/daygrid';
-import interactionPlugin from '@fullcalendar/interaction';
-import bootstrap5Plugin from '@fullcalendar/bootstrap5';
-import 'bootstrap/dist/css/bootstrap.css';
-import 'bootstrap-icons/font/bootstrap-icons.css';
+import {
+  ATTACHMENT_WEEKDAYS,
+  buildStandardLogbookMetadata,
+  countCompletedStandardDays,
+} from '../../utils/logbookFormat';
 import StudentInternshipSkeleton from '../../components/student/skeletons/StudentInternshipSkeleton';
-import '../../styles/student-portal.css';
 
+/* ─────────────────────────────────────────────
+   Design tokens & global styles
+───────────────────────────────────────────── */
+const STYLES = `
+  @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap');
+
+  :root {
+    --ink: #0d0f12;
+    --ink-2: #3a3d44;
+    --ink-3: #6b7280;
+    --ink-4: #9ca3af;
+    --surface: #f9f8f6;
+    --surface-2: #f2f0ed;
+    --surface-3: #e8e5e0;
+    --border: #e4e1dc;
+    --border-2: #d1ccc5;
+    --accent: #1a5cff;
+    --accent-2: #e8eeff;
+    --accent-soft: rgba(26,92,255,0.08);
+    --success: #12b76a;
+    --success-soft: rgba(18,183,106,0.1);
+    --warning: #f59e0b;
+    --warning-soft: rgba(245,158,11,0.1);
+    --danger: #ef4444;
+    --danger-soft: rgba(239,68,68,0.1);
+    --radius-sm: 8px;
+    --radius: 14px;
+    --radius-lg: 20px;
+    --radius-xl: 28px;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow: 0 4px 16px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.04);
+    --shadow-lg: 0 12px 40px rgba(0,0,0,0.1), 0 2px 8px rgba(0,0,0,0.05);
+    --font-display: 'Instrument Serif', Georgia, serif;
+    --font-body: 'DM Sans', -apple-system, sans-serif;
+  }
+
+  .dark-mode {
+    --ink: #f0ede8;
+    --ink-2: #c9c4bc;
+    --ink-3: #8a8580;
+    --ink-4: #5a5650;
+    --surface: #141414;
+    --surface-2: #1c1c1c;
+    --surface-3: #252525;
+    --border: #2a2a2a;
+    --border-2: #353535;
+    --accent: #4d7fff;
+    --accent-2: #1a2340;
+    --accent-soft: rgba(77,127,255,0.1);
+    --success-soft: rgba(18,183,106,0.12);
+    --warning-soft: rgba(245,158,11,0.12);
+    --danger-soft: rgba(239,68,68,0.12);
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+    --shadow: 0 4px 16px rgba(0,0,0,0.3);
+    --shadow-lg: 0 12px 40px rgba(0,0,0,0.4);
+  }
+
+  .lb-page {
+    font-family: var(--font-body);
+    color: var(--ink);
+    background: var(--surface);
+    min-height: 100vh;
+  }
+
+  /* ── Page Header ── */
+  .lb-header {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 24px;
+    align-items: end;
+    padding: 48px 0 32px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 40px;
+  }
+  .lb-header-eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .lb-header-title {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 4vw, 2.75rem);
+    font-weight: 400;
+    line-height: 1.1;
+    color: var(--ink);
+    margin: 0 0 10px;
+  }
+  .lb-header-title em {
+    font-style: italic;
+    color: var(--ink-3);
+  }
+  .lb-header-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    font-size: 13px;
+    color: var(--ink-3);
+  }
+  .lb-header-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .lb-header-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+  }
+
+  /* ── Progress Ring ── */
+  .lb-progress-ring {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 14px 20px;
+  }
+  .lb-ring-svg { transform: rotate(-90deg); }
+  .lb-ring-track { fill: none; stroke: var(--border); stroke-width: 3; }
+  .lb-ring-fill {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 3;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.6s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .lb-ring-label { font-size: 12px; color: var(--ink-3); }
+  .lb-ring-count { font-size: 22px; font-weight: 600; color: var(--ink); line-height: 1; }
+
+  /* ── Main grid ── */
+  .lb-grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 24px;
+    margin-bottom: 48px;
+  }
+  @media (max-width: 1024px) {
+    .lb-grid { grid-template-columns: 1fr; }
+    .lb-header { grid-template-columns: 1fr; }
+    .lb-header-actions { align-items: flex-start; }
+  }
+
+  /* ── Card ── */
+  .lb-card {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    transition: box-shadow 0.2s;
+  }
+  .lb-card:hover { box-shadow: var(--shadow); }
+  .lb-card-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .lb-card-title {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .lb-card-body { padding: 24px; }
+
+  /* ── Week Nav ── */
+  .lb-week-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface-3);
+    border-radius: var(--radius);
+    padding: 4px;
+  }
+  .lb-week-nav-btn {
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--ink-3);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .lb-week-nav-btn:hover { background: var(--surface-2); color: var(--ink); }
+  .lb-week-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ink-2);
+    padding: 0 6px;
+    white-space: nowrap;
+  }
+
+  /* ── Day grid ── */
+  .lb-day-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .lb-day-row {
+    display: grid;
+    grid-template-columns: 100px 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, transform 0.1s;
+    position: relative;
+    overflow: hidden;
+  }
+  .lb-day-row::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--border-2);
+    transition: background 0.15s;
+  }
+  .lb-day-row.has-entry::before { background: var(--accent); }
+  .lb-day-row.is-today::before { background: var(--success); }
+  .lb-day-row.is-locked {
+    opacity: 0.55;
+    cursor: not-allowed;
+    background: var(--surface-3);
+  }
+  .lb-day-row:not(.is-locked):hover {
+    border-color: var(--border-2);
+    background: var(--surface-3);
+    transform: translateY(-1px);
+  }
+  .lb-day-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ink-3);
+  }
+  .lb-day-date {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-2);
+    margin-top: 1px;
+  }
+  .lb-day-today-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--success);
+    background: var(--success-soft);
+    border-radius: 6px;
+    padding: 2px 6px;
+    margin-top: 3px;
+  }
+  .lb-day-preview {
+    font-size: 13px;
+    color: var(--ink-3);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .lb-day-preview.filled { color: var(--ink-2); }
+  .lb-day-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .lb-status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--border-2);
+    transition: background 0.2s;
+  }
+  .lb-status-dot.filled { background: var(--accent); }
+  .lb-status-dot.today { background: var(--success); }
+  .lb-status-dot.locked { background: var(--border); }
+  .lb-add-icon {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--accent-soft);
+    color: var(--accent);
+    flex-shrink: 0;
+    transition: background 0.15s, transform 0.15s;
+  }
+  .lb-day-row:not(.is-locked):hover .lb-add-icon {
+    background: var(--accent);
+    color: #fff;
+    transform: scale(1.05);
+  }
+
+  /* ── Sidebar ── */
+  .lb-sidebar { display: flex; flex-direction: column; gap: 16px; }
+
+  .lb-summary-textarea {
+    width: 100%;
+    min-height: 140px;
+    resize: vertical;
+    font-family: var(--font-body);
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .lb-summary-textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  .lb-summary-textarea::placeholder { color: var(--ink-4); }
+  .lb-summary-textarea:disabled {
+    background: var(--surface-3);
+    color: var(--ink-3);
+    cursor: not-allowed;
+  }
+
+  /* ── Buttons ── */
+  .lb-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: var(--radius);
+    padding: 10px 18px;
+    border: none;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.12s, background 0.15s, box-shadow 0.15s;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+  .lb-btn:active { transform: scale(0.97); }
+  .lb-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none !important; }
+  .lb-btn-primary {
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 1px 3px rgba(26,92,255,0.25), 0 4px 12px rgba(26,92,255,0.15);
+  }
+  .lb-btn-primary:hover:not(:disabled) {
+    box-shadow: 0 4px 16px rgba(26,92,255,0.35);
+    transform: translateY(-1px);
+  }
+  .lb-btn-ghost {
+    background: var(--surface-3);
+    color: var(--ink-2);
+    border: 1px solid var(--border);
+  }
+  .lb-btn-ghost:hover:not(:disabled) { background: var(--surface); border-color: var(--border-2); }
+  .lb-btn-success {
+    background: var(--success);
+    color: #fff;
+    box-shadow: 0 1px 3px rgba(18,183,106,0.25);
+  }
+  .lb-btn-success:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+  .lb-btn-full { width: 100%; }
+  .lb-btn-sm { padding: 7px 14px; font-size: 12px; }
+
+  /* ── Tip card ── */
+  .lb-tip {
+    background: linear-gradient(135deg, var(--accent-2), var(--surface-2));
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 18px 20px;
+  }
+  .lb-tip-icon {
+    width: 32px; height: 32px;
+    border-radius: 10px;
+    background: var(--accent);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 10px;
+  }
+  .lb-tip-title { font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 4px; }
+  .lb-tip-text { font-size: 12px; color: var(--ink-3); line-height: 1.5; }
+
+  /* ── History section ── */
+  .lb-history-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .lb-history-title {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 400;
+    color: var(--ink);
+    margin: 0 0 4px;
+  }
+  .lb-history-sub { font-size: 13px; color: var(--ink-3); margin: 0; }
+
+  /* ── History list ── */
+  .lb-history-list { display: flex; flex-direction: column; gap: 10px; }
+  .lb-history-item {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .lb-history-item:hover { border-color: var(--border-2); background: var(--surface); }
+
+  .lb-history-week-dot {
+    width: 40px; height: 40px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .lb-history-week-dot.approved { background: var(--success-soft); color: var(--success); }
+  .lb-history-week-dot.pending { background: var(--warning-soft); color: var(--warning); }
+  .lb-history-week-dot.rejected { background: var(--danger-soft); color: var(--danger); }
+  .lb-history-week-dot.revision { background: rgba(99,102,241,0.1); color: #6366f1; }
+  .lb-history-week-dot.reviewed { background: var(--accent-soft); color: var(--accent); }
+
+  .lb-history-title-text { font-size: 14px; font-weight: 500; color: var(--ink); }
+  .lb-history-date { font-size: 12px; color: var(--ink-4); margin-top: 2px; }
+
+  .lb-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 8px;
+    padding: 4px 10px;
+    letter-spacing: 0.02em;
+  }
+  .lb-badge-approved { background: var(--success-soft); color: var(--success); }
+  .lb-badge-pending { background: var(--warning-soft); color: var(--warning); }
+  .lb-badge-rejected { background: var(--danger-soft); color: var(--danger); }
+  .lb-badge-revision { background: rgba(99,102,241,0.1); color: #6366f1; }
+  .lb-badge-reviewed { background: var(--accent-soft); color: var(--accent); }
+
+  .lb-history-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+
+  /* Empty state */
+  .lb-empty {
+    text-align: center;
+    padding: 64px 24px;
+    color: var(--ink-3);
+  }
+  .lb-empty-icon {
+    width: 64px; height: 64px;
+    border-radius: 20px;
+    background: var(--surface-3);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 16px;
+    color: var(--ink-4);
+  }
+  .lb-empty-title { font-size: 15px; font-weight: 600; color: var(--ink-2); margin-bottom: 6px; }
+  .lb-empty-text { font-size: 13px; }
+
+  /* ── Modal backdrop ── */
+  .lb-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(6px);
+    z-index: 1050;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    animation: lb-fade-in 0.15s ease;
+  }
+  @keyframes lb-fade-in { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes lb-slide-up { from { opacity: 0; transform: translateY(12px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+  /* ── Modal panel ── */
+  .lb-modal {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-lg);
+    width: 100%;
+    max-width: 540px;
+    overflow: hidden;
+    animation: lb-slide-up 0.2s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .lb-modal-lg { max-width: 680px; }
+  .lb-modal-header {
+    padding: 24px 24px 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .lb-modal-eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+  .lb-modal-title {
+    font-family: var(--font-display);
+    font-size: 1.35rem;
+    font-weight: 400;
+    color: var(--ink);
+    margin: 0;
+    line-height: 1.2;
+  }
+  .lb-modal-sub { font-size: 12px; color: var(--ink-3); margin-top: 4px; }
+  .lb-modal-close {
+    width: 32px; height: 32px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface-3);
+    color: var(--ink-3);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s, color 0.15s;
+    flex-shrink: 0;
+  }
+  .lb-modal-close:hover { background: var(--surface); color: var(--ink); }
+  .lb-modal-body { padding: 20px 24px; }
+  .lb-modal-footer {
+    padding: 16px 24px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* ── Textarea in modal ── */
+  .lb-entry-textarea {
+    width: 100%;
+    min-height: 180px;
+    resize: vertical;
+    font-family: var(--font-body);
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .lb-entry-textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  .lb-entry-textarea::placeholder { color: var(--ink-4); }
+  .lb-entry-textarea:disabled { background: var(--surface-3); cursor: not-allowed; }
+  .lb-entry-textarea.error { border-color: var(--danger); }
+
+  /* ── Char count / helper row ── */
+  .lb-field-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--ink-4);
+  }
+  .lb-field-footer.error { color: var(--danger); }
+
+  /* ── Submission preview ── */
+  .lb-preview-scroll {
+    max-height: 360px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-right: 4px;
+  }
+  .lb-preview-scroll::-webkit-scrollbar { width: 4px; }
+  .lb-preview-scroll::-webkit-scrollbar-track { background: transparent; }
+  .lb-preview-scroll::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 4px; }
+
+  .lb-preview-entry {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+  .lb-preview-day-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .lb-preview-day-date {
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--ink-4);
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  .lb-preview-content {
+    font-size: 13px;
+    color: var(--ink-2);
+    white-space: pre-wrap;
+    line-height: 1.6;
+  }
+  .lb-preview-content.empty { color: var(--ink-4); font-style: italic; }
+
+  .lb-warn-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: var(--warning-soft);
+    border: 1px solid rgba(245,158,11,0.2);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    font-size: 12px;
+    color: var(--warning);
+    margin-bottom: 16px;
+  }
+
+  /* ── Feedback modal panels ── */
+  .lb-feedback-panel {
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    border: 1px solid var(--border);
+  }
+  .lb-feedback-panel + .lb-feedback-panel { margin-top: 12px; }
+  .lb-feedback-panel-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .lb-feedback-text { font-size: 13px; line-height: 1.6; color: var(--ink-2); }
+  .lb-feedback-text.empty { color: var(--ink-4); font-style: italic; font-size: 12px; }
+
+  /* ── No internship empty screen ── */
+  .lb-no-internship {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 100px 24px;
+    min-height: 60vh;
+  }
+  .lb-no-internship-icon {
+    width: 80px; height: 80px;
+    border-radius: 24px;
+    background: var(--surface-3);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--ink-4);
+    margin-bottom: 24px;
+  }
+  .lb-no-internship h2 {
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+    font-weight: 400;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+  .lb-no-internship p { font-size: 14px; color: var(--ink-3); max-width: 320px; }
+
+  /* Spinner */
+  .lb-spinner {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    animation: lb-spin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+  .lb-spinner-dark {
+    border-color: rgba(0,0,0,0.1);
+    border-top-color: var(--accent);
+  }
+  @keyframes lb-spin { to { transform: rotate(360deg); } }
+
+  /* View toggle */
+  .lb-view-toggle {
+    display: flex;
+    background: var(--surface-3);
+    border-radius: var(--radius);
+    padding: 3px;
+    gap: 2px;
+  }
+  .lb-view-btn {
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 14px;
+    border-radius: calc(var(--radius) - 2px);
+    border: none;
+    background: transparent;
+    color: var(--ink-3);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .lb-view-btn.active {
+    background: var(--surface-2);
+    color: var(--ink);
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* divider */
+  .lb-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 16px 0;
+  }
+
+  @media (max-width: 640px) {
+    .lb-history-item { grid-template-columns: auto 1fr; }
+    .lb-history-item > :nth-child(3),
+    .lb-history-item > :nth-child(4) { grid-column: 2; }
+    .lb-day-row { grid-template-columns: 80px 1fr auto; }
+  }
+`;
+
+/* ──────────────────── helpers ──────────────────── */
+function getMonday(d: Date) {
+  const date = new Date(d);
+  const day = date.getDay();
+  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+  const monday = new Date(date.setDate(diff));
+  monday.setHours(0, 0, 0, 0);
+  return monday;
+}
+const parseLocalDate = (s: string) => new Date(`${s}T00:00:00`);
+const getLocalDateString = (date: Date) => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
+
+/* ─────────────────────── STATUS helpers ─────────────────────── */
+const STATUS_META: Record<string, { label: string; cls: string; dotCls: string; abbr: string }> = {
+  ACCEPTED: { label: 'Approved', cls: 'lb-badge-approved', dotCls: 'approved', abbr: '✓' },
+  REJECTED: { label: 'Rejected', cls: 'lb-badge-rejected', dotCls: 'rejected', abbr: '✕' },
+  REVISION_REQUIRED: { label: 'Needs Revision', cls: 'lb-badge-revision', dotCls: 'revision', abbr: '↻' },
+  REVIEWED: { label: 'In Review', cls: 'lb-badge-reviewed', dotCls: 'reviewed', abbr: '◎' },
+  PENDING: { label: 'Pending', cls: 'lb-badge-pending', dotCls: 'pending', abbr: '…' },
+};
+const getStatus = (s: string) => STATUS_META[s] || STATUS_META.PENDING;
+
+
+/* ═══════════════════════════════════════════════
+   COMPONENT
+═══════════════════════════════════════════════ */
 const StudentLogbook: React.FC = () => {
   const { user } = useAuth();
   const { isDarkMode } = useTheme();
   const [internship, setInternship] = useState<Internship | null>(null);
   const [submissionHistory, setSubmissionHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Suppress unused warning
-  useEffect(() => {
-    void user;
-    void error;
-    void setError;
-  }, [user, error]);
   const [generatingReport, setGeneratingReport] = useState(false);
-  const [viewMode, setViewMode] = useState<'calendar' | 'list'>(window.innerWidth < 768 ? 'list' : 'calendar');
 
-  // Logbook State
   const [currentWeekStart] = useState<Date>(getMonday(new Date()));
   const [logbookEntries, setLogbookEntries] = useState<Record<string, string>>({});
+  const [weeklySummary, setWeeklySummary] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submissionSuccess, setSubmissionSuccess] = useState(false);
-  
-  // Calendar State
+
+  // Entry modal
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [currentEntry, setCurrentEntry] = useState('');
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [entryError, setEntryError] = useState<string | null>(null);
 
-  // Submission Confirmation Modal State
+  // Other modals
   const [submitModalOpen, setSubmitModalOpen] = useState(false);
-
-  // Feedback Modal State
-  const { feedbackProps, showError, showSuccess, showConfirm } = useFeedbackModal();
   const [supervisorFeedbackOpen, setSupervisorFeedbackOpen] = useState(false);
   const [activeSupervisorFeedback, setActiveSupervisorFeedback] = useState<any>(null);
 
-  function getMonday(d: Date) {
-    const date = new Date(d);
-    const day = date.getDay();
-    const diff = date.getDate() - day + (day === 0 ? -6 : 1);
-    const monday = new Date(date.setDate(diff));
-    monday.setHours(0, 0, 0, 0);
-    return monday;
-  }
+  const { feedbackProps, showError, showSuccess, showConfirm } = useFeedbackModal();
 
-  const parseLocalDate = (dateStr: string) => {
-    return new Date(`${dateStr}T00:00:00`);
-  };
+  const isInternshipCompleted = internship
+    ? ['COMPLETED', 'CERTIFIED', 'TERMINATED'].includes(internship.status)
+    : false;
 
-  const getLocalDateString = (date: Date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
-  const isDateInCurrentWeek = (dateStr: string) => {
-    const date = parseLocalDate(dateStr);
-    const start = new Date(currentWeekStart);
-    const end = new Date(start);
-    end.setDate(start.getDate() + 6);
-    end.setHours(23, 59, 59, 999);
-    return date >= start && date <= end;
-  };
-
-  const isDateInPast = (dateStr: string) => {
-    const date = parseLocalDate(dateStr);
-    const start = new Date(currentWeekStart);
-    start.setHours(0, 0, 0, 0);
-    return date < start;
-  };
-
+  /* ── data fetch ── */
   useEffect(() => {
-    const fetchActiveInternship = async () => {
+    (async () => {
       try {
         const data = await studentService.getActiveInternship();
         if (data) {
-          // Extract Internship from InternshipApplication
-          const internshipData = (data as any).internship || (data as any);
-          setInternship(internshipData);
-          const history = await studentService.getEvidence(internshipData.id);
-          setSubmissionHistory(history.filter(e => e.evidence_type === 'LOGBOOK'));
+          const iData = (data as any).internship || (data as any);
+          setInternship(iData);
+          const history = await studentService.getEvidence(iData.id);
+          setSubmissionHistory(history.filter((e: any) => e.evidence_type === 'LOGBOOK'));
         }
       } catch (err) {
-        const message = getErrorMessage(err, { action: 'Load Logbook Data' });
-        showToast.error(message);
+        showToast.error(getErrorMessage(err, { action: 'Load Logbook Data' }));
         logError(err, { action: 'Load Logbook Data' });
-        setError(message);
       } finally {
         setLoading(false);
       }
-    };
-
-    fetchActiveInternship();
+    })();
   }, []);
 
-  // Load drafts from local storage when internship or week changes
+  /* ── draft persistence ── */
   useEffect(() => {
-    if (internship) {
-      const key = `logbook_draft_${internship.id}_${getLocalDateString(currentWeekStart)}`;
-      const saved = localStorage.getItem(key);
-      if (saved) {
-        setLogbookEntries(JSON.parse(saved));
-      } else {
-        setLogbookEntries({});
-      }
+    if (!internship) return;
+    const key = `logbook_draft_${internship.id}_${getLocalDateString(currentWeekStart)}`;
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      const draft = JSON.parse(saved);
+      setLogbookEntries(draft.entries ?? draft);
+      setWeeklySummary(draft.weeklySummary ?? '');
+    } else {
+      setLogbookEntries({});
+      setWeeklySummary('');
     }
   }, [internship, currentWeekStart]);
 
-  const isDateInFuture = (date: Date) => {
-    const start = new Date(currentWeekStart);
-    const end = new Date(start);
-    end.setDate(start.getDate() + 6);
-    end.setHours(23, 59, 59, 999);
-    return date > end;
+  const saveDraft = (entries: Record<string, string>, summary: string) => {
+    if (!internship) return;
+    const key = `logbook_draft_${internship.id}_${getLocalDateString(currentWeekStart)}`;
+    localStorage.setItem(key, JSON.stringify({ entries, weeklySummary: summary }));
   };
 
   const handleEntryChange = (dateStr: string, content: string) => {
-    const newEntries = { ...logbookEntries, [dateStr]: content };
-    setLogbookEntries(newEntries);
-    
-    // Save to local storage
-    if (internship) {
-      const key = `logbook_draft_${internship.id}_${getLocalDateString(currentWeekStart)}`;
-      localStorage.setItem(key, JSON.stringify(newEntries));
-    }
+    const updated = { ...logbookEntries, [dateStr]: content };
+    setLogbookEntries(updated);
+    saveDraft(updated, weeklySummary);
   };
 
-  const handleDateClick = (arg: any) => {
-    const dateStr = arg.dateStr;
-    const isCurrent = isDateInCurrentWeek(dateStr);
-    const isPast = isDateInPast(dateStr);
-    const isInternshipCompleted = internship && ['COMPLETED', 'CERTIFIED', 'TERMINATED'].includes(internship.status);
-    
-    // Check if internship is completed
-    if (isInternshipCompleted) {
-      // Allow viewing but not editing
-      setSelectedDate(dateStr);
-      setCurrentEntry(logbookEntries[dateStr] || '');
-      setIsReadOnly(true);
-      setEntryError(null);
-      setModalOpen(true);
-      return;
-    }
-    
-    if (!isCurrent && !isPast) {
-      showToast.error("Future dates are locked.");
-      return;
-    }
+  const handleWeeklySummaryChange = (v: string) => {
+    setWeeklySummary(v);
+    saveDraft(logbookEntries, v);
+  };
 
+  /* ── date helpers ── */
+  const isDateInPast = (ds: string) => {
+    const d = parseLocalDate(ds);
+    const start = new Date(currentWeekStart);
+    start.setHours(0, 0, 0, 0);
+    return d < start;
+  };
+  const isFuture = (d: Date) => {
+    const end = new Date(currentWeekStart);
+    end.setDate(end.getDate() + 6);
+    end.setHours(23, 59, 59, 999);
+    return d > end;
+  };
+
+  /* ── day click ── */
+  const openDay = (dateStr: string) => {
+    if (isFuture(parseLocalDate(dateStr))) {
+      showToast.error('Future dates are locked.');
+      return;
+    }
+    const past = isDateInPast(dateStr);
     setSelectedDate(dateStr);
     setCurrentEntry(logbookEntries[dateStr] || '');
-    setIsReadOnly(isPast);
+    setIsReadOnly(isInternshipCompleted || past);
     setEntryError(null);
     setModalOpen(true);
   };
 
+  /* ── save entry ── */
   const handleSaveEntry = () => {
     if (!currentEntry.trim()) {
-      setEntryError("Log entry content cannot be empty.");
-      showToast.error("Log entry content cannot be empty.");
+      setEntryError('Entry cannot be empty.');
       return;
     }
     if (selectedDate) {
@@ -209,804 +947,580 @@ const StudentLogbook: React.FC = () => {
     }
   };
 
+  /* ── submit ── */
   const handleSubmitLogbook = () => {
-    if (!internship) return;
-    
-    // Check if internship is completed
-    if (['COMPLETED', 'CERTIFIED', 'TERMINATED'].includes(internship.status)) {
-      showToast.error("This internship is completed. No further logbook entries can be submitted.");
+    if (!internship || isInternshipCompleted) return;
+    if (!Object.keys(logbookEntries).length) {
+      showToast.error('Add at least one entry before submitting.');
       return;
     }
-    
-    // Validate: At least one entry?
-    if (Object.keys(logbookEntries).length === 0) {
-      showToast.error("Please add at least one entry before submitting.");
+    if (!weeklySummary.trim()) {
+      showToast.error('Add the weekly summary before submitting.');
       return;
     }
-
     setSubmitModalOpen(true);
   };
 
   const confirmSubmitLogbook = async () => {
     if (!internship) return;
-
     try {
       setSubmitting(true);
-      await studentService.submitLogbook(internship.id, {
-        weekStartDate: getLocalDateString(currentWeekStart),
-        entries: logbookEntries
-      });
-      
+      const weekStartDate = getLocalDateString(currentWeekStart);
+      const metadata = buildStandardLogbookMetadata({ weekStartDate, entries: logbookEntries, weeklySummary });
+      await studentService.submitLogbook(internship.id, { weekStartDate, entries: logbookEntries, weeklySummary, metadata });
       setSubmissionSuccess(true);
       setSubmitModalOpen(false);
-      const key = `logbook_draft_${internship.id}_${getLocalDateString(currentWeekStart)}`;
-      localStorage.removeItem(key);
-      showToast.success("Logbook submitted successfully!");
-      
+      localStorage.removeItem(`logbook_draft_${internship.id}_${getLocalDateString(currentWeekStart)}`);
+      showToast.success('Logbook submitted!');
       const history = await studentService.getEvidence(internship.id);
-      setSubmissionHistory(history.filter(e => e.evidence_type === 'LOGBOOK'));
+      setSubmissionHistory(history.filter((e: any) => e.evidence_type === 'LOGBOOK'));
     } catch (err) {
-      const message = getErrorMessage(err, { action: 'Submit Logbook' });
-      showToast.error(message);
-      logError(err, { action: 'Submit Logbook', data: { weekStart: getLocalDateString(currentWeekStart) } });
+      showToast.error(getErrorMessage(err, { action: 'Submit Logbook' }));
     } finally {
       setSubmitting(false);
     }
   };
 
+  /* ── PDF ── */
   const handleDownloadPDF = async () => {
-    if (!internship) {
-      showToast.error("No active internship found to generate report.");
+    if (!internship) return;
+    if (!Object.keys(logbookEntries).length) {
+      showToast.error('Add entries before downloading PDF.');
       return;
     }
-
-    if (Object.keys(logbookEntries).length === 0) {
-      showToast.error("Please add some log entries before downloading the PDF.");
-      return;
-    }
-
     try {
       const profile = await studentService.getProfile();
-      
       generateLogbookPDF({
-        studentName: user ? `${user.firstName} ${user.lastName}` : "Student",
-        studentEmail: user?.email || "",
+        studentName: user ? `${user.firstName} ${user.lastName}` : 'Student',
+        studentEmail: user?.email || '',
         studentReg: profile.registration_number,
         internshipTitle: internship.title,
-        employerName: internship.employer_details?.name || "Employer",
+        employerName: internship.employer_details?.name || 'Employer',
         department: internship.department,
         weekStartDate: dateFormatter.isoDate(currentWeekStart),
-        status: "Draft / Pending Submission",
-        entries: logbookEntries
+        status: 'Draft / Pending Submission',
+        entries: logbookEntries,
+        weeklySummary,
       });
-      
-      showSuccess(
-        'PDF Generated',
-        'Your logbook PDF has been generated and downloaded successfully.'
-      );
+      showSuccess('PDF Generated', 'Your logbook PDF has been downloaded.');
     } catch (err: any) {
-      const message = getErrorMessage(err, { action: 'Generate Logbook PDF' });
-      logError(err, { action: 'Generate Logbook PDF' });
-      showError(
-        'Generation Failed',
-        message
-      );
+      showError('Generation Failed', getErrorMessage(err, { action: 'Generate PDF' }));
     }
   };
 
   const handleDownloadFullReport = async () => {
     if (!internship) return;
-    
     let toastId: string | undefined;
     try {
       setGeneratingReport(true);
-      toastId = showToast.loading('Generating full internship report...');
-      
+      toastId = showToast.loading('Generating full report…');
       const artifact = await artifactService.generateArtifact(internship.id, 'LOGBOOK_REPORT');
       await artifactService.downloadArtifact(artifact);
-      
       if (toastId) showToast.dismiss(toastId);
-      showSuccess(
-        'Report Downloaded',
-        'Full internship report downloaded successfully!'
-      );
+      showSuccess('Downloaded', 'Full report downloaded successfully.');
     } catch (err: any) {
-      console.error(err);
       if (toastId) showToast.dismiss(toastId);
-      showError(
-        'Download Failed',
-        'Failed to generate report. Ensure you have accepted logbook entries.'
-      );
+      showError('Download Failed', 'Ensure you have accepted logbook entries.');
     } finally {
       setGeneratingReport(false);
     }
   };
 
-  const handleQuickAddToday = () => {
-    const today = getLocalDateString(new Date());
-    const isCurrent = isDateInCurrentWeek(today);
-    
-    // Check if internship is completed
-    if (internship && ['COMPLETED', 'CERTIFIED', 'TERMINATED'].includes(internship.status)) {
-      showToast.error("This internship is completed. You cannot edit logbook entries.");
-      return;
-    }
+  const completedDays = internship
+    ? countCompletedStandardDays(logbookEntries, getLocalDateString(currentWeekStart))
+    : 0;
 
-    if (!isCurrent) {
-      showToast.error("Today's date is not in the current logbook week. Please check your logbook period.");
-      return;
-    }
+  const todayStr = getLocalDateString(new Date());
 
-    setSelectedDate(today);
-    setCurrentEntry(logbookEntries[today] || '');
-    setIsReadOnly(false);
-    setEntryError(null);
-    setModalOpen(true);
-  };
+  /* ── circle math ── */
+  const CIRC = 2 * Math.PI * 18;
+  const dashOffset = CIRC - (completedDays / 5) * CIRC;
 
-  // Generate calendar events from entries
-  const calendarEvents = Object.entries(logbookEntries).map(([date, _]) => ({
-    title: 'Log Entry',
-    start: date,
-    allDay: true,
-    backgroundColor: '#0d6efd',
-    borderColor: '#0d6efd'
-  }));
-
+  /* ════════════════════════════════════
+     RENDER
+  ════════════════════════════════════ */
   return (
     <StudentLayout>
-        <style>{`
-          .fc {
-            --fc-border-color: ${isDarkMode ? '#334155' : '#e5e7eb'};
-            --fc-button-bg-color: #0d6efd;
-            --fc-button-border-color: #0d6efd;
-            --fc-button-hover-bg-color: #0b5ed7;
-            --fc-button-hover-border-color: #0a58ca;
-            --fc-button-active-bg-color: #0a58ca;
-            --fc-button-active-border-color: #0a53be;
-            --fc-page-bg-color: ${isDarkMode ? '#1e293b' : 'white'};
-          }
-          .fc .fc-toolbar-title {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: ${isDarkMode ? '#f8fafc' : '#111827'};
-          }
-          .fc .fc-col-header-cell-cushion {
-            padding: 10px 0;
-            font-weight: 600;
-            text-transform: uppercase;
-            font-size: 0.75rem;
-            letter-spacing: 0.05em;
-            color: ${isDarkMode ? '#94a3b8' : '#6b7280'};
-          }
-          .fc .fc-daygrid-day-number {
-            font-weight: 500;
-            padding: 8px;
-            color: ${isDarkMode ? '#cbd5e1' : '#374151'};
-          }
-          .fc-day-today {
-            background-color: rgba(13, 110, 253, 0.1) !important;
-          }
-          .fc-day-past-week {
-            background-color: ${isDarkMode ? 'rgba(13, 110, 253, 0.08)' : 'rgba(13, 110, 253, 0.03)'} !important;
-          }
-          .fc-day-future-locked {
-            background-color: ${isDarkMode ? 'rgba(0, 0, 0, 0.4)' : 'rgba(0, 0, 0, 0.08)'} !important;
-            cursor: not-allowed !important;
-          }
-          .lock-icon-container {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            opacity: 0.8;
-            color: ${isDarkMode ? '#94a3b8' : '#1e293b'};
-            pointer-events: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            filter: drop-shadow(0 0 2px rgba(0,0,0,0.1));
-          }
-          .fc-day-today .fc-daygrid-day-number {
-            background-color: #0d6efd;
-            color: white !important;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 4px;
-            padding: 0 !important;
-          }
-          .fc-event {
-            border-radius: 4px;
-            padding: 2px 4px;
-            font-size: 0.75rem;
-            border: none;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-            cursor: pointer;
-            transition: transform 0.1s ease;
-          }
-          .fc-event:hover {
-            transform: scale(1.02);
-          }
-          .btn-animate {
-            transition: all 0.2s ease;
-          }
-          .btn-animate:hover {
-            transform: translateY(-2px);
-          }
-          .btn-animate:active {
-            transform: translateY(0);
-          }
-          .extra-small {
-            font-size: 0.65rem;
-          }
-          .history-table-container {
-            max-height: 400px;
-            overflow-y: auto;
-          }
-          .history-table-container::-webkit-scrollbar {
-            width: 6px;
-          }
-          .history-table-container::-webkit-scrollbar-track {
-            background: transparent;
-          }
-          .history-table-container::-webkit-scrollbar-thumb {
-            background: ${isDarkMode ? '#475569' : '#e5e7eb'};
-            border-radius: 10px;
-          }
-          .table-dark {
-            --bs-table-bg: #1e293b;
-            --bs-table-border-color: #334155;
-          }
-          .form-control:disabled {
-            background-color: ${isDarkMode ? '#0f172a' : '#e9ecef'};
-            color: ${isDarkMode ? '#94a3b8' : 'inherit'};
-          }
-          
-          /* Mobile Bottom Sheet Style Modal */
-          @media (max-width: 576px) {
-            .modal-dialog-bottom {
-              margin: 0;
-              position: fixed;
-              bottom: 0;
-              width: 100%;
-              max-width: 100%;
-            }
-            .modal-content-bottom {
-              border-radius: 1.5rem 1.5rem 0 0 !important;
-              max-height: 90vh;
-              overflow-y: auto;
-            }
-            .modal.show .modal-dialog-bottom {
-              transform: translateY(0);
-            }
-          }
-        `}</style>
-
+      <style>{STYLES}</style>
+      <div className={`lb-page${isDarkMode ? ' dark-mode' : ''}`}>
         {loading ? (
           <StudentInternshipSkeleton isDarkMode={isDarkMode} />
         ) : !internship ? (
-          <div className="flex-grow-1 px-4 px-lg-5 pb-4 d-flex flex-column justify-content-center align-items-center text-center">
-            <div className={`p-5 rounded-circle ${isDarkMode ? 'bg-secondary bg-opacity-10' : 'bg-white shadow-sm'} mb-4`}>
-              <Briefcase size={64} className="text-muted" />
+          <div className="lb-no-internship">
+            <div className="lb-no-internship-icon">
+              <BookOpen size={36} />
             </div>
-            <h3 className="fw-bold mb-2">No Active Internship</h3>
-            <p className="text-muted max-w-md">You need an active internship to access the logbook. Check your placement status in the dashboard.</p>
+            <h2>No Active Internship</h2>
+            <p>You need an active internship placement to access the logbook.</p>
           </div>
         ) : (
-          <div className="student-workspace">
-            <section className="student-command-hero">
-              <div className="student-command-copy">
-                <span className="student-kicker">Evidence capture</span>
-                <h1>Logbook & History</h1>
-                <p>Record this week’s work, submit it for supervisor review, and keep a clear audit trail of your professional growth.</p>
-                <div className="student-command-meta">
-                  <span><Briefcase size={15} /> {internship.title}</span>
-                  <span><CalendarIcon size={15} /> Week of {currentWeekStart.toLocaleDateString()}</span>
-                  <span><FileText size={15} /> {Object.keys(logbookEntries).length} day{Object.keys(logbookEntries).length === 1 ? '' : 's'} drafted</span>
+          <>
+            {/* ── PAGE HEADER ── */}
+            <header className="lb-header">
+              <div>
+                <div className="lb-header-eyebrow">
+                  <Briefcase size={12} />
+                  Evidence Capture · {internship.title}
+                </div>
+                <h1 className="lb-header-title">
+                  Weekly <em>Logbook</em>
+                </h1>
+                <div className="lb-header-meta">
+                  <span className="lb-header-meta-item">
+                    <CalendarIcon size={13} />
+                    Week of {currentWeekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </span>
+                  <span className="lb-header-meta-item">
+                    <FileText size={13} />
+                    {submissionHistory.length} submission{submissionHistory.length !== 1 ? 's' : ''} on record
+                  </span>
+                  {isInternshipCompleted && (
+                    <span className="lb-header-meta-item" style={{ color: 'var(--success)' }}>
+                      <CheckCircle size={13} />
+                      Internship Completed — Logbook Locked
+                    </span>
+                  )}
                 </div>
               </div>
-              <div className="student-command-card">
-                <span className="student-kicker">Current week</span>
-                  <strong>{Object.keys(logbookEntries).length}/5</strong>
-                <p className="student-command-note mb-3">Capture meaningful work notes before submitting for review.</p>
-                <button 
-                  className="btn btn-primary btn-sm d-flex align-items-center gap-2"
-                  onClick={handleQuickAddToday}
-                  disabled={internship && ['COMPLETED', 'CERTIFIED', 'TERMINATED'].includes(internship.status)}
-                >
-                  <Plus size={18} />
-                  <span>{internship && ['COMPLETED', 'CERTIFIED', 'TERMINATED'].includes(internship.status) ? 'Logbook Locked' : 'Log Today'}</span>
-                </button>
+
+              <div className="lb-header-actions">
+                {/* Progress ring */}
+                <div className="lb-progress-ring">
+                  <svg width="44" height="44" viewBox="0 0 44 44" className="lb-ring-svg">
+                    <circle cx="22" cy="22" r="18" className="lb-ring-track" />
+                    <circle
+                      cx="22" cy="22" r="18"
+                      className="lb-ring-fill"
+                      strokeDasharray={CIRC}
+                      strokeDashoffset={dashOffset}
+                    />
+                  </svg>
+                  <div>
+                    <div className="lb-ring-count">{completedDays}/5</div>
+                    <div className="lb-ring-label">days drafted</div>
+                  </div>
+                </div>
+
+                {!isInternshipCompleted && (
+                  <button
+                    className="lb-btn lb-btn-primary"
+                    onClick={() => openDay(todayStr)}
+                  >
+                    <Plus size={15} />
+                    Log Today
+                  </button>
+                )}
+              </div>
+            </header>
+
+            {/* ── MAIN GRID ── */}
+            <div className="lb-grid">
+
+              {/* LEFT — Day list */}
+              <div>
+                <div className="lb-card">
+                  <div className="lb-card-header">
+                    <span className="lb-card-title">Weekly Activities</span>
+                    <div className="lb-week-nav">
+                      <span className="lb-week-label">
+                        {currentWeekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} –{' '}
+                        {new Date(currentWeekStart.getTime() + 4 * 86400000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="lb-card-body">
+                    <div className="lb-day-grid">
+                      {ATTACHMENT_WEEKDAYS.map((day) => {
+                        const date = new Date(currentWeekStart);
+                        date.setDate(date.getDate() + day.offset);
+                        const ds = getLocalDateString(date);
+                        const entry = logbookEntries[ds] || '';
+                        const isToday = ds === todayStr;
+                        const locked = isFuture(date) || isInternshipCompleted;
+
+                        let rowCls = 'lb-day-row';
+                        if (entry) rowCls += ' has-entry';
+                        if (isToday) rowCls += ' is-today';
+                        if (locked) rowCls += ' is-locked';
+
+                        let dotCls = 'lb-status-dot';
+                        if (entry) dotCls += isToday ? ' today' : ' filled';
+                        if (locked && !entry) dotCls += ' locked';
+
+                        return (
+                          <div
+                            key={ds}
+                            className={rowCls}
+                            onClick={() => !locked && openDay(ds)}
+                          >
+                            {/* Day label + date */}
+                            <div>
+                              <div className="lb-day-label">{date.toLocaleDateString('en-US', { weekday: 'short' })}</div>
+                              <div className="lb-day-date">{date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                              {isToday && <div className="lb-day-today-badge"><Sparkles size={9} />Today</div>}
+                            </div>
+
+                            {/* Preview */}
+                            <div className={`lb-day-preview${entry ? ' filled' : ''}`}>
+                              {entry
+                                ? entry.slice(0, 80) + (entry.length > 80 ? '…' : '')
+                                : locked
+                                  ? isInternshipCompleted ? 'Logbook locked' : 'Not available yet'
+                                  : 'No entry yet — click to add'}
+                            </div>
+
+                            {/* Action icon */}
+                            {!locked && (
+                              <div className="lb-add-icon">
+                                {entry ? <Eye size={14} /> : <Plus size={14} />}
+                              </div>
+                            )}
+                            {locked && (
+                              <div style={{ color: 'var(--ink-4)', flexShrink: 0 }}>
+                                <Lock size={14} />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* RIGHT — Sidebar */}
+              <div className="lb-sidebar">
+
+                {/* Weekly summary */}
+                <div className="lb-card">
+                  <div className="lb-card-header">
+                    <span className="lb-card-title">Weekly Report</span>
+                    {!weeklySummary.trim() && (
+                      <span style={{ fontSize: '11px', color: 'var(--warning)', fontWeight: 600 }}>Required</span>
+                    )}
+                  </div>
+                  <div className="lb-card-body" style={{ paddingTop: 16 }}>
+                    <textarea
+                      className="lb-summary-textarea"
+                      placeholder="Summarize the week: theory covered, practical work, challenges, and new skills learned…"
+                      value={weeklySummary}
+                      onChange={(e) => handleWeeklySummaryChange(e.target.value)}
+                      disabled={isInternshipCompleted}
+                    />
+                    <div className="lb-field-footer">
+                      <span>{weeklySummary.length} chars</span>
+                      {weeklySummary.trim()
+                        ? <span style={{ color: 'var(--success)' }}>✓ Ready</span>
+                        : <span>Required for submission</span>}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action buttons */}
+                <div className="lb-card">
+                  <div className="lb-card-header">
+                    <span className="lb-card-title">Actions</span>
+                  </div>
+                  <div className="lb-card-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <button
+                      className="lb-btn lb-btn-primary lb-btn-full"
+                      onClick={handleSubmitLogbook}
+                      disabled={submitting || submissionSuccess || isInternshipCompleted}
+                    >
+                      {submitting ? <div className="lb-spinner" /> : <Send size={15} />}
+                      {isInternshipCompleted ? 'Logbook Closed' : 'Submit Week for Review'}
+                    </button>
+
+                    <button
+                      className="lb-btn lb-btn-ghost lb-btn-full"
+                      onClick={handleDownloadPDF}
+                    >
+                      <Download size={15} />
+                      Download Week PDF
+                    </button>
+
+                    {['COMPLETED', 'CERTIFIED'].includes(internship.status) && (
+                      <button
+                        className="lb-btn lb-btn-success lb-btn-full"
+                        onClick={handleDownloadFullReport}
+                        disabled={generatingReport}
+                      >
+                        {generatingReport ? <div className="lb-spinner" /> : <FileDown size={15} />}
+                        Export Full Logbook
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Tip */}
+                <div className="lb-tip">
+                  <div className="lb-tip-icon"><TrendingUp size={16} /></div>
+                  <div className="lb-tip-title">Build your record daily</div>
+                  <div className="lb-tip-text">
+                    Brief daily notes are easier to write and more useful than end-of-week recall.
+                    Aim for one key takeaway per day.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ── SUBMISSION HISTORY ── */}
+            <section style={{ marginBottom: 64 }}>
+              <div className="lb-history-header">
+                <div>
+                  <h2 className="lb-history-title">Submission History</h2>
+                  <p className="lb-history-sub">Track and review all your submitted weekly logs.</p>
+                </div>
+              </div>
+
+              <div className="lb-history-list">
+                {submissionHistory.length > 0 ? submissionHistory.map((sub) => {
+                  const s = getStatus(sub.status);
+                  const days = (sub.metadata?.daily_entries || []).filter((e: any) => e.description).length
+                    || Object.keys(sub.metadata?.entries || {}).length;
+                  return (
+                    <div key={sub.id} className="lb-history-item">
+                      {/* dot */}
+                      <div className={`lb-history-week-dot ${s.dotCls}`}>{s.abbr}</div>
+
+                      {/* info */}
+                      <div>
+                        <div className="lb-history-title-text">{sub.title}</div>
+                        <div className="lb-history-date">
+                          {sub.metadata?.week_start_date
+                            ? `Week of ${sub.metadata.week_start_date} · `
+                            : ''}
+                          {days} day{days !== 1 ? 's' : ''} · Submitted {new Date(sub.created_at).toLocaleDateString()}
+                        </div>
+                      </div>
+
+                      {/* badge */}
+                      <span className={`lb-badge ${s.cls}`}>{s.label}</span>
+
+                      {/* actions */}
+                      <div className="lb-history-actions">
+                        {(sub.employer_review_notes || sub.institution_review_notes) && (
+                          <button
+                            className="lb-btn lb-btn-ghost lb-btn-sm"
+                            onClick={() => { setActiveSupervisorFeedback(sub); setSupervisorFeedbackOpen(true); }}
+                          >
+                            <MessageSquare size={13} />
+                            Feedback
+                          </button>
+                        )}
+                        <Link
+                          to={`/dashboard/student/logbook/${sub.id}`}
+                          className="lb-btn lb-btn-ghost lb-btn-sm"
+                        >
+                          <FileText size={13} />
+                          View
+                          <ArrowRight size={12} />
+                        </Link>
+                        {sub.status === 'REVISION_REQUIRED' && (
+                          <button
+                            className="lb-btn lb-btn-primary lb-btn-sm"
+                            onClick={() => {
+                              showConfirm({
+                                title: 'Load for Revision',
+                                message: "Load this week's logs into the editor? This will overwrite current drafts.",
+                                onConfirm: () => {
+                                  setLogbookEntries(sub.metadata.entries || {});
+                                  setWeeklySummary(sub.metadata.weekly_summary || '');
+                                  showToast.success('Loaded for revision. Edit and resubmit.');
+                                },
+                              });
+                            }}
+                          >
+                            <RotateCcw size={13} />
+                            Revise
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                }) : (
+                  <div className="lb-card">
+                    <div className="lb-empty">
+                      <div className="lb-empty-icon"><Clock size={28} /></div>
+                      <div className="lb-empty-title">No submissions yet</div>
+                      <p className="lb-empty-text">Your submitted weekly logs will appear here once you submit your first week.</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </section>
+          </>
+        )}
 
-            <div className="row g-4 mb-5">
-              {/* Main Calendar Card */}
-              <div className="col-lg-8">
-                <div className={`card logbook-card shadow-sm h-100 ${isDarkMode ? 'bg-dark border-secondary' : 'bg-white border-0'}`}>
-                  <div className="card-header bg-transparent border-0 pt-4 px-4 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3">
-                    <h5 className="fw-bold mb-0">Weekly Activities</h5>
-                    <div className="d-flex bg-light rounded-pill p-1" style={{ width: 'fit-content' }}>
-                      <button 
-                        className={`btn btn-sm rounded-pill px-3 py-1 border-0 transition-all ${viewMode === 'calendar' ? 'bg-primary text-white shadow-sm' : 'text-muted'}`}
-                        onClick={() => setViewMode('calendar')}
-                      >
-                        Calendar
-                      </button>
-                      <button 
-                        className={`btn btn-sm rounded-pill px-3 py-1 border-0 transition-all ${viewMode === 'list' ? 'bg-primary text-white shadow-sm' : 'text-muted'}`}
-                        onClick={() => setViewMode('list')}
-                      >
-                        List View
-                      </button>
+        {/* ══════════════════════
+            MODALS
+        ══════════════════════ */}
+
+        {/* Entry modal */}
+        {modalOpen && (
+          <div className="lb-overlay" onClick={() => setModalOpen(false)}>
+            <div className="lb-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="lb-modal-header">
+                <div>
+                  <div className="lb-modal-eyebrow">Daily Entry</div>
+                  <h3 className="lb-modal-title">
+                    {selectedDate
+                      ? parseLocalDate(selectedDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+                      : '—'}
+                  </h3>
+                  {isReadOnly && (
+                    <div className="lb-modal-sub" style={{ color: 'var(--warning)' }}>
+                      {isInternshipCompleted ? 'Internship completed — read only' : 'Past entry — read only'}
                     </div>
-                  </div>
-                  <div className="card-body p-4">
-                     {viewMode === 'calendar' ? (
-                       <FullCalendar
-                         plugins={[ dayGridPlugin, interactionPlugin, bootstrap5Plugin ]}
-                         initialView="dayGridMonth"
-                         headerToolbar={{
-                           left: 'prev,next today',
-                           center: 'title',
-                           right: 'dayGridMonth,dayGridWeek'
-                         }}
-                         height="auto"
-                         events={calendarEvents}
-                         dateClick={handleDateClick}
-                         dayCellClassNames={(arg) => {
-                           if (isDateInFuture(arg.date)) return 'fc-day-future-locked';
-                           if (isDateInPast(arg.date.toISOString().split('T')[0]) && !isDateInCurrentWeek(arg.date.toISOString().split('T')[0])) return 'fc-day-past-week';
-                           return '';
-                         }}
-                         dayCellContent={(arg) => {
-                           return (
-                             <div className="position-relative h-100 w-100">
-                               <span>{arg.dayNumberText}</span>
-                               {isDateInFuture(arg.date) && (
-                                 <div className="lock-icon-container">
-                                   <Lock size={20} />
-                                 </div>
-                               )}
-                             </div>
-                           );
-                         }}
-                         editable={true}
-                         selectable={true}
-                         themeSystem="bootstrap5"
-                       />
-                     ) : (
-                       <div className="d-flex flex-column gap-3">
-                         {[0, 1, 2, 3, 4].map(dayOffset => {
-                           const date = new Date(currentWeekStart);
-                           date.setDate(date.getDate() + dayOffset);
-                           const dateStr = getLocalDateString(date);
-                           const entry = logbookEntries[dateStr];
-                           const isInternshipCompleted = internship && ['COMPLETED', 'CERTIFIED', 'TERMINATED'].includes(internship.status);
-                           
-                           return (
-                             <div 
-                               key={dateStr}
-                               className={`p-3 rounded-4 border transition-all ${isDarkMode ? 'bg-secondary bg-opacity-10 border-secondary' : 'bg-light border-light'} hover-lift cursor-pointer`}
-                               onClick={() => handleDateClick({ dateStr })}
-                             >
-                               <div className="d-flex justify-content-between align-items-center mb-2">
-                                 <div className="d-flex align-items-center gap-2">
-                                   <div className={`p-2 rounded-circle ${entry ? 'bg-success bg-opacity-10 text-success' : 'bg-primary bg-opacity-10 text-primary'}`}>
-                                     {entry ? <CheckCircle size={16} /> : (isInternshipCompleted ? <Lock size={16} className="text-muted" /> : <Plus size={16} />)}
-                                   </div>
-                                   <span className="fw-bold">{date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</span>
-                                 </div>
-                                 {entry && <Badge bg="primary" className="rounded-pill px-2 py-1 extra-small">Entry Saved</Badge>}
-                                 {isInternshipCompleted && !entry && <Badge bg="secondary" className="rounded-pill px-2 py-1 extra-small">Locked</Badge>}
-                               </div>
-                               <p className={`mb-0 small ${entry ? '' : 'text-muted italic'}`}>
-                                 {entry || (isInternshipCompleted ? "No entry recorded. This logbook is locked." : "No activity recorded for this day. Click to add your logs.")}
-                               </p>
-                             </div>
-                           );
-                         })}
-                       </div>
-                     )}
-                  </div>
+                  )}
+                </div>
+                <button className="lb-modal-close" onClick={() => setModalOpen(false)}>
+                  <X size={15} />
+                </button>
+              </div>
+              <div className="lb-modal-body">
+                <label style={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--ink-3)', display: 'block', marginBottom: 8 }}>
+                  Activities &amp; Learning Outcomes
+                </label>
+                <textarea
+                  className={`lb-entry-textarea${entryError ? ' error' : ''}`}
+                  placeholder={isReadOnly ? 'No entry recorded.' : 'What did you work on today? Key activities, skills, and observations…'}
+                  value={currentEntry}
+                  onChange={(e) => { setCurrentEntry(e.target.value); if (e.target.value.trim()) setEntryError(null); }}
+                  disabled={isReadOnly}
+                />
+                <div className={`lb-field-footer${entryError ? ' error' : ''}`}>
+                  {entryError
+                    ? <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><AlertCircle size={12} />{entryError}</span>
+                    : <span>{currentEntry.length} characters</span>}
+                  {!isReadOnly && !entryError && <span>Draft auto-saved</span>}
+                  {isReadOnly && <span style={{ color: 'var(--ink-4)' }}>Read only</span>}
                 </div>
               </div>
-
-              {/* Sidebar Actions/Stats */}
-              <div className="col-lg-4">
-                <div className="d-flex flex-column gap-4">
-                  {/* Action Card */}
-                  <div className={`card logbook-card shadow-sm ${isDarkMode ? 'bg-dark border-secondary' : 'bg-white border-0'}`}>
-                    <div className="card-body p-4">
-                      <h5 className="fw-bold mb-3">Submissions</h5>
-                      <p className="small text-muted mb-4">Submit your weekly entries for review by your institution supervisor.</p>
-                      
-                      <button 
-                        className="btn btn-primary w-100 py-3 rounded-3 d-flex align-items-center justify-content-center gap-2 mb-3 btn-animate"
-                        onClick={handleSubmitLogbook}
-                        disabled={submitting || submissionSuccess || (internship && ['COMPLETED', 'CERTIFIED', 'TERMINATED'].includes(internship.status))}
-                      >
-                        {submitting ? (
-                          <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                        ) : (
-                          <>
-                            <Send size={18} />
-                            <span>{internship && ['COMPLETED', 'CERTIFIED', 'TERMINATED'].includes(internship.status) ? 'Internship Completed' : 'Submit Week for Review'}</span>
-                          </>
-                        )}
-                      </button>
-                      
-                      <button 
-                        className={`btn w-100 py-2 rounded-3 d-flex align-items-center justify-content-center gap-2 btn-animate mb-3 ${isDarkMode ? 'btn-outline-light' : 'btn-outline-secondary'}`}
-                        onClick={handleDownloadPDF}
-                      >
-                        <Download size={18} />
-                        <span>Download Week PDF</span>
-                      </button>
-
-                      {['COMPLETED', 'CERTIFIED'].includes(internship.status) && (
-                        <button 
-                          className="btn btn-success w-100 py-3 rounded-3 d-flex align-items-center justify-content-center gap-2 btn-animate shadow-sm"
-                          onClick={handleDownloadFullReport}
-                          disabled={generatingReport}
-                        >
-                          {generatingReport ? (
-                            <span className="spinner-border spinner-border-sm" role="status"></span>
-                          ) : (
-                            <FileDown size={20} />
-                          )}
-                          <span className="fw-bold">Export Full Logbook</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Summary/Tip Card */}
-                  <div className={`card shadow-sm border-0 ${isDarkMode ? 'bg-primary bg-opacity-10 text-light' : 'bg-primary text-white'}`}>
-                    <div className="card-body p-4">
-                      <div className="d-flex align-items-center gap-2 mb-3">
-                        <AlertCircle size={20} />
-                        <h6 className="fw-bold mb-0">Quick Tip</h6>
-                      </div>
-                      <p className="small mb-0 opacity-90">
-                        Regular entries help you track your learning goals. Try to record at least one key takeaway every day!
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Stats Mini Card */}
-                  <div className={`card logbook-card shadow-sm ${isDarkMode ? 'bg-dark border-secondary' : 'bg-white border-0'}`}>
-                    <div className="card-body p-4">
-                      <h6 className="fw-bold text-muted text-uppercase small letter-spacing-lg mb-3">Current Week Progress</h6>
-                      <div className="d-flex align-items-end gap-2 mb-2">
-                        <h2 className="fw-bold mb-0">{Object.keys(logbookEntries).length}</h2>
-                        <span className="text-muted pb-1">/ 5 days</span>
-                      </div>
-                      <div className="progress" style={{ height: '6px' }}>
-                        <div 
-                          className="progress-bar bg-primary rounded-pill" 
-                          role="progressbar" 
-                          style={{ width: `${(Object.keys(logbookEntries).length / 5) * 100}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+              <div className="lb-modal-footer">
+                <button className="lb-btn lb-btn-ghost" onClick={() => setModalOpen(false)}>
+                  {isReadOnly ? 'Close' : 'Cancel'}
+                </button>
+                {!isReadOnly && (
+                  <button className="lb-btn lb-btn-primary" onClick={handleSaveEntry}>
+                    <CheckCircle size={15} />
+                    Save Entry
+                  </button>
+                )}
               </div>
             </div>
-
-            {/* Weekly Logs History Table */}
-            <div className="mb-4">
-               <div className="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
-                  <div>
-                    <h4 className={`mb-1 fw-bold ${isDarkMode ? 'text-white' : 'text-dark'}`}>Submission History</h4>
-                    <p className="text-muted small mb-0">Track the status of your submitted weekly logs.</p>
-                  </div>
-                  <div className="d-flex gap-2">
-                     <div className="position-relative">
-                       <input 
-                         type="text" 
-                         className={`form-control form-control-sm ps-4 ${isDarkMode ? 'bg-secondary bg-opacity-20 border-secondary text-white' : 'bg-white border-light'}`} 
-                         placeholder="Filter history..." 
-                         style={{ width: '200px' }} 
-                       />
-                       <Clock size={14} className="position-absolute top-50 start-0 translate-middle-y ms-2 text-muted" />
-                     </div>
-                  </div>
-               </div>
-               
-               <div className={`card logbook-card shadow-sm border-0 ${isDarkMode ? 'bg-dark' : 'bg-white'} overflow-hidden`}>
-                  <div className="table-responsive history-table-container">
-                     <table className={`table mb-0 align-middle ${isDarkMode ? 'table-dark' : 'table-hover'}`}>
-                        <thead className="sticky-top" style={{ zIndex: 10 }}>
-                           <tr className={isDarkMode ? 'bg-secondary bg-opacity-20' : 'bg-light bg-opacity-50'}>
-                              <th className="py-3 px-4 border-0 small fw-bold text-uppercase text-muted">Week Period</th>
-                              <th className="py-3 px-4 border-0 small fw-bold text-uppercase text-muted">Status</th>
-                              <th className="py-3 px-4 border-0 small fw-bold text-uppercase text-muted">Days</th>
-                              <th className="py-3 px-4 border-0 small fw-bold text-uppercase text-muted">Supervisor Feedback</th>
-                              <th className="py-3 px-4 border-0 small fw-bold text-uppercase text-muted">Submitted On</th>
-                              <th className="py-3 px-4 border-0 small fw-bold text-uppercase text-muted text-end">Actions</th>
-                           </tr>
-                        </thead>
-                        <tbody>
-                           {submissionHistory.length > 0 ? (
-                             submissionHistory.map((sub) => (
-                               <tr key={sub.id}>
-                                  <td className="py-3 px-4 border-0 small">
-                                    <div className="fw-bold">{sub.title}</div>
-                                    <div className="text-muted small">
-                                      {sub.metadata?.week_start_date ? `Week of ${sub.metadata.week_start_date}` : ''}
-                                    </div>
-                                  </td>
-                                  <td className="py-3 px-4 border-0 small">
-                                    {sub.status === 'ACCEPTED' ? (
-                                      <span className="badge bg-success bg-opacity-10 text-success px-2 py-1">Approved</span>
-                                    ) : sub.status === 'REVISION_REQUIRED' ? (
-                                      <span className="badge bg-info bg-opacity-10 text-info px-2 py-1">Revision Required</span>
-                                    ) : sub.status === 'REJECTED' ? (
-                                      <span className="badge bg-danger bg-opacity-10 text-danger px-2 py-1">Rejected</span>
-                                    ) : sub.status === 'REVIEWED' ? (
-                                      <span className="badge bg-primary bg-opacity-10 text-primary px-2 py-1">Review in Progress</span>
-                                    ) : (
-                                      <span className="badge bg-warning bg-opacity-10 text-warning px-2 py-1">Pending</span>
-                                    )}
-                                  </td>
-                                  <td className="py-3 px-4 border-0 small">
-                                    {Object.keys(sub.metadata?.entries || {}).length} days
-                                  </td>
-                                  <td className="py-3 px-4 border-0 small">
-                                    {(sub.employer_review_notes || sub.institution_review_notes) ? (
-                                      <button 
-                                        className="btn btn-sm btn-outline-primary d-flex align-items-center gap-1 px-2 py-1"
-                                        onClick={() => {
-                                          setActiveSupervisorFeedback(sub);
-                                          setSupervisorFeedbackOpen(true);
-                                        }}
-                                      >
-                                        <MessageSquare size={14} />
-                                        <span>View Feedback</span>
-                                      </button>
-                                    ) : (
-                                      <span className="text-muted italic small">No feedback yet</span>
-                                    )}
-                                  </td>
-                                  <td className="py-3 px-4 border-0 small text-muted">
-                                    {new Date(sub.created_at).toLocaleDateString()}
-                                  </td>
-                                  <td className="py-3 px-4 border-0 small text-end">
-                                    <div className="d-flex justify-content-end gap-2">
-                                      <Link 
-                                        to={`/dashboard/student/logbook/${sub.id}`}
-                                        className="btn btn-sm btn-light border d-flex align-items-center gap-1 px-3 py-2 transition-all hover-lift"
-                                      >
-                                        <FileText size={14} className="text-primary" />
-                                        <span className="fw-semibold">View Detailed Logs</span>
-                                        <ArrowRight size={14} className="ms-1 opacity-50" />
-                                      </Link>
-                                      {sub.status === 'REVISION_REQUIRED' && (
-                                        <button 
-                                          className="btn btn-sm btn-primary py-2 px-3 fw-bold d-flex align-items-center gap-2 transition-all hover-lift"
-                                          onClick={() => {
-                                            showConfirm({
-                                              title: 'Load Revision Data',
-                                              message: "Are you sure you want to load this week's logs into the calendar for revision? This will overwrite your current drafts for this week.",
-                                              onConfirm: () => {
-                                                setLogbookEntries(sub.metadata.entries);
-                                                showToast.success("Logs loaded into calendar. You can now edit and resubmit.");
-                                              }
-                                            });
-                                          }}
-                                        >
-                                          <Plus size={14} />
-                                          Edit & Resubmit
-                                        </button>
-                                      )}
-                                    </div>
-                                  </td>
-                               </tr>
-                             ))
-                           ) : (
-                             /* Empty State Illustration */
-                             <tr>
-                                <td colSpan={5} className="text-center py-5">
-                                  <div className="d-flex flex-column align-items-center py-4">
-                                    <div className={`p-4 rounded-circle mb-3 ${isDarkMode ? 'bg-secondary bg-opacity-10' : 'bg-light'}`}>
-                                      <Clock size={40} className="text-muted opacity-50" />
-                                    </div>
-                                    <h6 className="fw-bold text-muted mb-1">No submissions yet</h6>
-                                    <p className="small text-muted mb-0">Your submitted weekly logs will appear here.</p>
-                                  </div>
-                                </td>
-                             </tr>
-                           )}
-                        </tbody>
-                     </table>
-                  </div>
-               </div>
-            </div>
-
-            {/* Entry Modal */}
-            {modalOpen && (
-              <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1060 }}>
-                <div className="modal-dialog modal-dialog-centered modal-dialog-bottom">
-                  <div className={`modal-content shadow-lg border-0 modal-content-bottom ${isDarkMode ? 'bg-dark text-white' : 'bg-white'}`} style={{ borderRadius: '1.25rem' }}>
-                    <div className="modal-header border-0 pt-4 px-4 pb-0">
-                      <div>
-                        <h5 className="modal-title fw-bold">Daily Log Entry</h5>
-                        <p className="small text-muted mb-0">Recording for {new Date(selectedDate!).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                      </div>
-                      <button type="button" className={`btn-close ${isDarkMode ? 'btn-close-white' : ''}`} onClick={() => setModalOpen(false)}></button>
-                    </div>
-                    <div className="modal-body px-4 pt-4">
-                      <div className="mb-3">
-                        <label className="form-label small fw-bold text-muted text-uppercase mb-2">Activities & Learning Outcomes</label>
-                        <textarea
-                          className={`form-control p-3 ${entryError ? 'border-danger' : ''} ${isDarkMode ? 'bg-secondary bg-opacity-20 text-white border-secondary' : 'bg-light border-0'}`}
-                          rows={6}
-                          style={{ borderRadius: '1rem', resize: 'none' }}
-                          placeholder={isReadOnly ? "No entry for this date." : "What did you work on today? Any new skills or insights gained?"}
-                          value={currentEntry}
-                          onChange={(e) => {
-                            setCurrentEntry(e.target.value);
-                            if (e.target.value.trim()) setEntryError(null);
-                          }}
-                          disabled={isReadOnly}
-                        />
-                        {entryError && (
-                          <div className="text-danger small mt-2 d-flex align-items-center gap-1">
-                            <AlertCircle size={14} />
-                            {entryError}
-                          </div>
-                        )}
-                        <div className="d-flex justify-content-between mt-2">
-                          <span className="small text-muted">{currentEntry.length} characters</span>
-                          {!isReadOnly && !entryError && <span className="small text-muted">Auto-saving draft...</span>}
-                          {isReadOnly && (
-                            <span className="small text-info fw-bold">
-                              {internship && ['COMPLETED', 'CERTIFIED', 'TERMINATED'].includes(internship.status) 
-                                ? 'Read-only (Internship Completed)' 
-                                : 'Read-only (Past Entry)'}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="modal-footer border-0 px-4 pb-4 pt-0">
-                      <button type="button" className={`btn px-4 py-2 fw-semibold ${isDarkMode ? 'btn-outline-light' : 'btn-outline-secondary'}`} onClick={() => setModalOpen(false)} style={{ borderRadius: '0.75rem' }}>{isReadOnly ? 'Close' : 'Discard'}</button>
-                      {!isReadOnly && (
-                        <button 
-                          type="button" 
-                          className="btn btn-primary px-4 py-2 fw-semibold d-flex align-items-center gap-2" 
-                          onClick={handleSaveEntry} 
-                          style={{ borderRadius: '0.75rem' }}
-                        >
-                          <CheckCircle size={18} />
-                          Save Entry
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Feedback Modal */}
-            {supervisorFeedbackOpen && activeSupervisorFeedback && (
-              <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1060 }}>
-                <div className="modal-dialog modal-dialog-centered modal-lg">
-                  <div className={`modal-content shadow-lg border-0 ${isDarkMode ? 'bg-dark text-white' : 'bg-white'}`} style={{ borderRadius: '1.25rem' }}>
-                    <div className="modal-header border-0 pt-4 px-4 pb-0">
-                      <div>
-                        <h5 className="modal-title fw-bold">Supervisor Feedback</h5>
-                        <p className="small text-muted mb-0">{activeSupervisorFeedback.title} - Week of {activeSupervisorFeedback.metadata?.week_start_date}</p>
-                      </div>
-                      <button type="button" className={`btn-close ${isDarkMode ? 'btn-close-white' : ''}`} onClick={() => setSupervisorFeedbackOpen(false)}></button>
-                    </div>
-                    <div className="modal-body px-4 py-4">
-                      <div className="row g-4">
-                        <div className="col-md-6">
-                          <div className={`p-4 rounded-4 h-100 ${isDarkMode ? 'bg-secondary bg-opacity-10' : 'bg-light'} border-start border-4 border-info`}>
-                            <div className="d-flex align-items-center gap-2 mb-3">
-                              <Briefcase size={20} className="text-info" />
-                              <h6 className="fw-bold mb-0 text-info text-uppercase small">Employer Supervisor</h6>
-                            </div>
-                            <p className={`mb-0 ${activeSupervisorFeedback.employer_review_notes ? '' : 'text-muted italic small'}`}>
-                              {activeSupervisorFeedback.employer_review_notes || "No feedback provided by the employer supervisor yet."}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="col-md-6">
-                          <div className={`p-4 rounded-4 h-100 ${isDarkMode ? 'bg-secondary bg-opacity-10' : 'bg-light'} border-start border-4 border-warning`}>
-                            <div className="d-flex align-items-center gap-2 mb-3">
-                              <Clock size={20} className="text-warning" />
-                              <h6 className="fw-bold mb-0 text-warning text-uppercase small">Institution Supervisor</h6>
-                            </div>
-                            <p className={`mb-0 ${activeSupervisorFeedback.institution_review_notes ? '' : 'text-muted italic small'}`}>
-                              {activeSupervisorFeedback.institution_review_notes || "No feedback provided by the institution supervisor yet."}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="modal-footer border-0 px-4 pb-4 pt-0">
-                      <button type="button" className="btn btn-primary px-4 py-2 fw-semibold" onClick={() => setSupervisorFeedbackOpen(false)} style={{ borderRadius: '0.75rem' }}>Close</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Submission Confirmation Modal */}
-            {submitModalOpen && (
-              <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1060 }}>
-                <div className="modal-dialog modal-dialog-centered modal-lg">
-                  <div className={`modal-content shadow-lg border-0 ${isDarkMode ? 'bg-dark text-white' : 'bg-white'}`} style={{ borderRadius: '1.25rem' }}>
-                    <div className="modal-header border-0 pt-4 px-4 pb-0">
-                      <div>
-                        <h5 className="modal-title fw-bold d-flex align-items-center gap-2">
-                          <Send size={24} className="text-primary" />
-                          Review & Submit Week
-                        </h5>
-                        <p className="small text-muted mb-0">Please proofread your logs for the week starting {currentWeekStart.toLocaleDateString()}.</p>
-                      </div>
-                      <button type="button" className={`btn-close ${isDarkMode ? 'btn-close-white' : ''}`} onClick={() => setSubmitModalOpen(false)}></button>
-                    </div>
-                    <div className="modal-body px-4 py-4">
-                      <div className={`p-3 mb-4 rounded-3 ${isDarkMode ? 'bg-primary bg-opacity-10 text-primary' : 'bg-primary bg-opacity-10 text-primary'} border border-primary border-opacity-25 d-flex align-items-center gap-3`}>
-                        <AlertCircle size={20} />
-                        <span className="small fw-medium">Once submitted, you won't be able to edit these logs unless a supervisor requests a revision.</span>
-                      </div>
-                      
-                      <div className="d-flex flex-column gap-3" style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                        {Object.entries(logbookEntries).sort().map(([date, content]) => (
-                          <div key={date} className={`p-3 rounded-4 ${isDarkMode ? 'bg-secondary bg-opacity-10' : 'bg-light'} border-start border-4 border-primary shadow-sm`}>
-                            <div className="d-flex justify-content-between align-items-center mb-2">
-                              <span className="fw-bold small text-primary">{parseLocalDate(date).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</span>
-                              <Badge bg="white" className="text-muted border fw-normal extra-small">{date}</Badge>
-                            </div>
-                            <p className="mb-0 small" style={{ whiteSpace: 'pre-wrap' }}>{content}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="modal-footer border-0 px-4 pb-4 pt-0 d-flex justify-content-between">
-                      <button 
-                        type="button" 
-                        className={`btn px-4 py-2 fw-semibold ${isDarkMode ? 'btn-outline-light' : 'btn-outline-secondary'}`} 
-                        onClick={() => setSubmitModalOpen(false)} 
-                        style={{ borderRadius: '0.75rem' }}
-                      >
-                        Back to Editing
-                      </button>
-                      <button 
-                        type="button" 
-                        className="btn btn-primary px-5 py-2 fw-bold d-flex align-items-center gap-2 shadow-sm" 
-                        onClick={confirmSubmitLogbook} 
-                        style={{ borderRadius: '0.75rem' }}
-                        disabled={submitting}
-                      >
-                        {submitting ? (
-                          <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                        ) : (
-                          <>
-                            <Send size={18} />
-                            <span>Confirm & Submit Week</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-            {/* Feedback Modal (App Level) */}
-            <FeedbackModal {...feedbackProps} />
           </div>
         )}
+
+        {/* Supervisor feedback modal */}
+        {supervisorFeedbackOpen && activeSupervisorFeedback && (
+          <div className="lb-overlay" onClick={() => setSupervisorFeedbackOpen(false)}>
+            <div className="lb-modal lb-modal-lg" onClick={(e) => e.stopPropagation()}>
+              <div className="lb-modal-header">
+                <div>
+                  <div className="lb-modal-eyebrow">Review Feedback</div>
+                  <h3 className="lb-modal-title">Supervisor Notes</h3>
+                  <div className="lb-modal-sub">
+                    {activeSupervisorFeedback.title} · Week of {activeSupervisorFeedback.metadata?.week_start_date}
+                  </div>
+                </div>
+                <button className="lb-modal-close" onClick={() => setSupervisorFeedbackOpen(false)}>
+                  <X size={15} />
+                </button>
+              </div>
+              <div className="lb-modal-body">
+                <div className="lb-feedback-panel" style={{ borderLeft: '3px solid var(--accent)' }}>
+                  <div className="lb-feedback-panel-label" style={{ color: 'var(--accent)' }}>
+                    <Briefcase size={14} />
+                    Employer Supervisor
+                  </div>
+                  <p className={`lb-feedback-text${activeSupervisorFeedback.employer_review_notes ? '' : ' empty'}`}>
+                    {activeSupervisorFeedback.employer_review_notes || 'No feedback provided yet.'}
+                  </p>
+                </div>
+                <div className="lb-feedback-panel" style={{ borderLeft: '3px solid var(--warning)', marginTop: 12 }}>
+                  <div className="lb-feedback-panel-label" style={{ color: 'var(--warning)' }}>
+                    <Clock size={14} />
+                    Institution Supervisor
+                  </div>
+                  <p className={`lb-feedback-text${activeSupervisorFeedback.institution_review_notes ? '' : ' empty'}`}>
+                    {activeSupervisorFeedback.institution_review_notes || 'No feedback provided yet.'}
+                  </p>
+                </div>
+              </div>
+              <div className="lb-modal-footer" style={{ justifyContent: 'flex-end' }}>
+                <button className="lb-btn lb-btn-primary" onClick={() => setSupervisorFeedbackOpen(false)}>
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Submit confirmation modal */}
+        {submitModalOpen && (
+          <div className="lb-overlay" onClick={() => setSubmitModalOpen(false)}>
+            <div className="lb-modal lb-modal-lg" onClick={(e) => e.stopPropagation()}>
+              <div className="lb-modal-header">
+                <div>
+                  <div className="lb-modal-eyebrow">Review &amp; Confirm</div>
+                  <h3 className="lb-modal-title">Submit Week for Review</h3>
+                  <div className="lb-modal-sub">
+                    Week of {currentWeekStart.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                  </div>
+                </div>
+                <button className="lb-modal-close" onClick={() => setSubmitModalOpen(false)}>
+                  <X size={15} />
+                </button>
+              </div>
+              <div className="lb-modal-body">
+                <div className="lb-warn-banner">
+                  <AlertCircle size={16} style={{ flexShrink: 0, marginTop: 1 }} />
+                  <span>Once submitted, you cannot edit these logs unless a supervisor requests a revision.</span>
+                </div>
+                <div className="lb-preview-scroll">
+                  {buildStandardLogbookMetadata({
+                    weekStartDate: getLocalDateString(currentWeekStart),
+                    entries: logbookEntries,
+                    weeklySummary,
+                  }).daily_entries.map((entry: any) => (
+                    <div key={entry.date} className="lb-preview-entry">
+                      <div className="lb-preview-day-label">
+                        {entry.label}
+                        <span className="lb-preview-day-date">{entry.date}</span>
+                      </div>
+                      <p className={`lb-preview-content${entry.description ? '' : ' empty'}`}>
+                        {entry.description || 'No activity recorded.'}
+                      </p>
+                    </div>
+                  ))}
+                  <div className="lb-preview-entry" style={{ borderLeft: '3px solid var(--accent)' }}>
+                    <div className="lb-preview-day-label" style={{ color: 'var(--accent)' }}>
+                      Trainee Weekly Report
+                    </div>
+                    <p className="lb-preview-content">{weeklySummary}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="lb-modal-footer">
+                <button className="lb-btn lb-btn-ghost" onClick={() => setSubmitModalOpen(false)}>
+                  Back to Editing
+                </button>
+                <button
+                  className="lb-btn lb-btn-primary"
+                  onClick={confirmSubmitLogbook}
+                  disabled={submitting}
+                >
+                  {submitting ? <div className="lb-spinner" /> : <Send size={15} />}
+                  Confirm &amp; Submit
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <FeedbackModal {...feedbackProps} />
+      </div>
     </StudentLayout>
   );
 };

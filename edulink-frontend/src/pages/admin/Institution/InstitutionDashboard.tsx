@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Row, Col, Card, Button } from 'react-bootstrap';
-import { Users, Briefcase, FileText, TrendingUp, TrendingDown, Calendar } from 'lucide-react';
+import { Users, Briefcase, FileText, TrendingUp, TrendingDown, Calendar, Download } from 'lucide-react';
 import PlacementMonitoringWidget from '../../../components/dashboard/institution/PlacementMonitoringWidget';
 import InstitutionLayout from '../../../components/admin/institution/InstitutionLayout';
 import DashboardCharts from '../../../components/dashboard/institution/DashboardCharts';
@@ -55,6 +55,16 @@ const InstitutionDashboard: React.FC = () => {
   const [students, setStudents] = useState<AffiliatedStudent[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dateRange, setDateRange] = useState<{ date_from: string; date_to: string }>(() => {
+    const to = new Date();
+    const from = new Date();
+    from.setDate(to.getDate() - 30);
+    return {
+      date_from: from.toISOString().slice(0, 10),
+      date_to: to.toISOString().slice(0, 10),
+    };
+  });
+  const [exporting, setExporting] = useState(false);
 
   const { handleError: handleDashboardError } = useErrorHandler({
     onAuthError: () => showToast.error('Unauthorized access'),
@@ -67,8 +77,9 @@ const InstitutionDashboard: React.FC = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
+        setLoading(true);
         const [data, trustData, evidenceResponse, studentData, departmentData] = await Promise.all([
-          institutionService.getPlacementSuccessStats(),
+          institutionService.getPlacementSuccessStats(dateRange),
           institutionService.getTrustProgress(),
           internshipService.getPendingEvidence(),
           institutionService.getStudents(),
@@ -91,7 +102,37 @@ const InstitutionDashboard: React.FC = () => {
     };
 
     fetchStats();
-  }, []);
+  }, [dateRange]);
+
+  const handleLast30Days = () => {
+    const to = new Date();
+    const from = new Date();
+    from.setDate(to.getDate() - 30);
+    setDateRange({
+      date_from: from.toISOString().slice(0, 10),
+      date_to: to.toISOString().slice(0, 10),
+    });
+  };
+
+  const handleGenerateReport = async () => {
+    setExporting(true);
+    try {
+      const blob = await institutionService.exportReport(dateRange);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `institution_placement_report_${dateRange.date_from}_to_${dateRange.date_to}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      showToast.success('Report generated');
+    } catch (error) {
+      await handleDashboardError(error);
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const readinessItems: PilotReadinessItem[] = [
     {
@@ -178,12 +219,22 @@ const InstitutionDashboard: React.FC = () => {
               <p className="text-muted mb-0 fs-5">Run a trusted attachment pilot from cohort setup to verified completion.</p>
             </div>
             <div className="d-flex gap-2">
-              <Button variant="white" className="shadow-sm border-0 rounded-3 px-3 d-flex align-items-center gap-2">
+              <Button
+                variant="white"
+                className="shadow-sm border-0 rounded-3 px-3 d-flex align-items-center gap-2"
+                onClick={handleLast30Days}
+              >
                 <Calendar size={18} className="text-primary" />
                 <span className="fw-semibold small">Last 30 Days</span>
               </Button>
-              <Button variant="primary" className="shadow-sm rounded-3 px-4 fw-bold">
-                Generate Report
+              <Button
+                variant="primary"
+                className="shadow-sm rounded-3 px-4 fw-bold d-flex align-items-center gap-2"
+                onClick={handleGenerateReport}
+                disabled={exporting}
+              >
+                <Download size={18} />
+                {exporting ? 'Generating...' : 'Generate Report'}
               </Button>
             </div>
           </div>

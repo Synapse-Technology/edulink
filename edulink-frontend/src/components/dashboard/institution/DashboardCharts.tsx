@@ -43,6 +43,12 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ stats }) => {
     { name: 'Inactive', value: inactiveCount }
   ];
 
+  const sourceData = [
+    { name: 'EduLink Managed', value: stats.source_breakdown?.managed_edulink || 0 },
+    { name: 'Employer Sourced', value: stats.source_breakdown?.employer_sourced || 0 },
+    { name: 'External Declared', value: stats.source_breakdown?.external_declared || 0 },
+  ].filter(item => item.value > 0);
+
   // Participation Colors: Active (Solid Blue), Inactive (Light Gray)
   const PARTICIPATION_COLORS = ['#4318FF', '#EFF4FB'];
 
@@ -150,6 +156,41 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ stats }) => {
           </Card.Body>
         </Card>
       </Col>
+
+      {sourceData.length > 0 && (
+        <Col lg={12}>
+          <Card className="border-0 shadow-sm h-100 rounded-4">
+            <Card.Body className="p-4">
+              <h5 className="card-title mb-4 d-flex align-items-center fw-bold text-dark">
+                  <Activity size={20} className="me-2 text-success"/>
+                  Placement Source Mix
+              </h5>
+              <div style={{ width: '100%', height: 260, minWidth: 0 }}>
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                  <PieChart>
+                    <Pie
+                      data={sourceData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={58}
+                      outerRadius={82}
+                      paddingAngle={4}
+                      dataKey="value"
+                      stroke="none"
+                    >
+                      {sourceData.map((_, index) => (
+                        <Cell key={`source-cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }} />
+                    <Legend verticalAlign="bottom" height={36} iconType="circle"/>
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </Card.Body>
+          </Card>
+        </Col>
+      )}
     </Row>
   );
 };

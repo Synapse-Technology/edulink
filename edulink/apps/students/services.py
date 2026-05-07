@@ -16,7 +16,7 @@ from edulink.apps.notifications.services import (
     send_document_rejected_notification,
     send_document_uploaded_notification,
 )
-from .models import Student, StudentInstitutionAffiliation, TRUST_EVENT_POINTS, TRUST_TIER_THRESHOLDS
+from .models import Student, StudentInstitutionAffiliation
 
 logger = logging.getLogger(__name__)
 
@@ -211,6 +211,12 @@ def upload_student_document(*, student_id: str, document_type: str, file_name: s
         },
     )
 
+    try:
+        from edulink.apps.trust.services import compute_student_trust_tier
+        compute_student_trust_tier(student_id=str(student.id))
+    except Exception:
+        logger.exception("Failed to recompute trust after document upload")
+
     # Send notification
     try:
         send_document_uploaded_notification(
@@ -268,6 +274,12 @@ def certify_internship_completion(*, student_id: str, institution_id: str, certi
             "certificate_id": certificate_id,
         },
     )
+
+    try:
+        from edulink.apps.trust.services import compute_student_trust_tier
+        compute_student_trust_tier(student_id=str(student_id))
+    except Exception:
+        logger.exception("Failed to recompute trust after internship certification")
 
 
 def verify_student_affiliation(*, affiliation_id: str, actor_id: str, review_notes: str = "", department_id: str = None, cohort_id: str = None) -> StudentInstitutionAffiliation:
@@ -340,6 +352,12 @@ def verify_student_affiliation(*, affiliation_id: str, actor_id: str, review_not
                 "review_notes": review_notes
             }
         )
+
+        try:
+            from edulink.apps.trust.services import compute_student_trust_tier
+            compute_student_trust_tier(student_id=str(student.id))
+        except Exception:
+            logger.exception("Failed to recompute trust after affiliation approval")
             
     # Send notification
     institution = get_institution_by_id(institution_id=str(affiliation.institution_id))
@@ -889,7 +907,8 @@ def upload_affiliation_verification_document(*,
     """
     from .policies import can_upload_affiliation_document
     from django.utils import timezone
-    from urllib.parse import urljoin
+    from django.core.files.storage import default_storage
+    import os
     
     # 1. Authority check: Policy determines if student can upload
     if not can_upload_affiliation_document(student_id=student_id):
@@ -908,13 +927,17 @@ def upload_affiliation_verification_document(*,
             "Documents are only uploaded for pending affiliations."
         )
     
-    # 4. Store document (simplified: assume document_file has a name and read() method)
-    # TODO: Integrate with actual cloud storage (S3, Azure Blob, etc.)
-    # For now, store the filename to indicate document was received
-    import os
+    # 4. Store document through the configured storage backend.
     document_filename = getattr(document_file, 'name', 'document')
-    # In production, upload to cloud storage and use returned URL
-    document_url = f"documents/affiliations/{affiliation_id}/{document_filename}"
+    safe_filename = os.path.basename(document_filename)
+    storage_path = default_storage.save(
+        f"documents/affiliations/{affiliation_id}/{safe_filename}",
+        document_file,
+    )
+    try:
+        document_url = default_storage.url(storage_path)
+    except Exception:
+        document_url = storage_path
     
     # 5. Update affiliation with document reference
     affiliation.verification_document_url = document_url
@@ -950,6 +973,7 @@ def create_institution_affiliation_claim(*, student_id: str, institution_id: str
     """
     from uuid import UUID
     from .policies import should_auto_verify_affiliation
+    from edulink.apps.institutions.queries import get_institution_by_id
     
     # Check if affiliation already exists
     existing_affiliation = StudentInstitutionAffiliation.objects.filter(
@@ -959,9 +983,18 @@ def create_institution_affiliation_claim(*, student_id: str, institution_id: str
     
     if existing_affiliation:
         return existing_affiliation
+
+    student = Student.objects.get(id=student_id)
+    institution = get_institution_by_id(institution_id=UUID(str(institution_id)))
+    student_domain = student.email.split("@")[-1].lower() if "@" in student.email else ""
+    institution_domain = (institution.domain or "").lower()
+    has_domain_match = bool(institution_domain and student_domain == institution_domain)
+
+    if claimed_via == StudentInstitutionAffiliation.CLAIMED_VIA_DOMAIN and not has_domain_match:
+        claimed_via = StudentInstitutionAffiliation.CLAIMED_VIA_MANUAL
     
     # Use policy to determine verification path
-    if should_auto_verify_affiliation(claimed_via=claimed_via):
+    if should_auto_verify_affiliation(claimed_via=claimed_via) and has_domain_match:
         # Domain-based: auto-verify immediately
         return auto_verify_affiliation(
             student_id=student_id,

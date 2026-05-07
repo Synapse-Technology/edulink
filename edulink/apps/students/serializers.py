@@ -86,8 +86,16 @@ class StudentSerializer(serializers.ModelSerializer):
 class TrustTierSerializer(serializers.Serializer):
     student_id = serializers.UUIDField()
     score = serializers.IntegerField()
+    event_score = serializers.IntegerField(required=False)
     tier_level = serializers.IntegerField()
     tier_name = serializers.CharField()
+    tier_label = serializers.CharField(required=False)
+    current_level = serializers.IntegerField(required=False)
+    current_label = serializers.CharField(required=False)
+    next_level = serializers.IntegerField(required=False, allow_null=True)
+    progress_percentage = serializers.IntegerField(required=False)
+    requirements = serializers.ListField(required=False)
+    requirement_status = serializers.DictField(required=False)
 
 
 class StudentTrustTierSerializer(serializers.Serializer):

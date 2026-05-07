@@ -29,6 +29,7 @@ from .models import (
     ExternalPlacementDeclaration,
 )
 from .workflows import opportunity_workflow, application_workflow
+from .logbook_format import get_logbook_week_start, get_required_week_start_dates
 from .policies import (
     can_create_internship, 
     can_submit_evidence, 
@@ -39,6 +40,11 @@ from .policies import (
     can_bulk_assign_supervisors,
     can_declare_external_placement,
     can_review_external_placement_declaration,
+    can_assign_incident_investigator,
+    can_investigate_incident,
+    can_propose_incident_resolution,
+    can_approve_incident_resolution,
+    can_dismiss_incident,
 )
 
 PENDING_EVIDENCE_STATUSES = [
@@ -53,6 +59,92 @@ OPEN_INCIDENT_STATUSES = [
     Incident.STATUS_INVESTIGATING,
     Incident.STATUS_PENDING_APPROVAL,
 ]
+
+
+def requires_institution_review(application: InternshipApplication) -> bool:
+    """
+    Institution review is required whenever the placement is institution-owned
+    or the student is attached to an institution, even for employer-hosted work.
+    """
+    if application.institution_supervisor_id or application.opportunity.institution_id:
+        return True
+
+    snapshot = application.application_snapshot or {}
+    if snapshot.get("institution_id"):
+        return True
+
+    try:
+        from edulink.apps.students.queries import get_student_approved_affiliation
+
+        return bool(get_student_approved_affiliation(application.student_id))
+    except Exception:
+        logger.exception("Failed to resolve student affiliation for application %s", application.id)
+        return False
+
+
+def requires_employer_review(application: InternshipApplication) -> bool:
+    return bool(application.employer_supervisor_id) or bool(application.opportunity.employer_id)
+
+
+def get_start_readiness(application: InternshipApplication) -> dict:
+    checks = [
+        {
+            "key": "accepted_status",
+            "label": "Placement has been accepted",
+            "passed": application.status == ApplicationStatus.ACCEPTED,
+        },
+        {
+            "key": "attachment_dates",
+            "label": "Attachment start and end dates are set",
+            "passed": bool(application.opportunity.start_date and application.opportunity.end_date),
+        },
+    ]
+
+    if requires_employer_review(application):
+        checks.append({
+            "key": "employer_supervisor",
+            "label": "Employer supervisor is assigned",
+            "passed": bool(application.employer_supervisor_id),
+        })
+
+    if requires_institution_review(application):
+        checks.append({
+            "key": "institution_assessor",
+            "label": "Institution assessor is assigned",
+            "passed": bool(application.institution_supervisor_id),
+        })
+
+    return {
+        "checks": checks,
+        "missing": [check["label"] for check in checks if not check["passed"]],
+        "can_start": all(check["passed"] for check in checks),
+    }
+
+
+def get_logbook_coverage(application: InternshipApplication) -> dict:
+    expected_weeks = get_required_week_start_dates(
+        application.opportunity.start_date,
+        application.opportunity.end_date,
+    )
+    accepted_weeks = {
+        week_start
+        for week_start in (
+            get_logbook_week_start(evidence.metadata)
+            for evidence in application.evidence.filter(
+                evidence_type=InternshipEvidence.TYPE_LOGBOOK,
+                status=InternshipEvidence.STATUS_ACCEPTED,
+            )
+        )
+        if week_start
+    }
+    missing_weeks = [week for week in expected_weeks if week not in accepted_weeks]
+
+    return {
+        "expected_weeks": expected_weeks,
+        "accepted_weeks": sorted(accepted_weeks),
+        "missing_weeks": missing_weeks,
+        "is_complete": not expected_weeks or not missing_weeks,
+    }
 
 
 def get_completion_readiness(application: InternshipApplication) -> dict:
@@ -71,10 +163,14 @@ def get_completion_readiness(application: InternshipApplication) -> dict:
     unresolved_incident_count = application.incidents.filter(
         status__in=OPEN_INCIDENT_STATUSES
     ).count()
-    has_final_feedback = bool(application.final_feedback)
+    employer_assessment_required = requires_employer_review(application)
+    institution_assessment_required = requires_institution_review(application)
+    has_employer_assessment = not employer_assessment_required or bool(application.employer_final_feedback or application.final_feedback)
+    has_institution_assessment = not institution_assessment_required or bool(application.institution_final_feedback)
     is_active = application.status == ApplicationStatus.ACTIVE
     is_completed = application.status == ApplicationStatus.COMPLETED
     is_certified = application.status == ApplicationStatus.CERTIFIED
+    logbook_coverage = get_logbook_coverage(application)
 
     checks = [
         {
@@ -93,15 +189,30 @@ def get_completion_readiness(application: InternshipApplication) -> dict:
             "count": accepted_evidence_count,
         },
         {
+            "key": "required_logbook_weeks",
+            "label": "All attachment weeks have approved logbooks",
+            "passed": logbook_coverage["is_complete"],
+            "count": len(logbook_coverage["accepted_weeks"]),
+            "required_count": len(logbook_coverage["expected_weeks"]),
+            "missing_weeks": logbook_coverage["missing_weeks"],
+        },
+        {
             "key": "pending_evidence",
             "label": "No pending evidence reviews",
             "passed": pending_evidence_count == 0,
             "count": pending_evidence_count,
         },
         {
-            "key": "final_feedback",
-            "label": "Final supervisor assessment submitted",
-            "passed": has_final_feedback,
+            "key": "employer_final_assessment",
+            "label": "Employer final assessment submitted",
+            "passed": has_employer_assessment,
+            "required": employer_assessment_required,
+        },
+        {
+            "key": "institution_final_assessment",
+            "label": "Institution final assessment submitted",
+            "passed": has_institution_assessment,
+            "required": institution_assessment_required,
         },
         {
             "key": "unresolved_incidents",
@@ -389,11 +500,16 @@ def apply_for_internship(actor, opportunity_id: UUID, cover_letter: str = "") ->
             context=ErrorContext().with_resource("opportunity", opportunity_id).build(),
         )
     
+    from edulink.apps.trust.services import compute_student_trust_tier
+
+    trust_info = compute_student_trust_tier(student_id=str(student.id))
+    student_trust_level = trust_info["tier_level"]
+
     # Trust-gated graduated restrictions
     # Trust Level 0: 3 applications per month
     # Trust Level 1: 5 applications per month
     # Trust Level 2+: unlimited
-    if student.trust_level <= 1:
+    if student_trust_level <= 1:
         from django.utils import timezone
         month_start = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         applications_this_month = InternshipApplication.objects.filter(
@@ -409,12 +525,12 @@ def apply_for_internship(actor, opportunity_id: UUID, cover_letter: str = "") ->
             ]
         ).count()
         
-        max_applications = 3 if student.trust_level == 0 else 5
+        max_applications = 3 if student_trust_level == 0 else 5
         if applications_this_month >= max_applications:
             raise ConflictError(
-                user_message=f"You've reached your monthly application limit ({max_applications}). Your limit increases as your trust tier improves. Current tier: Level {student.trust_level}",
-                developer_message=f"Student {student.id} trust level {student.trust_level} has {applications_this_month} applications this month",
-                context=ErrorContext().with_user_id(actor.id).with_reason(f"Trust level {student.trust_level} limits to {max_applications} applications/month").build(),
+                user_message=f"You've reached your monthly application limit ({max_applications}). Your limit increases as your trust tier improves. Current tier: Level {student_trust_level}",
+                developer_message=f"Student {student.id} trust level {student_trust_level} has {applications_this_month} applications this month",
+                context=ErrorContext().with_user_id(actor.id).with_reason(f"Trust level {student_trust_level} limits to {max_applications} applications/month").build(),
             )
 
     # Check for overlapping engagements (Double Booking Prevention)
@@ -724,6 +840,10 @@ def submit_evidence(actor, application_id: UUID, title: str, file: any = None, d
     
     if metadata is None:
         metadata = {}
+    if evidence_type == InternshipEvidence.TYPE_LOGBOOK:
+        from .logbook_format import normalize_logbook_metadata
+
+        metadata = normalize_logbook_metadata(metadata)
         
     evidence_kwargs = {
         "application": application,
@@ -772,6 +892,115 @@ def submit_evidence(actor, application_id: UUID, title: str, file: any = None, d
         )
     
     return evidence
+
+
+@transaction.atomic
+def resubmit_evidence(
+    actor,
+    application_id: UUID,
+    evidence_id: UUID,
+    title: str,
+    file: any = None,
+    description: str = "",
+    evidence_type: str = InternshipEvidence.TYPE_OTHER,
+    metadata: dict = None,
+) -> InternshipEvidence:
+    from .workflows import evidence_workflow
+
+    application = InternshipApplication.objects.select_for_update().get(id=application_id)
+    if not can_submit_evidence(actor, application):
+        raise AuthorizationError(
+            user_message="You are not authorized to resubmit evidence for this application.",
+            developer_message=f"User {actor.id} lacks permission for application {application_id}",
+            context=ErrorContext().with_user_id(actor.id).with_resource("application", application_id).build(),
+        )
+
+    try:
+        evidence = InternshipEvidence.objects.select_for_update().get(
+            id=evidence_id,
+            application=application,
+        )
+    except InternshipEvidence.DoesNotExist:
+        raise NotFoundError(
+            user_message="Evidence not found for this application.",
+            developer_message=f"Evidence {evidence_id} was not found for application {application_id}",
+            context=ErrorContext().with_resource("application", application_id).with_resource("evidence", evidence_id).build(),
+        )
+
+    if evidence.status != InternshipEvidence.STATUS_REVISION_REQUIRED:
+        raise ConflictError(
+            user_message="Only evidence marked for revision can be resubmitted.",
+            developer_message=f"Evidence {evidence.id} status is {evidence.status}",
+            context=ErrorContext().with_resource("evidence", evidence.id).with_current_state(evidence.status).build(),
+        )
+
+    if metadata is None:
+        metadata = {}
+    if evidence_type == InternshipEvidence.TYPE_LOGBOOK:
+        from .logbook_format import normalize_logbook_metadata
+
+        metadata = normalize_logbook_metadata(metadata)
+
+    previous_review = {
+        "employer_status": evidence.employer_review_status,
+        "employer_notes": evidence.employer_review_notes,
+        "institution_status": evidence.institution_review_status,
+        "institution_notes": evidence.institution_review_notes,
+        "reviewed_at": timezone.now().isoformat(),
+    }
+    previous_reviews = list((evidence.metadata or {}).get("previous_reviews", []))
+    previous_reviews.append(previous_review)
+
+    evidence.title = title
+    evidence.description = description
+    evidence.evidence_type = evidence_type
+    evidence.metadata = {**metadata, "previous_reviews": previous_reviews}
+    evidence.employer_review_status = None
+    evidence.employer_reviewed_by = None
+    evidence.employer_reviewed_at = None
+    evidence.employer_review_notes = ""
+    evidence.employer_private_notes = ""
+    evidence.institution_review_status = None
+    evidence.institution_reviewed_by = None
+    evidence.institution_reviewed_at = None
+    evidence.institution_review_notes = ""
+    evidence.institution_private_notes = ""
+    evidence.submitted_by = actor.id
+    if file is not None:
+        evidence.file = file
+    evidence.save()
+
+    evidence = evidence_workflow.transition(
+        evidence=evidence,
+        target_state=InternshipEvidence.STATUS_SUBMITTED,
+        actor=actor,
+        payload={
+            "application_id": str(application.id),
+            "title": title,
+            "type": evidence_type,
+            "resubmission": True,
+        },
+    )
+
+    supervisor_ids = []
+    if application.employer_supervisor_id:
+        supervisor_ids.append(str(application.employer_supervisor_id))
+    if application.institution_supervisor_id:
+        supervisor_ids.append(str(application.institution_supervisor_id))
+
+    if supervisor_ids:
+        from edulink.apps.notifications.services import send_evidence_submitted_notification
+
+        send_evidence_submitted_notification(
+            evidence_id=str(evidence.id),
+            supervisor_ids=supervisor_ids,
+            student_name=actor.get_full_name() or actor.username,
+            evidence_title=title,
+            actor_id=str(actor.id),
+        )
+
+    return evidence
+
 
 def create_incident(actor, application_id: UUID, title: str, description: str) -> Incident:
     application = InternshipApplication.objects.get(id=application_id)
@@ -833,11 +1062,10 @@ def assign_incident_investigator(actor, incident_id: UUID, investigator_id: UUID
     
     incident = Incident.objects.select_for_update().get(id=incident_id)
     
-    # Only admins can assign investigators
-    if not (actor.is_employer_admin or actor.is_institution_admin or actor.is_system_admin):
+    if not can_assign_incident_investigator(actor, incident):
         raise AuthorizationError(
             user_message="Only administrators can assign incident investigators.",
-            developer_message=f"User {actor.id} is not an admin. Required: employer_admin, institution_admin, or system_admin.",
+            developer_message=f"User {actor.id} cannot manage incident {incident_id}.",
             context=ErrorContext()
                 .with_user_id(actor.id)
                 .with_resource("incident", incident_id)
@@ -878,16 +1106,10 @@ def start_incident_investigation(actor, incident_id: UUID, investigation_plan: s
     
     incident = Incident.objects.select_for_update().get(id=incident_id)
     
-    # Only the assigned investigator or admin can start investigation
-    if not (
-        actor.id == incident.investigator_id 
-        or actor.is_employer_admin 
-        or actor.is_institution_admin
-        or actor.is_system_admin
-    ):
+    if not can_investigate_incident(actor, incident):
         raise AuthorizationError(
             user_message="Only the assigned investigator or an administrator can start this investigation.",
-            developer_message=f"User {actor.id} is not the assigned investigator (expected: {incident.investigator_id}) and is not an admin.",
+            developer_message=f"User {actor.id} cannot investigate incident {incident_id}.",
             context=ErrorContext()
                 .with_user_id(actor.id)
                 .with_resource("incident", incident_id)
@@ -918,15 +1140,10 @@ def propose_incident_resolution(actor, incident_id: UUID, resolution_notes: str)
     
     incident = Incident.objects.select_for_update().get(id=incident_id)
     
-    # Only investigators can propose resolutions
-    if not (
-        actor.id == incident.investigator_id 
-        or actor.is_employer_admin 
-        or actor.is_institution_admin
-    ):
+    if not can_propose_incident_resolution(actor, incident):
         raise AuthorizationError(
             user_message="Only the assigned investigator or an administrator can propose a resolution.",
-            developer_message=f"User {actor.id} is not the assigned investigator (expected: {incident.investigator_id}) and is not an admin.",
+            developer_message=f"User {actor.id} cannot propose resolution for incident {incident_id}.",
             context=ErrorContext()
                 .with_user_id(actor.id)
                 .with_resource("incident", incident_id)
@@ -968,11 +1185,10 @@ def approve_incident_resolution(actor, incident_id: UUID, approval_notes: str = 
     
     incident = Incident.objects.select_for_update().get(id=incident_id)
     
-    # Only admins can approve resolutions (different from investigator)
-    if not (actor.is_employer_admin or actor.is_institution_admin or actor.is_system_admin):
+    if not can_approve_incident_resolution(actor, incident):
         raise AuthorizationError(
             user_message="Only administrators can approve incident resolutions.",
-            developer_message=f"User {actor.id} is not an admin. Required: employer_admin, institution_admin, or system_admin.",
+            developer_message=f"User {actor.id} cannot approve incident {incident_id}.",
             context=ErrorContext()
                 .with_user_id(actor.id)
                 .with_resource("incident", incident_id)
@@ -1011,11 +1227,10 @@ def dismiss_incident(actor, incident_id: UUID, dismissal_reason: str = None) -> 
     
     incident = Incident.objects.select_for_update().get(id=incident_id)
     
-    # Only admins can dismiss
-    if not (actor.is_employer_admin or actor.is_institution_admin or actor.is_system_admin):
+    if not can_dismiss_incident(actor, incident):
         raise AuthorizationError(
             user_message="Only administrators can dismiss incidents.",
-            developer_message=f"User {actor.id} lacks admin role",
+            developer_message=f"User {actor.id} cannot dismiss incident {incident_id}.",
             context=ErrorContext().with_user_id(actor.id).with_resource("incident", incident_id).build(),
         )
     
@@ -1057,10 +1272,10 @@ def resolve_incident(actor, incident_id: UUID, status: str, notes: str) -> Incid
             developer_message=f"Status {status} not in allowed values",
         )
     
-    if not (actor.is_employer_admin or actor.is_institution_admin or actor.is_system_admin):
+    if not can_dismiss_incident(actor, incident):
         raise AuthorizationError(
             user_message="Only administrators can resolve incidents.",
-            developer_message=f"User {actor.id} lacks admin role",
+            developer_message=f"User {actor.id} cannot resolve incident {incident_id}.",
             context=ErrorContext().with_user_id(actor.id).with_resource("incident", incident_id).build(),
         )
     
@@ -1104,10 +1319,45 @@ def submit_final_feedback(actor, application_id: UUID, feedback: str, rating: in
             context=ErrorContext().with_user_id(actor.id).with_resource("application", application_id).build(),
         )
 
-    application.final_feedback = feedback
-    if rating:
-        application.final_rating = rating
-    application.save()
+    from .roles import is_assigned_employer_supervisor, is_assigned_institution_supervisor
+
+    is_employer_assessment = is_assigned_employer_supervisor(actor, application)
+    is_institution_assessment = is_assigned_institution_supervisor(actor, application)
+
+    if not is_employer_assessment and not is_institution_assessment:
+        if actor.is_employer_admin and application.opportunity.employer_id:
+            is_employer_assessment = True
+        elif actor.is_institution_admin:
+            is_institution_assessment = True
+
+    if is_institution_assessment and not is_employer_assessment:
+        application.institution_final_feedback = feedback
+        application.institution_final_rating = rating
+        application.institution_final_feedback_by = actor.id
+        application.institution_final_feedback_at = timezone.now()
+        assessment_role = "institution"
+    else:
+        application.employer_final_feedback = feedback
+        application.employer_final_rating = rating
+        application.employer_final_feedback_by = actor.id
+        application.employer_final_feedback_at = timezone.now()
+        assessment_role = "employer"
+
+    application.final_feedback = _compose_final_feedback_summary(application)
+    application.final_rating = _compose_final_rating(application)
+    application.save(update_fields=[
+        "employer_final_feedback",
+        "employer_final_rating",
+        "employer_final_feedback_by",
+        "employer_final_feedback_at",
+        "institution_final_feedback",
+        "institution_final_rating",
+        "institution_final_feedback_by",
+        "institution_final_feedback_at",
+        "final_feedback",
+        "final_rating",
+        "updated_at",
+    ])
     
     from edulink.apps.ledger.services import record_event
     record_event(
@@ -1118,7 +1368,8 @@ def submit_final_feedback(actor, application_id: UUID, feedback: str, rating: in
         payload={
             "has_rating": bool(rating),
             "rating": rating,
-            "feedback_length": len(feedback)
+            "feedback_length": len(feedback),
+            "assessment_role": assessment_role,
         }
     )
 
@@ -1146,6 +1397,29 @@ def submit_final_feedback(actor, application_id: UUID, feedback: str, rating: in
     )
 
     return application
+
+
+def _compose_final_feedback_summary(application: InternshipApplication) -> str:
+    sections = []
+    if application.employer_final_feedback:
+        sections.append(f"Employer assessment:\n{application.employer_final_feedback}")
+    if application.institution_final_feedback:
+        sections.append(f"Institution assessment:\n{application.institution_final_feedback}")
+    return "\n\n".join(sections)
+
+
+def _compose_final_rating(application: InternshipApplication) -> int | None:
+    ratings = [
+        rating
+        for rating in [
+            application.employer_final_rating,
+            application.institution_final_rating,
+        ]
+        if rating is not None
+    ]
+    if not ratings:
+        return None
+    return round(sum(ratings) / len(ratings))
 
 def create_success_story(
     actor, 
@@ -1509,24 +1783,11 @@ def review_evidence(
             developer_message=f"Status {status} not in valid statuses",
         )
         
-    # Determine which supervisor is reviewing
-    is_employer_supervisor = str(application.employer_supervisor_id) == str(actor.id)
-    is_institution_supervisor = str(application.institution_supervisor_id) == str(actor.id)
-    if not is_employer_supervisor and application.opportunity.employer_id:
-        from edulink.apps.employers.queries import get_employer_supervisor_by_user
-        supervisor = get_employer_supervisor_by_user(
-            user_id=actor.id,
-            employer_id=application.opportunity.employer_id,
-        )
-        is_employer_supervisor = bool(
-            supervisor and str(application.employer_supervisor_id) == str(supervisor.id)
-        )
-    if not is_institution_supervisor:
-        from edulink.apps.institutions.queries import get_institution_staff_profile
-        staff = get_institution_staff_profile(str(actor.id))
-        is_institution_supervisor = bool(
-            staff and str(application.institution_supervisor_id) == str(staff.id)
-        )
+    # Determine which review lane the actor owns.
+    from .roles import is_assigned_employer_supervisor, is_assigned_institution_supervisor
+
+    is_employer_supervisor = is_assigned_employer_supervisor(actor, application)
+    is_institution_supervisor = is_assigned_institution_supervisor(actor, application)
     
     # Fallback for admins who are not supervisors but have review permission
     if not is_employer_supervisor and not is_institution_supervisor:
@@ -1554,8 +1815,8 @@ def review_evidence(
     # Calculate Aggregate Status
     emp_status = evidence.employer_review_status
     inst_status = evidence.institution_review_status
-    has_employer = bool(application.employer_supervisor_id) or bool(application.opportunity.employer_id)
-    has_institution = bool(application.institution_supervisor_id) or bool(application.opportunity.institution_id)
+    has_employer = requires_employer_review(application)
+    has_institution = requires_institution_review(application)
 
     # 1. Any REJECTED -> REJECTED (Immediate failure)
     if emp_status == InternshipEvidence.STATUS_REJECTED or inst_status == InternshipEvidence.STATUS_REJECTED:
@@ -1805,6 +2066,16 @@ def start_internship(actor, application_id: UUID) -> InternshipApplication:
     Transition ACCEPTED -> ACTIVE.
     """
     application = InternshipApplication.objects.get(id=application_id)
+    readiness = get_start_readiness(application)
+    if not readiness["can_start"]:
+        raise ValidationError(
+            user_message="Cannot start attachment until supervision and attachment dates are ready.",
+            developer_message=f"Application {application.id} missing start requirements: {readiness['missing']}",
+            context=ErrorContext()
+                .with_resource("application", application.id)
+                .build(),
+        )
+
     app = application_workflow.transition(
         application=application,
         target_state=ApplicationStatus.ACTIVE,
@@ -1847,18 +2118,6 @@ def complete_internship(actor, application_id: UUID) -> InternshipApplication:
                 .build(),
         )
         
-    # 2. Check for Final Feedback/Assessment
-    # We assume 'final_feedback' or 'final_rating' indicates assessment.
-    # Or strict check: if application.final_feedback is empty.
-    if not application.final_feedback:
-        raise ValidationError(
-            user_message="Final feedback or assessment is required before completing the internship.",
-            developer_message=f"Application {application.id} is missing final_feedback",
-            context=ErrorContext()
-                .with_resource("application", application.id)
-                .build(),
-        )
-
     if application.incidents.filter(status__in=OPEN_INCIDENT_STATUSES).exists():
         raise ValidationError(
             user_message="Cannot complete internship while incidents are unresolved. Resolve or dismiss all open incidents first.",

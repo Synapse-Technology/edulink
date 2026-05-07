@@ -1989,6 +1989,8 @@ def get_institution_placement_export_data(
     institution_id: str,
     department_id: str = None,
     cohort_id: str = None,
+    date_from: str = None,
+    date_to: str = None,
 ):
     """
     Get placement data for export.
@@ -2001,6 +2003,8 @@ def get_institution_placement_export_data(
         institution_id,
         department_id=department_id,
         cohort_id=cohort_id,
+        date_from=date_from,
+        date_to=date_to,
     )
     
     # Prefetch related data manually due to UUID fields

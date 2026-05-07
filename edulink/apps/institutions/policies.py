@@ -1,4 +1,5 @@
 from edulink.apps.institutions.queries import get_institution_staff_profile
+from edulink.apps.institutions.models import InstitutionStaff
 
 def can_admin_manage_institution(*, actor) -> bool:
     return actor.is_system_admin
@@ -24,11 +25,14 @@ def can_view_institution_request(*, actor, request_id: str) -> bool:
 
 def is_institution_staff(actor) -> bool:
     if actor.is_institution_admin:
-        return True
+        staff = get_institution_staff_profile(str(actor.id))
+        return bool(staff and staff.role == InstitutionStaff.ROLE_ADMIN)
+
+    if not actor.is_supervisor:
+        return False
     
-    # Check if user has an active InstitutionStaff record
     staff = get_institution_staff_profile(str(actor.id))
-    return staff is not None
+    return bool(staff and staff.role == InstitutionStaff.ROLE_SUPERVISOR)
 
 def can_verify_student_for_institution(*, actor, institution_id: str) -> bool:
     """Check if the actor is an admin of the specified institution."""

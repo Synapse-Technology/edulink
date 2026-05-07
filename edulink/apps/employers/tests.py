@@ -8,11 +8,13 @@ from edulink.apps.employers.services import (
     review_employer_request, 
     complete_employer_profile, 
     invite_supervisor,
-    activate_supervisor_invite
+    activate_supervisor_invite,
+    remove_supervisor
 )
 from edulink.apps.internships.models import Internship, InternshipState
 from edulink.apps.internships.policies import can_create_internship, can_transition_internship
 from edulink.apps.ledger.models import LedgerEvent
+from edulink.apps.shared.error_handling import AuthorizationError, ConflictError
 
 class EmployerBlueprintTest(TransactionTestCase):
     def setUp(self):
@@ -146,3 +148,108 @@ class EmployerBlueprintTest(TransactionTestCase):
 
         # Verify Capacity Increased (2 supervisors * 5 = 10)
         self.assertEqual(EmployerSerializer(employer).data['max_active_students'], 10)
+
+    def test_only_employer_admin_can_invite_or_remove_staff(self):
+        employer = Employer.objects.create(
+            name="Role Guard Employer",
+            official_email="admin@roleguard.test",
+            domain="roleguard.test",
+            organization_type="Company",
+            contact_person="Admin User",
+            status=Employer.STATUS_ACTIVE,
+            trust_level=Employer.TRUST_VERIFIED,
+        )
+        admin = User.objects.create_user(
+            username="role_guard_admin",
+            email="admin@roleguard.test",
+            password="password",
+            role=User.ROLE_EMPLOYER_ADMIN,
+        )
+        supervisor_user = User.objects.create_user(
+            username="role_guard_supervisor",
+            email="supervisor@roleguard.test",
+            password="password",
+            role=User.ROLE_SUPERVISOR,
+        )
+        Supervisor.objects.create(
+            employer=employer,
+            user=admin,
+            role=Supervisor.ROLE_ADMIN,
+            is_active=True,
+        )
+        supervisor = Supervisor.objects.create(
+            employer=employer,
+            user=supervisor_user,
+            role=Supervisor.ROLE_SUPERVISOR,
+            is_active=True,
+        )
+
+        with self.assertRaises(AuthorizationError):
+            invite_supervisor(
+                employer_id=employer.id,
+                email="new.supervisor@roleguard.test",
+                role=Supervisor.ROLE_SUPERVISOR,
+                actor_id=str(supervisor_user.id),
+            )
+
+        with self.assertRaises(AuthorizationError):
+            remove_supervisor(
+                supervisor_id=supervisor.id,
+                actor_id=str(supervisor_user.id),
+            )
+
+        invite = invite_supervisor(
+            employer_id=employer.id,
+            email="new.supervisor@roleguard.test",
+            role=Supervisor.ROLE_SUPERVISOR,
+            actor_id=str(admin.id),
+        )
+        self.assertEqual(invite.email, "new.supervisor@roleguard.test")
+
+    def test_employer_invite_cannot_attach_existing_wrong_role_account(self):
+        employer = Employer.objects.create(
+            name="Invite Isolation Employer",
+            official_email="admin@inviteiso.test",
+            domain="inviteiso.test",
+            organization_type="Company",
+            contact_person="Admin User",
+            status=Employer.STATUS_ACTIVE,
+            trust_level=Employer.TRUST_VERIFIED,
+        )
+        admin = User.objects.create_user(
+            username="invite_iso_admin",
+            email="admin@inviteiso.test",
+            password="password",
+            role=User.ROLE_EMPLOYER_ADMIN,
+        )
+        User.objects.create_user(
+            username="existing_student",
+            email="student@inviteiso.test",
+            password="password",
+            role=User.ROLE_STUDENT,
+        )
+        Supervisor.objects.create(
+            employer=employer,
+            user=admin,
+            role=Supervisor.ROLE_ADMIN,
+            is_active=True,
+        )
+        invite = invite_supervisor(
+            employer_id=employer.id,
+            email="student@inviteiso.test",
+            role=Supervisor.ROLE_SUPERVISOR,
+            actor_id=str(admin.id),
+        )
+
+        from django.contrib.auth.hashers import make_password
+        invite.token_hash = make_password("existing_student_token")
+        invite.save()
+
+        with self.assertRaises(ConflictError):
+            activate_supervisor_invite(
+                invite_id=str(invite.id),
+                token="existing_student_token",
+                password="Sup3rvisor-pass-2026!",
+                first_name="Existing",
+                last_name="Student",
+            )

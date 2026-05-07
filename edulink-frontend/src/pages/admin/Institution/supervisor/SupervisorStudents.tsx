@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Card, Table, Badge, Button, Spinner } from 'react-bootstrap';
-import { Users, FileText, CheckCircle } from 'lucide-react';
+import { Card, Table, Badge, Button, Spinner, Modal, Form } from 'react-bootstrap';
+import { Users, FileText, CheckCircle, Star } from 'lucide-react';
 import { useOutletContext, Link } from 'react-router-dom';
 import { internshipService, type InternshipApplication } from '../../../../services/internship/internshipService';
 import { FeedbackModal } from '../../../../components/common';
@@ -11,7 +11,44 @@ import { sanitizeAdminError } from '../../../../utils/adminErrorSanitizer';
 const SupervisorStudents: React.FC = () => {
   const { internships } = useOutletContext<SupervisorDashboardContext>();
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [assessmentApplication, setAssessmentApplication] = useState<InternshipApplication | null>(null);
+  const [finalFeedback, setFinalFeedback] = useState('');
+  const [finalRating, setFinalRating] = useState(5);
   const { feedbackProps, showError, showSuccess, showConfirm } = useFeedbackModal();
+
+  const openAssessmentModal = (internship: InternshipApplication) => {
+    setAssessmentApplication(internship);
+    setFinalFeedback(internship.institution_final_feedback || '');
+    setFinalRating(internship.institution_final_rating || 5);
+  };
+
+  const handleSubmitFinalAssessment = async () => {
+    if (!assessmentApplication || !finalFeedback.trim()) {
+      showError('Assessment Required', 'Add your final assessment before saving.');
+      return;
+    }
+
+    try {
+      setProcessingId(assessmentApplication.id);
+      await internshipService.submitFinalFeedback(
+        assessmentApplication.id,
+        finalFeedback.trim(),
+        finalRating
+      );
+      showSuccess('Assessment Saved', 'Institution final assessment has been saved.');
+      setAssessmentApplication(null);
+      setTimeout(() => window.location.reload(), 1000);
+    } catch (err: any) {
+      const sanitized = sanitizeAdminError(err);
+      showError(
+        'Assessment Failed',
+        sanitized.userMessage || 'We could not save the final assessment.',
+        sanitized.details
+      );
+    } finally {
+      setProcessingId(null);
+    }
+  };
 
   const handleComplete = async (internship: InternshipApplication) => {
     const isInstitutionPosted = !internship.employer_id;
@@ -162,6 +199,18 @@ const SupervisorStudents: React.FC = () => {
                                {!internship.employer_id ? 'Recommend Verification' : 'Complete'}
                              </Button>
                            )}
+                           {internship.can_feedback && ['ACTIVE', 'COMPLETED', 'CERTIFIED'].includes(internship.status) && (
+                             <Button
+                               variant={internship.institution_final_feedback ? 'outline-secondary' : 'outline-primary'}
+                               size="sm"
+                               className="d-inline-flex align-items-center gap-2 transition-all hover-lift"
+                               disabled={!!processingId || internship.status === 'CERTIFIED'}
+                               onClick={() => openAssessmentModal(internship)}
+                             >
+                               <Star size={16} />
+                               {internship.institution_final_feedback ? 'Edit Assessment' : 'Final Assessment'}
+                             </Button>
+                           )}
                          </div>
                        </td>
                      </tr>
@@ -184,6 +233,57 @@ const SupervisorStudents: React.FC = () => {
            </div>
         </Card.Body>
       </Card>
+      <Modal
+        show={!!assessmentApplication}
+        onHide={() => setAssessmentApplication(null)}
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title className="h5 fw-bold">Institution Final Assessment</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <div className="mb-3">
+            <div className="fw-semibold">{assessmentApplication?.student_info?.name || 'Assigned student'}</div>
+            <small className="text-muted">{assessmentApplication?.title}</small>
+          </div>
+          <Form.Group className="mb-3">
+            <Form.Label className="small fw-semibold">Rating</Form.Label>
+            <Form.Select
+              value={finalRating}
+              onChange={(event) => setFinalRating(Number(event.target.value))}
+              disabled={!!processingId}
+            >
+              {[5, 4, 3, 2, 1].map((rating) => (
+                <option key={rating} value={rating}>{rating} / 5</option>
+              ))}
+            </Form.Select>
+          </Form.Group>
+          <Form.Group>
+            <Form.Label className="small fw-semibold">Academic assessment</Form.Label>
+            <Form.Control
+              as="textarea"
+              rows={5}
+              value={finalFeedback}
+              onChange={(event) => setFinalFeedback(event.target.value)}
+              placeholder="Summarize attendance, logbook quality, professional conduct, learning outcomes, and readiness for certification."
+              disabled={!!processingId}
+            />
+          </Form.Group>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="light" onClick={() => setAssessmentApplication(null)} disabled={!!processingId}>
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            onClick={handleSubmitFinalAssessment}
+            disabled={!!processingId || !finalFeedback.trim()}
+          >
+            {processingId === assessmentApplication?.id ? <Spinner size="sm" animation="border" className="me-2" /> : null}
+            Save Assessment
+          </Button>
+        </Modal.Footer>
+      </Modal>
       <FeedbackModal {...feedbackProps} />
     </div>
   );

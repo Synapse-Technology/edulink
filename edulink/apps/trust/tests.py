@@ -1,12 +1,14 @@
 from django.test import TestCase
 from unittest.mock import patch, MagicMock
 from uuid import uuid4
+import uuid
 
 from edulink.apps.trust.services import (
     compute_institution_trust_tier,
     compute_employer_trust_tier,
     compute_student_trust_tier
 )
+from edulink.apps.trust.queries import calculate_student_trust_state
 
 # Import constants directly to avoid model dependency
 from edulink.apps.institutions.constants import (
@@ -27,6 +29,9 @@ from edulink.apps.employers.constants import (
 )
 
 from edulink.apps.students.constants import TRUST_EVENT_POINTS
+from edulink.apps.institutions.models import Institution
+from edulink.apps.internships.models import ApplicationStatus, InternshipApplication, InternshipOpportunity
+from edulink.apps.students.models import Student, StudentInstitutionAffiliation
 
 class TrustServiceTests(TestCase):
     
@@ -134,42 +139,76 @@ class TrustServiceTests(TestCase):
     # Student Tests
     # -------------------------------------------------------------------------
 
-    @patch('edulink.apps.trust.services.get_student_details_for_trust')
-    @patch('edulink.apps.trust.services.get_events_for_entity')
+    @patch('edulink.apps.notifications.services.send_trust_tier_changed_notification')
     @patch('edulink.apps.trust.services.update_student_trust_level')
-    def test_student_trust_tier_calculation(self, mock_update, mock_get_events, mock_get_details):
-        """Test student trust tier calculation based on event points"""
-        student_id = uuid4()
-        
-        # Mock details
-        mock_get_details.return_value = {
-            "id": student_id,
-            "trust_points": 0,
-            "trust_level": 0,
-            "trust_label": "Self-Registered"
-        }
-        
-        # Mock events
-        # STUDENT_VERIFIED (20) + DOCUMENT_UPLOADED (10) = 30 points -> Level 2
-        mock_event1 = MagicMock()
-        mock_event1.event_type = "STUDENT_VERIFIED"
-        
-        mock_event2 = MagicMock()
-        mock_event2.event_type = "DOCUMENT_UPLOADED"
-        
-        mock_get_events.return_value = [mock_event1, mock_event2]
-        
-        # Execute
-        result = compute_student_trust_tier(student_id=str(student_id))
-        
-        # Assert result
-        expected_score = 30
-        self.assertEqual(result['score'], expected_score)
-        self.assertEqual(result['tier_level'], 2)
-        
-        # Assert update called
-        mock_update.assert_called_once_with(
-            student_id=student_id,
-            new_level=2,
-            new_points=expected_score
+    def test_student_trust_tier_calculation(self, mock_update, mock_notification):
+        """Institution verification is a canonical state requirement, not just an event name."""
+        institution = Institution.objects.create(
+            name="Trust University",
+            domain=f"trust-{uuid.uuid4()}.ac.ke",
+            is_active=True,
+            is_verified=True,
+            status=Institution.STATUS_ACTIVE,
         )
+        student = Student.objects.create(
+            user_id=uuid4(),
+            email=f"student-{uuid.uuid4()}@example.com",
+            institution_id=institution.id,
+            is_verified=True,
+        )
+        StudentInstitutionAffiliation.objects.create(
+            student_id=student.id,
+            institution_id=institution.id,
+            status=StudentInstitutionAffiliation.STATUS_APPROVED,
+            claimed_via=StudentInstitutionAffiliation.CLAIMED_VIA_DOMAIN,
+        )
+
+        result = compute_student_trust_tier(student_id=str(student.id))
+
+        self.assertEqual(result["tier_level"], 2)
+        self.assertEqual(result["tier_label"], "Institution Verified")
+        self.assertEqual(result["score"], 50)
+        self.assertFalse(result["requirement_status"]["documents_uploaded"]["completed"])
+        mock_update.assert_called_once_with(
+            student_id=student.id,
+            new_level=2,
+            new_points=50,
+        )
+        mock_notification.assert_called_once()
+
+    def test_student_trust_state_promotes_certified_completion(self):
+        institution = Institution.objects.create(
+            name="Certified University",
+            domain=f"certified-{uuid.uuid4()}.ac.ke",
+            is_active=True,
+            is_verified=True,
+            status=Institution.STATUS_ACTIVE,
+        )
+        student = Student.objects.create(
+            user_id=uuid4(),
+            email=f"certified-{uuid.uuid4()}@example.com",
+            institution_id=institution.id,
+            is_verified=True,
+        )
+        StudentInstitutionAffiliation.objects.create(
+            student_id=student.id,
+            institution_id=institution.id,
+            status=StudentInstitutionAffiliation.STATUS_APPROVED,
+            claimed_via=StudentInstitutionAffiliation.CLAIMED_VIA_DOMAIN,
+        )
+        opportunity = InternshipOpportunity.objects.create(
+            title="Certified Placement",
+            description="Placement",
+            institution_id=institution.id,
+        )
+        InternshipApplication.objects.create(
+            opportunity=opportunity,
+            student_id=student.id,
+            status=ApplicationStatus.CERTIFIED,
+        )
+
+        result = calculate_student_trust_state(student_id=str(student.id))
+
+        self.assertEqual(result["tier_level"], 4)
+        self.assertEqual(result["tier_label"], "Completion Certified")
+        self.assertTrue(result["requirement_status"]["completion_certified"]["completed"])

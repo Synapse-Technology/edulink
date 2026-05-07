@@ -13,6 +13,7 @@ from edulink.apps.internships.policies import can_view_application
 from edulink.apps.internships.queries import (
     get_active_placements_for_monitoring,
     get_applications_for_user,
+    get_certification_applications_for_institution_user,
 )
 from edulink.apps.students.models import Student, StudentInstitutionAffiliation
 
@@ -155,6 +156,25 @@ def test_institution_application_feed_is_limited_to_institution_owned_opportunit
 
     assert institution_application.id in visible_ids
     assert employer_application.id not in visible_ids
+
+
+@pytest.mark.django_db
+def test_institution_certification_queue_includes_affiliated_external_outcomes(
+    institution_admin,
+    institution_application,
+    employer_application,
+):
+    institution_application.status = ApplicationStatus.COMPLETED
+    institution_application.save(update_fields=["status", "updated_at"])
+    employer_application.status = ApplicationStatus.CERTIFIED
+    employer_application.save(update_fields=["status", "updated_at"])
+
+    visible_ids = set(
+        get_certification_applications_for_institution_user(institution_admin).values_list("id", flat=True)
+    )
+
+    assert institution_application.id in visible_ids
+    assert employer_application.id in visible_ids
 
 
 @pytest.mark.django_db

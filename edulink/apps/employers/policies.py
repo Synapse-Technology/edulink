@@ -18,6 +18,9 @@ def can_manage_employer(actor: User, employer: Employer) -> bool:
     """
     if actor.is_superuser: # System admins can manage anything? Maybe.
         return True
+
+    if actor.role != User.ROLE_EMPLOYER_ADMIN:
+        return False
         
     staff = get_employer_staff(actor)
     if not staff:
@@ -57,6 +60,12 @@ def can_supervise_internship(actor: User, employer: Employer) -> bool:
         
     if staff.employer_id != employer.id:
         return False
+
+    if staff.role == Supervisor.ROLE_ADMIN and actor.role != User.ROLE_EMPLOYER_ADMIN:
+        return False
+
+    if staff.role == Supervisor.ROLE_SUPERVISOR and actor.role != User.ROLE_SUPERVISOR:
+        return False
         
     # Both Admin and Supervisor roles can supervise?
     # Blueprint says "Employer Supervisor ... Review logbooks".
@@ -88,7 +97,12 @@ def can_submit_staff_profile_request(actor: User) -> bool:
     1. Actor is an active staff member (Supervisor or Admin).
     """
     staff = get_employer_staff(actor)
-    return staff is not None
+    if not staff:
+        return False
+    return (
+        (staff.role == Supervisor.ROLE_ADMIN and actor.role == User.ROLE_EMPLOYER_ADMIN)
+        or (staff.role == Supervisor.ROLE_SUPERVISOR and actor.role == User.ROLE_SUPERVISOR)
+    )
 
 def can_review_staff_profile_requests(actor: User, employer: Employer) -> bool:
     """
@@ -102,4 +116,10 @@ def is_employer_staff(actor: User) -> bool:
     """
     Check if the user is a valid employer staff member.
     """
-    return get_employer_staff(actor) is not None
+    staff = get_employer_staff(actor)
+    if not staff:
+        return False
+    return (
+        (staff.role == Supervisor.ROLE_ADMIN and actor.role == User.ROLE_EMPLOYER_ADMIN)
+        or (staff.role == Supervisor.ROLE_SUPERVISOR and actor.role == User.ROLE_SUPERVISOR)
+    )

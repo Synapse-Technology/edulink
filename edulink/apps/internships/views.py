@@ -6,6 +6,7 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.throttling import UserRateThrottle
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q
+from django.http import Http404
 from edulink.apps.shared.pagination import StandardResultsSetPagination, LargeResultsSetPagination
 from edulink.apps.shared.error_handling import AuthorizationError
 from .permissions import (
@@ -40,7 +41,7 @@ from .filters import InternshipOpportunityFilter, InternshipApplicationFilter
 from .services import (
     create_internship_opportunity, publish_internship, apply_for_internship,
     process_application, accept_offer, start_internship, complete_internship,
-    certify_internship, submit_evidence, review_evidence, create_incident, resolve_incident, assign_supervisors,
+    certify_internship, submit_evidence, resubmit_evidence, review_evidence, create_incident, resolve_incident, assign_supervisors,
     bulk_assign_institution_supervisors,
     create_success_story, submit_final_feedback, bulk_extend_opportunity_deadlines, get_deadline_analytics,
     withdraw_application, create_supervisor_assignment, accept_supervisor_assignment, reject_supervisor_assignment,
@@ -50,7 +51,8 @@ from .services import (
 from .queries import (
     get_opportunities_for_user, get_applications_for_user, 
     get_opportunity_by_id, get_application_by_id,
-    get_external_placement_declarations_for_user
+    get_external_placement_declarations_for_user,
+    get_certification_applications_for_institution_user,
 )
 
 logger = logging.getLogger(__name__)
@@ -275,6 +277,16 @@ class ApplicationViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         return get_applications_for_user(self.request.user)
 
+    @action(detail=False, methods=['get'], url_path='certification-candidates')
+    def certification_candidates(self, request):
+        """
+        Institution certification queue for all affiliated student placements.
+        Includes institution-hosted, employer-sourced, and approved external placements.
+        """
+        queryset = get_certification_applications_for_institution_user(request.user)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
     @action(detail=True, methods=['post'])
     def process_application(self, request, pk=None):
         """
@@ -373,13 +385,38 @@ class ApplicationViewSet(viewsets.ReadOnlyModelViewSet):
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+    @action(detail=True, methods=['post'], url_path='resubmit-evidence/(?P<evidence_id>[^/.]+)', parser_classes=[MultiPartParser, FormParser])
+    def resubmit_evidence(self, request, pk=None, evidence_id=None):
+        application = self.get_object()
+        serializer = SubmitEvidenceSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        from .policies import can_submit_evidence
+        if not can_submit_evidence(request.user, application):
+            return Response({"detail": "Not authorized to resubmit evidence for this application"}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            evidence = resubmit_evidence(
+                actor=request.user,
+                application_id=pk,
+                evidence_id=evidence_id,
+                **serializer.validated_data
+            )
+            return Response(InternshipEvidenceSerializer(evidence, context={'request': request}).data)
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
     @action(detail=True, methods=['get'])
     def evidence(self, request, pk=None):
         """
         List all evidence for a specific application.
         """
+        try:
+            application = self.get_object()
+        except Http404:
+            return Response({"detail": "Application not found"}, status=status.HTTP_404_NOT_FOUND)
         from .queries import get_evidence_for_application
-        evidence = get_evidence_for_application(application_id=pk)
+        evidence = get_evidence_for_application(application_id=application.id)
         serializer = InternshipEvidenceSerializer(evidence, many=True, context={'request': request})
         return Response(serializer.data)
 
@@ -547,7 +584,7 @@ class ApplicationViewSet(viewsets.ReadOnlyModelViewSet):
                 notes=serializer.validated_data['resolution_notes']
             )
             return Response(IncidentSerializer(incident).data)
-        except PermissionError as e:
+        except AuthorizationError as e:
              return Response({"detail": str(e)}, status=status.HTTP_403_FORBIDDEN)
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)

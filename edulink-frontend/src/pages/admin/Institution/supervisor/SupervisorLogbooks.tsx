@@ -69,8 +69,8 @@ const SupervisorLogbooks: React.FC = () => {
     }
   };
 
-  const handleReviewSubmit = async () => {
-    if (!selectedEvidence || !reviewAction) return;
+  const handleReviewSubmit = async (action: 'ACCEPTED' | 'REJECTED' | 'REVISION_REQUIRED' | null = reviewAction) => {
+    if (!selectedEvidence || !action) return;
 
     // Check if internship is completed
     // Since we don't have the full internship object here, we might rely on the backend error or try to check if available.
@@ -85,13 +85,13 @@ const SupervisorLogbooks: React.FC = () => {
       await internshipService.reviewEvidence(
         selectedEvidence.application,
         selectedEvidence.id,
-        reviewAction,
+        action,
         reviewNotes,
         privateNotes
       );
       
-      const actionLabel = reviewAction === 'ACCEPTED' ? 'approved' : 
-                         reviewAction === 'REVISION_REQUIRED' ? 'sent for revision' : 'rejected';
+      const actionLabel = action === 'ACCEPTED' ? 'approved' : 
+                         action === 'REVISION_REQUIRED' ? 'sent for revision' : 'rejected';
       
       toast.success(`Logbook ${actionLabel} successfully`);
       setShowReviewModal(false);
@@ -195,7 +195,7 @@ const SupervisorLogbooks: React.FC = () => {
                       <div className="fw-bold text-dark">{evidence.title}</div>
                       <div className="small text-muted d-flex align-items-center gap-2">
                         <Calendar size={12} />
-                        {evidence.metadata?.weekStartDate ? `Week of ${evidence.metadata.weekStartDate}` : evidence.description}
+                        {evidence.metadata?.week_start_date ? `Week of ${evidence.metadata.week_start_date}` : evidence.description}
                       </div>
                       <div className="small text-primary mt-1 fw-medium">
                         {evidence.student_info?.name || 'Unknown Intern'}
@@ -312,7 +312,7 @@ const SupervisorLogbooks: React.FC = () => {
                     </button>
                   )}
                   <Badge bg="primary" className="bg-opacity-10 text-primary border border-primary-subtle rounded-pill px-3 py-2">
-                  {selectedEvidence?.metadata?.weekStartDate ? `Week of ${selectedEvidence.metadata.weekStartDate}` : 'Weekly Submission'}
+                  {selectedEvidence?.metadata?.week_start_date ? `Week of ${selectedEvidence.metadata.week_start_date}` : 'Weekly Submission'}
                   </Badge>
               </div>
             </div>
@@ -415,7 +415,7 @@ const SupervisorLogbooks: React.FC = () => {
           <div className="d-flex gap-2">
             <Button 
               variant="outline-danger" 
-              onClick={() => { setReviewAction('REJECTED'); handleReviewSubmit(); }}
+              onClick={() => handleReviewSubmit('REJECTED')}
               disabled={submitting}
               className="px-3 rounded-3 small d-flex align-items-center gap-2"
             >
@@ -423,7 +423,7 @@ const SupervisorLogbooks: React.FC = () => {
             </Button>
             <Button 
               variant="outline-info" 
-              onClick={() => { setReviewAction('REVISION_REQUIRED'); handleReviewSubmit(); }}
+              onClick={() => handleReviewSubmit('REVISION_REQUIRED')}
               disabled={submitting}
               className="px-3 rounded-3 small d-flex align-items-center gap-2"
             >
@@ -431,7 +431,7 @@ const SupervisorLogbooks: React.FC = () => {
             </Button>
             <Button 
               variant="success" 
-              onClick={() => { setReviewAction('ACCEPTED'); handleReviewSubmit(); }}
+              onClick={() => handleReviewSubmit('ACCEPTED')}
               disabled={submitting}
               className="px-4 rounded-3 small text-white d-flex align-items-center gap-2"
             >

@@ -100,6 +100,23 @@ export interface InternshipApplication {
   can_feedback?: boolean;
   final_feedback?: string;
   final_rating?: number;
+  employer_final_feedback?: string;
+  employer_final_rating?: number | null;
+  employer_final_feedback_by?: string | null;
+  employer_final_feedback_at?: string | null;
+  institution_final_feedback?: string;
+  institution_final_rating?: number | null;
+  institution_final_feedback_by?: string | null;
+  institution_final_feedback_at?: string | null;
+  start_readiness?: {
+    checks: Array<{
+      key: string;
+      label: string;
+      passed: boolean;
+    }>;
+    missing: string[];
+    can_start: boolean;
+  };
   completion_readiness?: {
     checks: Array<{
       key: string;
@@ -487,6 +504,18 @@ class InternshipService {
     }
   }
 
+  async getCertificationApplications(): Promise<InternshipApplication[]> {
+    try {
+      const response = await this.client.get<any>(
+        '/api/internships/applications/certification-candidates/'
+      );
+      return Array.isArray(response) ? response : response?.results || [];
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new Error('Failed to fetch certification applications');
+    }
+  }
+
   async processApplication(
     id: string,
     action:
@@ -656,24 +685,6 @@ class InternshipService {
   }
 
   async getPendingEvidence(): Promise<InternshipEvidence[]> {
-    // This endpoint is likely generic or needs to be updated.
-    // In backend Views, `InternshipViewSet` has `pending_evidence`?
-    // Let's check `views.py`.
-    // I REMOVED `pending_evidence` from `InternshipViewSet` in my last write?
-    // Let me check the `views.py` write content.
-    // I did NOT include `pending_evidence` in `InternshipViewSet` in the last write.
-    // I also did NOT include it in `ApplicationViewSet`.
-    // Oops. I might have dropped it.
-    // But `get_internships_for_user` was used.
-    // If I need it, I should add it to `ApplicationViewSet`.
-    // For now, I'll comment it out or leave it broken (it will 404).
-    // Actually, I should probably restore it if it's used.
-    // "SupervisorReview" likely uses it.
-
-    // For this step, I will leave it pointing to old URL (it will fail) or try to point to where it should be.
-    // If I didn't implement it in backend, I can't call it.
-    // I'll skip it for now and fix backend if needed.
-
     try {
       const response = await this.client.get<any>(
         '/api/internships/pending-evidence/'

@@ -1,0 +1,3 @@
+User-agent: *
+Disallow:
+# Placeholder robots file served by Django to avoid 404 noise

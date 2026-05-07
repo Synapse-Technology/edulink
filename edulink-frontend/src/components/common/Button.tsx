@@ -1,10 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import PropTypes from 'prop-types';
+import { Loader } from 'lucide-react';
 
 interface ButtonProps {
   children: React.ReactNode;
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'gradient';
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'gradient' | 'danger' | 'soft';
   size?: 'sm' | 'md' | 'lg';
   href?: string;
   to?: string;
@@ -16,7 +17,196 @@ interface ButtonProps {
   fullWidth?: boolean;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
+  external?: boolean;
+  ariaLabel?: string;
 }
+
+const STYLES = `
+  .edui-btn {
+    --edui-btn-bg: #1a5cff;
+    --edui-btn-fg: #ffffff;
+    --edui-btn-border: transparent;
+    --edui-btn-hover-bg: #124ce0;
+    --edui-btn-hover-fg: #ffffff;
+    --edui-btn-ring: rgba(26,92,255,0.18);
+    --edui-btn-shadow: 0 1px 3px rgba(26,92,255,0.22);
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: 14px;
+    border: 1px solid var(--edui-btn-border);
+    background: var(--edui-btn-bg);
+    color: var(--edui-btn-fg);
+    font-family: inherit;
+    font-weight: 700;
+    line-height: 1;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    box-shadow: var(--edui-btn-shadow);
+    transition: transform 0.14s ease, box-shadow 0.16s ease, background 0.16s ease, color 0.16s ease, border-color 0.16s ease, opacity 0.16s ease;
+  }
+
+  .edui-btn:hover {
+    background: var(--edui-btn-hover-bg);
+    color: var(--edui-btn-hover-fg);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(26,92,255,0.24);
+  }
+
+  .edui-btn:active {
+    transform: scale(0.98);
+  }
+
+  .edui-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 4px var(--edui-btn-ring), var(--edui-btn-shadow);
+  }
+
+  .edui-btn:disabled,
+  .edui-btn.edui-disabled {
+    opacity: 0.48;
+    cursor: not-allowed;
+    pointer-events: none;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .edui-btn-sm {
+    min-height: 34px;
+    padding: 8px 13px;
+    font-size: 12px;
+  }
+
+  .edui-btn-md {
+    min-height: 40px;
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+
+  .edui-btn-lg {
+    min-height: 48px;
+    padding: 13px 22px;
+    font-size: 15px;
+    border-radius: 16px;
+  }
+
+  .edui-btn-full {
+    width: 100%;
+  }
+
+  .edui-btn-primary {
+    --edui-btn-bg: #1a5cff;
+    --edui-btn-fg: #ffffff;
+    --edui-btn-hover-bg: #124ce0;
+    --edui-btn-hover-fg: #ffffff;
+    --edui-btn-ring: rgba(26,92,255,0.18);
+    --edui-btn-shadow: 0 1px 3px rgba(26,92,255,0.24);
+  }
+
+  .edui-btn-secondary {
+    --edui-btn-bg: #0d0f12;
+    --edui-btn-fg: #ffffff;
+    --edui-btn-hover-bg: #2a2d33;
+    --edui-btn-hover-fg: #ffffff;
+    --edui-btn-ring: rgba(13,15,18,0.14);
+    --edui-btn-shadow: 0 1px 3px rgba(13,15,18,0.18);
+  }
+
+  .edui-btn-outline {
+    --edui-btn-bg: transparent;
+    --edui-btn-fg: #1a5cff;
+    --edui-btn-border: rgba(26,92,255,0.30);
+    --edui-btn-hover-bg: rgba(26,92,255,0.08);
+    --edui-btn-hover-fg: #1a5cff;
+    --edui-btn-ring: rgba(26,92,255,0.14);
+    --edui-btn-shadow: none;
+  }
+
+  .edui-btn-ghost {
+    --edui-btn-bg: transparent;
+    --edui-btn-fg: #3a3d44;
+    --edui-btn-border: transparent;
+    --edui-btn-hover-bg: rgba(13,15,18,0.06);
+    --edui-btn-hover-fg: #0d0f12;
+    --edui-btn-ring: rgba(13,15,18,0.10);
+    --edui-btn-shadow: none;
+  }
+
+  .edui-btn-gradient {
+    --edui-btn-bg: linear-gradient(135deg, #1a5cff, #12b76a);
+    --edui-btn-fg: #ffffff;
+    --edui-btn-hover-bg: linear-gradient(135deg, #124ce0, #0f9f5c);
+    --edui-btn-hover-fg: #ffffff;
+    --edui-btn-ring: rgba(26,92,255,0.18);
+    --edui-btn-shadow: 0 6px 18px rgba(26,92,255,0.18);
+  }
+
+  .edui-btn-danger {
+    --edui-btn-bg: #ef4444;
+    --edui-btn-fg: #ffffff;
+    --edui-btn-hover-bg: #dc2626;
+    --edui-btn-hover-fg: #ffffff;
+    --edui-btn-ring: rgba(239,68,68,0.18);
+    --edui-btn-shadow: 0 1px 3px rgba(239,68,68,0.22);
+  }
+
+  .edui-btn-soft {
+    --edui-btn-bg: rgba(26,92,255,0.08);
+    --edui-btn-fg: #1a5cff;
+    --edui-btn-border: rgba(26,92,255,0.12);
+    --edui-btn-hover-bg: rgba(26,92,255,0.13);
+    --edui-btn-hover-fg: #1a5cff;
+    --edui-btn-ring: rgba(26,92,255,0.12);
+    --edui-btn-shadow: none;
+  }
+
+  .dark-mode .edui-btn-secondary {
+    --edui-btn-bg: #f0ede8;
+    --edui-btn-fg: #141414;
+    --edui-btn-hover-bg: #d8d2c8;
+    --edui-btn-hover-fg: #141414;
+    --edui-btn-ring: rgba(240,237,232,0.16);
+  }
+
+  .dark-mode .edui-btn-ghost {
+    --edui-btn-bg: transparent;
+    --edui-btn-fg: #c9c4bc;
+    --edui-btn-hover-bg: rgba(255,255,255,0.08);
+    --edui-btn-hover-fg: #f0ede8;
+    --edui-btn-ring: rgba(255,255,255,0.10);
+  }
+
+  .edui-btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .edui-btn-spinner {
+    animation: edui-spin 0.85s linear infinite;
+  }
+
+  @keyframes edui-spin {
+    to { transform: rotate(360deg); }
+  }
+`;
+
+const getSpinnerSize = (size: ButtonProps['size']) => {
+  switch (size) {
+    case 'sm':
+      return 14;
+    case 'lg':
+      return 18;
+    case 'md':
+    default:
+      return 16;
+  }
+};
 
 const Button: React.FC<ButtonProps> = ({
   children,
@@ -32,79 +222,99 @@ const Button: React.FC<ButtonProps> = ({
   fullWidth = false,
   leftIcon,
   rightIcon,
+  external,
+  ariaLabel,
 }) => {
-  const baseClasses = 'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
-  
-  const variantClasses = {
-    primary: 'bg-edulink-primary text-white hover:bg-edulink-primary/90 focus:ring-edulink-primary',
-    secondary: 'bg-edulink-secondary text-white hover:bg-edulink-secondary/90 focus:ring-edulink-secondary',
-    outline: 'border-2 border-edulink-primary text-edulink-primary hover:bg-edulink-primary hover:text-white focus:ring-edulink-primary',
-    ghost: 'text-edulink-primary hover:bg-edulink-primary/10 focus:ring-edulink-primary',
-    gradient: 'bg-gradient-to-r from-[rgb(10,187,163)] to-[rgb(7,168,141)] text-white hover:from-[rgb(26,194,171)] hover:to-[rgb(7,168,141)] focus:ring-edulink-primary shadow-[0_2px_8px_rgba(56,142,60,0.10)] hover:shadow-[0_4px_16px_rgba(56,142,60,0.18)]',
-  };
+  const isDisabled = disabled || loading;
+  const isExternal = external ?? Boolean(href);
 
-  const sizeClasses = {
-    sm: 'px-3 py-2 text-sm',
-    md: 'px-4 py-2 text-base',
-    lg: 'px-6 py-3 text-lg',
-  };
-
-  const fullWidthClass = fullWidth ? 'w-full' : '';
-  
-  const combinedClasses = `${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${fullWidthClass} ${className}`;
+  const combinedClasses = [
+    'edui-btn',
+    `edui-btn-${variant}`,
+    `edui-btn-${size}`,
+    fullWidth ? 'edui-btn-full' : '',
+    isDisabled ? 'edui-disabled' : '',
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   const content = (
     <>
-      {loading && (
-        <span className="mr-2">●</span>
+      {loading ? (
+        <span className="edui-btn-icon" aria-hidden="true">
+          <Loader size={getSpinnerSize(size)} className="edui-btn-spinner" />
+        </span>
+      ) : leftIcon ? (
+        <span className="edui-btn-icon" aria-hidden="true">{leftIcon}</span>
+      ) : null}
+
+      <span>{children}</span>
+
+      {!loading && rightIcon && (
+        <span className="edui-btn-icon" aria-hidden="true">{rightIcon}</span>
       )}
-      {!loading && leftIcon && <span className="mr-2">{leftIcon}</span>}
-      {children}
-      {rightIcon && <span className="ml-2">{rightIcon}</span>}
     </>
   );
 
   if (href) {
     return (
-      <a
-        href={href}
-        className={combinedClasses}
-        onClick={onClick}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        {content}
-      </a>
+      <>
+        <style>{STYLES}</style>
+        <a
+          href={isDisabled ? undefined : href}
+          className={combinedClasses}
+          onClick={isDisabled ? undefined : onClick}
+          target={isExternal ? '_blank' : undefined}
+          rel={isExternal ? 'noopener noreferrer' : undefined}
+          aria-disabled={isDisabled}
+          aria-busy={loading}
+          aria-label={ariaLabel}
+        >
+          {content}
+        </a>
+      </>
     );
   }
 
   if (to) {
     return (
-      <Link
-        to={to}
-        className={combinedClasses}
-        onClick={onClick}
-      >
-        {content}
-      </Link>
+      <>
+        <style>{STYLES}</style>
+        <Link
+          to={isDisabled ? '#' : to}
+          className={combinedClasses}
+          onClick={isDisabled ? (event) => event.preventDefault() : onClick}
+          aria-disabled={isDisabled}
+          aria-busy={loading}
+          aria-label={ariaLabel}
+        >
+          {content}
+        </Link>
+      </>
     );
   }
 
   return (
-    <button
-      type={type}
-      className={combinedClasses}
-      onClick={onClick}
-      disabled={disabled || loading}
-    >
-      {content}
-    </button>
+    <>
+      <style>{STYLES}</style>
+      <button
+        type={type}
+        className={combinedClasses}
+        onClick={onClick}
+        disabled={isDisabled}
+        aria-busy={loading}
+        aria-label={ariaLabel}
+      >
+        {content}
+      </button>
+    </>
   );
 };
 
 Button.propTypes = {
   children: PropTypes.node.isRequired,
-  variant: PropTypes.oneOf(['primary', 'secondary', 'outline', 'ghost', 'gradient']),
+  variant: PropTypes.oneOf(['primary', 'secondary', 'outline', 'ghost', 'gradient', 'danger', 'soft']),
   size: PropTypes.oneOf(['sm', 'md', 'lg']),
   href: PropTypes.string,
   to: PropTypes.string,
@@ -116,6 +326,8 @@ Button.propTypes = {
   fullWidth: PropTypes.bool,
   leftIcon: PropTypes.node,
   rightIcon: PropTypes.node,
+  external: PropTypes.bool,
+  ariaLabel: PropTypes.string,
 };
 
 export default Button;

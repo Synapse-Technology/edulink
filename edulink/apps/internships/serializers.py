@@ -10,6 +10,37 @@ from .models import (
     OpportunityStatus,
     ApplicationStatus,
 )
+from .roles import (
+    is_assigned_employer_supervisor as _is_assigned_employer_supervisor,
+    is_assigned_institution_supervisor as _is_assigned_institution_supervisor,
+)
+
+
+def _is_employer_admin_for_application(user, application) -> bool:
+    if not getattr(user, "is_employer_admin", False) or not application.opportunity.employer_id:
+        return False
+    from edulink.apps.employers.queries import get_employer_for_user
+
+    employer = get_employer_for_user(user.id)
+    return bool(employer and employer.id == application.opportunity.employer_id)
+
+
+def _is_institution_admin_for_application(user, application) -> bool:
+    if not getattr(user, "is_institution_admin", False):
+        return False
+    from edulink.apps.institutions.queries import get_institution_for_user
+
+    institution = get_institution_for_user(str(user.id))
+    if not institution:
+        return False
+    if application.opportunity.institution_id == institution.id:
+        return True
+
+    from edulink.apps.students.queries import get_student_approved_affiliation
+
+    affiliation = get_student_approved_affiliation(application.student_id)
+    return bool(affiliation and affiliation.institution_id == institution.id)
+
 
 class SuccessStorySerializer(serializers.ModelSerializer):
     student_name = serializers.SerializerMethodField()
@@ -141,6 +172,7 @@ class InternshipApplicationSerializer(serializers.ModelSerializer):
     logbook_count = serializers.SerializerMethodField()
     can_complete = serializers.SerializerMethodField()
     can_feedback = serializers.SerializerMethodField()
+    start_readiness = serializers.SerializerMethodField()
     completion_readiness = serializers.SerializerMethodField()
     
     # Flatten Opportunity fields
@@ -167,6 +199,10 @@ class InternshipApplicationSerializer(serializers.ModelSerializer):
     def get_completion_readiness(self, obj):
         from .services import get_completion_readiness
         return get_completion_readiness(obj)
+
+    def get_start_readiness(self, obj):
+        from .services import get_start_readiness
+        return get_start_readiness(obj)
 
     def get_can_feedback(self, obj):
         request = self.context.get('request')
@@ -337,25 +373,34 @@ class InternshipEvidenceSerializer(serializers.ModelSerializer):
                 representation.pop('private_notes', None)
             
             # 2. Employer Supervisors ONLY see Employer Private Notes
-            elif str(application.employer_supervisor_id) == str(user.id):
+            elif _is_assigned_employer_supervisor(user, application):
                 representation.pop('institution_private_notes', None)
                 representation.pop('private_notes', None)
             
             # 3. Institution Supervisors ONLY see Institution Private Notes
-            elif str(application.institution_supervisor_id) == str(user.id):
+            elif _is_assigned_institution_supervisor(user, application):
                 representation.pop('employer_private_notes', None)
                 representation.pop('private_notes', None)
-            
-            # 4. Fallback for others (admins etc) - hide both if not explicitly allowed?
-            # Usually admins should see everything, but following the "private" request strictly:
-            else:
-                # If they are an admin but NOT one of the assigned supervisors, 
-                # let's decide if they should see them. 
-                # For "Most Robust Security", we hide both unless they are the owner.
-                if not (user.is_employer_admin or user.is_institution_admin or user.is_system_admin):
+
+            # 4. Organization admins only see private notes for their own lane.
+            elif user.is_employer_admin:
+                representation.pop('institution_private_notes', None)
+                representation.pop('private_notes', None)
+                if not _is_employer_admin_for_application(user, application):
                     representation.pop('employer_private_notes', None)
+            elif user.is_institution_admin:
+                representation.pop('employer_private_notes', None)
+                representation.pop('private_notes', None)
+                if not _is_institution_admin_for_application(user, application):
                     representation.pop('institution_private_notes', None)
-                    representation.pop('private_notes', None)
+            elif user.is_system_admin:
+                representation.pop('private_notes', None)
+
+            # 5. Fallback for everyone else: no private notes.
+            else:
+                representation.pop('employer_private_notes', None)
+                representation.pop('institution_private_notes', None)
+                representation.pop('private_notes', None)
                     
         return representation
 

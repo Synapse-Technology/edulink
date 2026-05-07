@@ -1,6 +1,7 @@
 import React from 'react';
 import { Shield, ShieldCheck, Award, Star, CheckCircle, Circle } from 'lucide-react';
 import { useTheme } from '../../../contexts/ThemeContext';
+import { getTrustLabel } from '../../../services/trust/trustService';
 
 interface TrustStep {
   level: number;
@@ -12,25 +13,25 @@ interface TrustStep {
 const STEPS: TrustStep[] = [
   { 
     level: 1, 
-    label: 'Document Verified', 
-    description: 'Upload your CV and ID documents for initial verification.',
+    label: getTrustLabel('student', 1), 
+    description: 'Upload your CV, admission letter, and school ID.',
     icon: Shield
   },
   { 
     level: 2, 
-    label: 'Institution Verified', 
+    label: getTrustLabel('student', 2), 
     description: 'Claim your institution and get verified by your campus admin.',
     icon: ShieldCheck
   },
   { 
     level: 3, 
-    label: 'Internship Completed', 
+    label: getTrustLabel('student', 3), 
     description: 'Successfully complete your first verified internship.',
     icon: Award
   },
   { 
     level: 4, 
-    label: 'Certified Student', 
+    label: getTrustLabel('student', 4), 
     description: 'Earn your official completion certificate and top-tier status.',
     icon: Star
   }

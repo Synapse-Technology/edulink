@@ -8,6 +8,7 @@ from django.conf import settings
 
 from edulink.apps.accounts.permissions import IsSystemAdmin, IsStudent, IsInstitutionAdmin
 from .models import Institution, InstitutionSuggestion, InstitutionInterest, InstitutionRequest, InstitutionStaff, Department, Cohort
+from .permissions import IsInstitutionCoordinator
 from .queries import (
     list_public_institutions, 
     list_open_suggestions, 
@@ -1054,7 +1055,7 @@ class InstitutionStudentVerificationViewSet(viewsets.ViewSet):
     ViewSet for handling student verifications by institution admins.
     Phase 3: Student Verification Queue & Bulk Verification.
     """
-    permission_classes = [IsAuthenticated] # Should verify is_institution_admin in policy
+    permission_classes = [IsAuthenticated, IsInstitutionCoordinator]
 
     @action(detail=False, methods=['get'])
     def pending(self, request):
@@ -1174,7 +1175,7 @@ class PlacementMonitoringViewSet(viewsets.ViewSet):
     """
     ViewSet for Institution Placement Monitoring (Phase 2).
     """
-    permission_classes = [IsAuthenticated, IsInstitutionAdmin]
+    permission_classes = [IsAuthenticated, IsInstitutionCoordinator]
 
     def list(self, request):
         from edulink.apps.internships.queries import get_active_placements_for_monitoring
@@ -1196,7 +1197,7 @@ class InstitutionReportsViewSet(viewsets.ViewSet):
     """
     Analytics and Reports for Institutions (Phase 4).
     """
-    permission_classes = [IsAuthenticated, IsInstitutionAdmin]
+    permission_classes = [IsAuthenticated, IsInstitutionCoordinator]
 
     @action(detail=False, methods=['get'], url_path='placement-success')
     def placement_success(self, request):
@@ -1232,11 +1233,15 @@ class InstitutionReportsViewSet(viewsets.ViewSet):
         # Support optional filtering by department and cohort
         department_id = request.query_params.get('department_id')
         cohort_id = request.query_params.get('cohort_id')
+        date_from = request.query_params.get('date_from')
+        date_to = request.query_params.get('date_to')
         
         stats = get_time_to_placement_stats(
             str(inst.id),
             department_id=department_id,
             cohort_id=cohort_id,
+            date_from=date_from,
+            date_to=date_to,
         )
         return Response(stats)
         
@@ -1257,6 +1262,8 @@ class InstitutionReportsViewSet(viewsets.ViewSet):
             institution_id=str(inst.id),
             department_id=request.query_params.get("department_id"),
             cohort_id=request.query_params.get("cohort_id"),
+            date_from=request.query_params.get("date_from"),
+            date_to=request.query_params.get("date_to"),
         )
         
         response = HttpResponse(content_type='text/csv')

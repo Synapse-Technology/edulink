@@ -8,6 +8,7 @@ from edulink.apps.institutions.queries import get_institution_supervisor_by_id
 from edulink.apps.institutions.policies import is_institution_staff
 from edulink.apps.internships.models import (
     ApplicationStatus,
+    Incident,
     InternshipEvidence,
     InternshipApplication,
     InternshipOpportunity,
@@ -16,12 +17,14 @@ from edulink.apps.internships.models import (
 )
 from edulink.apps.internships.policies import (
     can_accept_supervisor_assignment,
+    can_dismiss_incident,
     can_view_supervisor_assignment,
 )
 from edulink.apps.internships.serializers import InternshipApplicationSerializer
+from edulink.apps.internships.serializers import InternshipEvidenceSerializer
 from edulink.apps.internships.services import assign_supervisors
 from edulink.apps.shared.error_handling import AuthorizationError
-from edulink.apps.students.models import Student
+from edulink.apps.students.models import Student, StudentInstitutionAffiliation
 
 
 @pytest.fixture
@@ -267,6 +270,123 @@ def test_institution_assessor_can_retrieve_assigned_application_by_profile_id(
 
     assert response.status_code == 200
     assert response.data["id"] == str(institution_application.id)
+
+
+@pytest.mark.django_db
+def test_assigned_supervisor_private_notes_are_scoped_by_domain_profile_id(
+    employer_application,
+    employer_supervisor_user,
+    institution_assessor_user,
+):
+    employer_user, employer_supervisor = employer_supervisor_user
+    institution_user, institution_staff = institution_assessor_user
+    employer_application.employer_supervisor_id = employer_supervisor.id
+    employer_application.institution_supervisor_id = institution_staff.id
+    employer_application.save(update_fields=[
+        "employer_supervisor_id",
+        "institution_supervisor_id",
+        "updated_at",
+    ])
+    evidence = InternshipEvidence.objects.create(
+        application=employer_application,
+        submitted_by=employer_application.student_id,
+        title="Week 1",
+        evidence_type=InternshipEvidence.TYPE_LOGBOOK,
+        employer_private_notes="Employer-only note",
+        institution_private_notes="Institution-only note",
+    )
+
+    class Request:
+        def __init__(self, user):
+            self.user = user
+
+    employer_data = InternshipEvidenceSerializer(
+        evidence,
+        context={"request": Request(employer_user)},
+    ).data
+    institution_data = InternshipEvidenceSerializer(
+        evidence,
+        context={"request": Request(institution_user)},
+    ).data
+
+    assert "employer_private_notes" in employer_data
+    assert "institution_private_notes" not in employer_data
+    assert "institution_private_notes" in institution_data
+    assert "employer_private_notes" not in institution_data
+
+
+@pytest.mark.django_db
+def test_organization_admin_private_notes_are_scoped_to_their_lane(
+    employer_application,
+    employer_admin,
+    institution_admin,
+    institution,
+):
+    StudentInstitutionAffiliation.objects.create(
+        student_id=employer_application.student_id,
+        institution_id=institution.id,
+        status=StudentInstitutionAffiliation.STATUS_APPROVED,
+        claimed_via=StudentInstitutionAffiliation.CLAIMED_VIA_MANUAL,
+    )
+    evidence = InternshipEvidence.objects.create(
+        application=employer_application,
+        submitted_by=employer_application.student_id,
+        title="Week 1",
+        evidence_type=InternshipEvidence.TYPE_LOGBOOK,
+        employer_private_notes="Employer-only note",
+        institution_private_notes="Institution-only note",
+    )
+
+    class Request:
+        def __init__(self, user):
+            self.user = user
+
+    employer_data = InternshipEvidenceSerializer(
+        evidence,
+        context={"request": Request(employer_admin)},
+    ).data
+    institution_data = InternshipEvidenceSerializer(
+        evidence,
+        context={"request": Request(institution_admin)},
+    ).data
+
+    assert "employer_private_notes" in employer_data
+    assert "institution_private_notes" not in employer_data
+    assert "institution_private_notes" in institution_data
+    assert "employer_private_notes" not in institution_data
+
+
+@pytest.mark.django_db
+def test_employer_admin_incident_authority_is_scoped_to_own_employer(
+    employer_application,
+    employer_admin,
+):
+    other_employer = Employer.objects.create(
+        name="Other Employer",
+        trust_level=Employer.TRUST_ACTIVE_HOST,
+    )
+    other_admin = User.objects.create_user(
+        username="role_other_emp_admin",
+        email="role.other.emp.admin@example.com",
+        password="password",
+        role=User.ROLE_EMPLOYER_ADMIN,
+    )
+    Supervisor.objects.create(
+        employer=other_employer,
+        user=other_admin,
+        role=Supervisor.ROLE_ADMIN,
+        is_active=True,
+    )
+    incident = Incident.objects.create(
+        application=employer_application,
+        reported_by=employer_application.student_id,
+        title="Workplace incident",
+        description="Incident scope fixture",
+        status=Incident.STATUS_OPEN,
+    )
+
+    assert can_dismiss_incident(employer_admin, incident) is True
+    assert can_dismiss_incident(other_admin, incident) is False
 
 
 @pytest.mark.django_db
