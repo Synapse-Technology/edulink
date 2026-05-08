@@ -417,6 +417,11 @@ class ApplicationViewSet(viewsets.ReadOnlyModelViewSet):
             return Response({"detail": "Application not found"}, status=status.HTTP_404_NOT_FOUND)
         from .queries import get_evidence_for_application
         evidence = get_evidence_for_application(application_id=application.id)
+        page = self.paginate_queryset(evidence)
+        if page is not None:
+            serializer = InternshipEvidenceSerializer(page, many=True, context={'request': request})
+            return self.get_paginated_response(serializer.data)
+
         serializer = InternshipEvidenceSerializer(evidence, many=True, context={'request': request})
         return Response(serializer.data)
 

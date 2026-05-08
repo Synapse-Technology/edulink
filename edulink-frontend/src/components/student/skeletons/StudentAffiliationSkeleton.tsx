@@ -129,8 +129,8 @@ const STYLES = `
     --surface-3: #e8e5e0;
     --border: #e4e1dc;
     --border-2: #d1ccc5;
-    --accent: #1a5cff;
-    --accent-soft: rgba(26,92,255,0.08);
+    --accent: #1ab8aa;
+    --accent-soft: rgba(26, 184, 170, 0.08);
     --radius-sm: 8px;
     --radius: 14px;
     --radius-lg: 20px;
@@ -155,8 +155,8 @@ const STYLES = `
     --surface-3: #252525;
     --border: #2a2a2a;
     --border-2: #353535;
-    --accent: #4d7fff;
-    --accent-soft: rgba(77,127,255,0.10);
+    --accent: #2dd4bf;
+    --accent-soft: rgba(45, 212, 191, 0.10);
     --shadow: 0 4px 16px rgba(0,0,0,0.30);
     --sk-base: #252525;
     --sk-mid: #343434;
@@ -202,7 +202,7 @@ const STYLES = `
     height: 12px;
     border-radius: 999px;
     background: var(--accent-soft);
-    border: 1px solid rgba(26,92,255,0.18);
+    border: 1px solid rgba(26, 184, 170, 0.18);
   }
 
   .sas-eyebrow-line {
@@ -382,7 +382,7 @@ const STYLES = `
     align-items: center;
     gap: 10px;
     background: var(--accent-soft);
-    border: 1px solid rgba(26,92,255,0.12);
+    border: 1px solid rgba(26, 184, 170, 0.12);
     border-radius: var(--radius-sm);
     padding: 10px 14px;
     margin-top: 8px;

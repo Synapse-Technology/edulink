@@ -10,16 +10,18 @@ type FormatOptions = {
   locale?: string;
 };
 
+const DEFAULT_LOCALE = 'en-GB';
+
 export const dateFormatter = {
   /**
-   * Short format: "Jan 15, 2026"
+   * Short format: "15/01/2026"
    * Use for tables, lists, and compact displays
    */
   shortDate: (date: string | Date, options?: FormatOptions): string => {
     try {
-      return new Date(date).toLocaleDateString(options?.locale || 'en-US', {
-        month: 'short',
-        day: 'numeric',
+      return new Date(date).toLocaleDateString(options?.locale || DEFAULT_LOCALE, {
+        day: '2-digit',
+        month: '2-digit',
         year: 'numeric',
       });
     } catch {
@@ -28,14 +30,14 @@ export const dateFormatter = {
   },
 
   /**
-   * Long format: "January 15, 2026"
+   * Long format: "15/01/2026"
    * Use for important dates, headers, and formal displays
    */
   longDate: (date: string | Date, options?: FormatOptions): string => {
     try {
-      return new Date(date).toLocaleDateString(options?.locale || 'en-US', {
-        month: 'long',
-        day: 'numeric',
+      return new Date(date).toLocaleDateString(options?.locale || DEFAULT_LOCALE, {
+        day: '2-digit',
+        month: '2-digit',
         year: 'numeric',
       });
     } catch {
@@ -44,16 +46,16 @@ export const dateFormatter = {
   },
 
   /**
-   * With time: "Jan 15, 2026 at 2:30 PM"
+   * With time: "15/01/2026, 14:30"
    * Use when both date and time are important
    */
   dateWithTime: (date: string | Date, options?: FormatOptions): string => {
     try {
-      return new Date(date).toLocaleString(options?.locale || 'en-US', {
-        month: 'short',
-        day: 'numeric',
+      return new Date(date).toLocaleString(options?.locale || DEFAULT_LOCALE, {
+        day: '2-digit',
+        month: '2-digit',
         year: 'numeric',
-        hour: 'numeric',
+        hour: '2-digit',
         minute: '2-digit',
       });
     } catch {
@@ -108,16 +110,8 @@ export const dateFormatter = {
       const start = new Date(startDate);
       const end = new Date(endDate);
 
-      const startFormatted = start.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-      });
-
-      const endFormatted = end.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      });
+      const startFormatted = dateFormatter.shortDate(start);
+      const endFormatted = dateFormatter.shortDate(end);
 
       return `${startFormatted} - ${endFormatted}`;
     } catch {

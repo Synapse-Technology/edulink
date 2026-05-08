@@ -326,9 +326,9 @@ const STYLES = `
     --surface-3: #e8e5e0;
     --border: #e4e1dc;
     --border-2: #d1ccc5;
-    --accent: #1a5cff;
-    --accent-2: #e8eeff;
-    --accent-soft: rgba(26,92,255,0.08);
+    --accent: #1ab8aa;
+    --accent-2: #e6fffb;
+    --accent-soft: rgba(26, 184, 170, 0.08);
     --success: #12b76a;
     --success-soft: rgba(18,183,106,0.10);
     --danger: #ef4444;
@@ -359,9 +359,9 @@ const STYLES = `
     --surface-3: #252525;
     --border: #2a2a2a;
     --border-2: #353535;
-    --accent: #4d7fff;
-    --accent-2: #1a2340;
-    --accent-soft: rgba(77,127,255,0.10);
+    --accent: #2dd4bf;
+    --accent-2: #0f3f3c;
+    --accent-soft: rgba(45, 212, 191, 0.10);
     --success-soft: rgba(18,183,106,0.12);
     --danger-soft: rgba(239,68,68,0.12);
     --shadow: 0 4px 16px rgba(0,0,0,0.30);
@@ -627,11 +627,11 @@ const STYLES = `
     flex: 1;
     background: var(--accent);
     color: #fff;
-    box-shadow: 0 1px 3px rgba(26,92,255,0.25);
+    box-shadow: 0 1px 3px rgba(26, 184, 170, 0.25);
   }
 
   .adu-btn-primary:hover {
-    box-shadow: 0 4px 16px rgba(26,92,255,0.35);
+    box-shadow: 0 4px 16px rgba(26, 184, 170, 0.35);
     transform: translateY(-1px);
   }
 
@@ -649,7 +649,7 @@ const STYLES = `
     margin-top: 12px;
     background: transparent;
     color: var(--accent);
-    border: 1px solid rgba(26,92,255,0.28);
+    border: 1px solid rgba(26, 184, 170, 0.28);
   }
 
   .adu-btn-outline:hover {

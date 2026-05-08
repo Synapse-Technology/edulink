@@ -12,12 +12,22 @@ export interface Notification {
   created_at: string;
 }
 
+interface PaginatedResponse<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+}
+
 export const notificationService = {
   /**
    * Fetch all notifications for the current user.
    */
   getNotifications: async (): Promise<Notification[]> => {
-    return await apiClient.get<Notification[]>('/api/notifications/');
+    const response = await apiClient.get<Notification[] | PaginatedResponse<Notification>>('/api/notifications/', {
+      params: { page_size: 50 },
+    });
+    return Array.isArray(response) ? response : response.results || [];
   },
 
   /**

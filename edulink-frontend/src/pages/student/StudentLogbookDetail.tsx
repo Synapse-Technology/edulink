@@ -22,6 +22,16 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { showToast } from '../../utils/toast';
 import LogbookDetailSkeleton from '../../components/student/skeletons/LogbookDetailSkeleton';
 import { generateLogbookPDF } from '../../utils/pdfGenerator';
+import { dateFormatter } from '../../utils/dateFormatter';
+import {
+  StudentButton,
+  StudentCard,
+  StudentEmptyState,
+  StudentPageHeader,
+  StudentStatus,
+  StudentWorkspacePage,
+  StudentWorkspaceShell,
+} from '../../components/student/workspace';
 
 /* ─────────────────────────────────────────────
    Design tokens — mirrors StudentLogbook.tsx
@@ -39,9 +49,9 @@ const STYLES = `
     --surface-3: #e8e5e0;
     --border: #e4e1dc;
     --border-2: #d1ccc5;
-    --accent: #1a5cff;
-    --accent-2: #e8eeff;
-    --accent-soft: rgba(26,92,255,0.08);
+    --accent: #1ab8aa;
+    --accent-2: #e6fffb;
+    --accent-soft: rgba(26, 184, 170, 0.08);
     --success: #12b76a;
     --success-soft: rgba(18,183,106,0.1);
     --warning: #f59e0b;
@@ -69,9 +79,9 @@ const STYLES = `
     --surface-3: #252525;
     --border: #2a2a2a;
     --border-2: #353535;
-    --accent: #4d7fff;
-    --accent-2: #1a2340;
-    --accent-soft: rgba(77,127,255,0.1);
+    --accent: #2dd4bf;
+    --accent-2: #0f3f3c;
+    --accent-soft: rgba(45, 212, 191, 0.1);
     --success-soft: rgba(18,183,106,0.12);
     --warning-soft: rgba(245,158,11,0.12);
     --danger-soft: rgba(239,68,68,0.12);
@@ -433,10 +443,10 @@ const STYLES = `
   .ld-btn-primary {
     background: var(--accent);
     color: #fff;
-    box-shadow: 0 1px 3px rgba(26,92,255,0.25), 0 4px 12px rgba(26,92,255,0.15);
+    box-shadow: 0 1px 3px rgba(26, 184, 170, 0.25), 0 4px 12px rgba(26, 184, 170, 0.15);
   }
   .ld-btn-primary:hover:not(:disabled) {
-    box-shadow: 0 4px 16px rgba(26,92,255,0.35);
+    box-shadow: 0 4px 16px rgba(26, 184, 170, 0.35);
     transform: translateY(-1px);
   }
   .ld-btn-ghost {
@@ -514,9 +524,9 @@ const getStatus = (s: string) =>
 
 /* ─── Day name helper ─── */
 const dayName = (ds: string) =>
-  new Date(`${ds}T00:00:00`).toLocaleDateString('en-US', { weekday: 'long' });
+  new Date(`${ds}T00:00:00`).toLocaleDateString('en-GB', { weekday: 'long' });
 const fullDate = (ds: string) =>
-  new Date(`${ds}T00:00:00`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  dateFormatter.shortDate(new Date(`${ds}T00:00:00`));
 
 /* ══════════════════════════════════════════════
    COMPONENT
@@ -567,7 +577,7 @@ const StudentLogbookDetail: React.FC = () => {
         employerFeedback: evidence.employer_review_notes,
         institutionFeedback: evidence.institution_review_notes,
       });
-      showToast.success('PDF report generated successfully.');
+      showToast.success('Weekly draft downloaded. Official signed reports are generated from the artifact vault.');
     } catch (err) {
       console.error(err);
       showToast.error('Could not generate the PDF. Please try again.');
@@ -587,17 +597,18 @@ const StudentLogbookDetail: React.FC = () => {
     return (
       <StudentLayout>
         <style>{STYLES}</style>
-        <div className={`ld-page${isDarkMode ? ' dark-mode' : ''}`}>
-          <div className="ld-not-found">
-            <div className="ld-not-found-icon"><BookOpen size={36} /></div>
-            <h2>Submission <em>Not Found</em></h2>
-            <p>This logbook submission could not be found or you don't have access to it.</p>
-            <button className="ld-btn ld-btn-primary" onClick={() => navigate('/dashboard/student/logbook')}>
+        <StudentWorkspaceShell darkMode={isDarkMode}>
+          <StudentWorkspacePage>
+          <StudentEmptyState icon={<BookOpen size={24} />} title={<>Submission <em>Not Found</em></>}>
+            This logbook submission could not be found or you don't have access to it.
+            <br />
+            <StudentButton as="button" type="button" variant="primary" style={{ marginTop: 14 }} onClick={() => navigate('/dashboard/student/logbook')}>
               <ArrowLeft size={15} />
               Back to Logbook
-            </button>
-          </div>
-        </div>
+            </StudentButton>
+          </StudentEmptyState>
+          </StudentWorkspacePage>
+        </StudentWorkspaceShell>
       </StudentLayout>
     );
   }
@@ -616,28 +627,33 @@ const StudentLogbookDetail: React.FC = () => {
   return (
     <StudentLayout>
       <style>{STYLES}</style>
-      <div className={`ld-page${isDarkMode ? ' dark-mode' : ''}`}>
+      <StudentWorkspaceShell darkMode={isDarkMode}>
+      <StudentWorkspacePage>
 
         {/* ── Back nav ── */}
-        <button className="ld-back" onClick={() => navigate('/dashboard/student/logbook')}>
+        <StudentButton as="button" type="button" variant="ghost" onClick={() => navigate('/dashboard/student/logbook')}>
           <ArrowLeft size={15} />
           Back to Logbook
-        </button>
+        </StudentButton>
 
         {/* ── PAGE HEADER ── */}
-        <header className="ld-header">
-          <div>
-            <div className="ld-header-eyebrow">
+        <StudentPageHeader
+          eyebrow={
+            <>
               <FileText size={12} />
               Reviewed Evidence · {internship?.title || 'Internship'}
-            </div>
-            <h1 className="ld-header-title">
+            </>
+          }
+          title={
+            <>
               {evidence.title
                 ? evidence.title.split(' ').slice(0, -1).join(' ') + ' '
                 : 'Weekly '}
               <em>{evidence.title ? evidence.title.split(' ').slice(-1)[0] : 'Log'}</em>
-            </h1>
-            <div className="ld-header-meta">
+            </>
+          }
+          subtitle={
+            <span className="ld-header-meta" style={{ marginTop: 16 }}>
               {weekStartDate && (
                 <span className="ld-header-meta-item">
                   <Calendar size={13} />
@@ -646,42 +662,41 @@ const StudentLogbookDetail: React.FC = () => {
               )}
               <span className="ld-header-meta-item">
                 <Clock size={13} />
-                Submitted {new Date(evidence.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                Submitted {dateFormatter.shortDate(evidence.created_at)}
               </span>
               <span className="ld-header-meta-item">
                 <Layers size={13} />
                 {sortedDates.length} day{sortedDates.length !== 1 ? 's' : ''} recorded
               </span>
-            </div>
-          </div>
-
-          {/* Status card */}
-          <div className="ld-status-card">
-            <span className="ld-status-label">Review status</span>
-            <span className={`ld-badge ${status.cls}`}>
+            </span>
+          }
+          actions={
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              <StudentStatus tone="info">
               {status.icon}
               {status.label}
-            </span>
-            <button className="ld-btn ld-btn-ghost" onClick={handleDownloadPDF}>
+              </StudentStatus>
+            <StudentButton as="button" type="button" variant="ghost" onClick={handleDownloadPDF}>
               <Download size={14} />
-              Download PDF
-            </button>
-          </div>
-        </header>
+              Download Draft
+            </StudentButton>
+            </div>
+          }
+        />
 
         {/* ── MAIN GRID ── */}
         <div className="ld-grid">
 
           {/* LEFT — Daily entries */}
           <div>
-            <div className="ld-card">
-              <div className="ld-card-header">
-                <span className="ld-card-title">Daily Professional Logs</span>
-                <span style={{ fontSize: 12, color: 'var(--ink-4)' }}>
+            <StudentCard
+              title="Daily Professional Logs"
+              actions={
+                <StudentStatus>
                   {sortedDates.length} / 5 days
-                </span>
-              </div>
-              <div className="ld-card-body">
+                </StudentStatus>
+              }
+            >
                 {sortedDates.length > 0 ? (
                   <div className="ld-entry-list">
                     {sortedDates.map((date) => (
@@ -703,14 +718,11 @@ const StudentLogbookDetail: React.FC = () => {
                     )}
                   </div>
                 ) : (
-                  <div className="ld-empty">
-                    <div className="ld-empty-icon"><FileText size={26} /></div>
-                    <div className="ld-empty-title">No entries recorded</div>
-                    <p className="ld-empty-text">No daily activity logs were found for this submission.</p>
-                  </div>
+                  <StudentEmptyState icon={<FileText size={22} />} title="No entries recorded">
+                    No daily activity logs were found for this submission.
+                  </StudentEmptyState>
                 )}
-              </div>
-            </div>
+            </StudentCard>
 
             {/* Supervisor feedback — shown inline on mobile, in sidebar on desktop */}
             {hasFeedback && (
@@ -724,11 +736,8 @@ const StudentLogbookDetail: React.FC = () => {
           <div className="ld-sidebar">
 
             {/* Placement context */}
-            <div className="ld-card">
-              <div className="ld-card-header">
-                <span className="ld-card-title">Placement Context</span>
-              </div>
-              <div className="ld-card-body" style={{ paddingTop: 8, paddingBottom: 8 }}>
+            <StudentCard title="Placement Context">
+              <div style={{ paddingTop: 2, paddingBottom: 2 }}>
                 <div className="ld-info-list">
                   <div className="ld-info-row">
                     <div className="ld-info-icon ld-info-icon-accent">
@@ -763,20 +772,21 @@ const StudentLogbookDetail: React.FC = () => {
                   )}
                 </div>
               </div>
-            </div>
+            </StudentCard>
 
             {/* Supervisor reviews */}
-            <div className="ld-card">
-              <div className="ld-card-header">
-                <span className="ld-card-title">Supervisor Reviews</span>
-                {hasFeedback && (
-                  <span className="ld-badge ld-badge-reviewed" style={{ padding: '3px 8px', fontSize: 11 }}>
+            <StudentCard
+              title="Supervisor Reviews"
+              actions={
+                hasFeedback ? (
+                  <StudentStatus tone="success">
                     <MessageSquare size={11} />
                     Feedback
-                  </span>
-                )}
-              </div>
-              <div className="ld-card-body" style={{ paddingTop: 0 }}>
+                  </StudentStatus>
+                ) : undefined
+              }
+            >
+              <div style={{ paddingTop: 0 }}>
                 <div className="ld-feedback-panel employer" style={{ marginTop: 16 }}>
                   <div className="ld-feedback-panel-label">
                     <User size={13} />
@@ -796,14 +806,11 @@ const StudentLogbookDetail: React.FC = () => {
                   </p>
                 </div>
               </div>
-            </div>
+            </StudentCard>
 
             {/* Quick stats */}
-            <div className="ld-card">
-              <div className="ld-card-header">
-                <span className="ld-card-title">Submission Summary</span>
-              </div>
-              <div className="ld-card-body" style={{ paddingTop: 8, paddingBottom: 8 }}>
+            <StudentCard title="Submission Summary">
+              <div style={{ paddingTop: 2, paddingBottom: 2 }}>
                 <div className="ld-info-list">
                   <div className="ld-info-row">
                     <div className="ld-info-icon" style={{ background: 'var(--surface-3)', color: 'var(--ink-3)' }}>
@@ -821,7 +828,7 @@ const StudentLogbookDetail: React.FC = () => {
                     <div>
                       <div className="ld-info-label">Submitted on</div>
                       <div className="ld-info-value">
-                        {new Date(evidence.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                        {dateFormatter.shortDate(evidence.created_at)}
                       </div>
                     </div>
                   </div>
@@ -843,11 +850,12 @@ const StudentLogbookDetail: React.FC = () => {
                   </div>
                 </div>
               </div>
-            </div>
+            </StudentCard>
 
           </div>
         </div>
-      </div>
+      </StudentWorkspacePage>
+      </StudentWorkspaceShell>
     </StudentLayout>
   );
 };

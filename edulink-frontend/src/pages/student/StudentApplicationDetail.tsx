@@ -31,6 +31,16 @@ import type { InternshipApplication } from '../../services/internship/internship
 import { useTheme } from '../../contexts/ThemeContext';
 import InternshipLifecyclePanel from '../../components/internship/InternshipLifecyclePanel';
 import { getUserFacingErrorMessage } from '../../utils/userFacingErrors';
+import {
+  StudentButton,
+  StudentCard,
+  StudentEmptyState,
+  StudentPageHeader,
+  StudentStatus,
+  StudentWorkspacePage,
+  StudentWorkspaceShell,
+} from '../../components/student/workspace';
+import { dateFormatter } from '../../utils/dateFormatter';
 
 /* ─────────────────────────────────────────────
    Design tokens — unified with StudentApplications
@@ -49,9 +59,9 @@ const STYLES = `
     --surface-4: #ffffff;
     --border: #e4e1dc;
     --border-2: #d1ccc5;
-    --accent: #1a5cff;
-    --accent-2: #e8eeff;
-    --accent-soft: rgba(26,92,255,0.08);
+    --accent: #1ab8aa;
+    --accent-2: #e6fffb;
+    --accent-soft: rgba(26, 184, 170, 0.08);
     --success: #12b76a;
     --success-soft: rgba(18,183,106,0.10);
     --warning: #f59e0b;
@@ -81,9 +91,9 @@ const STYLES = `
     --surface-4: #181818;
     --border: #2a2a2a;
     --border-2: #353535;
-    --accent: #4d7fff;
-    --accent-2: #1a2340;
-    --accent-soft: rgba(77,127,255,0.10);
+    --accent: #2dd4bf;
+    --accent-2: #0f3f3c;
+    --accent-soft: rgba(45, 212, 191, 0.10);
     --success-soft: rgba(18,183,106,0.12);
     --warning-soft: rgba(245,158,11,0.12);
     --danger-soft: rgba(239,68,68,0.12);
@@ -220,7 +230,7 @@ const STYLES = `
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 8px 22px rgba(26,92,255,0.22);
+    box-shadow: 0 8px 22px rgba(26, 184, 170, 0.22);
   }
 
   .sad-status-top {
@@ -270,19 +280,19 @@ const STYLES = `
   .sad-btn-primary {
     background: var(--accent);
     color: #fff;
-    box-shadow: 0 1px 3px rgba(26,92,255,0.25);
+    box-shadow: 0 1px 3px rgba(26, 184, 170, 0.25);
   }
 
   .sad-btn-primary:hover {
     color: #fff;
-    box-shadow: 0 4px 16px rgba(26,92,255,0.35);
+    box-shadow: 0 4px 16px rgba(26, 184, 170, 0.35);
     transform: translateY(-1px);
   }
 
   .sad-btn-outline {
     background: transparent;
     color: var(--accent);
-    border: 1px solid rgba(26,92,255,0.30);
+    border: 1px solid rgba(26, 184, 170, 0.30);
   }
 
   .sad-btn-outline:hover {
@@ -414,7 +424,7 @@ const STYLES = `
   .sad-progress-step.current { color: var(--accent); }
   .sad-progress-step.current .sad-progress-dot {
     background: var(--accent-soft);
-    border-color: rgba(26,92,255,0.22);
+    border-color: rgba(26, 184, 170, 0.22);
     color: var(--accent);
   }
 
@@ -875,11 +885,7 @@ const formatDate = (date?: string) => {
   const parsed = new Date(date);
   if (Number.isNaN(parsed.getTime())) return 'Unknown date';
 
-  return parsed.toLocaleDateString(undefined, {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
+  return dateFormatter.shortDate(parsed);
 };
 
 const getRelativeAppliedTime = (date?: string) => {
@@ -963,13 +969,13 @@ const StudentApplicationDetail: React.FC = () => {
     return (
       <StudentLayout>
         <style>{STYLES}</style>
-        <div className={`sad-page${isDarkMode ? ' dark-mode' : ''}`}>
-          <div className="sad-state">
-            <div className="sad-state-icon"><Loader size={26} /></div>
-            <h2 className="sad-state-title">Loading application</h2>
-            <p className="sad-state-text">Fetching the employer details, documents, and lifecycle status.</p>
-          </div>
-        </div>
+        <StudentWorkspaceShell darkMode={isDarkMode}>
+          <StudentWorkspacePage>
+            <StudentEmptyState icon={<Loader size={22} />} title="Loading application">
+              Fetching the employer details, documents, and lifecycle status.
+            </StudentEmptyState>
+          </StudentWorkspacePage>
+        </StudentWorkspaceShell>
       </StudentLayout>
     );
   }
@@ -978,18 +984,23 @@ const StudentApplicationDetail: React.FC = () => {
     return (
       <StudentLayout>
         <style>{STYLES}</style>
-        <div className={`sad-page${isDarkMode ? ' dark-mode' : ''}`}>
-          <div className="sad-state">
-            <div className="sad-state-icon"><AlertCircle size={26} /></div>
-            <h2 className="sad-state-title">Application not found</h2>
-            <p className="sad-state-text">
+        <StudentWorkspaceShell darkMode={isDarkMode}>
+          <StudentWorkspacePage>
+            <StudentEmptyState icon={<AlertCircle size={22} />} title="Application not found">
               We could not find this application or you may no longer have access to it.
-            </p>
-            <button className="sad-btn sad-btn-primary" onClick={() => navigate('/dashboard/student/applications')}>
-              Back to Applications <ArrowRight size={15} />
-            </button>
-          </div>
-        </div>
+              <br />
+              <StudentButton
+                as="button"
+                type="button"
+                variant="primary"
+                style={{ marginTop: 14 }}
+                onClick={() => navigate('/dashboard/student/applications')}
+              >
+                Back to Applications <ArrowRight size={15} />
+              </StudentButton>
+            </StudentEmptyState>
+          </StudentWorkspacePage>
+        </StudentWorkspaceShell>
       </StudentLayout>
     );
   }
@@ -997,55 +1008,57 @@ const StudentApplicationDetail: React.FC = () => {
   return (
     <StudentLayout>
       <style>{STYLES}</style>
-      <div className={`sad-page${isDarkMode ? ' dark-mode' : ''}`}>
+      <StudentWorkspaceShell darkMode={isDarkMode}>
+      <StudentWorkspacePage>
         <div className="sad-back-row">
-          <button className="sad-back-btn" onClick={() => navigate('/dashboard/student/applications')}>
+          <StudentButton as="button" type="button" variant="ghost" onClick={() => navigate('/dashboard/student/applications')}>
             <ArrowLeft size={15} />
             Back to applications
-          </button>
+          </StudentButton>
         </div>
 
-        <section className="sad-hero">
-          <div className="sad-hero-copy">
-            <div className="sad-eyebrow">
+        <StudentPageHeader
+          eyebrow={
+            <>
               <Sparkles size={12} />
               EduLink · Application detail
-            </div>
-            <h1 className="sad-hero-title">
-              {application.title} <em>application</em>
-            </h1>
-            <p className="sad-hero-sub">
+            </>
+          }
+          title={<>{application.title} <em>application</em></>}
+          subtitle={
+            <>
               Review the employer, submitted package, cover letter, and lifecycle status connected to this opportunity.
-            </p>
-            <div className="sad-hero-meta">
-              <span><Building2 size={14} /> {employerName}</span>
-              <span><MapPin size={14} /> {location}</span>
-              <span><Calendar size={14} /> Applied {getRelativeAppliedTime(application.created_at)}</span>
+              <span className="sad-hero-meta" style={{ marginTop: 16 }}>
+                <span><Building2 size={14} /> {employerName}</span>
+                <span><MapPin size={14} /> {location}</span>
+                <span><Calendar size={14} /> Applied {getRelativeAppliedTime(application.created_at)}</span>
+              </span>
+            </>
+          }
+          actions={
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-end' }}>
+              <StatusBadge status={application.status} />
+              <StudentStatus tone="info"><Briefcase size={12} /> Current status</StudentStatus>
             </div>
-          </div>
+          }
+        />
 
-          <aside className="sad-status-card">
-            <div>
-              <div className="sad-status-top">
-                <div>
-                  <div className="sad-status-label">Current status</div>
-                  <StatusBadge status={application.status} />
-                </div>
-                <div className="sad-status-icon">
-                  <Briefcase size={20} />
-                </div>
-              </div>
-              <p className="sad-status-note">{getNextAction(application.status)}</p>
-            </div>
-
-            {canWithdraw && (
-              <button className="sad-btn sad-btn-danger-soft" onClick={() => setShowWithdrawModal(true)}>
+        <StudentCard
+          label="Next action"
+          title="What this status means"
+          actions={
+            canWithdraw ? (
+              <StudentButton as="button" type="button" variant="danger" onClick={() => setShowWithdrawModal(true)}>
                 <Trash2 size={15} />
                 Withdraw application
-              </button>
-            )}
-          </aside>
-        </section>
+              </StudentButton>
+            ) : undefined
+          }
+        >
+          <p className="sad-cover-letter" style={{ margin: 0 }}>{getNextAction(application.status)}</p>
+        </StudentCard>
+
+        <div style={{ height: 16 }} />
 
         <section className="sad-progress-card">
           <ApplicationProgress status={application.status} />
@@ -1053,45 +1066,31 @@ const StudentApplicationDetail: React.FC = () => {
 
         <div className="sad-layout">
           <main className="sad-main">
-            <section className="sad-card">
-              <div className="sad-card-header">
-                <div>
-                  <div className="sad-card-label">Lifecycle</div>
-                  <h2 className="sad-card-title">Application movement</h2>
-                </div>
-                <span className="sad-mini-badge"><ShieldCheck size={11} /> Tracked record</span>
-              </div>
-              <div className="sad-card-body">
+            <StudentCard
+              label="Lifecycle"
+              title="Application movement"
+              actions={<StudentStatus tone="success"><ShieldCheck size={11} /> Tracked record</StudentStatus>}
+            >
                 <InternshipLifecyclePanel application={application} roleView="student" dark={isDarkMode} compact />
-              </div>
-            </section>
+            </StudentCard>
 
-            <section className="sad-card">
-              <div className="sad-card-header">
-                <div>
-                  <div className="sad-card-label">Submitted message</div>
-                  <h2 className="sad-card-title">Cover letter</h2>
-                </div>
-                <MessageCircle size={19} style={{ color: 'var(--ink-4)' }} />
-              </div>
-              <div className="sad-card-body">
+            <StudentCard
+              label="Submitted message"
+              title="Cover letter"
+              actions={<MessageCircle size={19} style={{ color: 'var(--sw-muted)' }} />}
+            >
                 <p className="sad-cover-letter">
                   {application.cover_letter || 'No cover letter submitted.'}
                 </p>
-              </div>
-            </section>
+            </StudentCard>
           </main>
 
           <aside className="sad-sidebar">
-            <section className="sad-card">
-              <div className="sad-card-header">
-                <div>
-                  <div className="sad-card-label">Package</div>
-                  <h2 className="sad-card-title">Application package</h2>
-                </div>
-                <FileText size={19} style={{ color: 'var(--ink-4)' }} />
-              </div>
-              <div className="sad-card-body">
+            <StudentCard
+              label="Package"
+              title="Application package"
+              actions={<FileText size={19} style={{ color: 'var(--sw-muted)' }} />}
+            >
                 <div className="sad-package-list">
                   <div className="sad-package-item">
                     <div className="sad-package-left">
@@ -1115,8 +1114,9 @@ const StudentApplicationDetail: React.FC = () => {
                     </div>
 
                     {application.application_snapshot?.cv && (
-                      <button
-                        className="sad-btn sad-btn-outline"
+                      <StudentButton
+                        as="button"
+                        type="button"
                         onClick={() => {
                           setPreviewTitle('CV / Resume');
                           setPreviewUrl(application.application_snapshot?.cv || null);
@@ -1124,21 +1124,13 @@ const StudentApplicationDetail: React.FC = () => {
                         }}
                       >
                         Preview <Maximize2 size={14} />
-                      </button>
+                      </StudentButton>
                     )}
                   </div>
                 </div>
-              </div>
-            </section>
+            </StudentCard>
 
-            <section className="sad-card">
-              <div className="sad-card-header">
-                <div>
-                  <div className="sad-card-label">Summary</div>
-                  <h2 className="sad-card-title">Application facts</h2>
-                </div>
-              </div>
-              <div className="sad-card-body">
+            <StudentCard label="Summary" title="Application facts">
                 <div className="sad-facts">
                   <div className="sad-fact-row">
                     <span className="sad-fact-label">Employer</span>
@@ -1157,17 +1149,9 @@ const StudentApplicationDetail: React.FC = () => {
                     <span className="sad-fact-value">{getStatusConfig(application.status).label}</span>
                   </div>
                 </div>
-              </div>
-            </section>
+            </StudentCard>
 
-            <section className="sad-card">
-              <div className="sad-card-header">
-                <div>
-                  <div className="sad-card-label">Support</div>
-                  <h2 className="sad-card-title">Need help?</h2>
-                </div>
-              </div>
-              <div className="sad-card-body">
+            <StudentCard label="Support" title="Need help?">
                 <div className="sad-next-action" style={{ marginBottom: 14 }}>
                   <div className="sad-next-action-label">
                     <AlertCircle size={12} />
@@ -1177,14 +1161,14 @@ const StudentApplicationDetail: React.FC = () => {
                     Contact support only when the status, documents, or employer information appears incorrect.
                   </p>
                 </div>
-                <button className="sad-btn sad-btn-outline sad-btn-full">
+                <StudentButton as="button" type="button" variant="ghost" style={{ width: '100%' }}>
                   Contact Support <ChevronRight size={15} />
-                </button>
-              </div>
-            </section>
+                </StudentButton>
+            </StudentCard>
           </aside>
         </div>
-      </div>
+      </StudentWorkspacePage>
+      </StudentWorkspaceShell>
 
       {showWithdrawModal && (
         <div className="sad-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="withdraw-application-title">

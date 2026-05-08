@@ -30,6 +30,14 @@ import { studentService } from '../../services/student/studentService';
 import type { Affiliation, StudentProfile as IStudentProfile } from '../../services/student/studentService';
 import StudentProfileSkeleton from '../../components/student/skeletons/StudentProfileSkeleton';
 import defaultProfile from '../../assets/images/default_profile.jpg';
+import {
+  StudentButton,
+  StudentCard,
+  StudentPageHeader,
+  StudentStatus,
+  StudentWorkspacePage,
+  StudentWorkspaceShell,
+} from '../../components/student/workspace';
 
 /* ─────────────────────────────────────────────
    Design tokens — identical to Dashboard/Logbook
@@ -47,9 +55,9 @@ const STYLES = `
     --surface-3: #e8e5e0;
     --border: #e4e1dc;
     --border-2: #d1ccc5;
-    --accent: #1a5cff;
-    --accent-2: #e8eeff;
-    --accent-soft: rgba(26,92,255,0.08);
+    --accent: #1ab8aa;
+    --accent-2: #e6fffb;
+    --accent-soft: rgba(26, 184, 170, 0.08);
     --success: #12b76a;
     --success-soft: rgba(18,183,106,0.10);
     --warning: #f59e0b;
@@ -77,9 +85,9 @@ const STYLES = `
     --surface-3: #252525;
     --border: #2a2a2a;
     --border-2: #353535;
-    --accent: #4d7fff;
-    --accent-2: #1a2340;
-    --accent-soft: rgba(77,127,255,0.10);
+    --accent: #2dd4bf;
+    --accent-2: #0f3f3c;
+    --accent-soft: rgba(45, 212, 191, 0.10);
     --success-soft: rgba(18,183,106,0.12);
     --warning-soft: rgba(245,158,11,0.12);
     --danger-soft: rgba(239,68,68,0.12);
@@ -414,7 +422,7 @@ const STYLES = `
     font-weight: 500;
     background: var(--accent-soft);
     color: var(--accent);
-    border: 1px solid rgba(26,92,255,0.15);
+    border: 1px solid rgba(26, 184, 170, 0.15);
     border-radius: 99px;
     padding: 5px 12px;
     transition: background 0.15s;
@@ -572,9 +580,9 @@ const STYLES = `
   .sp-btn-primary {
     background: var(--accent);
     color: #fff;
-    box-shadow: 0 1px 3px rgba(26,92,255,0.25), 0 4px 12px rgba(26,92,255,0.15);
+    box-shadow: 0 1px 3px rgba(26, 184, 170, 0.25), 0 4px 12px rgba(26, 184, 170, 0.15);
   }
-  .sp-btn-primary:hover { box-shadow: 0 4px 16px rgba(26,92,255,0.35); transform: translateY(-1px); color: #fff; }
+  .sp-btn-primary:hover { box-shadow: 0 4px 16px rgba(26, 184, 170, 0.35); transform: translateY(-1px); color: #fff; }
   .sp-btn-ghost {
     background: var(--surface-3);
     color: var(--ink-2);
@@ -789,23 +797,23 @@ const StudentProfile: React.FC = () => {
       {loading ? (
         <StudentProfileSkeleton />
       ) : (
-        <div className={`sp-page${isDarkMode ? ' dark-mode' : ''}`}>
+        <StudentWorkspaceShell darkMode={isDarkMode}>
+        <StudentWorkspacePage>
 
           {/* ── HERO ── */}
-          <header className="sp-hero">
-            <div>
-              <div className="sp-hero-eyebrow">
+          <StudentPageHeader
+            eyebrow={
+              <>
                 <Sparkles size={12} />
                 EduLink · Career Passport
-              </div>
-              <h1 className="sp-hero-title">
-                Profile &amp; <em>Documents</em>
-              </h1>
-              <p className="sp-hero-sub">
+              </>
+            }
+            title={<>Profile &amp; <em>Documents</em></>}
+            subtitle={
+              <>
                 Keep your identity, academic record, skills, and documents application-ready.
                 Verified profiles get 3× more employer views.
-              </p>
-              <div className="sp-hero-meta">
+                <span className="sp-hero-meta" style={{ marginTop: 16 }}>
                 <span className="sp-hero-meta-item">
                   <User size={13} />
                   {user?.firstName} {user?.lastName}
@@ -818,21 +826,27 @@ const StudentProfile: React.FC = () => {
                   <BookOpen size={13} />
                   {profile?.registration_number || 'Registration pending'}
                 </span>
-              </div>
+                </span>
+              </>
+            }
+            actions={
               <div className="sp-hero-actions">
-                <button className="sp-btn sp-btn-primary" onClick={() => setShowWizard(true)}>
+                <StudentButton as="button" type="button" variant="primary" onClick={() => setShowWizard(true)}>
                   <Edit3 size={15} />
                   Edit profile
-                </button>
-                <button
-                  className="sp-btn sp-btn-ghost"
+                </StudentButton>
+                <StudentButton
+                  as="button"
+                  type="button"
+                  variant="ghost"
                   onClick={() => setShowWizard(true)}
                 >
                   <Upload size={15} />
                   Upload documents
-                </button>
+                </StudentButton>
               </div>
-            </div>
+            }
+          />
 
             {/* Passport card */}
             <div className="sp-passport">
@@ -893,7 +907,6 @@ const StudentProfile: React.FC = () => {
                 size="sm"
               />
             </div>
-          </header>
 
           {/* ── ONBOARDING CHECKS ── */}
           <section className="sp-checks-section">
@@ -936,18 +949,16 @@ const StudentProfile: React.FC = () => {
             <main className="sp-main">
 
               {/* Document vault */}
-              <div className="sp-card">
-                <div className="sp-card-header">
-                  <div>
-                    <div className="sp-card-label">Document vault</div>
-                    <h3 className="sp-card-title">Required documents</h3>
-                  </div>
-                  <button className="sp-btn sp-btn-ghost sp-btn-sm" onClick={() => setShowWizard(true)}>
+              <StudentCard
+                label="Document vault"
+                title="Required documents"
+                actions={
+                  <StudentButton as="button" type="button" variant="ghost" onClick={() => setShowWizard(true)}>
                     <Upload size={13} />
                     Upload
-                  </button>
-                </div>
-                <div className="sp-card-body">
+                  </StudentButton>
+                }
+              >
                   <div className="sp-doc-list">
                     {documents.map((doc) => {
                       const Icon = doc.icon;
@@ -966,29 +977,33 @@ const StudentProfile: React.FC = () => {
                           <div className="sp-doc-actions">
                             {doc.path ? (
                               <>
-                                <span className="sp-badge sp-badge-success">
+                                <StudentStatus tone="success">
                                   <CheckCircle size={10} /> Uploaded
-                                </span>
-                                <button
-                                  className="sp-btn sp-btn-ghost sp-btn-sm"
+                                </StudentStatus>
+                                <StudentButton
+                                  as="button"
+                                  type="button"
+                                  variant="ghost"
                                   onClick={() => handleViewDocument(doc.path, doc.title)}
                                 >
                                   <Eye size={13} />
                                   Preview
-                                </button>
+                                </StudentButton>
                               </>
                             ) : (
                               <>
-                                <span className="sp-badge sp-badge-warning">
+                                <StudentStatus tone="warning">
                                   <AlertCircle size={10} /> Missing
-                                </span>
-                                <button
-                                  className="sp-btn sp-btn-primary sp-btn-sm"
+                                </StudentStatus>
+                                <StudentButton
+                                  as="button"
+                                  type="button"
+                                  variant="primary"
                                   onClick={() => setShowWizard(true)}
                                 >
                                   <Upload size={13} />
                                   Upload
-                                </button>
+                                </StudentButton>
                               </>
                             )}
                           </div>
@@ -996,23 +1011,20 @@ const StudentProfile: React.FC = () => {
                       );
                     })}
                   </div>
-                </div>
-              </div>
+              </StudentCard>
 
               {/* Skills */}
-              <div className="sp-card">
-                <div className="sp-card-header">
-                  <div>
-                    <div className="sp-card-label">Skills profile</div>
-                    <h3 className="sp-card-title">Listed skills</h3>
-                  </div>
-                  <button className="sp-btn sp-btn-ghost sp-btn-sm" onClick={() => setShowWizard(true)}>
+              <StudentCard
+                label="Skills profile"
+                title="Listed skills"
+                actions={
+                  <StudentButton as="button" type="button" variant="ghost" onClick={() => setShowWizard(true)}>
                     <Edit3 size={13} />
                     Edit skills
                     <ArrowRight size={12} />
-                  </button>
-                </div>
-                <div className="sp-card-body">
+                  </StudentButton>
+                }
+              >
                   {profile?.skills && profile.skills.length > 0 ? (
                     <div className="sp-skills-wrap">
                       {profile.skills.map((skill, idx) => (
@@ -1027,8 +1039,7 @@ const StudentProfile: React.FC = () => {
                       No skills added yet. Add at least 3 skills to improve employer match rate.
                     </p>
                   )}
-                </div>
-              </div>
+              </StudentCard>
 
             </main>
 
@@ -1036,14 +1047,12 @@ const StudentProfile: React.FC = () => {
             <aside className="sp-sidebar">
 
               {/* Academic record */}
-              <div className="sp-card">
-                <div className="sp-card-header">
-                  <span style={{ fontSize: 13, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--ink-3)' }}>
-                    Academic record
-                  </span>
-                  <GraduationCap size={15} style={{ color: 'var(--ink-4)' }} />
-                </div>
-                <div className="sp-card-body" style={{ paddingTop: 8, paddingBottom: 8 }}>
+              <StudentCard
+                label="Academic"
+                title="Academic record"
+                actions={<GraduationCap size={15} style={{ color: 'var(--sw-muted)' }} />}
+              >
+                <div style={{ paddingTop: 2, paddingBottom: 2 }}>
                   <div className="sp-record-list">
                     {[
                       { label: 'Course of study',    value: profile?.course_of_study,      icon: BookOpen },
@@ -1067,7 +1076,7 @@ const StudentProfile: React.FC = () => {
                     })}
                   </div>
                 </div>
-              </div>
+              </StudentCard>
 
               {/* Tip */}
               <div className="sp-tip">
@@ -1081,7 +1090,8 @@ const StudentProfile: React.FC = () => {
 
             </aside>
           </div>
-        </div>
+        </StudentWorkspacePage>
+        </StudentWorkspaceShell>
       )}
 
       {/* ── WIZARDS & MODALS ── */}

@@ -63,8 +63,8 @@ const STYLES = `
     --pw-surface-3: #e8e5e0;
     --pw-border: #e4e1dc;
     --pw-border-2: #d1ccc5;
-    --pw-accent: #1a5cff;
-    --pw-accent-soft: rgba(26,92,255,0.08);
+    --pw-accent: #1ab8aa;
+    --pw-accent-soft: rgba(26, 184, 170, 0.08);
     --pw-success: #12b76a;
     --pw-success-soft: rgba(18,183,106,0.10);
     --pw-warning: #f59e0b;
@@ -120,7 +120,7 @@ const STYLES = `
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    box-shadow: 0 12px 26px rgba(26,92,255,0.22);
+    box-shadow: 0 12px 26px rgba(26, 184, 170, 0.22);
   }
 
   .pw-eyebrow {
@@ -231,7 +231,7 @@ const STYLES = `
 
   .pw-step.active {
     background: var(--pw-accent-soft);
-    border-color: rgba(26,92,255,0.20);
+    border-color: rgba(26, 184, 170, 0.20);
   }
 
   .pw-step-dot {
@@ -382,7 +382,7 @@ const STYLES = `
 
   .pw-info-card {
     background: var(--pw-accent-soft);
-    border: 1px solid rgba(26,92,255,0.16);
+    border: 1px solid rgba(26, 184, 170, 0.16);
     color: var(--pw-ink-2);
   }
 
@@ -459,7 +459,7 @@ const STYLES = `
   .pw-inst-card:hover,
   .pw-inst-card.active {
     background: var(--pw-accent-soft);
-    border-color: rgba(26,92,255,0.22);
+    border-color: rgba(26, 184, 170, 0.22);
   }
 
   .pw-inst-icon {
@@ -625,12 +625,12 @@ const STYLES = `
     min-width: 154px;
     background: var(--pw-accent);
     color: #fff;
-    box-shadow: 0 8px 22px rgba(26,92,255,0.24);
+    box-shadow: 0 8px 22px rgba(26, 184, 170, 0.24);
   }
 
   .pw-btn-primary:hover {
     color: #fff;
-    box-shadow: 0 12px 28px rgba(26,92,255,0.30);
+    box-shadow: 0 12px 28px rgba(26, 184, 170, 0.30);
   }
 
   .pw-btn-ghost {

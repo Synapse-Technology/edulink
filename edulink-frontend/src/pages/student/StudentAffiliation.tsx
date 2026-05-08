@@ -24,6 +24,15 @@ import type { Affiliation, Institution } from '../../services/student/studentSer
 import StudentAffiliationSkeleton from '../../components/student/skeletons/StudentAffiliationSkeleton';
 import AffiliationDocumentUploader from '../../components/student/AffiliationDocumentUploader';
 import { getUserFacingErrorMessage } from '../../utils/userFacingErrors';
+import { dateFormatter } from '../../utils/dateFormatter';
+import {
+  StudentButton,
+  StudentCard,
+  StudentPageHeader,
+  StudentStatus,
+  StudentWorkspacePage,
+  StudentWorkspaceShell,
+} from '../../components/student/workspace';
 
 /* ─────────────────────────────────────────────
    Design tokens — unified with StudentInternship
@@ -41,9 +50,9 @@ const STYLES = `
     --surface-3: #e8e5e0;
     --border: #e4e1dc;
     --border-2: #d1ccc5;
-    --accent: #1a5cff;
-    --accent-2: #e8eeff;
-    --accent-soft: rgba(26,92,255,0.08);
+    --accent: #1ab8aa;
+    --accent-2: #e6fffb;
+    --accent-soft: rgba(26, 184, 170, 0.08);
     --success: #12b76a;
     --success-soft: rgba(18,183,106,0.10);
     --warning: #f59e0b;
@@ -70,9 +79,9 @@ const STYLES = `
     --surface-3: #252525;
     --border: #2a2a2a;
     --border-2: #353535;
-    --accent: #4d7fff;
-    --accent-2: #1a2340;
-    --accent-soft: rgba(77,127,255,0.10);
+    --accent: #2dd4bf;
+    --accent-2: #0f3f3c;
+    --accent-soft: rgba(45, 212, 191, 0.10);
     --success-soft: rgba(18,183,106,0.12);
     --warning-soft: rgba(245,158,11,0.12);
     --danger-soft: rgba(239,68,68,0.12);
@@ -336,7 +345,7 @@ const STYLES = `
     align-items: center;
     gap: 10px;
     background: var(--accent-soft);
-    border: 1px solid rgba(26,92,255,0.12);
+    border: 1px solid rgba(26, 184, 170, 0.12);
     border-radius: var(--radius-sm);
     padding: 10px 14px;
     font-size: 13px;
@@ -410,7 +419,7 @@ const STYLES = `
   }
   .sa-banner.success { background: var(--success-soft); color: var(--ink-2); border: 1px solid rgba(18,183,106,0.18); }
   .sa-banner.warning { background: var(--warning-soft); color: var(--ink-2); border: 1px solid rgba(245,158,11,0.18); }
-  .sa-banner.info    { background: var(--accent-soft);  color: var(--ink-2); border: 1px solid rgba(26,92,255,0.15); }
+  .sa-banner.info    { background: var(--accent-soft);  color: var(--ink-2); border: 1px solid rgba(26, 184, 170, 0.15); }
   .sa-banner-icon { flex-shrink: 0; margin-top: 1px; }
   .sa-banner.success .sa-banner-icon { color: var(--success); }
   .sa-banner.warning .sa-banner-icon { color: var(--warning); }
@@ -494,9 +503,9 @@ const STYLES = `
   .sa-btn-primary {
     background: var(--accent);
     color: #fff;
-    box-shadow: 0 1px 3px rgba(26,92,255,0.25);
+    box-shadow: 0 1px 3px rgba(26, 184, 170, 0.25);
   }
-  .sa-btn-primary:hover { box-shadow: 0 4px 16px rgba(26,92,255,0.35); transform: translateY(-1px); }
+  .sa-btn-primary:hover { box-shadow: 0 4px 16px rgba(26, 184, 170, 0.35); transform: translateY(-1px); }
   .sa-btn-ghost {
     background: var(--surface-3);
     color: var(--ink-2);
@@ -505,7 +514,7 @@ const STYLES = `
   .sa-btn-outline {
     background: transparent;
     color: var(--accent);
-    border: 1px solid rgba(26,92,255,0.30);
+    border: 1px solid rgba(26, 184, 170, 0.30);
   }
   .sa-btn-outline:hover { background: var(--accent-soft); }
   .sa-btn-sm { padding: 7px 13px; font-size: 12px; }
@@ -765,41 +774,39 @@ const StudentAffiliation: React.FC = () => {
   return (
     <StudentLayout>
       <style>{STYLES}</style>
-      <div className={`sa-page${isDarkMode ? ' dark-mode' : ''}`}>
+      <StudentWorkspaceShell darkMode={isDarkMode}>
+      <StudentWorkspacePage>
 
         {loading ? (
           <StudentAffiliationSkeleton isDarkMode={isDarkMode} />
         ) : (
           <>
             {/* ── HERO ── */}
-            <header className="sa-hero">
-              <div>
-                <div className="sa-hero-eyebrow">
+            <StudentPageHeader
+              eyebrow={
+                <>
                   <Sparkles size={12} />
                   EduLink · Institution Trust
-                </div>
-                <h1 className="sa-hero-title">
-                  Institution <em>Affiliation</em>
-                </h1>
-                <p className="sa-hero-sub">
+                </>
+              }
+              title={<>Institution <em>Affiliation</em></>}
+              subtitle={
+                <>
                   Connect your student record to your institution so applications, verification,
                   and attachment workflows can move with confidence.
-                </p>
-                <div className="sa-hero-meta">
+                  <span className="sa-hero-meta" style={{ marginTop: 16 }}>
                   <span><Building2 size={13} /> Institution claim</span>
                   <span><FileCheck size={13} /> Verification document</span>
                   <span><ShieldCheck size={13} /> Application trust</span>
-                </div>
-              </div>
-
-              <div className="sa-hero-card">
-                <span className="sa-hero-card-label">Claims</span>
-                <span className="sa-hero-card-num">{affiliations.length}</span>
-                <span className="sa-hero-card-sub">
-                  Approved affiliation unlocks trusted student workflows.
-                </span>
-              </div>
-            </header>
+                  </span>
+                </>
+              }
+              actions={
+                <StudentStatus tone="info">
+                  {affiliations.length} claim{affiliations.length === 1 ? '' : 's'}
+                </StudentStatus>
+              }
+            />
 
             {/* ── BODY ── */}
             {current ? (
@@ -808,17 +815,12 @@ const StudentAffiliation: React.FC = () => {
                 <main className="sa-main">
 
                   {/* Institution card */}
-                  <div className="sa-card">
-                    <div className="sa-card-header">
-                      <div>
-                        <div className="sa-card-label">Active affiliation</div>
-                        <h3 className="sa-card-title">
-                          {current.institution_name || current.institution?.name}
-                        </h3>
-                      </div>
-                      {getStatusBadge(current)}
-                    </div>
-                    <div className="sa-card-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <StudentCard
+                    label="Active affiliation"
+                    title={current.institution_name || current.institution?.name}
+                    actions={getStatusBadge(current)}
+                  >
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
                       {isAutoVerified && (
                         <div className="sa-banner success">
@@ -854,7 +856,7 @@ const StudentAffiliation: React.FC = () => {
                             <strong>Document submitted.</strong> The institution admin will review
                             and approve it shortly. Submitted{' '}
                             {current.verification_document_uploaded_at
-                              ? new Date(current.verification_document_uploaded_at).toLocaleDateString()
+                              ? dateFormatter.shortDate(current.verification_document_uploaded_at)
                               : 'recently'}.
                           </div>
                         </div>
@@ -903,7 +905,7 @@ const StudentAffiliation: React.FC = () => {
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </StudentCard>
 
                   {/* Document uploader */}
                   {isPending && !hasDocument && studentId && (
@@ -920,14 +922,7 @@ const StudentAffiliation: React.FC = () => {
 
                 {/* ── Sidebar ── */}
                 <aside className="sa-sidebar">
-                  <div className="sa-card">
-                    <div className="sa-card-header">
-                      <div>
-                        <div className="sa-card-label">Progress</div>
-                        <h3 className="sa-card-title">Verification steps</h3>
-                      </div>
-                    </div>
-                    <div className="sa-card-body">
+                  <StudentCard label="Progress" title="Verification steps">
                       <div className="sa-steps">
                         <div className="sa-step">
                           <div className="sa-step-num done"><Check size={12} /></div>
@@ -959,8 +954,7 @@ const StudentAffiliation: React.FC = () => {
                           </div>
                         </div>
                       </div>
-                    </div>
-                  </div>
+                  </StudentCard>
 
                   <div className="sa-tip">
                     <div className="sa-tip-icon"><ShieldCheck size={16} /></div>
@@ -980,15 +974,12 @@ const StudentAffiliation: React.FC = () => {
 
                   {/* Rejected history */}
                   {rejected.length > 0 && (
-                    <div className="sa-card">
-                      <div className="sa-card-header">
-                        <div>
-                          <div className="sa-card-label">History</div>
-                          <h3 className="sa-card-title">Previous requests</h3>
-                        </div>
-                        <span className="sa-badge sa-badge-danger">{rejected.length} rejected</span>
-                      </div>
-                      <div className="sa-card-body" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <StudentCard
+                      label="History"
+                      title="Previous requests"
+                      actions={<StudentStatus tone="danger">{rejected.length} rejected</StudentStatus>}
+                    >
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {rejected.map(a => (
                           <div key={a.id} className="sa-rejected-item">
                             <strong>{a.institution_name || a.institution?.name}</strong>
@@ -1000,19 +991,15 @@ const StudentAffiliation: React.FC = () => {
                           </div>
                         ))}
                       </div>
-                    </div>
+                    </StudentCard>
                   )}
 
                   {/* Search card */}
-                  <div className="sa-card">
-                    <div className="sa-card-header">
-                      <div>
-                        <div className="sa-card-label">Institution</div>
-                        <h3 className="sa-card-title">Claim your affiliation</h3>
-                      </div>
-                      <Building2 size={20} style={{ color: 'var(--ink-4)' }} />
-                    </div>
-                    <div className="sa-card-body">
+                  <StudentCard
+                    label="Institution"
+                    title="Claim your affiliation"
+                    actions={<Building2 size={20} style={{ color: 'var(--sw-muted)' }} />}
+                  >
 
                       {error && (
                         <div className="sa-banner warning" style={{ marginBottom: 16 }}>
@@ -1072,12 +1059,14 @@ const StudentAffiliation: React.FC = () => {
                           <p className="sa-not-found-sub">
                             We couldn't find "{query}". Want to request your institution be added to EduLink?
                           </p>
-                          <button
-                            className="sa-btn sa-btn-outline"
+                          <StudentButton
+                            as="button"
+                            type="button"
+                            variant="ghost"
                             onClick={() => { setModalName(query); setShowModal(true); }}
                           >
                             <Plus size={14} /> Request institution onboarding
-                          </button>
+                          </StudentButton>
                         </div>
                       )}
 
@@ -1091,17 +1080,21 @@ const StudentAffiliation: React.FC = () => {
                               <div className="sa-selected-label">Selected institution</div>
                             </div>
                           </div>
-                          <button
-                            className="sa-btn sa-btn-ghost sa-btn-sm"
+                          <StudentButton
+                            as="button"
+                            type="button"
+                            variant="ghost"
                             onClick={() => { setSelectedInstitution(null); setQuery(''); }}
                           >
                             <X size={13} /> Change
-                          </button>
+                          </StudentButton>
                         </div>
                       )}
 
-                      <button
-                        className="sa-btn sa-btn-primary sa-btn-full"
+                      <StudentButton
+                        as="button"
+                        type="button"
+                        variant="primary"
                         style={{ marginTop: 16 }}
                         disabled={!selectedInstitution || claiming}
                         onClick={handleClaim}
@@ -1109,21 +1102,13 @@ const StudentAffiliation: React.FC = () => {
                         {claiming
                           ? <><Loader size={14} className="sa-spinning" /> Submitting…</>
                           : <>Claim affiliation <ArrowRight size={14} /></>}
-                      </button>
-                    </div>
-                  </div>
+                      </StudentButton>
+                  </StudentCard>
                 </main>
 
                 {/* ── Sidebar ── */}
                 <aside className="sa-sidebar">
-                  <div className="sa-card">
-                    <div className="sa-card-header">
-                      <div>
-                        <div className="sa-card-label">How it works</div>
-                        <h3 className="sa-card-title">Three steps to trust</h3>
-                      </div>
-                    </div>
-                    <div className="sa-card-body">
+                  <StudentCard label="How it works" title="Three steps to trust">
                       <div className="sa-steps">
                         {[
                           { n: '1', title: 'Search', sub: 'Find your university in EduLink.' },
@@ -1139,8 +1124,7 @@ const StudentAffiliation: React.FC = () => {
                           </div>
                         ))}
                       </div>
-                    </div>
-                  </div>
+                  </StudentCard>
 
                   <div className="sa-tip">
                     <div className="sa-tip-icon"><ShieldCheck size={16} /></div>
@@ -1155,7 +1139,8 @@ const StudentAffiliation: React.FC = () => {
             )}
           </>
         )}
-      </div>
+      </StudentWorkspacePage>
+      </StudentWorkspaceShell>
 
       {/* ── Onboarding modal ── */}
       {showModal && (

@@ -30,6 +30,18 @@ import { dateFormatter } from '../../utils/dateFormatter';
 import type { Internship } from '../../types/internship';
 import StudentInternshipSkeleton from '../../components/student/skeletons/StudentInternshipSkeleton';
 import ReportIncidentModal from '../../components/student/ReportIncidentModal';
+import {
+  StudentButton,
+  StudentCard,
+  StudentColumn,
+  StudentEmptyState,
+  StudentGrid,
+  StudentMetric,
+  StudentPageHeader,
+  StudentStatus,
+  StudentWorkspacePage,
+  StudentWorkspaceShell,
+} from '../../components/student/workspace';
 
 /* ─────────────────────────────────────────────
    Design tokens — unified with ExternalPlacement
@@ -47,9 +59,9 @@ const STYLES = `
     --surface-3: #e8e5e0;
     --border: #e4e1dc;
     --border-2: #d1ccc5;
-    --accent: #1a5cff;
-    --accent-2: #e8eeff;
-    --accent-soft: rgba(26,92,255,0.08);
+    --accent: #1ab8aa;
+    --accent-2: #e6fffb;
+    --accent-soft: rgba(26, 184, 170, 0.08);
     --success: #12b76a;
     --success-soft: rgba(18,183,106,0.10);
     --warning: #f59e0b;
@@ -76,9 +88,9 @@ const STYLES = `
     --surface-3: #252525;
     --border: #2a2a2a;
     --border-2: #353535;
-    --accent: #4d7fff;
-    --accent-2: #1a2340;
-    --accent-soft: rgba(77,127,255,0.10);
+    --accent: #2dd4bf;
+    --accent-2: #0f3f3c;
+    --accent-soft: rgba(45, 212, 191, 0.10);
     --success-soft: rgba(18,183,106,0.12);
     --warning-soft: rgba(245,158,11,0.12);
     --danger-soft: rgba(239,68,68,0.12);
@@ -313,6 +325,17 @@ const STYLES = `
 
   /* ── Artifact rows ── */
   .si-artifact-list { display: flex; flex-direction: column; gap: 0; }
+  .si-artifact-list.scrollable {
+    max-height: 420px;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+  .si-artifact-list.scrollable::-webkit-scrollbar { width: 6px; }
+  .si-artifact-list.scrollable::-webkit-scrollbar-track { background: transparent; }
+  .si-artifact-list.scrollable::-webkit-scrollbar-thumb {
+    background: var(--border-2);
+    border-radius: 999px;
+  }
   .si-artifact-row {
     display: flex;
     align-items: center;
@@ -410,9 +433,9 @@ const STYLES = `
   .si-btn-primary {
     background: var(--accent);
     color: #fff;
-    box-shadow: 0 1px 3px rgba(26,92,255,0.25);
+    box-shadow: 0 1px 3px rgba(26, 184, 170, 0.25);
   }
-  .si-btn-primary:hover { box-shadow: 0 4px 16px rgba(26,92,255,0.35); transform: translateY(-1px); color: #fff; }
+  .si-btn-primary:hover { box-shadow: 0 4px 16px rgba(26, 184, 170, 0.35); transform: translateY(-1px); color: #fff; }
 
   .si-btn-ghost {
     background: var(--surface-3);
@@ -717,118 +740,102 @@ const StudentInternship: React.FC = () => {
   return (
     <StudentLayout>
       <style>{STYLES}</style>
-      <div className={`si-page${isDarkMode ? ' dark-mode' : ''}`}>
+      <StudentWorkspaceShell darkMode={isDarkMode}>
+      <StudentWorkspacePage>
 
         {loading ? (
           <StudentInternshipSkeleton isDarkMode={isDarkMode} />
         ) : !internship ? (
 
           /* ── No internship ── */
-          <div className="si-no-internship">
-            <div className="si-no-internship-inner">
-              <div className="si-no-internship-icon"><Briefcase size={32} /></div>
-              <h2 className="si-no-internship-title">No <em>active</em> placement</h2>
-              <p className="si-no-internship-sub">
+          <StudentEmptyState icon={<Briefcase size={24} />} title={<>No <em>active</em> placement</>}>
+              <>
                 Once a placement becomes active, your supervision panel, logbooks, generated artifacts,
                 and support actions will all appear here.
-              </p>
-              <Link to="/opportunities" className="si-btn si-btn-primary" style={{ marginTop: 8 }}>
+                <br />
+              <StudentButton as={Link} to="/opportunities" variant="primary" style={{ marginTop: 14 }}>
                 <ArrowRight size={14} /> Browse Opportunities
-              </Link>
-            </div>
-          </div>
+              </StudentButton>
+              </>
+          </StudentEmptyState>
 
         ) : (
           <>
             {/* ── HERO ── */}
-            <header className="si-hero">
-              <div>
-                <div className="si-hero-eyebrow">
+            <StudentPageHeader
+              eyebrow={
+                <>
                   <Sparkles size={12} />
                   EduLink · Placement Workspace
-                </div>
-                <h1 className="si-hero-title">
+                </>
+              }
+              title={
+                <>
                   {internship.title?.split(' ').slice(0, -1).join(' ') || 'Active'}{' '}
                   <em>{internship.title?.split(' ').slice(-1)[0] || 'Placement'}</em>
-                </h1>
-                <p className="si-hero-sub">
+                </>
+              }
+              subtitle={
+                <>
                   {internship.description ||
                     'Track your active attachment, submit professional evidence, and keep every supervisor-facing record in one trusted workflow.'}
-                </p>
-                <div className="si-hero-meta">
+                  <span className="si-hero-meta" style={{ marginTop: 16 }}>
                   <span className="si-hero-meta-item"><Building size={13} /> {internship.employer_details?.name || 'Employer pending'}</span>
                   <span className="si-hero-meta-item"><MapPin size={13} /> {internship.location || 'Remote'}</span>
                   <span className="si-hero-meta-item"><Calendar size={13} /> Started {dateFormatter.shortDate(internship.start_date || internship.created_at)}</span>
-                </div>
-              </div>
-
-              {/* Status card */}
-              <div className="si-status-card">
-                <div className={`si-status-dot${isClosed ? ' closed' : ''}`} />
-                <span className="si-status-eyebrow">Placement status</span>
-                <span className="si-status-label">{isComplete ? 'Complete' : 'Active'}</span>
-                <span className="si-status-sub">
-                  {internship.logbook_count > 0
-                    ? `${internship.logbook_count} logbook${internship.logbook_count !== 1 ? 's' : ''} submitted`
-                    : 'No logbooks submitted yet'}
-                </span>
-                <div className="si-status-actions">
-                  <Link to="/dashboard/student/logbook" className="si-btn si-btn-primary si-btn-sm" style={{ width: '100%' }}>
+                  </span>
+                </>
+              }
+              actions={
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                  <StudentStatus tone={isClosed ? 'default' : 'success'}>
+                    <span className={`si-status-dot${isClosed ? ' closed' : ''}`} />
+                    {isComplete ? 'Complete' : 'Active'}
+                  </StudentStatus>
+                  <StudentButton as={Link} to="/dashboard/student/logbook" variant="primary">
                     <FileText size={13} /> Open Logbook
-                  </Link>
-                  <button
-                    className="si-btn si-btn-danger si-btn-sm"
-                    style={{ width: '100%' }}
+                  </StudentButton>
+                  <StudentButton
+                    as="button"
+                    type="button"
+                    variant="danger"
                     onClick={() => setShowIncidentModal(true)}
                     disabled={isClosed}
                   >
                     <AlertTriangle size={13} /> Report Incident
-                  </button>
+                  </StudentButton>
                 </div>
-              </div>
-            </header>
+              }
+            />
 
             {/* ── STAT STRIP ── */}
-            <div className="si-stats-strip">
-              <div className="si-stat">
-                <div className="si-stat-icon blue"><TrendingUp size={18} /></div>
-                <div>
-                  <div className="si-stat-num">{internship.logbook_count ?? 0}</div>
-                  <div className="si-stat-label">Logbook submissions</div>
-                </div>
-              </div>
-              <div className="si-stat">
-                <div className="si-stat-icon green"><Award size={18} /></div>
-                <div>
-                  <div className="si-stat-num">{artifacts.length}</div>
-                  <div className="si-stat-label">Generated artifacts</div>
-                </div>
-              </div>
-              <div className="si-stat">
-                <div className="si-stat-icon amber"><Clock size={18} /></div>
-                <div>
-                  <div className="si-stat-num">{internship.status}</div>
-                  <div className="si-stat-label">Current placement state</div>
-                </div>
-              </div>
-            </div>
+            <StudentGrid>
+              <StudentColumn span={4}>
+                <StudentMetric label="Logbook submissions" value={internship.logbook_count ?? 0} note="Recorded weekly evidence" icon={<TrendingUp size={18} />} />
+              </StudentColumn>
+              <StudentColumn span={4}>
+                <StudentMetric label="Generated artifacts" value={artifacts.length} note="Vault documents" icon={<Award size={18} />} />
+              </StudentColumn>
+              <StudentColumn span={4}>
+                <StudentMetric label="Placement state" value={internship.status} note={internship.logbook_count > 0 ? `${internship.logbook_count} logbooks submitted` : 'No logbooks submitted yet'} icon={<Clock size={18} />} />
+              </StudentColumn>
+            </StudentGrid>
+            <div style={{ height: 20 }} />
 
             {/* ── MAIN LAYOUT ── */}
             <div className="si-layout">
               <main className="si-main">
 
                 {/* Supervision card */}
-                <div className="si-card">
-                  <div className="si-card-header">
-                    <div>
-                      <div className="si-card-label">People</div>
-                      <h3 className="si-card-title">Supervision &amp; Trust</h3>
-                    </div>
-                    <span className="si-badge si-badge-success">
+                <StudentCard
+                  label="People"
+                  title="Supervision & Trust"
+                  actions={
+                    <StudentStatus tone="success">
                       <Check size={10} /> {internship.status}
-                    </span>
-                  </div>
-                  <div className="si-card-body">
+                    </StudentStatus>
+                  }
+                >
                     <div className="si-sup-list">
                       {renderSupRow(
                         'Employer supervisor',
@@ -859,22 +866,19 @@ const StudentInternship: React.FC = () => {
                         </div>
                       </div>
                     </div>
-                  </div>
-                </div>
+                </StudentCard>
 
                 {/* Artifact actions card */}
-                <div className="si-card">
-                  <div className="si-card-header">
-                    <div>
-                      <div className="si-card-label">Documents</div>
-                      <h3 className="si-card-title">Placement Evidence Actions</h3>
-                    </div>
-                    <Link to="/dashboard/student/artifacts" className="si-btn si-btn-ghost si-btn-sm">
+                <StudentCard
+                  label="Documents"
+                  title="Placement Evidence Actions"
+                  actions={
+                    <StudentButton as={Link} to="/dashboard/student/artifacts" variant="ghost">
                       Open vault <ExternalLink size={11} />
-                    </Link>
-                  </div>
-                  <div className="si-card-body">
-                    <div className="si-artifact-list">
+                    </StudentButton>
+                  }
+                >
+                    <div className={`si-artifact-list${artifactDefs.length > 5 ? ' scrollable' : ''}`}>
                       {artifactDefs.map(def => {
                         const has = artifacts.some(a => a.artifact_type === def.type);
                         const busy = generatingArtifacts[def.type];
@@ -900,8 +904,7 @@ const StudentInternship: React.FC = () => {
                         );
                       })}
                     </div>
-                  </div>
-                </div>
+                </StudentCard>
 
               </main>
 
@@ -949,7 +952,8 @@ const StudentInternship: React.FC = () => {
             applicationId={internship.id}
           />
         )}
-      </div>
+      </StudentWorkspacePage>
+      </StudentWorkspaceShell>
     </StudentLayout>
   );
 };

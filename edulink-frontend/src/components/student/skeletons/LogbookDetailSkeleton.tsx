@@ -144,8 +144,8 @@ const STYLES = `
     --lds-surface-3: #e8e5e0;
     --lds-border: #e4e1dc;
     --lds-border-2: #d1ccc5;
-    --lds-accent: #1a5cff;
-    --lds-accent-soft: rgba(26, 92, 255, 0.08);
+    --lds-accent: #1ab8aa;
+    --lds-accent-soft: rgba(26, 184, 170, 0.08);
     --lds-success: #12b76a;
     --lds-warning: #f59e0b;
     --lds-radius: 26px;
@@ -165,8 +165,8 @@ const STYLES = `
     --lds-surface-3: #252525;
     --lds-border: #2a2a2a;
     --lds-border-2: #353535;
-    --lds-accent: #4d7fff;
-    --lds-accent-soft: rgba(77, 127, 255, 0.1);
+    --lds-accent: #2dd4bf;
+    --lds-accent-soft: rgba(45, 212, 191, 0.1);
     --lds-shimmer-base: #242424;
     --lds-shimmer-mid: #343434;
     --lds-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);

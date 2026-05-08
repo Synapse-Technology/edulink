@@ -22,6 +22,19 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { internshipService, type ExternalPlacementDeclaration } from '../../services/internship/internshipService';
 import { showToast } from '../../utils/toast';
 import { getUserFacingErrorMessage } from '../../utils/userFacingErrors';
+import {
+  StudentButton,
+  StudentCard,
+  StudentColumn,
+  StudentGrid,
+  StudentMetric,
+  StudentPagination,
+  StudentPageHeader,
+  StudentStatus,
+  StudentWorkspacePage,
+  StudentWorkspaceShell,
+  useStudentPagination,
+} from '../../components/student/workspace';
 
 /* ─────────────────────────────────────────────
    Design tokens — identical to StudentProfile
@@ -39,9 +52,9 @@ const STYLES = `
     --surface-3: #e8e5e0;
     --border: #e4e1dc;
     --border-2: #d1ccc5;
-    --accent: #1a5cff;
-    --accent-2: #e8eeff;
-    --accent-soft: rgba(26,92,255,0.08);
+    --accent: #1ab8aa;
+    --accent-2: #e6fffb;
+    --accent-soft: rgba(26, 184, 170, 0.08);
     --success: #12b76a;
     --success-soft: rgba(18,183,106,0.10);
     --warning: #f59e0b;
@@ -68,9 +81,9 @@ const STYLES = `
     --surface-3: #252525;
     --border: #2a2a2a;
     --border-2: #353535;
-    --accent: #4d7fff;
-    --accent-2: #1a2340;
-    --accent-soft: rgba(77,127,255,0.10);
+    --accent: #2dd4bf;
+    --accent-2: #0f3f3c;
+    --accent-soft: rgba(45, 212, 191, 0.10);
     --success-soft: rgba(18,183,106,0.12);
     --warning-soft: rgba(245,158,11,0.12);
     --danger-soft: rgba(239,68,68,0.12);
@@ -370,6 +383,17 @@ const STYLES = `
 
   /* ── History list (sidebar) ── */
   .ep-history-list { display: flex; flex-direction: column; gap: 0; }
+  .ep-history-list.scrollable {
+    max-height: 520px;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+  .ep-history-list.scrollable::-webkit-scrollbar { width: 6px; }
+  .ep-history-list.scrollable::-webkit-scrollbar-track { background: transparent; }
+  .ep-history-list.scrollable::-webkit-scrollbar-thumb {
+    background: var(--border-2);
+    border-radius: 999px;
+  }
   .ep-history-item {
     padding: 16px 0;
     border-bottom: 1px solid var(--border);
@@ -462,9 +486,9 @@ const STYLES = `
   .ep-btn-primary {
     background: var(--accent);
     color: #fff;
-    box-shadow: 0 1px 3px rgba(26,92,255,0.25), 0 4px 12px rgba(26,92,255,0.15);
+    box-shadow: 0 1px 3px rgba(26, 184, 170, 0.25), 0 4px 12px rgba(26, 184, 170, 0.15);
   }
-  .ep-btn-primary:hover { box-shadow: 0 4px 16px rgba(26,92,255,0.35); transform: translateY(-1px); color: #fff; }
+  .ep-btn-primary:hover { box-shadow: 0 4px 16px rgba(26, 184, 170, 0.35); transform: translateY(-1px); color: #fff; }
 
   /* ── Badge ── */
   .ep-badge {
@@ -571,11 +595,13 @@ const ExternalPlacement: React.FC = () => {
   };
 
   const statusBadge = (status: ExternalPlacementDeclaration['status']) => {
-    if (status === 'APPROVED') return <span className="ep-badge ep-badge-success"><CheckCircle size={10} /> Approved</span>;
-    if (status === 'REJECTED') return <span className="ep-badge ep-badge-danger"><AlertCircle size={10} /> Rejected</span>;
-    if (status === 'CHANGES_REQUESTED') return <span className="ep-badge ep-badge-warning"><RefreshCw size={10} /> Changes requested</span>;
-    return <span className="ep-badge ep-badge-neutral"><Clock size={10} /> Pending</span>;
+    if (status === 'APPROVED') return <StudentStatus tone="success"><CheckCircle size={10} /> Approved</StudentStatus>;
+    if (status === 'REJECTED') return <StudentStatus tone="danger"><AlertCircle size={10} /> Rejected</StudentStatus>;
+    if (status === 'CHANGES_REQUESTED') return <StudentStatus tone="warning"><RefreshCw size={10} /> Changes requested</StudentStatus>;
+    return <StudentStatus><Clock size={10} /> Pending</StudentStatus>;
   };
+
+  const declarationPagination = useStudentPagination({ items: declarations });
 
   /* ════════════════════════════════════
      RENDER
@@ -583,45 +609,43 @@ const ExternalPlacement: React.FC = () => {
   return (
     <StudentLayout>
       <style>{STYLES}</style>
-      <div className={`ep-page${isDarkMode ? ' dark-mode' : ''}`}>
+      <StudentWorkspaceShell darkMode={isDarkMode}>
+      <StudentWorkspacePage>
 
         {/* ── HERO ── */}
-        <header className="ep-hero">
-          <div>
-            <div className="ep-hero-eyebrow">
+        <StudentPageHeader
+          eyebrow={
+            <>
               <Sparkles size={12} />
               EduLink · Placement Declaration
-            </div>
-            <h1 className="ep-hero-title">
-              External <em>Placement</em>
-            </h1>
-            <p className="ep-hero-sub">
+            </>
+          }
+          title={<>External <em>Placement</em></>}
+          subtitle={
+            <>
               Declare an internship or attachment secured outside EduLink so your institution
               can verify it, assign oversight, and unlock your logbooks.
-            </p>
-            <div className="ep-hero-meta">
+              <span className="ep-hero-meta" style={{ marginTop: 16 }}>
               <span className="ep-hero-meta-item"><Briefcase size={13} /> Placement facts</span>
               <span className="ep-hero-meta-item"><Upload size={13} /> Proof upload</span>
               <span className="ep-hero-meta-item"><CheckCircle size={13} /> Institution review</span>
-            </div>
-          </div>
-
-          {/* Stat card */}
-          <div className="ep-stat-card">
-            <span className="ep-stat-eyebrow">Declarations</span>
-            <span className="ep-stat-number">{declarations.length}</span>
-            <span className="ep-stat-sub">submitted external placements</span>
-          </div>
-        </header>
+              </span>
+            </>
+          }
+          actions={
+            <StudentStatus tone="info">
+              {declarations.length} submitted declaration{declarations.length === 1 ? '' : 's'}
+            </StudentStatus>
+          }
+        />
 
         {/* ── HOW IT WORKS STEPS ── */}
-        <section className="ep-steps-section">
-          <div className="ep-section-eyebrow">How it works</div>
-          <h2 className="ep-section-title">Three steps to verification</h2>
-          <p className="ep-section-sub">
-            Complete each section below — your institution will review and unlock your logbook on approval.
-          </p>
-          <div className="ep-steps-grid">
+        <StudentCard
+          label="How it works"
+          title="Three steps to verification"
+          subtitle="Complete each section below. Your institution will review and unlock your logbook on approval."
+        >
+          <StudentGrid>
             {[
               {
                 n: '1', cls: 's1', icon: Building2,
@@ -641,34 +665,29 @@ const ExternalPlacement: React.FC = () => {
             ].map((step) => {
               const Icon = step.icon;
               return (
-                <div key={step.n} className="ep-step">
-                  <div className={`ep-step-num ${step.cls}`}>
-                    <Icon size={14} />
-                  </div>
-                  <div className="ep-step-title">{step.title}</div>
-                  <div className="ep-step-desc">{step.desc}</div>
-                </div>
+                <StudentColumn span={4} key={step.n}>
+                  <StudentMetric label={step.title} value={step.n} note={step.desc} icon={<Icon size={16} />} />
+                </StudentColumn>
               );
             })}
-          </div>
-        </section>
+          </StudentGrid>
+        </StudentCard>
+        <div style={{ height: 20 }} />
 
         {/* ── MAIN FLOW ── */}
         <div className="ep-flow">
           <main className="ep-main">
 
             {/* ─ Form card ─ */}
-            <div className="ep-card">
-              <div className="ep-card-header">
-                <div>
-                  <div className="ep-card-label">Placement declaration</div>
-                  <h3 className="ep-card-title">Placement details</h3>
-                </div>
-                <span className="ep-badge ep-badge-accent">
+            <StudentCard
+              label="Placement declaration"
+              title="Placement details"
+              actions={
+                <StudentStatus tone="info">
                   <Briefcase size={10} /> New declaration
-                </span>
-              </div>
-              <div className="ep-card-body">
+                </StudentStatus>
+              }
+            >
                 <form onSubmit={handleSubmit} className="ep-form">
 
                   {/* ── Section: Placement facts ── */}
@@ -780,15 +799,14 @@ const ExternalPlacement: React.FC = () => {
                     <p className="ep-submit-hint">
                       Your institution will be notified. Approval unlocks your placement logbook.
                     </p>
-                    <button className="ep-btn ep-btn-primary" type="submit" disabled={submitting}>
+                    <StudentButton as="button" variant="primary" type="submit" disabled={submitting}>
                       {submitting
                         ? <><Clock size={13} /> Submitting…</>
                         : <><ArrowRight size={13} /> Submit for review</>}
-                    </button>
+                    </StudentButton>
                   </div>
                 </form>
-              </div>
-            </div>
+            </StudentCard>
 
           </main>
 
@@ -796,15 +814,12 @@ const ExternalPlacement: React.FC = () => {
           <aside className="ep-sidebar">
 
             {/* Review history */}
-            <div className="ep-card">
-              <div className="ep-card-header">
-                <div>
-                  <div className="ep-card-label">Review history</div>
-                  <h3 className="ep-card-title">Past declarations</h3>
-                </div>
-                <span className="ep-badge ep-badge-neutral">{declarations.length} total</span>
-              </div>
-              <div className="ep-card-body" style={{ paddingTop: 8, paddingBottom: 8 }}>
+            <StudentCard
+              label="Review history"
+              title="Past declarations"
+              actions={<StudentStatus>{declarations.length} total</StudentStatus>}
+            >
+              <div style={{ paddingTop: 2, paddingBottom: 2 }}>
                 {loading ? (
                   <div className="ep-empty">
                     <div className="ep-empty-icon"><RefreshCw size={20} /></div>
@@ -817,8 +832,9 @@ const ExternalPlacement: React.FC = () => {
                     <p className="ep-empty-sub">Your submitted declarations and institution review outcomes will appear here.</p>
                   </div>
                 ) : (
-                  <div className="ep-history-list">
-                    {declarations.map((dec) => (
+                  <>
+                  <div className={`ep-history-list${declarationPagination.totalItems > declarationPagination.pageSize ? ' scrollable' : ''}`}>
+                    {declarationPagination.pageItems.map((dec) => (
                       <div key={dec.id} className="ep-history-item">
                         <div className="ep-history-top">
                           <div>
@@ -848,9 +864,20 @@ const ExternalPlacement: React.FC = () => {
                       </div>
                     ))}
                   </div>
+                  <StudentPagination
+                    totalItems={declarationPagination.totalItems}
+                    startItem={declarationPagination.startItem}
+                    endItem={declarationPagination.endItem}
+                    page={declarationPagination.page}
+                    totalPages={declarationPagination.totalPages}
+                    pageSize={declarationPagination.pageSize}
+                    onPageChange={declarationPagination.setPage}
+                    onPageSizeChange={declarationPagination.setPageSize}
+                  />
+                  </>
                 )}
               </div>
-            </div>
+            </StudentCard>
 
             {/* Tip */}
             <div className="ep-tip">
@@ -864,7 +891,8 @@ const ExternalPlacement: React.FC = () => {
 
           </aside>
         </div>
-      </div>
+      </StudentWorkspacePage>
+      </StudentWorkspaceShell>
     </StudentLayout>
   );
 };

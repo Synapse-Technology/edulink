@@ -35,6 +35,14 @@ import { normalizeTrustLevel, type StudentTrustState } from '../../services/trus
 import { internshipService } from '../../services/internship/internshipService';
 import type { Internship } from '../../services/internship/internshipService';
 import StudentDashboardSkeleton from '../../components/student/skeletons/StudentDashboardSkeleton';
+import { dateFormatter } from '../../utils/dateFormatter';
+import {
+  StudentColumn,
+  StudentGrid,
+  StudentMetric,
+  StudentWorkspacePage,
+  StudentWorkspaceShell,
+} from '../../components/student/workspace';
 
 /* ─────────────────────────────────────────────
    Design tokens — shared system
@@ -52,9 +60,9 @@ const STYLES = `
     --surface-3: #e8e5e0;
     --border: #e4e1dc;
     --border-2: #d1ccc5;
-    --accent: #1a5cff;
-    --accent-2: #e8eeff;
-    --accent-soft: rgba(26,92,255,0.08);
+    --accent: #1ab8aa;
+    --accent-2: #e6fffb;
+    --accent-soft: rgba(26, 184, 170, 0.08);
     --success: #12b76a;
     --success-soft: rgba(18,183,106,0.10);
     --warning: #f59e0b;
@@ -82,9 +90,9 @@ const STYLES = `
     --surface-3: #252525;
     --border: #2a2a2a;
     --border-2: #353535;
-    --accent: #4d7fff;
-    --accent-2: #1a2340;
-    --accent-soft: rgba(77,127,255,0.10);
+    --accent: #2dd4bf;
+    --accent-2: #0f3f3c;
+    --accent-soft: rgba(45, 212, 191, 0.10);
     --success-soft: rgba(18,183,106,0.12);
     --warning-soft: rgba(245,158,11,0.12);
     --danger-soft: rgba(239,68,68,0.12);
@@ -506,6 +514,17 @@ const STYLES = `
     width: 100%;
     border-collapse: collapse;
   }
+  .sd-table-scroll {
+    max-height: 320px;
+    overflow: auto;
+    border-radius: var(--radius);
+  }
+  .sd-table-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+  .sd-table-scroll::-webkit-scrollbar-track { background: transparent; }
+  .sd-table-scroll::-webkit-scrollbar-thumb {
+    background: var(--border-2);
+    border-radius: 999px;
+  }
   .sd-table thead tr {
     border-bottom: 1px solid var(--border);
   }
@@ -679,9 +698,9 @@ const STYLES = `
   .sd-btn-primary {
     background: var(--accent);
     color: #fff;
-    box-shadow: 0 1px 3px rgba(26,92,255,0.25), 0 4px 12px rgba(26,92,255,0.15);
+    box-shadow: 0 1px 3px rgba(26, 184, 170, 0.25), 0 4px 12px rgba(26, 184, 170, 0.15);
   }
-  .sd-btn-primary:hover { box-shadow: 0 4px 16px rgba(26,92,255,0.35); transform: translateY(-1px); color: #fff; }
+  .sd-btn-primary:hover { box-shadow: 0 4px 16px rgba(26, 184, 170, 0.35); transform: translateY(-1px); color: #fff; }
   .sd-btn-ghost {
     background: var(--surface-3);
     color: var(--ink-2);
@@ -868,11 +887,18 @@ const StudentDashboard: React.FC = () => {
   const recentApplications = applications.slice(0, 4);
   const trustRequirements = trustState?.requirement_status;
 
-  const activeStart = activeInternship?.start_date ? new Date(activeInternship.start_date) : null;
+  const activeStartSource =
+    activeInternship?.start_date
+    || (activeInternship as any)?.accepted_at
+    || (activeInternship as any)?.activated_at
+    || activeInternship?.created_at;
+  const activeStart = activeStartSource ? new Date(activeStartSource) : null;
   const activeEnd   = activeInternship?.end_date   ? new Date(activeInternship.end_date)   : null;
   const activeTotalDays = activeStart && activeEnd
     ? Math.max(1, Math.ceil((activeEnd.getTime() - activeStart.getTime()) / 86400000)) : 1;
-  const activeElapsedDays = activeStart ? Math.max(0, Math.ceil((Date.now() - activeStart.getTime()) / 86400000)) : 0;
+  const activeElapsedDays = activeStart
+    ? Math.min(activeTotalDays, Math.max(0, Math.ceil((Date.now() - activeStart.getTime()) / 86400000)))
+    : 0;
   const activeProgress = activeInternship ? Math.min(100, Math.max(0, Math.round((activeElapsedDays / activeTotalDays) * 100))) : 0;
   const activeDaysLeft = activeEnd ? Math.max(0, Math.ceil((activeEnd.getTime() - Date.now()) / 86400000)) : null;
 
@@ -959,7 +985,8 @@ const StudentDashboard: React.FC = () => {
       {loading ? (
         <StudentDashboardSkeleton />
       ) : (
-        <div className={`sd-page${isDarkMode ? ' dark-mode' : ''}`}>
+        <StudentWorkspaceShell darkMode={isDarkMode}>
+        <StudentWorkspacePage>
 
           {/* ── HERO ── */}
           <header className="sd-hero">
@@ -1007,19 +1034,19 @@ const StudentDashboard: React.FC = () => {
           </header>
 
           {/* ── METRICS ── */}
-          <div className="sd-metrics">
+          <StudentGrid>
             {dashboardMetrics.map((m) => {
               const Icon = m.icon;
               return (
-                <Link to={m.href} className="sd-metric" key={m.label}>
-                  <div className="sd-metric-icon"><Icon size={16} /></div>
-                  <span className="sd-metric-label">{m.label}</span>
-                  <span className="sd-metric-value">{m.value}</span>
-                  <span className="sd-metric-detail">{m.detail}</span>
-                </Link>
+                <StudentColumn span={3} key={m.label}>
+                  <Link to={m.href} style={{ textDecoration: 'none', color: 'inherit', width: '100%' }}>
+                    <StudentMetric label={m.label} value={m.value} note={m.detail} icon={<Icon size={16} />} />
+                  </Link>
+                </StudentColumn>
               );
             })}
-          </div>
+          </StudentGrid>
+          <div style={{ height: 40 }} />
 
           {/* ── ONBOARDING CHECKS ── */}
           <section className="sd-checks-section">
@@ -1070,7 +1097,7 @@ const StudentDashboard: React.FC = () => {
                       <div className="sd-placement-meta">
                         <span><Building2 size={13} />{activeInternship.employer_name || activeInternship.employer_details?.name || 'Employer pending'}</span>
                         <span><MapPin size={13} />{activeInternship.location || 'Location pending'}</span>
-                        <span><Calendar size={13} />Ends {activeEnd ? activeEnd.toLocaleDateString() : 'TBA'}</span>
+                        <span><Calendar size={13} />Ends {activeEnd ? dateFormatter.shortDate(activeEnd) : 'TBA'}</span>
                       </div>
                       <div className="sd-progress-row">
                         <div className="sd-progress-label-row">
@@ -1145,6 +1172,7 @@ const StudentDashboard: React.FC = () => {
                 </div>
                 <div className="sd-card-body">
                   {recentApplications.length > 0 ? (
+                    <div className="sd-table-scroll">
                     <table className="sd-table">
                       <thead>
                         <tr>
@@ -1164,12 +1192,13 @@ const StudentDashboard: React.FC = () => {
                               <td>
                                 <span className={`sd-badge ${badge.cls}`}>{badge.label}</span>
                               </td>
-                              <td>{new Date(app.created_at).toLocaleDateString()}</td>
+                              <td>{dateFormatter.shortDate(app.created_at)}</td>
                             </tr>
                           );
                         })}
                       </tbody>
                     </table>
+                    </div>
                   ) : (
                     <div className="sd-empty" style={{ padding: '32px 0' }}>
                       <div className="sd-empty-icon"><FileText size={22} /></div>
@@ -1251,7 +1280,7 @@ const StudentDashboard: React.FC = () => {
                       {ledgerEvents.slice(0, 4).map((ev) => (
                         <div className="sd-ledger-item" key={ev.id}>
                           <span className="sd-ledger-title">{ev.event_type.split('_').join(' ').toLowerCase()}</span>
-                          <span className="sd-ledger-date">{new Date(ev.occurred_at).toLocaleDateString()}</span>
+                          <span className="sd-ledger-date">{dateFormatter.shortDate(ev.occurred_at)}</span>
                         </div>
                       ))}
                     </div>
@@ -1296,7 +1325,8 @@ const StudentDashboard: React.FC = () => {
 
             </aside>
           </div>
-        </div>
+        </StudentWorkspacePage>
+        </StudentWorkspaceShell>
       )}
 
       <ProfileWizard

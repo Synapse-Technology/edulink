@@ -22,11 +22,20 @@ from reportlab.lib.units import mm, inch, pica
 from reportlab.lib import colors
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, KeepTogether
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 
 from .models import Artifact, ArtifactStatus, ArtifactType
+from .pdf_components import (
+    DigitalSignature,
+    key_value_table,
+    report_styles,
+    review_panel,
+    section_label,
+    signature_table,
+)
+from .pdf_theme import PAGE_MARGIN, THEME
 from edulink.apps.ledger.services import record_event
 from edulink.apps.ledger.queries import find_event_by_artifact_id
 from edulink.apps.internships.queries import (
@@ -44,9 +53,73 @@ from edulink.apps.notifications.services import (
     send_performance_summary_generated_notification,
     send_logbook_report_generated_notification
 )
-
+from edulink.apps.accounts.queries import get_user_by_id
 
 def resolve_artifact_file_for_download(*, artifact):
+    """
+    Resolve artifact binary content from storage backend.
+    
+    For Supabase Storage: generates a signed URL and streams via HTTP.
+    For local filesystem: opens the file directly.
+
+    Returns:
+    - ("stream", file_like) when local storage open succeeds
+    - ("bytes", bytes) when URL fallback (Supabase signed URL) succeeds
+    """
+    if not artifact.file or not artifact.file.name:
+        raise NotFoundError(user_message="File not found")
+
+    storage = artifact.file.storage
+    file_name = artifact.file.name
+
+    # Check if we're using S3/Supabase storage
+    is_s3 = _is_s3_storage(storage)
+
+    if not is_s3:
+        # Local filesystem — open directly
+        try:
+            return "stream", storage.open(file_name, mode="rb")
+        except FileNotFoundError:
+            logger.warning(f"Artifact file not found on local storage for {artifact.id}: {file_name}")
+            raise NotFoundError(user_message="File not found")
+        except Exception as exc:
+            logger.exception(f"Local storage open failed for artifact {artifact.id}")
+            raise exc
+
+    # S3/Supabase path — generate signed URL and fetch bytes
+    artifact_url = _get_artifact_url(artifact)
+    if not artifact_url:
+        logger.warning(f"Could not generate signed URL for artifact {artifact.id}")
+        raise NotFoundError(user_message="File not found")
+
+    try:
+        with urlopen(artifact_url) as remote_file:
+            return "bytes", remote_file.read()
+    except HTTPError as exc:
+        if exc.code in (403, 404):
+            logger.warning(f"Signed URL returned {exc.code} for artifact {artifact.id}: {artifact_url}")
+            raise NotFoundError(user_message="File not found")
+        logger.exception(f"HTTP {exc.code} fetching artifact {artifact.id}")
+        raise NotFoundError(user_message="File access failed")
+    except Exception:
+        logger.exception(f"URL fetch failed for artifact {artifact.id}: {artifact_url}")
+        raise NotFoundError(user_message="File access failed")
+
+
+def _is_s3_storage(storage) -> bool:
+    """Check if the storage backend is S3/Supabase (not local filesystem)."""
+    storage_class = type(storage).__name__
+    return "S3" in storage_class or "Boto" in storage_class
+
+
+def _get_artifact_url(artifact):
+    """Get the artifact signed URL from S3/Supabase storage."""
+    try:
+        return artifact.file.url
+    except Exception as exc:
+        logger.warning(f"Failed to generate URL for artifact {artifact.id}: {exc}")
+        return None
+    
     """
     Resolve artifact binary content from storage backend.
     
@@ -208,11 +281,11 @@ def _generate_certificate_native(context):
     
     c.setFont("Helvetica-Bold", 11)
     c.setFillColor(dark_gray)
-    c.drawCentredString(width/2 - 55*mm, sig_y - 15, context.get("employer_supervisor_name", ""))
+    c.drawCentredString(width/2 - 55*mm, sig_y - 15, context.get("employer_supervisor_name") or "Digital approval pending")
     
     c.setFont("Helvetica", 9)
     c.setFillColor(gray)
-    c.drawCentredString(width/2 - 55*mm, sig_y - 28, "Employer Supervisor")
+    c.drawCentredString(width/2 - 55*mm, sig_y - 28, "Employer Supervisor Digital Signature")
     c.drawCentredString(width/2 - 55*mm, sig_y - 38, employer)
     
     # Institution Sig (Right)
@@ -220,11 +293,11 @@ def _generate_certificate_native(context):
     
     c.setFont("Helvetica-Bold", 11)
     c.setFillColor(dark_gray)
-    c.drawCentredString(width/2 + 55*mm, sig_y - 15, context.get("institution_supervisor_name", ""))
+    c.drawCentredString(width/2 + 55*mm, sig_y - 15, context.get("institution_supervisor_name") or "Digital approval pending")
     
     c.setFont("Helvetica", 9)
     c.setFillColor(gray)
-    c.drawCentredString(width/2 + 55*mm, sig_y - 28, "Institution Supervisor")
+    c.drawCentredString(width/2 + 55*mm, sig_y - 28, "Institution Assessor Digital Signature")
     c.drawCentredString(width/2 + 55*mm, sig_y - 38, institution)
     
     # --- 8. Footer (Verification) ---
@@ -445,34 +518,34 @@ def _logbook_header_footer(canvas, doc, context):
     """
     canvas.saveState()
     width, height = A4
-    margin = 20 * mm
+    margin = PAGE_MARGIN
     
     # --- Header ---
     # Brand
     canvas.setFont('Helvetica-Bold', 12)
-    canvas.setFillColor(colors.HexColor("#1ab8aa"))
+    canvas.setFillColor(THEME.brand)
     canvas.drawString(margin, height - 15*mm, "EDULINK")
     
     # Meta
     canvas.setFont('Helvetica', 9)
-    canvas.setFillColor(colors.HexColor("#9ca3af"))
-    text = f"Internship Logbook Report  |  {context.get('generated_at', '')}"
+    canvas.setFillColor(THEME.faint)
+    text = f"Industrial Attachment Logbook  |  {context.get('generated_at', '')}"
     canvas.drawRightString(width - margin, height - 15*mm, text)
     
     # Divider
-    canvas.setStrokeColor(colors.HexColor("#1ab8aa"))
+    canvas.setStrokeColor(THEME.brand)
     canvas.setLineWidth(1)
     canvas.line(margin, height - 18*mm, width - margin, height - 18*mm)
     
     # --- Footer ---
     # Divider
-    canvas.setStrokeColor(colors.HexColor("#e5e7eb"))
+    canvas.setStrokeColor(THEME.line)
     canvas.setLineWidth(1)
     canvas.line(margin, 20*mm, width - margin, 20*mm)
     
     # Info
     canvas.setFont('Helvetica', 8)
-    canvas.setFillColor(colors.HexColor("#9ca3af"))
+    canvas.setFillColor(THEME.faint)
     
     tracking_code = context.get('tracking_code', 'UNKNOWN')
     canvas.drawString(margin, 15*mm, f"Verification: {tracking_code}")
@@ -484,216 +557,147 @@ def _logbook_header_footer(canvas, doc, context):
 
 def _generate_logbook_report_native(context):
     """
-    Generates a multi-page professional Logbook Report using ReportLab Platypus.
-    Handles page breaks, tables, and styling robustly.
+    Generates the standard EduLink industrial attachment logbook report.
+
+    This keeps the conventional attachment structure while using the reports
+    app's shared PDF kit for brand, spacing, tables, and digital signatures.
     """
     buffer = BytesIO()
-    
-    # Setup Document
     doc = SimpleDocTemplate(
         buffer,
         pagesize=A4,
-        rightMargin=20*mm,
-        leftMargin=20*mm,
-        topMargin=25*mm,
-        bottomMargin=25*mm
-    )
-    
-    # Styles
-    styles = getSampleStyleSheet()
-    
-    # Custom Styles
-    style_title = ParagraphStyle(
-        'ReportTitle',
-        parent=styles['Heading1'],
-        fontSize=24,
-        textColor=colors.HexColor("#111827"),
-        spaceAfter=20,
-        alignment=TA_CENTER
-    )
-    
-    style_section_header = ParagraphStyle(
-        'SectionHeader',
-        parent=styles['Heading2'],
-        fontSize=14,
-        textColor=colors.HexColor("#1ab8aa"),
-        spaceBefore=15,
-        spaceAfter=10,
-        borderPadding=5,
-        borderColor=colors.HexColor("#e5e7eb"),
-        borderWidth=0,
-        borderBottomWidth=1
-    )
-    
-    style_log_title = ParagraphStyle(
-        'LogTitle',
-        parent=styles['Heading3'],
-        fontSize=12,
-        textColor=colors.HexColor("#111827"),
-        spaceBefore=10,
-        spaceAfter=5
-    )
-    
-    style_normal = ParagraphStyle(
-        'NormalCustom',
-        parent=styles['Normal'],
-        fontSize=10,
-        textColor=colors.HexColor("#374151"),
-        leading=14
-    )
-    
-    style_label = ParagraphStyle(
-        'Label',
-        parent=styles['Normal'],
-        fontSize=9,
-        textColor=colors.HexColor("#6b7280"),
-        fontName="Helvetica-Bold"
+        rightMargin=PAGE_MARGIN,
+        leftMargin=PAGE_MARGIN,
+        topMargin=28 * mm,
+        bottomMargin=26 * mm,
     )
 
-    style_value = ParagraphStyle(
-        'Value',
-        parent=styles['Normal'],
-        fontSize=10,
-        textColor=colors.HexColor("#111827"),
-        fontName="Helvetica-Bold"
-    )
-    
+    styles = report_styles()
     elements = []
-    
-    # 1. Report Title
-    elements.append(Paragraph("INDUSTRIAL ATTACHMENT STUDENT LOGBOOK", style_title))
-    elements.append(Spacer(1, 10))
-    
-    # 2. Student & Engagement Info (as a Table)
-    info_data = [
-        [Paragraph("NAME OF STUDENT", style_label), Paragraph(context.get('student_name', ''), style_value),
-         Paragraph("REG NUMBER", style_label), Paragraph(context.get('registration_number', 'N/A'), style_value)],
-        [Paragraph("COURSE / DEPARTMENT", style_label), Paragraph(context.get('department', 'N/A'), style_value),
-         Paragraph("HOST ORGANIZATION", style_label), Paragraph(context.get('employer_name', ''), style_value)],
-        [Paragraph("ATTACHMENT POSITION", style_label), Paragraph(context.get('position', ''), style_value),
-         Paragraph("INSTITUTION", style_label), Paragraph(context.get('institution_name', ''), style_value)],
-        [Paragraph("PERIOD", style_label), Paragraph(f"{context.get('start_date', '')} — {context.get('end_date', '')}", style_value),
-         Paragraph("LOGBOOKS", style_label), Paragraph(str(len(context.get('logbooks', []))), style_value)]
-    ]
-    
-    info_table = Table(info_data, colWidths=[30*mm, 55*mm, 30*mm, 55*mm])
-    info_table.setStyle(TableStyle([
-        ('VALIGN', (0,0), (-1,-1), 'TOP'),
-        ('TOPPADDING', (0,0), (-1,-1), 8),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 8),
-        ('LINEBELOW', (0,0), (-1,-1), 1, colors.HexColor("#f3f4f6")),
-        ('GRID', (0,0), (-1,-1), 0, colors.white), # No grid
-    ]))
-    elements.append(info_table)
-    elements.append(Spacer(1, 20))
-    elements.append(Paragraph("Logbook Standard", style_section_header))
+
+    elements.append(Paragraph("Industrial Attachment Student Logbook", styles["title"]))
     elements.append(Paragraph(
-        "Daily work must be recorded clearly for Monday to Friday, including the description of work done and new skills learnt. "
-        "Each week must include the trainee's weekly report and supervisor comments where applicable.",
-        style_normal
+        "Standard weekly record of work done, new skills learnt, supervisor review, and institution assessment.",
+        styles["subtitle"],
+    ))
+    elements.append(Spacer(1, 6))
+
+    logbooks = context.get('logbooks', [])
+    elements.append(key_value_table([
+        ("Name of student", context.get("student_name", "")),
+        ("Registration number", context.get("registration_number", "N/A")),
+        ("Course / department", context.get("department", "N/A")),
+        ("Host organization", context.get("employer_name", "")),
+        ("Attachment position", context.get("position", "")),
+        ("Institution", context.get("institution_name", "")),
+        ("Attachment period", f"{context.get('start_date', '')} - {context.get('end_date', '')}"),
+        ("Accepted logbooks", str(len(logbooks))),
+    ], styles))
+    elements.append(Spacer(1, 12))
+    elements.append(section_label("Logbook Standard", styles))
+    elements.append(Paragraph(
+        "The attachment logbook is organized by week. Each record captures Monday to Friday work done and new skills learnt, "
+        "the trainee's weekly report, and authenticated review by the responsible employer and institution supervisors.",
+        styles["body"],
     ))
     elements.append(Spacer(1, 10))
-    
-    # 3. Iterate Logbooks
-    logbooks = context.get('logbooks', [])
-    
+
     if not logbooks:
-        elements.append(Paragraph("No accepted logbooks found for this internship.", style_normal))
-    
-    for i, log in enumerate(logbooks):
-        # Keep each logbook block together if possible, or start new page
-        # Using KeepTogether for smaller blocks, but logbooks can be long.
-        # We will just use logical spacing and flow.
-        
-        # Logbook Header
+        elements.append(Paragraph("No accepted logbooks found for this attachment.", styles["body"]))
+
+    for i, log in enumerate(logbooks, start=1):
         week_ending = log.get("week_ending_date") or "N/A"
-        elements.append(Paragraph(f"Week {i+1} Progress Chart - Week Ending: {week_ending}", style_section_header))
-        
-        # Meta row
-        elements.append(Paragraph(f"Submitted: {log.get('submitted_at', 'N/A')}  |  Status: Verified", style_label))
-        elements.append(Spacer(1, 5))
-        
-        # Description
-        desc = log.get('description', '')
+        elements.append(section_label(f"Week {i} Progress Chart - Week Ending {week_ending}", styles))
+        elements.append(key_value_table([
+            ("Submitted", log.get("submitted_at", "N/A")),
+            ("Evidence status", "Accepted / verified"),
+            ("Week start", log.get("week_start_date", "N/A")),
+            ("Week ending", week_ending),
+        ], styles))
+        elements.append(Spacer(1, 7))
+
+        desc = log.get("description", "")
         if desc:
-            elements.append(Paragraph(desc, style_normal))
-            elements.append(Spacer(1, 10))
-            
-        # Daily Entries Table
-        entries = log.get('daily_entries', [])
+            elements.append(Paragraph(desc, styles["body"]))
+            elements.append(Spacer(1, 7))
+
+        entries = log.get("daily_entries", [])
         if entries:
-            # Table Data
-            table_data = [[Paragraph("DAY", style_label), Paragraph("DESCRIPTION OF WORK DONE AND NEW SKILLS LEARNT", style_label)]]
+            table_data = [[
+                Paragraph("DAY", styles["label"]),
+                Paragraph("DATE", styles["label"]),
+                Paragraph("DESCRIPTION OF WORK DONE AND NEW SKILLS LEARNT", styles["label"]),
+            ]]
             for entry in entries:
                 table_data.append([
-                    Paragraph(entry.get("day") or entry.get("label", ""), style_value),
-                    Paragraph(
-                        f"{entry.get('date', '')}<br/>{entry.get('description') or 'No activity recorded.'}",
-                        style_normal,
-                    )
+                    Paragraph(entry.get("day") or entry.get("label", ""), styles["value"]),
+                    Paragraph(entry.get("date", ""), styles["small"]),
+                    Paragraph(entry.get("description") or "No activity recorded.", styles["body"]),
                 ])
-                
-            entry_table = Table(table_data, colWidths=[25*mm, 145*mm])
+
+            entry_table = Table(table_data, colWidths=[25 * mm, 28 * mm, 121 * mm], repeatRows=1)
             entry_table.setStyle(TableStyle([
-                ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#f9fafb")),
-                ('VALIGN', (0,0), (-1,-1), 'TOP'),
-                ('TOPPADDING', (0,0), (-1,-1), 6),
-                ('BOTTOMPADDING', (0,0), (-1,-1), 6),
-                ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#e5e7eb")),
+                ("BACKGROUND", (0, 0), (-1, 0), THEME.brand_soft),
+                ("TEXTCOLOR", (0, 0), (-1, 0), THEME.brand_dark),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 7),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 7),
+                ("TOPPADDING", (0, 0), (-1, -1), 7),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+                ("GRID", (0, 0), (-1, -1), 0.4, THEME.line),
             ]))
             elements.append(entry_table)
-            elements.append(Spacer(1, 10))
+            elements.append(Spacer(1, 9))
 
         weekly_summary = log.get("weekly_summary")
-        elements.append(Paragraph("Trainee's Weekly Report", style_log_title))
-        elements.append(Paragraph(weekly_summary or "No weekly summary recorded.", style_normal))
-        elements.append(Spacer(1, 10))
-        signature_data = [
-            [Paragraph("Student Signature / Digital Confirmation", style_label), Paragraph("Date", style_label)],
-            [Paragraph(context.get("student_name", "N/A"), style_normal), Paragraph(log.get("submitted_at", "N/A"), style_normal)],
-        ]
-        signature_table = Table(signature_data, colWidths=[110*mm, 60*mm])
-        signature_table.setStyle(TableStyle([
-            ('VALIGN', (0,0), (-1,-1), 'TOP'),
-            ('LINEABOVE', (0,1), (-1,1), 0.5, colors.HexColor("#9ca3af")),
-            ('TOPPADDING', (0,0), (-1,-1), 6),
-            ('BOTTOMPADDING', (0,0), (-1,-1), 6),
-        ]))
-        elements.append(signature_table)
-        elements.append(Spacer(1, 8))
-            
-        # Reviews
-        emp_notes = log.get('employer_notes')
-        inst_notes = log.get('institution_notes')
-        
-        if emp_notes or inst_notes:
-            elements.append(Spacer(1, 5))
-            
-        if emp_notes:
-            # Teal Box
-            p_text = f"<b>Employer Supervisor Feedback:</b><br/>{emp_notes}"
-            p = Paragraph(p_text, ParagraphStyle('EmpReview', parent=style_normal, backColor=colors.HexColor("#f0fdfa"), borderColor=colors.HexColor("#ccfbf1"), borderWidth=1, borderPadding=8, textColor=colors.HexColor("#134e4a")))
-            elements.append(p)
-            elements.append(Spacer(1, 5))
-            
-        if inst_notes:
-            # Blue Box
-            p_text = f"<b>Institution Supervisor Feedback:</b><br/>{inst_notes}"
-            p = Paragraph(p_text, ParagraphStyle('InstReview', parent=style_normal, backColor=colors.HexColor("#eff6ff"), borderColor=colors.HexColor("#dbeafe"), borderWidth=1, borderPadding=8, textColor=colors.HexColor("#1e40af")))
-            elements.append(p)
-            
-        elements.append(Spacer(1, 15))
-    
-    # Build
-    # We pass the context to the onPage handler using a lambda or partial if needed, 
-    # but since SimpleDocTemplate build accepts onFirstPage and onLaterPages functions
-    # that take (canvas, doc), we need to wrap our handler.
-    
+        elements.append(Paragraph("Trainee's Weekly Report", styles["section"]))
+        elements.append(Paragraph(weekly_summary or "No weekly summary recorded.", styles["body"]))
+        elements.append(Spacer(1, 9))
+
+        elements.extend(review_panel("Employer Supervisor Feedback", log.get("employer_notes"), styles))
+        elements.extend(review_panel("Institution Assessor Feedback", log.get("institution_notes"), styles))
+
+        elements.append(Paragraph("Digital Signatures", styles["section"]))
+        elements.append(signature_table([
+            DigitalSignature(
+                label="Student confirmation",
+                name=context.get("student_name", "N/A"),
+                role="Student",
+                signed_at=log.get("submitted_at", "N/A"),
+                status="Submitted",
+            ),
+            DigitalSignature(
+                label="Employer supervisor",
+                name=log.get("employer_reviewer_name") or context.get("employer_supervisor_name", "Pending"),
+                role="Employer Supervisor",
+                signed_at=log.get("employer_reviewed_at") or "",
+                status=log.get("employer_review_status") or "Pending",
+            ),
+            DigitalSignature(
+                label="Institution assessor",
+                name=log.get("institution_reviewer_name") or context.get("institution_supervisor_name", "Pending"),
+                role="Institution Assessor",
+                signed_at=log.get("institution_reviewed_at") or "",
+                status=log.get("institution_review_status") or "Pending",
+            ),
+        ], styles))
+        elements.append(Spacer(1, 14))
+
+    elements.append(section_label("Artifact Verification", styles))
+    elements.append(signature_table([
+        DigitalSignature(
+            label="EduLink ledger",
+            name=context.get("tracking_code", "Pending"),
+            role="Immutable artifact code",
+            signed_at=context.get("generated_at", ""),
+            status="Generated",
+        )
+    ], styles))
+
     def on_page(canvas, doc):
         _logbook_header_footer(canvas, doc, context)
-        
+
     doc.build(elements, onFirstPage=on_page, onLaterPages=on_page)
-    
     return buffer.getvalue()
 
 def _generate_tracking_code(artifact_type: str) -> str:
@@ -746,6 +750,42 @@ def _safe_text(value, default="N/A") -> str:
         return str(value)
     return default
 
+
+def _format_datetime(value, default="") -> str:
+    if not value:
+        return default
+    try:
+        return value.strftime("%d %b %Y %H:%M")
+    except AttributeError:
+        return str(value)
+
+
+def _get_employer_supervisor_name(supervisor_id) -> str:
+    if not supervisor_id:
+        return ""
+    supervisor = get_supervisor_by_id(supervisor_id)
+    if not supervisor or not getattr(supervisor, "user", None):
+        return ""
+    return supervisor.user.get_full_name() or supervisor.user.email or str(supervisor_id)
+
+
+def _get_institution_supervisor_name(staff_id) -> str:
+    if not staff_id:
+        return ""
+    staff = get_institution_staff_by_id(staff_id=staff_id)
+    if not staff or not getattr(staff, "user", None):
+        return ""
+    return staff.user.get_full_name() or staff.user.email or str(staff_id)
+
+
+def _get_user_display_name(user_id) -> str:
+    if not user_id:
+        return ""
+    user = get_user_by_id(str(user_id))
+    if not user:
+        return ""
+    return user.get_full_name() or user.email or str(user_id)
+
 @transaction.atomic
 def generate_completion_certificate(*, application_id: UUID, actor_id: UUID) -> Artifact:
     """
@@ -776,20 +816,9 @@ def generate_completion_certificate(*, application_id: UUID, actor_id: UUID) -> 
         employer_name = employer.name if employer else "N/A"
         
     institution_name = _get_student_institution_info(application.student_id)
+    employer_supervisor_name = _get_employer_supervisor_name(application.employer_supervisor_id)
+    institution_supervisor_name = _get_institution_supervisor_name(application.institution_supervisor_id)
 
-    # Fetch supervisor names
-    employer_supervisor_name = "N/A"
-    if application.employer_supervisor_id:
-        e_supervisor = get_supervisor_by_id(application.employer_supervisor_id)
-        if e_supervisor:
-            employer_supervisor_name = f"{e_supervisor.user.first_name} {e_supervisor.user.last_name}"
-
-    institution_supervisor_name = "N/A"
-    if application.institution_supervisor_id:
-        i_supervisor = get_institution_staff_by_id(staff_id=application.institution_supervisor_id)
-        if i_supervisor:
-            institution_supervisor_name = f"{i_supervisor.user.first_name} {i_supervisor.user.last_name}"
-    
     context = {
         "application_id": str(application_id),
         "student_name": f"{student.user.first_name} {student.user.last_name}" if student else "N/A",
@@ -950,8 +979,15 @@ def generate_performance_summary(*, application_id: UUID, actor_id: UUID) -> Art
     incidents = get_incidents_for_application(application_id)
     incident_count = incidents.count()
     
-    # Final Feedback (Authored by supervisors on the Application model)
-    final_feedback = application.final_feedback or "No final feedback recorded."
+    # Final assessments are role-specific; keep legacy final_feedback as a fallback only.
+    feedback_parts = []
+    if application.employer_final_feedback:
+        feedback_parts.append(f"Employer supervisor: {application.employer_final_feedback}")
+    if application.institution_final_feedback:
+        feedback_parts.append(f"Institution assessor: {application.institution_final_feedback}")
+    if not feedback_parts and application.final_feedback:
+        feedback_parts.append(application.final_feedback)
+    final_feedback = "\n\n".join(feedback_parts) or "No final feedback recorded."
     
     # Fallback to SuccessStory or REPORT if final_feedback is empty (Legacy support)
     if final_feedback == "No final feedback recorded.":
@@ -977,6 +1013,10 @@ def generate_performance_summary(*, application_id: UUID, actor_id: UUID) -> Art
         "milestones_reached": milestones_reached,
         "incident_count": incident_count,
         "final_feedback": final_feedback,
+        "employer_final_rating": application.employer_final_rating,
+        "institution_final_rating": application.institution_final_rating,
+        "employer_final_feedback_by": _get_user_display_name(application.employer_final_feedback_by),
+        "institution_final_feedback_by": _get_user_display_name(application.institution_final_feedback_by),
         "current_year": datetime.now().year,
         "artifact_id": None,
         "tracking_code": None
@@ -1059,6 +1099,8 @@ def generate_logbook_report(*, application_id: UUID, actor_id: UUID) -> Artifact
         employer_name = employer.name if employer else "N/A"
         
     institution_name = _get_student_institution_info(application.student_id)
+    employer_supervisor_name = _get_employer_supervisor_name(application.employer_supervisor_id)
+    institution_supervisor_name = _get_institution_supervisor_name(application.institution_supervisor_id)
 
     # Fetch logbooks
     evidence_items = get_evidence_for_application(application_id).filter(
@@ -1078,7 +1120,13 @@ def generate_logbook_report(*, application_id: UUID, actor_id: UUID) -> Artifact
             "weekly_summary": metadata.get("weekly_summary", ""),
             "employer_notes": item.employer_review_notes,
             "institution_notes": item.institution_review_notes,
-            "submitted_at": item.created_at.strftime("%d %b %Y")
+            "submitted_at": item.created_at.strftime("%d %b %Y"),
+            "employer_review_status": item.employer_review_status,
+            "employer_reviewer_name": _get_user_display_name(item.employer_reviewed_by),
+            "employer_reviewed_at": _format_datetime(item.employer_reviewed_at),
+            "institution_review_status": item.institution_review_status,
+            "institution_reviewer_name": _get_user_display_name(item.institution_reviewed_by),
+            "institution_reviewed_at": _format_datetime(item.institution_reviewed_at),
         })
 
     context = {
@@ -1093,6 +1141,8 @@ def generate_logbook_report(*, application_id: UUID, actor_id: UUID) -> Artifact
         "end_date": opportunity.end_date.strftime("%d %b %Y") if opportunity.end_date else "N/A",
         "generated_at": datetime.now().strftime("%d %b %Y %H:%M"),
         "current_year": datetime.now().year,
+        "employer_supervisor_name": employer_supervisor_name,
+        "institution_supervisor_name": institution_supervisor_name,
         "logbooks": logbooks_data,
         "artifact_id": None,
         "tracking_code": None

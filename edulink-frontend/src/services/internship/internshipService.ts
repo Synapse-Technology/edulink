@@ -644,10 +644,11 @@ class InternshipService {
 
   async getEvidence(applicationId: string): Promise<InternshipEvidence[]> {
     try {
-      const response = await this.client.get<InternshipEvidence[]>(
-        `/api/internships/applications/${applicationId}/evidence/`
+      const response = await this.client.get<InternshipEvidence[] | PaginatedResponse<InternshipEvidence>>(
+        `/api/internships/applications/${applicationId}/evidence/`,
+        { params: { page_size: 100 } }
       );
-      return response;
+      return Array.isArray(response) ? response : response.results || [];
     } catch (error) {
       if (error instanceof ApiError) throw error;
       throw new Error('Failed to fetch evidence');

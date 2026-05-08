@@ -128,7 +128,7 @@ const STYLES = `
     --surface-3: #e8e5e0;
     --border: #e4e1dc;
     --border-2: #d1ccc5;
-    --accent-2: #e8eeff;
+    --accent-2: #e6fffb;
     --danger-soft: rgba(239,68,68,0.10);
     --radius: 14px;
     --radius-lg: 20px;
@@ -144,7 +144,7 @@ const STYLES = `
     --surface-3: #252525;
     --border: #2a2a2a;
     --border-2: #353535;
-    --accent-2: #1a2340;
+    --accent-2: #0f3f3c;
     --danger-soft: rgba(239,68,68,0.12);
     --sk-base: #252525;
     --sk-mid: #343434;

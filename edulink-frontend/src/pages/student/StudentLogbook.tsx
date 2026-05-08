@@ -39,6 +39,17 @@ import {
   countCompletedStandardDays,
 } from '../../utils/logbookFormat';
 import StudentInternshipSkeleton from '../../components/student/skeletons/StudentInternshipSkeleton';
+import {
+  StudentButton,
+  StudentCard,
+  StudentEmptyState,
+  StudentPagination,
+  StudentPageHeader,
+  StudentStatus,
+  StudentWorkspacePage,
+  StudentWorkspaceShell,
+  useStudentPagination,
+} from '../../components/student/workspace';
 
 /* ─────────────────────────────────────────────
    Design tokens & global styles
@@ -56,9 +67,9 @@ const STYLES = `
     --surface-3: #e8e5e0;
     --border: #e4e1dc;
     --border-2: #d1ccc5;
-    --accent: #1a5cff;
-    --accent-2: #e8eeff;
-    --accent-soft: rgba(26,92,255,0.08);
+    --accent: #1ab8aa;
+    --accent-2: #e6fffb;
+    --accent-soft: rgba(26, 184, 170, 0.08);
     --success: #12b76a;
     --success-soft: rgba(18,183,106,0.1);
     --warning: #f59e0b;
@@ -86,9 +97,9 @@ const STYLES = `
     --surface-3: #252525;
     --border: #2a2a2a;
     --border-2: #353535;
-    --accent: #4d7fff;
-    --accent-2: #1a2340;
-    --accent-soft: rgba(77,127,255,0.1);
+    --accent: #2dd4bf;
+    --accent-2: #0f3f3c;
+    --accent-soft: rgba(45, 212, 191, 0.1);
     --success-soft: rgba(18,183,106,0.12);
     --warning-soft: rgba(245,158,11,0.12);
     --danger-soft: rgba(239,68,68,0.12);
@@ -399,10 +410,10 @@ const STYLES = `
   .lb-btn-primary {
     background: var(--accent);
     color: #fff;
-    box-shadow: 0 1px 3px rgba(26,92,255,0.25), 0 4px 12px rgba(26,92,255,0.15);
+    box-shadow: 0 1px 3px rgba(26, 184, 170, 0.25), 0 4px 12px rgba(26, 184, 170, 0.15);
   }
   .lb-btn-primary:hover:not(:disabled) {
-    box-shadow: 0 4px 16px rgba(26,92,255,0.35);
+    box-shadow: 0 4px 16px rgba(26, 184, 170, 0.35);
     transform: translateY(-1px);
   }
   .lb-btn-ghost {
@@ -457,6 +468,17 @@ const STYLES = `
 
   /* ── History list ── */
   .lb-history-list { display: flex; flex-direction: column; gap: 10px; }
+  .lb-history-list.scrollable {
+    max-height: 620px;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+  .lb-history-list.scrollable::-webkit-scrollbar { width: 6px; }
+  .lb-history-list.scrollable::-webkit-scrollbar-track { background: transparent; }
+  .lb-history-list.scrollable::-webkit-scrollbar-thumb {
+    background: var(--border-2);
+    border-radius: 999px;
+  }
   .lb-history-item {
     display: grid;
     grid-template-columns: auto 1fr auto auto;
@@ -1002,7 +1024,7 @@ const StudentLogbook: React.FC = () => {
         entries: logbookEntries,
         weeklySummary,
       });
-      showSuccess('PDF Generated', 'Your logbook PDF has been downloaded.');
+      showSuccess('Draft Downloaded', 'Your weekly logbook draft has been downloaded. Official signed reports are generated from your artifact vault.');
     } catch (err: any) {
       showError('Generation Failed', getErrorMessage(err, { action: 'Generate PDF' }));
     }
@@ -1031,6 +1053,7 @@ const StudentLogbook: React.FC = () => {
     : 0;
 
   const todayStr = getLocalDateString(new Date());
+  const submissionPagination = useStudentPagination({ items: submissionHistory });
 
   /* ── circle math ── */
   const CIRC = 2 * Math.PI * 18;
@@ -1042,33 +1065,30 @@ const StudentLogbook: React.FC = () => {
   return (
     <StudentLayout>
       <style>{STYLES}</style>
-      <div className={`lb-page${isDarkMode ? ' dark-mode' : ''}`}>
+      <StudentWorkspaceShell darkMode={isDarkMode}>
+      <StudentWorkspacePage>
         {loading ? (
           <StudentInternshipSkeleton isDarkMode={isDarkMode} />
         ) : !internship ? (
-          <div className="lb-no-internship">
-            <div className="lb-no-internship-icon">
-              <BookOpen size={36} />
-            </div>
-            <h2>No Active Internship</h2>
-            <p>You need an active internship placement to access the logbook.</p>
-          </div>
+          <StudentEmptyState icon={<BookOpen size={24} />} title="No Active Internship">
+            You need an active internship placement to access the logbook.
+          </StudentEmptyState>
         ) : (
           <>
             {/* ── PAGE HEADER ── */}
-            <header className="lb-header">
-              <div>
-                <div className="lb-header-eyebrow">
+            <StudentPageHeader
+              eyebrow={
+                <>
                   <Briefcase size={12} />
                   Evidence Capture · {internship.title}
-                </div>
-                <h1 className="lb-header-title">
-                  Weekly <em>Logbook</em>
-                </h1>
-                <div className="lb-header-meta">
+                </>
+              }
+              title={<>Weekly <em>Logbook</em></>}
+              subtitle={
+                <span className="lb-header-meta" style={{ marginTop: 16 }}>
                   <span className="lb-header-meta-item">
                     <CalendarIcon size={13} />
-                    Week of {currentWeekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    Week of {dateFormatter.shortDate(currentWeekStart)}
                   </span>
                   <span className="lb-header-meta-item">
                     <FileText size={13} />
@@ -1080,10 +1100,10 @@ const StudentLogbook: React.FC = () => {
                       Internship Completed — Logbook Locked
                     </span>
                   )}
-                </div>
-              </div>
-
-              <div className="lb-header-actions">
+                </span>
+              }
+              actions={
+                <div className="lb-header-actions">
                 {/* Progress ring */}
                 <div className="lb-progress-ring">
                   <svg width="44" height="44" viewBox="0 0 44 44" className="lb-ring-svg">
@@ -1102,33 +1122,36 @@ const StudentLogbook: React.FC = () => {
                 </div>
 
                 {!isInternshipCompleted && (
-                  <button
-                    className="lb-btn lb-btn-primary"
+                  <StudentButton
+                    as="button"
+                    type="button"
+                    variant="primary"
                     onClick={() => openDay(todayStr)}
                   >
                     <Plus size={15} />
                     Log Today
-                  </button>
+                  </StudentButton>
                 )}
               </div>
-            </header>
+              }
+            />
 
             {/* ── MAIN GRID ── */}
             <div className="lb-grid">
 
               {/* LEFT — Day list */}
               <div>
-                <div className="lb-card">
-                  <div className="lb-card-header">
-                    <span className="lb-card-title">Weekly Activities</span>
+                <StudentCard
+                  title="Weekly Activities"
+                  actions={
                     <div className="lb-week-nav">
                       <span className="lb-week-label">
-                        {currentWeekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} –{' '}
-                        {new Date(currentWeekStart.getTime() + 4 * 86400000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        {dateFormatter.shortDate(currentWeekStart)} -{' '}
+                        {dateFormatter.shortDate(new Date(currentWeekStart.getTime() + 4 * 86400000))}
                       </span>
                     </div>
-                  </div>
-                  <div className="lb-card-body">
+                  }
+                >
                     <div className="lb-day-grid">
                       {ATTACHMENT_WEEKDAYS.map((day) => {
                         const date = new Date(currentWeekStart);
@@ -1156,7 +1179,7 @@ const StudentLogbook: React.FC = () => {
                             {/* Day label + date */}
                             <div>
                               <div className="lb-day-label">{date.toLocaleDateString('en-US', { weekday: 'short' })}</div>
-                              <div className="lb-day-date">{date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                              <div className="lb-day-date">{dateFormatter.shortDate(date)}</div>
                               {isToday && <div className="lb-day-today-badge"><Sparkles size={9} />Today</div>}
                             </div>
 
@@ -1184,22 +1207,17 @@ const StudentLogbook: React.FC = () => {
                         );
                       })}
                     </div>
-                  </div>
-                </div>
+                </StudentCard>
               </div>
 
               {/* RIGHT — Sidebar */}
               <div className="lb-sidebar">
 
                 {/* Weekly summary */}
-                <div className="lb-card">
-                  <div className="lb-card-header">
-                    <span className="lb-card-title">Weekly Report</span>
-                    {!weeklySummary.trim() && (
-                      <span style={{ fontSize: '11px', color: 'var(--warning)', fontWeight: 600 }}>Required</span>
-                    )}
-                  </div>
-                  <div className="lb-card-body" style={{ paddingTop: 16 }}>
+                <StudentCard
+                  title="Weekly Report"
+                  actions={!weeklySummary.trim() ? <StudentStatus tone="warning">Required</StudentStatus> : undefined}
+                >
                     <textarea
                       className="lb-summary-textarea"
                       placeholder="Summarize the week: theory covered, practical work, challenges, and new skills learned…"
@@ -1213,44 +1231,49 @@ const StudentLogbook: React.FC = () => {
                         ? <span style={{ color: 'var(--success)' }}>✓ Ready</span>
                         : <span>Required for submission</span>}
                     </div>
-                  </div>
-                </div>
+                </StudentCard>
 
                 {/* Action buttons */}
-                <div className="lb-card">
-                  <div className="lb-card-header">
-                    <span className="lb-card-title">Actions</span>
-                  </div>
-                  <div className="lb-card-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    <button
-                      className="lb-btn lb-btn-primary lb-btn-full"
+                <StudentCard title="Actions">
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <StudentButton
+                      as="button"
+                      type="button"
+                      variant="primary"
+                      style={{ width: '100%' }}
                       onClick={handleSubmitLogbook}
                       disabled={submitting || submissionSuccess || isInternshipCompleted}
                     >
                       {submitting ? <div className="lb-spinner" /> : <Send size={15} />}
                       {isInternshipCompleted ? 'Logbook Closed' : 'Submit Week for Review'}
-                    </button>
+                    </StudentButton>
 
-                    <button
-                      className="lb-btn lb-btn-ghost lb-btn-full"
+                    <StudentButton
+                      as="button"
+                      type="button"
+                      variant="ghost"
+                      style={{ width: '100%' }}
                       onClick={handleDownloadPDF}
                     >
                       <Download size={15} />
-                      Download Week PDF
-                    </button>
+                      Download Week Draft
+                    </StudentButton>
 
                     {['COMPLETED', 'CERTIFIED'].includes(internship.status) && (
-                      <button
-                        className="lb-btn lb-btn-success lb-btn-full"
+                      <StudentButton
+                        as="button"
+                        type="button"
+                        variant="primary"
+                        style={{ width: '100%' }}
                         onClick={handleDownloadFullReport}
                         disabled={generatingReport}
                       >
                         {generatingReport ? <div className="lb-spinner" /> : <FileDown size={15} />}
                         Export Full Logbook
-                      </button>
+                      </StudentButton>
                     )}
                   </div>
-                </div>
+                </StudentCard>
 
                 {/* Tip */}
                 <div className="lb-tip">
@@ -1273,8 +1296,10 @@ const StudentLogbook: React.FC = () => {
                 </div>
               </div>
 
-              <div className="lb-history-list">
-                {submissionHistory.length > 0 ? submissionHistory.map((sub) => {
+              {submissionHistory.length > 0 ? (
+                <>
+                <div className={`lb-history-list${submissionPagination.totalItems > submissionPagination.pageSize ? ' scrollable' : ''}`}>
+                {submissionPagination.pageItems.map((sub) => {
                   const s = getStatus(sub.status);
                   const days = (sub.metadata?.daily_entries || []).filter((e: any) => e.description).length
                     || Object.keys(sub.metadata?.entries || {}).length;
@@ -1290,7 +1315,7 @@ const StudentLogbook: React.FC = () => {
                           {sub.metadata?.week_start_date
                             ? `Week of ${sub.metadata.week_start_date} · `
                             : ''}
-                          {days} day{days !== 1 ? 's' : ''} · Submitted {new Date(sub.created_at).toLocaleDateString()}
+                          {days} day{days !== 1 ? 's' : ''} · Submitted {dateFormatter.shortDate(sub.created_at)}
                         </div>
                       </div>
 
@@ -1338,16 +1363,24 @@ const StudentLogbook: React.FC = () => {
                       </div>
                     </div>
                   );
-                }) : (
-                  <div className="lb-card">
-                    <div className="lb-empty">
-                      <div className="lb-empty-icon"><Clock size={28} /></div>
-                      <div className="lb-empty-title">No submissions yet</div>
-                      <p className="lb-empty-text">Your submitted weekly logs will appear here once you submit your first week.</p>
-                    </div>
-                  </div>
-                )}
-              </div>
+                })}
+                </div>
+                <StudentPagination
+                  totalItems={submissionPagination.totalItems}
+                  startItem={submissionPagination.startItem}
+                  endItem={submissionPagination.endItem}
+                  page={submissionPagination.page}
+                  totalPages={submissionPagination.totalPages}
+                  pageSize={submissionPagination.pageSize}
+                  onPageChange={submissionPagination.setPage}
+                  onPageSizeChange={submissionPagination.setPageSize}
+                />
+                </>
+              ) : (
+                <StudentEmptyState icon={<Clock size={22} />} title="No submissions yet">
+                  Your submitted weekly logs will appear here once you submit your first week.
+                </StudentEmptyState>
+              )}
             </section>
           </>
         )}
@@ -1365,7 +1398,7 @@ const StudentLogbook: React.FC = () => {
                   <div className="lb-modal-eyebrow">Daily Entry</div>
                   <h3 className="lb-modal-title">
                     {selectedDate
-                      ? parseLocalDate(selectedDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+                      ? `${parseLocalDate(selectedDate).toLocaleDateString('en-GB', { weekday: 'long' })}, ${dateFormatter.shortDate(parseLocalDate(selectedDate))}`
                       : '—'}
                   </h3>
                   {isReadOnly && (
@@ -1466,7 +1499,7 @@ const StudentLogbook: React.FC = () => {
                   <div className="lb-modal-eyebrow">Review &amp; Confirm</div>
                   <h3 className="lb-modal-title">Submit Week for Review</h3>
                   <div className="lb-modal-sub">
-                    Week of {currentWeekStart.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                    Week of {dateFormatter.shortDate(currentWeekStart)}
                   </div>
                 </div>
                 <button className="lb-modal-close" onClick={() => setSubmitModalOpen(false)}>
@@ -1520,7 +1553,8 @@ const StudentLogbook: React.FC = () => {
         )}
 
         <FeedbackModal {...feedbackProps} />
-      </div>
+      </StudentWorkspacePage>
+      </StudentWorkspaceShell>
     </StudentLayout>
   );
 };

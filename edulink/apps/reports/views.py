@@ -33,7 +33,6 @@ class ArtifactViewSet(viewsets.ReadOnlyModelViewSet):
         if user.is_system_admin:
             return Artifact.objects.all()
         
-        # Logic to filter by student_id or application ownership
         from edulink.apps.students.queries import get_student_for_user
         student = get_student_for_user(str(user.id))
         if student:
@@ -66,17 +65,14 @@ class ArtifactViewSet(viewsets.ReadOnlyModelViewSet):
         except ValueError:
             return Response({"error": "Invalid application_id"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Policy Check
         if not can_generate_artifact(request.user, application_id):
             return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
 
-        # Rate Limiting / Generation Limit
         existing_count = Artifact.objects.filter(
             application_id=application_id, 
             artifact_type=artifact_type
         ).count()
         
-        # Limit CERTIFICATE to 2 generations, others to 5 (as a safeguard)
         MAX_GENERATIONS = {
             ArtifactType.CERTIFICATE: 2,
             ArtifactType.LOGBOOK_REPORT: 5,
@@ -121,7 +117,6 @@ class ArtifactViewSet(viewsets.ReadOnlyModelViewSet):
     def status(self, request, artifact_id=None):
         """
         Check the current status of an artifact during generation.
-        Used for polling during async operations.
         """
         if not artifact_id:
             return Response({"error": "artifact_id required"}, status=status.HTTP_400_BAD_REQUEST)
@@ -131,7 +126,6 @@ class ArtifactViewSet(viewsets.ReadOnlyModelViewSet):
             if not artifact:
                 return Response({"error": "Artifact not found"}, status=status.HTTP_404_NOT_FOUND)
         
-            # Policy check (May I?) - Permission decisions belong in policies.py, not views
             if not can_view_artifact(request.user, artifact):
                 return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
             
@@ -159,7 +153,6 @@ class ArtifactViewSet(viewsets.ReadOnlyModelViewSet):
         if not result["verified"]:
             return Response(result, status=status.HTTP_404_NOT_FOUND)
 
-        # We don't want to expose everything in the public response
         response_data = {
             "verified": True,
             "artifact_type": result["type"],
@@ -183,23 +176,26 @@ class ArtifactViewSet(viewsets.ReadOnlyModelViewSet):
             return Response({"error": "Invalid ID format"}, status=status.HTTP_400_BAD_REQUEST)
             
         artifact = get_artifact_by_id(artifact_id)
-        if not artifact:
-            return Response(status=status.HTTP_404_NOT_FOUND)
 
-        # Policy check (May I?)
+        logger.info(f"[DOWNLOAD] artifact_id={artifact_id} found={artifact is not None} user={request.user.id}")
+
+        if not artifact:
+            return Response({"error": "Artifact not found"}, status=status.HTTP_404_NOT_FOUND)
+
         if not can_view_artifact(request.user, artifact):
             return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
 
-        # Prepare response
         serializer = ArtifactSerializer(artifact)
         safe_filename = serializer.data['download_filename']
+
+        logger.info(f"[DOWNLOAD] file={artifact.file} file_name={artifact.file.name if artifact.file else None} storage={type(artifact.file.storage).__name__ if artifact.file else None}")
 
         try:
             mode, content = resolve_artifact_file_for_download(artifact=artifact)
         except NotFoundError:
-            return Response({"error": "File not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "File not found. Please regenerate this artifact."}, status=status.HTTP_404_NOT_FOUND)
         except Exception:
-            logger.exception(f"Failed to read artifact file {artifact.id}")
+            logger.exception(f"[DOWNLOAD] File access failed for artifact {artifact.id}")
             return Response(
                 {"error": "File access failed. Please contact support if this persists."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR

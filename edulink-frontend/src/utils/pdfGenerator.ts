@@ -169,15 +169,15 @@ export const generateLogbookPDF = (data: LogbookReportData) => {
 
   if (data.institutionFeedback) {
     const feedbackOffset = data.employerFeedback ? 40 : 10;
-    doc.setFillColor(239, 246, 255); // #eff6ff
+    doc.setFillColor(240, 253, 250);
     doc.rect(14, finalY + feedbackOffset, pageWidth - 28, 24, 'F');
     doc.setFontSize(8);
-    doc.setTextColor(29, 78, 216); // #1d4ed8
+    doc.setTextColor(15, 118, 110);
     doc.setFont('helvetica', 'bold');
     doc.text('INSTITUTIONAL ACADEMIC REVIEW', 20, finalY + feedbackOffset + 8);
     doc.setFontSize(10);
     doc.setFont('helvetica', 'italic');
-    doc.setTextColor(30, 58, 138); // #1e3a8a
+    doc.setTextColor(19, 78, 74);
     const institutionLines = doc.splitTextToSize(data.institutionFeedback, pageWidth - 40);
     doc.text(institutionLines, 20, finalY + feedbackOffset + 15);
   }

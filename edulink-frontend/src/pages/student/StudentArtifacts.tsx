@@ -25,6 +25,20 @@ import { getErrorMessage, logError } from '../../utils/errorMapper';
 import { dateFormatter } from '../../utils/dateFormatter';
 import type { Internship } from '../../types/internship';
 import StudentDashboardSkeleton from '../../components/student/skeletons/StudentDashboardSkeleton';
+import {
+  StudentButton,
+  StudentCard,
+  StudentColumn,
+  StudentEmptyState,
+  StudentGrid,
+  StudentMetric,
+  StudentPagination,
+  StudentPageHeader,
+  StudentStatus,
+  StudentWorkspacePage,
+  StudentWorkspaceShell,
+  useStudentPagination,
+} from '../../components/student/workspace';
 
 /* ─────────────────────────────────────────────
    Design tokens — identical to StudentProfile
@@ -42,9 +56,9 @@ const STYLES = `
     --surface-3: #e8e5e0;
     --border: #e4e1dc;
     --border-2: #d1ccc5;
-    --accent: #1a5cff;
-    --accent-2: #e8eeff;
-    --accent-soft: rgba(26,92,255,0.08);
+    --accent: #1ab8aa;
+    --accent-2: #e6fffb;
+    --accent-soft: rgba(26, 184, 170, 0.08);
     --success: #12b76a;
     --success-soft: rgba(18,183,106,0.10);
     --warning: #f59e0b;
@@ -72,9 +86,9 @@ const STYLES = `
     --surface-3: #252525;
     --border: #2a2a2a;
     --border-2: #353535;
-    --accent: #4d7fff;
-    --accent-2: #1a2340;
-    --accent-soft: rgba(77,127,255,0.10);
+    --accent: #2dd4bf;
+    --accent-2: #0f3f3c;
+    --accent-soft: rgba(45, 212, 191, 0.10);
     --success-soft: rgba(18,183,106,0.12);
     --warning-soft: rgba(245,158,11,0.12);
     --danger-soft: rgba(239,68,68,0.12);
@@ -454,10 +468,10 @@ const STYLES = `
   .sa-btn-primary {
     background: var(--accent);
     color: #fff;
-    box-shadow: 0 1px 3px rgba(26,92,255,0.25), 0 4px 12px rgba(26,92,255,0.15);
+    box-shadow: 0 1px 3px rgba(26, 184, 170, 0.25), 0 4px 12px rgba(26, 184, 170, 0.15);
     width: 100%;
   }
-  .sa-btn-primary:hover { box-shadow: 0 4px 16px rgba(26,92,255,0.35); transform: translateY(-1px); color: #fff; }
+  .sa-btn-primary:hover { box-shadow: 0 4px 16px rgba(26, 184, 170, 0.35); transform: translateY(-1px); color: #fff; }
   .sa-btn-ghost {
     background: var(--surface-3);
     color: var(--ink-2);
@@ -488,6 +502,9 @@ const STYLES = `
   .sa-badge-warning { background: var(--warning-soft); color: var(--warning); }
   .sa-badge-neutral { background: var(--surface-3);    color: var(--ink-3); }
   .sa-badge-accent  { background: var(--accent-soft);  color: var(--accent); }
+
+  .sa-generate-btn { width: 100%; }
+  .sa-artifact-actions .sw-status { flex-shrink: 0; }
 
   /* ══════════════════════════════════════
      RESPONSIVE
@@ -652,6 +669,8 @@ const StudentArtifacts: React.FC = () => {
     },
   ];
 
+  const artifactPagination = useStudentPagination({ items: artifacts });
+
   /* ════════════════════════════════════
      RENDER
   ════════════════════════════════════ */
@@ -662,113 +681,84 @@ const StudentArtifacts: React.FC = () => {
       {loading ? (
         <StudentDashboardSkeleton />
       ) : (
-        <div className={`sa-page${isDarkMode ? ' dark-mode' : ''}`}>
+        <StudentWorkspaceShell darkMode={isDarkMode}>
+        <StudentWorkspacePage>
 
           {/* ── HERO ── */}
-          <header className="sa-hero">
-            <div>
-              <div className="sa-hero-eyebrow">
+          <StudentPageHeader
+            eyebrow={
+              <>
                 <Sparkles size={12} />
                 EduLink · Verified Document Vault
-              </div>
-              <h1 className="sa-hero-title">
-                Artifacts &amp; <em>Reports</em>
-              </h1>
-              <p className="sa-hero-sub">
+              </>
+            }
+            title="Artifacts & Reports"
+            subtitle={
+              <>
                 Access certificates, logbook reports, and official placement records.
                 Each artifact is cryptographically stamped and publicly verifiable.
-              </p>
-              <div className="sa-hero-meta">
-                <span className="sa-hero-meta-item">
-                  <FileText size={13} />
-                  {artifacts.length} artifact{artifacts.length !== 1 ? 's' : ''} generated
-                </span>
-                <span className="sa-hero-meta-item">
-                  <ShieldCheck size={13} />
-                  Public verification enabled
-                </span>
-                <span className="sa-hero-meta-item">
-                  <Clock size={13} />
-                  Snapshot integrity at generation time
-                </span>
-              </div>
-            </div>
-
-            {/* Placement status card */}
-            <div className="sa-placement-card">
-              <span className="sa-placement-eyebrow">Active placement</span>
-              <div className={`sa-placement-icon ${internship ? 'ready' : 'locked'}`}>
-                {internship ? <CheckCircle size={24} /> : <Lock size={24} />}
-              </div>
-              <span className="sa-placement-status">
-                {internship ? 'Ready' : 'Locked'}
-              </span>
-              <span className="sa-placement-sub">
-                {internship
-                  ? internship.title
-                  : 'Declare a placement to unlock artifact generation.'}
-              </span>
-              {internship && (
-                <span className="sa-badge sa-badge-success">
-                  <CheckCircle size={10} /> Active
-                </span>
-              )}
-            </div>
-          </header>
+              </>
+            }
+            actions={
+              internship ? (
+                <StudentStatus tone="success">
+                  <CheckCircle size={13} /> Active placement
+                </StudentStatus>
+              ) : (
+                <StudentStatus tone="warning">
+                  <Lock size={13} /> Placement locked
+                </StudentStatus>
+              )
+            }
+          />
 
           {/* ── STAT CHECKS ── */}
-          <section className="sa-checks-section">
-            <div className="sa-section-head">
-              <div>
-                <div className="sa-section-eyebrow">Vault status</div>
-                <h2 className="sa-section-title">
-                  {artifacts.length === 0
-                    ? 'Your document vault is empty'
-                    : `${artifacts.length} artifact${artifacts.length !== 1 ? 's' : ''} in your vault`}
-                </h2>
-                <p className="sa-section-sub">
-                  All generated documents are publicly verifiable by employers and institutions.
-                </p>
-              </div>
-            </div>
-            <div className="sa-check-grid">
+          <StudentCard
+            label="Vault status"
+            title={
+              artifacts.length === 0
+                ? 'Your document vault is empty'
+                : `${artifacts.length} artifact${artifacts.length !== 1 ? 's' : ''} in your vault`
+            }
+            subtitle="All generated documents are publicly verifiable by employers and institutions."
+          >
+            <StudentGrid>
               {statChecks.map((check) => {
                 const Icon = check.icon;
                 return (
-                  <div
-                    key={check.title}
-                    className={`sa-check${check.state === 'ready' ? ' ready' : ''}`}
-                  >
-                    <div className={`sa-check-icon ${check.state}`}>
-                      <Icon size={15} />
-                    </div>
-                    <div className="sa-check-title">{check.title}</div>
-                    <div className="sa-check-desc">{check.description}</div>
-                  </div>
+                  <StudentColumn span={3} key={check.title}>
+                    <StudentMetric
+                      label={check.title}
+                      value={check.state === 'ready' ? 'Ready' : 'Pending'}
+                      note={check.description}
+                      icon={<Icon size={18} />}
+                    />
+                  </StudentColumn>
                 );
               })}
-            </div>
-          </section>
+            </StudentGrid>
+          </StudentCard>
+
+          <div style={{ height: 20 }} />
 
           {/* ── MAIN FLOW ── */}
           <div className="sa-flow">
             <main className="sa-main">
 
               {/* Artifact vault */}
-              <div className="sa-card">
-                <div className="sa-card-header">
-                  <div>
-                    <div className="sa-card-label">Document vault</div>
-                    <h3 className="sa-card-title">Generated documents</h3>
-                  </div>
-                  <span className="sa-badge sa-badge-neutral">
+              <StudentCard
+                label="Document vault"
+                title="Generated documents"
+                actions={
+                  <StudentStatus>
                     {artifacts.length} total
-                  </span>
-                </div>
-                <div className="sa-card-body">
+                  </StudentStatus>
+                }
+              >
                   {artifacts.length > 0 ? (
-                    <div className={`sa-artifact-list${artifacts.length > 10 ? ' scrollable' : ''}`}>
-                      {artifacts.map((artifact) => (
+                    <>
+                    <div className={`sa-artifact-list${artifactPagination.totalItems > artifactPagination.pageSize ? ' scrollable' : ''}`}>
+                      {artifactPagination.pageItems.map((artifact) => (
                         <div key={artifact.id} className="sa-artifact-row">
                           <div className="sa-artifact-icon">
                             {getArtifactIcon(artifact.artifact_type)}
@@ -782,41 +772,49 @@ const StudentArtifacts: React.FC = () => {
                             </div>
                           </div>
                           <div className="sa-artifact-actions">
-                            <span className="sa-badge sa-badge-success">
+                            <StudentStatus tone="success">
                               <CheckCircle size={10} /> Verified
-                            </span>
-                            <Link
+                            </StudentStatus>
+                            <StudentButton
+                              as={Link}
                               to={`/verify/${artifact.id}`}
                               target="_blank"
-                              className="sa-btn sa-btn-ghost sa-btn-sm sa-btn-icon"
+                              variant="ghost"
+                              className="sa-btn-icon"
                               title="Open public verification page"
                             >
                               <ExternalLink size={13} />
-                            </Link>
-                            <button
-                              className="sa-btn sa-btn-ghost sa-btn-sm sa-btn-icon"
+                            </StudentButton>
+                            <StudentButton
+                              type="button"
+                              variant="ghost"
+                              className="sa-btn-icon"
                               onClick={() => handleDownload(artifact)}
                               title="Download artifact"
                             >
                               <Download size={13} />
-                            </button>
+                            </StudentButton>
                           </div>
                         </div>
                       ))}
                     </div>
+                    <StudentPagination
+                      totalItems={artifactPagination.totalItems}
+                      startItem={artifactPagination.startItem}
+                      endItem={artifactPagination.endItem}
+                      page={artifactPagination.page}
+                      totalPages={artifactPagination.totalPages}
+                      pageSize={artifactPagination.pageSize}
+                      onPageChange={artifactPagination.setPage}
+                      onPageSizeChange={artifactPagination.setPageSize}
+                    />
+                    </>
                   ) : (
-                    <div className="sa-empty">
-                      <div className="sa-empty-icon">
-                        <FileText size={28} />
-                      </div>
-                      <p className="sa-empty-title">No artifacts yet</p>
-                      <p className="sa-empty-sub">
-                        Generate reports once your placement evidence is recorded and reviewed.
-                      </p>
-                    </div>
+                    <StudentEmptyState icon={<FileText size={22} />} title="No artifacts yet">
+                      Generate reports once your placement evidence is recorded and reviewed.
+                    </StudentEmptyState>
                   )}
-                </div>
-              </div>
+              </StudentCard>
 
             </main>
 
@@ -824,14 +822,8 @@ const StudentArtifacts: React.FC = () => {
             <aside className="sa-sidebar">
 
               {/* Generate new */}
-              <div className="sa-card">
-                <div className="sa-card-header">
-                  <div>
-                    <div className="sa-card-label">Actions</div>
-                    <h3 className="sa-card-title">Generate new</h3>
-                  </div>
-                </div>
-                <div className="sa-card-body" style={{ paddingTop: 8, paddingBottom: 8 }}>
+              <StudentCard label="Actions" title="Generate new">
+                <div style={{ paddingTop: 2, paddingBottom: 2 }}>
                   <div className="sa-gen-list">
                     {generationActions.map((action) => {
                       const Icon = action.icon;
@@ -850,8 +842,10 @@ const StudentArtifacts: React.FC = () => {
                               {count}/{ARTIFACT_LIMITS[action.type]}
                             </span>
                           </div>
-                          <button
-                            className="sa-btn sa-btn-primary"
+                          <StudentButton
+                            type="button"
+                            variant="primary"
+                            className="sa-generate-btn"
                             onClick={() => handleGenerate(action.type)}
                             disabled={!action.available || !!generating || limitHit}
                           >
@@ -862,23 +856,21 @@ const StudentArtifacts: React.FC = () => {
                               : !action.available
                               ? <><Lock size={13} /> Locked</>
                               : <><ArrowRight size={13} /> Generate</>}
-                          </button>
+                          </StudentButton>
                         </div>
                       );
                     })}
                   </div>
                 </div>
-              </div>
+              </StudentCard>
 
               {/* Security & audit */}
-              <div className="sa-card">
-                <div className="sa-card-header">
-                  <span style={{ fontSize: 13, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--ink-3)' }}>
-                    Security &amp; Audit
-                  </span>
-                  <ShieldCheck size={15} style={{ color: 'var(--success)' }} />
-                </div>
-                <div className="sa-card-body" style={{ paddingTop: 8, paddingBottom: 8 }}>
+              <StudentCard
+                label="Security"
+                title="Audit trail"
+                actions={<ShieldCheck size={15} style={{ color: 'var(--success)' }} />}
+              >
+                <div style={{ paddingTop: 2, paddingBottom: 2 }}>
                   {[
                     {
                       icon: ShieldCheck,
@@ -908,7 +900,7 @@ const StudentArtifacts: React.FC = () => {
                     );
                   })}
                 </div>
-              </div>
+              </StudentCard>
 
               {/* Tip */}
               <div className="sa-tip">
@@ -922,7 +914,8 @@ const StudentArtifacts: React.FC = () => {
 
             </aside>
           </div>
-        </div>
+        </StudentWorkspacePage>
+        </StudentWorkspaceShell>
       )}
     </StudentLayout>
   );

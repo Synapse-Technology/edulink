@@ -48,8 +48,8 @@ const STYLES = `
     --rim-surface-3: #e8e5e0;
     --rim-border: #e4e1dc;
     --rim-border-2: #d1ccc5;
-    --rim-accent: #1a5cff;
-    --rim-accent-soft: rgba(26,92,255,0.08);
+    --rim-accent: #1ab8aa;
+    --rim-accent-soft: rgba(26, 184, 170, 0.08);
     --rim-success: #12b76a;
     --rim-success-soft: rgba(18,183,106,0.10);
     --rim-danger: #ef4444;
@@ -85,8 +85,8 @@ const STYLES = `
     --rim-surface-3: #252525;
     --rim-border: #2a2a2a;
     --rim-border-2: #353535;
-    --rim-accent: #4d7fff;
-    --rim-accent-soft: rgba(77,127,255,0.10);
+    --rim-accent: #2dd4bf;
+    --rim-accent-soft: rgba(45, 212, 191, 0.10);
     --rim-success-soft: rgba(18,183,106,0.12);
     --rim-danger-soft: rgba(239,68,68,0.12);
     --rim-warning-soft: rgba(245,158,11,0.13);
@@ -198,7 +198,7 @@ const STYLES = `
     padding: 14px;
     border-radius: var(--rim-radius-sm);
     background: var(--rim-accent-soft);
-    border: 1px solid rgba(26,92,255,0.16);
+    border: 1px solid rgba(26, 184, 170, 0.16);
     margin-bottom: 18px;
   }
 
