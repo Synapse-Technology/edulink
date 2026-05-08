@@ -1,7 +1,11 @@
+import os
+import logging
+
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.http import FileResponse, HttpResponse
+from django.core.files.storage import default_storage
 from uuid import UUID
 
 from .models import Artifact, ArtifactType
@@ -16,8 +20,6 @@ from .services import (
 from .queries import list_artifacts_for_student, get_artifact_by_id
 from .policies import can_generate_artifact, can_view_artifact
 from edulink.apps.shared.error_handling import NotFoundError
-
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +47,19 @@ class ArtifactViewSet(viewsets.ReadOnlyModelViewSet):
         if action == 'verify':
             return []
         return super().get_authenticators()
+
+    @action(detail=False, methods=['get'], url_path='debug-storage', permission_classes=[permissions.IsAuthenticated])
+    def debug_storage(self, request):
+        """Temporary: diagnose storage config. Remove after fix."""
+        return Response({
+            "settings_module": os.environ.get('DJANGO_SETTINGS_MODULE', 'NOT SET'),
+            "storage_backend": type(default_storage).__name__,
+            "storage_module": type(default_storage).__module__,
+            "s3_access_key_set": bool(os.environ.get('SUPABASE_S3_ACCESS_KEY')),
+            "s3_secret_key_set": bool(os.environ.get('SUPABASE_S3_SECRET_KEY')),
+            "s3_endpoint": os.environ.get('SUPABASE_S3_ENDPOINT', 'NOT SET'),
+            "s3_bucket": os.environ.get('SUPABASE_S3_BUCKET', 'NOT SET'),
+        })
 
     @action(detail=False, methods=['post'], url_path='generate')
     def generate_artifact(self, request):
