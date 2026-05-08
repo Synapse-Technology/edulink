@@ -1,85 +1,702 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Table, Button, Badge, Form, Modal, Spinner, Alert } from 'react-bootstrap';
-import { CheckCircle, XCircle, FileText, Clock, RotateCcw, MessageSquare, Calendar, AlertCircle } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { /* useOutletContext */ } from 'react-router-dom';
+import {
+  CheckCircle, XCircle, FileText, Clock, RotateCcw,
+  MessageSquare, Calendar, AlertCircle, ChevronLeft,
+  ChevronRight, Eye, X, Lock
+} from 'lucide-react';
 import { internshipService } from '../../../../services/internship/internshipService';
-import type { InternshipEvidence } from '../../../../services/internship/internshipService';
+import type { InternshipEvidence, PaginatedResponse } from '../../../../services/internship/internshipService';
+import PaginationControls from '../../../../components/common/PaginationControls';
 import { toast } from 'react-hot-toast';
 import { DocumentPreviewModal } from '../../../../components/common';
 import SupervisorTableSkeleton from '../../../../components/admin/skeletons/SupervisorTableSkeleton';
+import styled, { keyframes, css } from 'styled-components';
 
+/* ─── Animations ──────────────────────────────────────────────────── */
+const fadeUp = keyframes`
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+`;
+const overlayIn = keyframes`
+  from { opacity: 0; }
+  to   { opacity: 1; }
+`;
+const slideUp = keyframes`
+  from { opacity: 0; transform: translateY(24px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+`;
+const spin = keyframes`to { transform: rotate(360deg); }`;
+
+/* ─── Layout ──────────────────────────────────────────────────────── */
+const Page = styled.div`
+  animation: ${fadeUp} 0.3s ease both;
+`;
+
+const PageHeader = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+`;
+
+const TitleGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 14px;
+`;
+
+const IconBox = styled.div`
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: #FFFBEB;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid rgba(217,119,6,0.15);
+`;
+
+const TitleText = styled.div`
+  h1 {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--navy);
+    margin: 0 0 3px;
+    letter-spacing: -0.02em;
+  }
+  p {
+    font-size: 13px;
+    color: var(--steel);
+    margin: 0;
+  }
+`;
+
+/* ─── Error banner ────────────────────────────────────────────────── */
+const ErrorBanner = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: #FEF2F2;
+  border: 1px solid rgba(220,38,38,0.18);
+  border-left: 3px solid #DC2626;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #7F1D1D;
+  margin-bottom: 1.25rem;
+`;
+
+const RetryBtn = styled.button`
+  margin-left: auto;
+  padding: 5px 12px;
+  background: white;
+  border: 1px solid rgba(220,38,38,0.3);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #DC2626;
+  cursor: pointer;
+  transition: background 0.14s;
+  &:hover { background: #FEF2F2; }
+`;
+
+/* ─── Card ────────────────────────────────────────────────────────── */
+const Card = styled.div`
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+`;
+
+const CardHead = styled.div`
+  padding: 1.1rem 1.5rem 1rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+
+  h5 { font-size: 14px; font-weight: 600; color: var(--navy); margin: 0; }
+`;
+
+const PendingPill = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  background: #FFFBEB;
+  color: #92400E;
+  border: 1px solid rgba(217,119,6,0.2);
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 600;
+
+  &::before {
+    content: '';
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #D97706;
+  }
+`;
+
+/* ─── Table ───────────────────────────────────────────────────────── */
+const TableWrap = styled.div`overflow-x: auto;`;
+
+const Table = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+`;
+
+const Thead = styled.thead`
+  background: var(--fog);
+  th {
+    padding: 10px 16px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--steel);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  th:first-child { padding-left: 1.5rem; }
+  th:last-child  { padding-right: 1.5rem; text-align: right; }
+`;
+
+const Tbody = styled.tbody`
+  tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.12s;
+    &:last-child { border-bottom: none; }
+    &:hover { background: var(--fog); }
+  }
+  td {
+    padding: 13px 16px;
+    vertical-align: middle;
+  }
+  td:first-child { padding-left: 1.5rem; }
+  td:last-child  { padding-right: 1.5rem; text-align: right; }
+`;
+
+const TitleCell = styled.div`
+  p { font-size: 13.5px; font-weight: 600; color: var(--navy); margin: 0 0 2px; }
+  .week {
+    font-size: 12px;
+    color: var(--steel);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 2px;
+  }
+  .student { font-size: 12px; color: var(--accent); font-weight: 600; }
+`;
+
+const DateCell = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--steel);
+  font-size: 12.5px;
+`;
+
+const DualReview = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const DualRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--steel);
+`;
+
+const ReviewBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: var(--accent-dim);
+  color: var(--accent);
+  border: none;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.14s;
+  &:hover { background: #BFDBFE; }
+`;
+
+/* ─── Status badges ───────────────────────────────────────────────── */
+type StatusConfig = { bg: string; color: string; dot: string; label: string };
+
+const STATUS_MAP: Record<string, StatusConfig> = {
+  ACCEPTED:         { bg: '#F0FDF4', color: '#166534', dot: '#16A34A', label: 'Approved' },
+  REJECTED:         { bg: '#FEF2F2', color: '#B91C1C', dot: '#DC2626', label: 'Rejected' },
+  REVISION_REQUIRED:{ bg: '#EFF6FF', color: '#1D4ED8', dot: '#3B82F6', label: 'Revision' },
+  REVIEWED:         { bg: '#FFFBEB', color: '#92400E', dot: '#D97706', label: 'Reviewed' },
+  PENDING:          { bg: '#FFFBEB', color: '#92400E', dot: '#D97706', label: 'Pending' },
+};
+
+const StatusPill = styled.span<{ $cfg: StatusConfig }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  background: ${p => p.$cfg.bg};
+  color: ${p => p.$cfg.color};
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+
+  &::before {
+    content: '';
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: ${p => p.$cfg.dot};
+    flex-shrink: 0;
+  }
+`;
+
+const getStatusPill = (status?: string) => {
+  const cfg = STATUS_MAP[status ?? 'PENDING'] ?? STATUS_MAP.PENDING;
+  return <StatusPill $cfg={cfg}>{cfg.label}</StatusPill>;
+};
+
+/* ─── Empty state ─────────────────────────────────────────────────── */
+const Empty = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4rem 1rem;
+  text-align: center;
+
+  div.icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: #F0FDF4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+  }
+  h5 { font-size: 15px; font-weight: 600; color: var(--navy); margin: 0 0 6px; }
+  p  { font-size: 13px; color: var(--steel); margin: 0; }
+`;
+
+/* ─── Modal overlay ───────────────────────────────────────────────── */
+const Overlay = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(13, 33, 55, 0.42);
+  z-index: 12000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: ${overlayIn} 0.2s ease;
+  backdrop-filter: blur(2px);
+`;
+
+const ModalBox = styled.div`
+  width: 100%;
+  max-width: 720px;
+  max-height: 90vh;
+  background: var(--white);
+  border-radius: 14px;
+  box-shadow: 0 24px 48px rgba(13,33,55,0.18);
+  animation: ${slideUp} 0.22s ease both;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+`;
+
+const ModalHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.1rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+
+  h3 { font-size: 15px; font-weight: 600; color: var(--navy); margin: 0; }
+`;
+
+const NavGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const NavCounter = styled.span`
+  font-size: 12px;
+  color: var(--steel);
+  min-width: 40px;
+  text-align: center;
+`;
+
+const NavBtn = styled.button<{ disabled?: boolean }>`
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: var(--fog);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: ${p => p.disabled ? 'not-allowed' : 'pointer'};
+  opacity: ${p => p.disabled ? 0.4 : 1};
+  color: var(--slate);
+  transition: background 0.13s;
+  &:hover:not(:disabled) { background: var(--mist); }
+`;
+
+const CloseBtn = styled.button`
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: var(--steel);
+  border-radius: 6px;
+  display: flex;
+  transition: background 0.14s, color 0.14s;
+  &:hover { background: var(--mist); color: var(--navy); }
+`;
+
+const ModalBody = styled.div`
+  padding: 1.25rem 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+`;
+
+/* ─── Modal sub-sections ──────────────────────────────────────────── */
+const SectionLabel = styled.div`
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--steel);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-bottom: 0.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const EntryCard = styled.div`
+  background: var(--fog);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  &:last-child { margin-bottom: 0; }
+`;
+
+const EntryDate = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+
+  strong { font-size: 12.5px; font-weight: 600; color: var(--navy); }
+  span   { font-size: 11px; color: var(--steel); }
+`;
+
+const EntryText = styled.p`
+  font-size: 13px;
+  color: var(--slate);
+  margin: 0;
+  line-height: 1.55;
+  white-space: pre-wrap;
+`;
+
+const DualReviewBox = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  @media (max-width: 560px) { grid-template-columns: 1fr; }
+`;
+
+const ReviewerCard = styled.div`
+  background: var(--fog);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+`;
+
+const ReviewerTop = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  span { font-size: 12px; font-weight: 600; color: var(--navy); }
+`;
+
+const ReviewerNote = styled.p`
+  font-size: 12px;
+  color: var(--steel);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const PrivateNote = styled.p`
+  font-size: 11.5px;
+  color: #B91C1C;
+  margin: 4px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+`;
+
+/* ─── Review form ─────────────────────────────────────────────────── */
+const ReviewSection = styled.div`
+  background: #FFFBEB;
+  border: 1px solid rgba(217,119,6,0.18);
+  border-left: 3px solid #D97706;
+  border-radius: 8px;
+  padding: 14px;
+`;
+
+const ReviewSectionHead = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #92400E;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-bottom: 10px;
+`;
+
+const FormGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  @media (max-width: 560px) { grid-template-columns: 1fr; }
+`;
+
+const FormGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+`;
+
+const Label = styled.label`
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--steel);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+`;
+
+const sharedInput = css`
+  width: 100%;
+  padding: 8px 11px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  font-size: 13px;
+  color: var(--navy);
+  font-family: var(--font);
+  transition: border-color 0.15s, box-shadow 0.15s;
+  outline: none;
+  resize: vertical;
+  min-height: 86px;
+  line-height: 1.55;
+
+  &::placeholder { color: var(--steel); }
+  &:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(47,111,237,0.12);
+  }
+`;
+
+const Textarea = styled.textarea`${sharedInput}`;
+
+/* ─── Attachment pill ─────────────────────────────────────────────── */
+const AttachPill = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  background: var(--accent-dim);
+  color: var(--accent);
+  border: none;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.13s;
+  &:hover { background: #BFDBFE; }
+`;
+
+/* ─── Modal footer ────────────────────────────────────────────────── */
+const ModalFooter = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border);
+  background: var(--fog);
+  flex-shrink: 0;
+  gap: 8px;
+  flex-wrap: wrap;
+`;
+
+const FooterActions = styled.div`
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+`;
+
+const CancelBtn = styled.button`
+  padding: 8px 18px;
+  background: var(--white);
+  border: 1px solid var(--border-md);
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--slate);
+  cursor: pointer;
+  transition: background 0.14s;
+  &:hover { background: var(--mist); }
+`;
+
+const RejectBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: #FEF2F2;
+  color: #B91C1C;
+  border: 1px solid rgba(220,38,38,0.2);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.14s;
+  &:hover:not(:disabled) { background: #FEE2E2; }
+  &:disabled { opacity: 0.6; cursor: not-allowed; }
+`;
+
+const RevisionBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: #EFF6FF;
+  color: #1D4ED8;
+  border: 1px solid rgba(59,130,246,0.2);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.14s;
+  &:hover:not(:disabled) { background: #DBEAFE; }
+  &:disabled { opacity: 0.6; cursor: not-allowed; }
+`;
+
+const ApproveBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  background: #16A34A;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  &:hover:not(:disabled) { background: #15803D; }
+  &:disabled { opacity: 0.6; cursor: not-allowed; }
+`;
+
+const Spinner = styled.span`
+  width: 13px;
+  height: 13px;
+  border: 2px solid rgba(255,255,255,0.35);
+  border-top-color: white;
+  border-radius: 50%;
+  display: inline-block;
+  animation: ${spin} 0.6s linear infinite;
+`;
+
+/* ─── Component ───────────────────────────────────────────────────── */
 const SupervisorLogbooks: React.FC = () => {
   const [evidenceList, setEvidenceList] = useState<InternshipEvidence[]>([]);
+  const [evidencePage, setEvidencePage] = useState<PaginatedResponse<InternshipEvidence> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
-  // Review Modal State
+
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [selectedEvidence, setSelectedEvidence] = useState<InternshipEvidence | null>(null);
   const [selectedEvidenceIndex, setSelectedEvidenceIndex] = useState(0);
   const [reviewNotes, setReviewNotes] = useState('');
   const [privateNotes, setPrivateNotes] = useState('');
-  const [reviewAction, setReviewAction] = useState<'ACCEPTED' | 'REJECTED' | 'REVISION_REQUIRED' | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Preview Modal State
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewTitle, setPreviewTitle] = useState('');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchEvidence();
-  }, []);
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(12);
 
-  const fetchEvidence = async () => {
+  const fetchEvidence = async (p = 1) => {
     try {
       setLoading(true);
-      const dataResponse = await internshipService.getPendingEvidence();
-      const data = Array.isArray(dataResponse) ? dataResponse : (dataResponse as any)?.results || [];
-      // Filter for Logbooks
-      const logbooks = data.filter((e: InternshipEvidence) => e.evidence_type === 'LOGBOOK');
-      setEvidenceList(logbooks);
-    } catch (err: any) {
-      console.error("Failed to fetch evidence", err);
-      setError("Failed to load pending logbooks.");
+      setError(null);
+      const resp = await internshipService.getPendingEvidencePaginated({ page: p, page_size: pageSize });
+      const data = resp.results || [];
+      setEvidencePage(resp);
+      setEvidenceList(data.filter((e: InternshipEvidence) => e.evidence_type === 'LOGBOOK'));
+    } catch (err) {
+      console.error('Failed to load pending logbooks.', err);
+      setError('Failed to load logbooks.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleReviewClick = (evidence: InternshipEvidence, action: 'ACCEPTED' | 'REJECTED' | 'REVISION_REQUIRED', index: number) => {
+  useEffect(() => {
+    fetchEvidence(page);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
+
+  const openModal = (evidence: InternshipEvidence, index: number) => {
     setSelectedEvidence(evidence);
     setSelectedEvidenceIndex(index);
-    setReviewAction(action);
     setReviewNotes(evidence.institution_review_notes || '');
     setPrivateNotes(evidence.institution_private_notes || '');
     setShowReviewModal(true);
   };
 
-  const navigateToNext = () => {
-    if (selectedEvidenceIndex < evidenceList.length - 1) {
-      const nextEvidence = evidenceList[selectedEvidenceIndex + 1];
-      handleReviewClick(nextEvidence, 'ACCEPTED', selectedEvidenceIndex + 1);
-    }
+  const navigateTo = (index: number) => {
+    if (index < 0 || index >= evidenceList.length) return;
+    openModal(evidenceList[index], index);
   };
 
-  const navigateToPrevious = () => {
-    if (selectedEvidenceIndex > 0) {
-      const prevEvidence = evidenceList[selectedEvidenceIndex - 1];
-      handleReviewClick(prevEvidence, 'ACCEPTED', selectedEvidenceIndex - 1);
-    }
-  };
-
-  const handleReviewSubmit = async (action: 'ACCEPTED' | 'REJECTED' | 'REVISION_REQUIRED' | null = reviewAction) => {
-    if (!selectedEvidence || !action) return;
-
-    // Check if internship is completed
-    // Since we don't have the full internship object here, we might rely on the backend error or try to check if available.
-    // However, the selectedEvidence might not contain full internship status.
-    // Ideally, we should check this. 
-    // But since the list filters pending evidence, and completed internships shouldn't have pending evidence that needs review?
-    // Actually, pending evidence might exist even if internship is marked complete (edge case).
-    // Let's wrap in try-catch and handle the specific error from backend.
-    
+  const handleReviewSubmit = async (action: 'ACCEPTED' | 'REJECTED' | 'REVISION_REQUIRED') => {
+    if (!selectedEvidence) return;
     try {
       setSubmitting(true);
       await internshipService.reviewEvidence(
@@ -89,365 +706,287 @@ const SupervisorLogbooks: React.FC = () => {
         reviewNotes,
         privateNotes
       );
-      
-      const actionLabel = action === 'ACCEPTED' ? 'approved' : 
-                         action === 'REVISION_REQUIRED' ? 'sent for revision' : 'rejected';
-      
-      toast.success(`Logbook ${actionLabel} successfully`);
+      const label = action === 'ACCEPTED' ? 'approved' : action === 'REVISION_REQUIRED' ? 'sent for revision' : 'rejected';
+      toast.success(`Logbook ${label} successfully`);
       setShowReviewModal(false);
-      fetchEvidence(); // Refresh list
+      fetchEvidence(page);
     } catch (err: any) {
-      console.error("Failed to review evidence", err);
-      // Check for the specific permission error message from backend
-      if (err?.response?.status === 403) {
-         toast.error("You cannot review this logbook (Internship might be completed).");
-      } else {
-         toast.error("Failed to submit review");
-      }
+      toast.error(err?.response?.status === 403
+        ? 'You cannot review this logbook (internship may be completed).'
+        : 'Failed to submit review.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const getStatusBadge = (status: string | undefined, label?: string) => {
-    if (!status) return <Badge bg="secondary" className="bg-opacity-10 text-secondary border border-secondary-subtle px-2 py-1 fw-medium rounded-3">{label || 'Pending'}</Badge>;
-    
-    switch (status) {
-      case 'ACCEPTED':
-        return <Badge bg="success" className="bg-opacity-10 text-success border border-success-subtle px-2 py-1 fw-medium rounded-3">{label || 'Approved'}</Badge>;
-      case 'REJECTED':
-        return <Badge bg="danger" className="bg-opacity-10 text-danger border border-danger-subtle px-2 py-1 fw-medium rounded-3">{label || 'Rejected'}</Badge>;
-      case 'REVISION_REQUIRED':
-        return <Badge bg="info" className="bg-opacity-10 text-info border border-info-subtle px-2 py-1 fw-medium rounded-3">{label || 'Revision'}</Badge>;
-      case 'REVIEWED':
-        return <Badge bg="warning" className="bg-opacity-10 text-warning border border-warning-subtle px-2 py-1 fw-medium rounded-3">{label || 'Reviewed'}</Badge>;
-      default:
-        return <Badge bg="warning" className="bg-opacity-10 text-warning border border-warning-subtle px-2 py-1 fw-medium rounded-3">{label || 'Pending'}</Badge>;
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="container-fluid px-4 px-lg-5 py-4">
-        <SupervisorTableSkeleton />
-      </div>
-    );
-  }
+  if (loading) return <SupervisorTableSkeleton hasAction />;
 
   return (
-    <div className="container-fluid px-4 px-lg-5 py-4">
-      {/* Header Section */}
-      <div className="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center mb-5">
-        <div className="mb-4 mb-lg-0">
-          <div className="d-flex align-items-center gap-3 mb-3">
-            <div className="bg-warning bg-opacity-10 p-3 rounded-3">
-              <FileText size={28} className="text-warning" />
-            </div>
-            <div>
-              <h1 className="h2 fw-bold mb-1">Pending Logbooks</h1>
-              <p className="text-muted mb-0">
-                Review and approve daily logbook submissions from your students
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+    <Page>
+      <PageHeader>
+        <TitleGroup>
+          <IconBox>
+            <FileText size={22} color="#D97706" />
+          </IconBox>
+          <TitleText>
+            <h1>Pending Logbooks</h1>
+            <p>Review and approve weekly logbook submissions from your students</p>
+          </TitleText>
+        </TitleGroup>
+      </PageHeader>
 
-      {error ? (
-        <Alert variant="danger" className="border-0 shadow-sm rounded-3 d-flex align-items-center gap-3 p-4">
-          <AlertCircle size={24} />
-          <div>
-            <h6 className="fw-bold mb-1">Failed to load logbooks</h6>
-            <p className="mb-0 small">{error}</p>
-            <Button variant="outline-danger" size="sm" className="mt-3" onClick={fetchEvidence}>
-              Try Again
-            </Button>
-          </div>
-        </Alert>
-      ) : (
+      {error && (
+        <ErrorBanner>
+          <AlertCircle size={15} />
+          {error}
+          <RetryBtn onClick={() => fetchEvidence(page)}>Retry</RetryBtn>
+        </ErrorBanner>
+      )}
 
-    <Card className="border-0 shadow-sm overflow-hidden">
-      <Card.Header className="bg-white border-bottom py-3 px-4">
-         <div className="d-flex justify-content-between align-items-center">
-           <h5 className="fw-bold mb-0">Submission Queue</h5>
-           <Badge bg="warning" text="dark" className="bg-opacity-10 text-warning border border-warning-subtle px-3 py-2 rounded-pill">
-             {evidenceList.length} Pending
-           </Badge>
-         </div>
-      </Card.Header>
-      <Card.Body className="p-0">
-        <div className="table-responsive">
-          <Table hover className="table align-middle mb-0">
-            <thead className="bg-light">
+      <Card>
+        <CardHead>
+          <h5>Submission queue</h5>
+          <PendingPill>{evidenceList.length} pending</PendingPill>
+        </CardHead>
+
+        <TableWrap>
+          <Table>
+            <Thead>
               <tr>
-                <th className="border-0 ps-4 py-3 text-muted small text-uppercase fw-semibold">Student / Title</th>
-                <th className="border-0 py-3 text-muted small text-uppercase fw-semibold">Overall Status</th>
-                <th className="border-0 py-3 text-muted small text-uppercase fw-semibold">Dual Review</th>
-                <th className="border-0 py-3 text-muted small text-uppercase fw-semibold">Date Submitted</th>
-                <th className="border-0 pe-4 py-3 text-end text-muted small text-uppercase fw-semibold">Actions</th>
+                <th>Student / Title</th>
+                <th>Overall Status</th>
+                <th>Dual Review</th>
+                <th>Date Submitted</th>
+                <th>Action</th>
               </tr>
-            </thead>
-            <tbody>
-              {evidenceList.length > 0 ? (
-                evidenceList.map((evidence) => (
-                  <tr key={evidence.id} className="border-top-0 border-bottom">
-                    <td className="ps-4 py-3">
-                      <div className="fw-bold text-dark">{evidence.title}</div>
-                      <div className="small text-muted d-flex align-items-center gap-2">
-                        <Calendar size={12} />
-                        {evidence.metadata?.week_start_date ? `Week of ${evidence.metadata.week_start_date}` : evidence.description}
+            </Thead>
+            <Tbody>
+              {evidenceList.length > 0 ? evidenceList.map((evidence, idx) => (
+                <tr key={evidence.id}>
+                  <td>
+                    <TitleCell>
+                      <p>{evidence.title}</p>
+                      <div className="week">
+                        <Calendar size={11} />
+                        {evidence.metadata?.week_start_date
+                          ? `Week of ${evidence.metadata.week_start_date}`
+                          : evidence.description}
                       </div>
-                      <div className="small text-primary mt-1 fw-medium">
-                        {evidence.student_info?.name || 'Unknown Intern'}
-                      </div>
-                    </td>
-                    <td className="py-3">
-                      {getStatusBadge(evidence.status)}
-                    </td>
-                    <td className="py-3">
-                      <div className="d-flex flex-column gap-2">
-                         <div className="d-flex align-items-center justify-content-between" style={{ minWidth: '140px' }}>
-                           <small className="text-muted me-2">Employer:</small>
-                           {getStatusBadge(evidence.employer_review_status)}
-                         </div>
-                         <div className="d-flex align-items-center justify-content-between" style={{ minWidth: '140px' }}>
-                           <small className="text-muted me-2">Institution:</small>
-                           {getStatusBadge(evidence.institution_review_status)}
-                         </div>
-                      </div>
-                    </td>
-                    <td className="py-3">
-                      <div className="d-flex align-items-center text-muted">
-                        <Clock size={14} className="me-2" />
-                        {new Date(evidence.created_at).toLocaleDateString()}
-                      </div>
-                    </td>
-                    <td className="text-end pe-4 py-3">
-                      <div className="d-flex justify-content-end gap-2">
-                        <Button 
-                          variant="light" 
-                          size="sm" 
-                          className="border text-primary hover-lift d-flex align-items-center"
-                          onClick={() => handleReviewClick(evidence, 'ACCEPTED', evidenceList.indexOf(evidence))}
-                        >
-                          <FileText size={14} className="me-1" /> Review
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              ) : (
+                      <span className="student">{evidence.student_info?.name || 'Unknown Intern'}</span>
+                    </TitleCell>
+                  </td>
+                  <td>{getStatusPill(evidence.status)}</td>
+                  <td>
+                    <DualReview>
+                      <DualRow>
+                        <span style={{ minWidth: 60 }}>Employer</span>
+                        {getStatusPill(evidence.employer_review_status)}
+                      </DualRow>
+                      <DualRow>
+                        <span style={{ minWidth: 60 }}>Institution</span>
+                        {getStatusPill(evidence.institution_review_status)}
+                      </DualRow>
+                    </DualReview>
+                  </td>
+                  <td>
+                    <DateCell>
+                      <Clock size={13} />
+                      {new Date(evidence.created_at).toLocaleDateString('en-GB', {
+                        day: '2-digit', month: 'short', year: 'numeric'
+                      })}
+                    </DateCell>
+                  </td>
+                  <td>
+                    <ReviewBtn onClick={() => openModal(evidence, idx)}>
+                      <Eye size={13} /> Review
+                    </ReviewBtn>
+                  </td>
+                </tr>
+              )) : (
                 <tr>
-                  <td colSpan={5} className="text-center py-5">
-                    <div className="d-flex flex-column align-items-center py-4">
-                      <div className="bg-success bg-opacity-10 rounded-circle p-4 mb-3">
-                        <CheckCircle size={48} className="text-success" />
+                  <td colSpan={5}>
+                    <Empty>
+                      <div className="icon">
+                        <CheckCircle size={28} color="#16A34A" />
                       </div>
-                      <h5 className="fw-bold text-dark">All Caught Up!</h5>
-                      <p className="text-muted mb-0">No pending logbooks to review at the moment.</p>
-                    </div>
+                      <h5>All caught up!</h5>
+                      <p>No pending logbooks to review at the moment.</p>
+                    </Empty>
                   </td>
                 </tr>
               )}
-            </tbody>
+            </Tbody>
           </Table>
-        </div>
-      </Card.Body>
-        </Card>
-      )}
+        </TableWrap>
+          {evidencePage && (
+            <PaginationControls
+              count={evidencePage.count}
+              page={page}
+              pageSize={pageSize}
+              next={evidencePage.next}
+              previous={evidencePage.previous}
+              onPageChange={(p) => setPage(p)}
+            />
+          )}
+      </Card>
 
-      {/* Review Modal */}
-      <Modal show={showReviewModal} onHide={() => setShowReviewModal(false)} centered size="lg">
-        <Modal.Header closeButton className="border-0 pb-0">
-          <div className="d-flex justify-content-between align-items-center w-100">
-            <Modal.Title className="fw-bold">
-              Review Weekly Logbook
-            </Modal.Title>
-            <div className="d-flex align-items-center gap-3">
-              <small className="text-muted">
-                {evidenceList.length > 0 && `${selectedEvidenceIndex + 1} of ${evidenceList.length}`}
-              </small>
-              <div className="d-flex gap-2">
-                <Button 
-                  variant="outline-secondary" 
-                  size="sm" 
-                  onClick={navigateToPrevious}
+      {/* ── Review Modal ── */}
+      {showReviewModal && selectedEvidence && createPortal(
+        <Overlay onClick={() => setShowReviewModal(false)}>
+          <ModalBox onClick={e => e.stopPropagation()}>
+            <ModalHeader>
+              <h3>Review weekly logbook</h3>
+              <NavGroup>
+                <NavBtn
+                  type="button"
                   disabled={selectedEvidenceIndex === 0}
-                  className="px-2"
-                  title="Previous item (Keyboard: ← Arrow)"
+                  onClick={() => navigateTo(selectedEvidenceIndex - 1)}
                 >
-                  ← Prev
-                </Button>
-                <Button 
-                  variant="outline-secondary" 
-                  size="sm" 
-                  onClick={navigateToNext}
+                  <ChevronLeft size={14} />
+                </NavBtn>
+                <NavCounter>{selectedEvidenceIndex + 1} / {evidenceList.length}</NavCounter>
+                <NavBtn
+                  type="button"
                   disabled={selectedEvidenceIndex >= evidenceList.length - 1}
-                  className="px-2"
-                  title="Next item (Keyboard: → Arrow)"
+                  onClick={() => navigateTo(selectedEvidenceIndex + 1)}
                 >
-                  Next →
-                </Button>
-              </div>
-            </div>
-          </div>
-        </Modal.Header>
-        <Modal.Body className="pt-3">
-          <div className="mb-4">
-            <div className="d-flex justify-content-between align-items-center mb-3">
-              <h6 className="fw-bold text-muted text-uppercase small mb-0">Daily Entries</h6>
-              <div className="d-flex gap-2">
-                  {selectedEvidence?.file && (
-                    <button 
+                  <ChevronRight size={14} />
+                </NavBtn>
+                <CloseBtn type="button" onClick={() => setShowReviewModal(false)} aria-label="Close">
+                  <X size={17} />
+                </CloseBtn>
+              </NavGroup>
+            </ModalHeader>
+
+            <ModalBody>
+              {/* Daily entries */}
+              <div>
+                <SectionLabel>
+                  <span>Daily entries</span>
+                  {selectedEvidence.file && (
+                    <AttachPill
                       type="button"
-                      className="btn btn-sm btn-outline-primary d-inline-flex align-items-center rounded-pill px-3"
                       onClick={() => {
                         setPreviewTitle('Attachment');
                         setPreviewUrl(selectedEvidence.file);
                         setPreviewOpen(true);
                       }}
                     >
-                      <FileText size={14} className="me-2" />
-                      View Attachment
-                    </button>
+                      <FileText size={12} /> View attachment
+                    </AttachPill>
                   )}
-                  <Badge bg="primary" className="bg-opacity-10 text-primary border border-primary-subtle rounded-pill px-3 py-2">
-                  {selectedEvidence?.metadata?.week_start_date ? `Week of ${selectedEvidence.metadata.week_start_date}` : 'Weekly Submission'}
-                  </Badge>
+                </SectionLabel>
+
+                {selectedEvidence.metadata?.entries
+                  ? Object.entries(selectedEvidence.metadata.entries as Record<string, string>)
+                      .sort()
+                      .map(([date, content]) => (
+                        <EntryCard key={date}>
+                          <EntryDate>
+                            <strong>
+                              {new Date(date).toLocaleDateString('en-US', {
+                                weekday: 'long', month: 'short', day: 'numeric'
+                              })}
+                            </strong>
+                            <span>{date}</span>
+                          </EntryDate>
+                          <EntryText>{content as string}</EntryText>
+                        </EntryCard>
+                      ))
+                  : <p style={{ fontSize: 13, color: 'var(--steel)', margin: 0 }}>No daily logs found in this submission.</p>
+                }
               </div>
-            </div>
-            
-            <div className="d-flex flex-column gap-3">
-            {selectedEvidence?.metadata?.entries ? (
-              Object.entries(selectedEvidence.metadata.entries as Record<string, string>).sort().map(([date, content]) => (
-                <div key={date} className="bg-light p-3 rounded-3 border-start border-primary border-4">
-                    <div className="d-flex justify-content-between align-items-center mb-2">
-                      <span className="fw-bold text-dark small">{new Date(date).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</span>
-                      <Badge bg="white" className="text-muted border fw-normal small">{date}</Badge>
-                    </div>
-                    <p className="mb-0 small text-dark" style={{ whiteSpace: 'pre-wrap' }}>{content as string}</p>
-                  </div>
-                ))
-              ) : (
-                <Alert variant="info" className="small">No daily logs found in this submission.</Alert>
-              )}
-            </div>
-          </div>
 
-          <div className="bg-light p-3 rounded-3 mb-4">
-              <h6 className="fw-bold text-muted text-uppercase small mb-3">Dual Review Status</h6>
-              <div className="row g-3">
-                  <div className="col-md-6">
-                        <div className="p-2 border rounded bg-white">
-                            <div className="d-flex justify-content-between align-items-center mb-1">
-                                <span className="small fw-bold">Employer Supervisor</span>
-                                {getStatusBadge(selectedEvidence?.employer_review_status)}
-                            </div>
-                            <small className="text-muted d-block text-truncate">
-                                {selectedEvidence?.employer_review_notes || 'No feedback yet'}
-                            </small>
-                            {selectedEvidence?.employer_private_notes && (
-                                <small className="text-danger d-block text-truncate mt-1" style={{ fontSize: '0.7rem' }}>
-                                    Private: {selectedEvidence.employer_private_notes}
-                                </small>
-                            )}
-                        </div>
-                    </div>
-                    <div className="col-md-6">
-                        <div className="p-2 border rounded bg-white">
-                            <div className="d-flex justify-content-between align-items-center mb-1">
-                                <span className="small fw-bold">Institution Supervisor</span>
-                                {getStatusBadge(selectedEvidence?.institution_review_status)}
-                            </div>
-                            <small className="text-muted d-block text-truncate">
-                                {selectedEvidence?.institution_review_notes || 'No feedback yet'}
-                            </small>
-                            {selectedEvidence?.institution_private_notes && (
-                                <small className="text-danger d-block text-truncate mt-1" style={{ fontSize: '0.7rem' }}>
-                                    Private: {selectedEvidence.institution_private_notes}
-                                </small>
-                            )}
-                        </div>
-                    </div>
+              {/* Dual review status */}
+              <div>
+                <SectionLabel><span>Dual review status</span></SectionLabel>
+                <DualReviewBox>
+                  {[
+                    {
+                      label: 'Employer Supervisor',
+                      status: selectedEvidence.employer_review_status,
+                      notes: selectedEvidence.employer_review_notes,
+                      private: selectedEvidence.employer_private_notes,
+                    },
+                    {
+                      label: 'Institution Supervisor',
+                      status: selectedEvidence.institution_review_status,
+                      notes: selectedEvidence.institution_review_notes,
+                      private: selectedEvidence.institution_private_notes,
+                    },
+                  ].map(r => (
+                    <ReviewerCard key={r.label}>
+                      <ReviewerTop>
+                        <span>{r.label}</span>
+                        {getStatusPill(r.status)}
+                      </ReviewerTop>
+                      <ReviewerNote>{r.notes || 'No feedback yet'}</ReviewerNote>
+                      {r.private && (
+                        <PrivateNote>
+                          <Lock size={10} /> {r.private}
+                        </PrivateNote>
+                      )}
+                    </ReviewerCard>
+                  ))}
+                </DualReviewBox>
               </div>
-          </div>
 
-          <hr className="my-4 opacity-10" />
-
-          <div className="bg-warning bg-opacity-10 p-3 rounded-3 mb-4 border border-warning-subtle">
-              <h6 className="fw-bold text-warning-emphasis small text-uppercase mb-2 d-flex align-items-center gap-2">
-                  <MessageSquare size={14} /> Your Review (As Institution Supervisor)
-              </h6>
-              <div className="row g-3">
-                <div className="col-md-6">
-                    <Form.Group>
-                    <Form.Label className="fw-bold small text-muted">Student Feedback (Public)</Form.Label>
-                    <Form.Control 
-                        as="textarea" 
-                        rows={4} 
-                        className="bg-white border-0 small shadow-sm"
-                        value={reviewNotes}
-                        onChange={(e) => setReviewNotes(e.target.value)}
-                        placeholder="Feedback visible to the student..."
+              {/* Your review */}
+              <ReviewSection>
+                <ReviewSectionHead>
+                  <MessageSquare size={13} />
+                  Your review (Institution Supervisor)
+                </ReviewSectionHead>
+                <FormGrid>
+                  <FormGroup>
+                    <Label>Student feedback (public)</Label>
+                    <Textarea
+                      value={reviewNotes}
+                      onChange={e => setReviewNotes(e.target.value)}
+                      placeholder="Feedback visible to the student…"
                     />
-                    </Form.Group>
-                </div>
-                <div className="col-md-6">
-                    <Form.Group>
-                    <Form.Label className="fw-bold small text-muted">Private Notes (Internal)</Form.Label>
-                    <Form.Control 
-                        as="textarea" 
-                        rows={4} 
-                        className="bg-white border-0 small shadow-sm"
-                        value={privateNotes}
-                        onChange={(e) => setPrivateNotes(e.target.value)}
-                        placeholder="Notes visible only to you..."
+                  </FormGroup>
+                  <FormGroup>
+                    <Label>Private notes (internal)</Label>
+                    <Textarea
+                      value={privateNotes}
+                      onChange={e => setPrivateNotes(e.target.value)}
+                      placeholder="Notes visible only to you…"
                     />
-                    </Form.Group>
-                </div>
-              </div>
-          </div>
-        </Modal.Body>
-        <Modal.Footer className="border-0 pt-0 d-flex justify-content-between">
-          <Button variant="light" onClick={() => setShowReviewModal(false)} className="px-4 rounded-3 small border">
-            Cancel
-          </Button>
-          <div className="d-flex gap-2">
-            <Button 
-              variant="outline-danger" 
-              onClick={() => handleReviewSubmit('REJECTED')}
-              disabled={submitting}
-              className="px-3 rounded-3 small d-flex align-items-center gap-2"
-            >
-              <XCircle size={16} /> Reject
-            </Button>
-            <Button 
-              variant="outline-info" 
-              onClick={() => handleReviewSubmit('REVISION_REQUIRED')}
-              disabled={submitting}
-              className="px-3 rounded-3 small d-flex align-items-center gap-2"
-            >
-              <RotateCcw size={16} /> Request Revision
-            </Button>
-            <Button 
-              variant="success" 
-              onClick={() => handleReviewSubmit('ACCEPTED')}
-              disabled={submitting}
-              className="px-4 rounded-3 small text-white d-flex align-items-center gap-2"
-            >
-              {submitting ? <Spinner animation="border" size="sm" /> : <><CheckCircle size={16} /> Approve Logbook</>}
-            </Button>
-          </div>
-        </Modal.Footer>
-      </Modal>
+                  </FormGroup>
+                </FormGrid>
+              </ReviewSection>
+            </ModalBody>
 
-      <DocumentPreviewModal 
+            <ModalFooter>
+              <CancelBtn type="button" onClick={() => setShowReviewModal(false)}>
+                Cancel
+              </CancelBtn>
+              <FooterActions>
+                <RejectBtn type="button" disabled={submitting} onClick={() => handleReviewSubmit('REJECTED')}>
+                  <XCircle size={14} /> Reject
+                </RejectBtn>
+                <RevisionBtn type="button" disabled={submitting} onClick={() => handleReviewSubmit('REVISION_REQUIRED')}>
+                  <RotateCcw size={14} /> Request revision
+                </RevisionBtn>
+                <ApproveBtn type="button" disabled={submitting} onClick={() => handleReviewSubmit('ACCEPTED')}>
+                  {submitting ? <Spinner /> : <CheckCircle size={14} />}
+                  {submitting ? 'Submitting…' : 'Approve logbook'}
+                </ApproveBtn>
+              </FooterActions>
+            </ModalFooter>
+          </ModalBox>
+        </Overlay>,
+        document.body
+      )}
+
+      <DocumentPreviewModal
         show={previewOpen}
         onHide={() => setPreviewOpen(false)}
         title={previewTitle}
         url={previewUrl}
       />
-    </div>
+    </Page>
   );
 };
 

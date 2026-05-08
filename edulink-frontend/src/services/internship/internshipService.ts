@@ -655,6 +655,29 @@ class InternshipService {
     }
   }
 
+  async getEvidencePaginated(
+    applicationId: string,
+    params?: { page?: number; page_size?: number }
+  ): Promise<PaginatedResponse<InternshipEvidence>> {
+    try {
+      const cleanParams: Record<string, any> = {};
+      if (params) {
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) cleanParams[key] = value;
+        });
+      }
+
+      const response = await this.client.get<PaginatedResponse<InternshipEvidence>>(
+        `/api/internships/applications/${applicationId}/evidence/`,
+        { params: cleanParams }
+      );
+      return response;
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new Error('Failed to fetch evidence');
+    }
+  }
+
   async submitEvidence(
     applicationId: string,
     title: string,
@@ -692,6 +715,28 @@ class InternshipService {
       );
       // Handle paginated response - extract array from { results: [...] } if needed
       return Array.isArray(response) ? response : response?.results || [];
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new Error('Failed to fetch pending evidence');
+    }
+  }
+
+  async getPendingEvidencePaginated(
+    params?: { page?: number; page_size?: number }
+  ): Promise<PaginatedResponse<InternshipEvidence>> {
+    try {
+      const cleanParams: Record<string, any> = {};
+      if (params) {
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) cleanParams[key] = value;
+        });
+      }
+
+      const response = await this.client.get<PaginatedResponse<InternshipEvidence>>(
+        '/api/internships/pending-evidence/',
+        { params: cleanParams }
+      );
+      return response;
     } catch (error) {
       if (error instanceof ApiError) throw error;
       throw new Error('Failed to fetch pending evidence');

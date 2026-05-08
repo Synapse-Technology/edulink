@@ -51,12 +51,12 @@ const StudentVerification = lazy(() => import('./pages/admin/Institution/Student
 const InstitutionIncidentsManagement = lazy(() => import('./pages/admin/Institution/InstitutionIncidentsManagement'));
 const InstitutionSettings = lazy(() => import('./pages/admin/Institution/InstitutionSettings'));
 const AcademicStructure = lazy(() => import('./components/admin/institution/AcademicStructure'));
-const SupervisorDashboard = lazy(() => import('./pages/admin/Institution/supervisor/SupervisorDashboard'));
-const SupervisorOverview = lazy(() => import('./pages/admin/Institution/supervisor/SupervisorOverview'));
-const SupervisorLogbooks = lazy(() => import('./pages/admin/Institution/supervisor/SupervisorLogbooks'));
-const SupervisorStudents = lazy(() => import('./pages/admin/Institution/supervisor/SupervisorStudents'));
-const SupervisorIncidents = lazy(() => import('./pages/admin/Institution/supervisor/SupervisorIncidents'));
-const SupervisorSettings = lazy(() => import('./pages/admin/Institution/supervisor/SupervisorSettings'));
+const SupervisorDashboard = lazy(() => import('./pages/admin/shared/supervisor/SupervisorDashboard'));
+const SupervisorOverview = lazy(() => import('./pages/admin/shared/supervisor/SupervisorOverview'));
+const SupervisorLogbooks = lazy(() => import('./pages/admin/shared/supervisor/SupervisorLogbooks'));
+const SupervisorStudents = lazy(() => import('./pages/admin/shared/supervisor/SupervisorStudents'));
+const SupervisorIncidents = lazy(() => import('./pages/admin/shared/supervisor/SupervisorIncidents'));
+const SupervisorSettings = lazy(() => import('./pages/admin/shared/supervisor/SupervisorSettings'));
 const StudentLogbookHistory = lazy(() => import('./pages/admin/shared/StudentLogbookHistory'));
 
 const StudentDashboard = lazy(() => import('./pages/student/StudentDashboardPage'));
