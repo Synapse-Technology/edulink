@@ -136,8 +136,8 @@ def key_value_table(rows: Iterable[tuple[str, str]], styles: dict, col_widths=No
 def signature_table(signatures: Iterable[DigitalSignature], styles: dict) -> Table:
     rows = []
     for sig in signatures:
-        signed_line = sig.name or "Pending"
-        meta = " · ".join(part for part in [sig.role, sig.signed_at, sig.status] if part)
+        signed_line = str(sig.name or "Pending")
+        meta = " · ".join(str(part) for part in [sig.role, sig.signed_at, sig.status] if part)
         rows.append([
             Paragraph(sig.label.upper(), styles["label"]),
             Paragraph(signed_line, styles["value"]),
@@ -177,4 +177,3 @@ def review_panel(label: str, text: Optional[str], styles: dict):
         ),
         Spacer(1, 5),
     ]
-

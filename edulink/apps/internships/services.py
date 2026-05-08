@@ -29,7 +29,12 @@ from .models import (
     ExternalPlacementDeclaration,
 )
 from .workflows import opportunity_workflow, application_workflow
-from .logbook_format import get_logbook_week_start, get_required_week_start_dates
+from .logbook_format import (
+    get_logbook_week_start,
+    get_required_week_start_dates,
+    get_week_ending_date,
+    parse_iso_date,
+)
 from .policies import (
     can_create_internship, 
     can_submit_evidence, 
@@ -829,6 +834,62 @@ def _get_student_for_external_declaration(declaration: ExternalPlacementDeclarat
         )
     return student
 
+
+def _validate_logbook_submission_window(*, application: InternshipApplication, metadata: dict) -> None:
+    week_start = metadata.get("week_start_date")
+    if not week_start:
+        raise ValidationError(
+            user_message="Week start date is required for logbook submission.",
+            developer_message="LOGBOOK evidence submitted without week_start_date",
+            context=ErrorContext().with_resource("application", application.id).build(),
+        )
+
+    try:
+        week_start_date = parse_iso_date(week_start)
+        week_end_date = parse_iso_date(metadata.get("week_ending_date") or get_week_ending_date(week_start))
+    except (TypeError, ValueError):
+        raise ValidationError(
+            user_message="Logbook week dates must use YYYY-MM-DD format.",
+            developer_message=f"Invalid logbook week date metadata: {metadata}",
+            context=ErrorContext().with_resource("application", application.id).build(),
+        )
+
+    placement_start = application.opportunity.start_date
+    placement_end = application.opportunity.end_date
+
+    if placement_start and week_end_date < placement_start:
+        raise ConflictError(
+            user_message="This logbook week is before the placement start date.",
+            developer_message=f"Logbook week {week_start} ends before placement start {placement_start}",
+            context=ErrorContext().with_resource("application", application.id).build(),
+        )
+
+    if placement_end and week_start_date > placement_end:
+        raise ConflictError(
+            user_message="This logbook week is after the placement end date.",
+            developer_message=f"Logbook week {week_start} starts after placement end {placement_end}",
+            context=ErrorContext().with_resource("application", application.id).build(),
+        )
+
+
+def _ensure_logbook_week_not_duplicate(*, application: InternshipApplication, metadata: dict) -> None:
+    week_start = metadata.get("week_start_date")
+    if not week_start:
+        return
+
+    existing = application.evidence.filter(
+        evidence_type=InternshipEvidence.TYPE_LOGBOOK,
+        metadata__week_start_date=week_start,
+    ).exclude(status=InternshipEvidence.STATUS_REVISION_REQUIRED)
+
+    if existing.exists():
+        raise ConflictError(
+            user_message="A logbook for this week already exists. Revise the existing submission if changes are required.",
+            developer_message=f"Duplicate logbook submission for application {application.id}, week {week_start}",
+            context=ErrorContext().with_resource("application", application.id).build(),
+        )
+
+
 def submit_evidence(actor, application_id: UUID, title: str, file: any = None, description: str = "", evidence_type: str = InternshipEvidence.TYPE_OTHER, metadata: dict = None) -> InternshipEvidence:
     application = InternshipApplication.objects.get(id=application_id)
     if not can_submit_evidence(actor, application):
@@ -844,6 +905,8 @@ def submit_evidence(actor, application_id: UUID, title: str, file: any = None, d
         from .logbook_format import normalize_logbook_metadata
 
         metadata = normalize_logbook_metadata(metadata)
+        _validate_logbook_submission_window(application=application, metadata=metadata)
+        _ensure_logbook_week_not_duplicate(application=application, metadata=metadata)
         
     evidence_kwargs = {
         "application": application,
@@ -940,6 +1003,7 @@ def resubmit_evidence(
         from .logbook_format import normalize_logbook_metadata
 
         metadata = normalize_logbook_metadata(metadata)
+        _validate_logbook_submission_window(application=application, metadata=metadata)
 
     previous_review = {
         "employer_status": evidence.employer_review_status,

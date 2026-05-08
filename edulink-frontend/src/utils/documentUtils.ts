@@ -13,6 +13,18 @@ export const normalizeDocumentUrl = (url: string): string => {
   return url.startsWith('/') ? url : `/${url}`;
 };
 
+const resolveContentType = (headerValue: unknown): string => {
+  if (typeof headerValue === 'string' && headerValue.trim()) {
+    return headerValue;
+  }
+
+  if (Array.isArray(headerValue) && typeof headerValue[0] === 'string' && headerValue[0].trim()) {
+    return headerValue[0];
+  }
+
+  return 'application/pdf';
+};
+
 /**
  * Fetches a document from the backend as a blob and returns its object URL and type.
  * 
@@ -28,7 +40,7 @@ export const fetchDocumentBlob = async (url: string): Promise<{ blobUrl: string;
       responseType: 'blob',
     });
 
-    const contentType = response.headers['content-type'] || 'application/pdf';
+    const contentType = resolveContentType(response.headers['content-type']);
     const blob = new Blob([response.data], { type: contentType });
     const blobUrl = window.URL.createObjectURL(blob);
     
@@ -72,7 +84,7 @@ export const fetchAndOpenDocument = async (url: string) => {
 
     // Create a Blob from the response data
     const blob = new Blob([response.data], { 
-      type: response.headers['content-type'] || 'application/pdf' 
+      type: resolveContentType(response.headers['content-type']) 
     });
     
     // Create a URL for the Blob

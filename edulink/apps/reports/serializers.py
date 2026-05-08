@@ -1,8 +1,8 @@
 from rest_framework import serializers
-from .models import Artifact
+from .models import Artifact, ArtifactType
 
 class ArtifactSerializer(serializers.ModelSerializer):
-    artifact_type_display = serializers.CharField(source='get_artifact_type_display', read_only=True)
+    artifact_type_display = serializers.SerializerMethodField()
     download_filename = serializers.SerializerMethodField()
     
     class Meta:
@@ -27,6 +27,11 @@ class ArtifactSerializer(serializers.ModelSerializer):
         Returns a human-readable filename for the artifact.
         """
         student_name = obj.metadata.get('student_name', 'Student').replace(' ', '_')
-        type_label = obj.get_artifact_type_display().replace(' ', '_')
+        type_label = self.get_artifact_type_display(obj).replace(' ', '_')
         code = obj.tracking_code or str(obj.id)[:8]
         return f"Edulink_{type_label}_{student_name}_{code}.pdf"
+
+    def get_artifact_type_display(self, obj):
+        if obj.artifact_type == ArtifactType.LOGBOOK_REPORT:
+            return "Attachment Logbook Report"
+        return obj.get_artifact_type_display()

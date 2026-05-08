@@ -21,6 +21,20 @@ import { employerService } from '../../../services/employer/employerService';
 import type { Supervisor } from '../../../services/employer/employerService';
 import { sanitizeAdminError } from '../../../utils/adminErrorSanitizer';
 import { SEO } from '../../../components/common';
+import {
+  EmployerButton,
+  EmployerEmptyState,
+  EmployerHealth,
+  EmployerHero,
+  EmployerMetric,
+  EmployerMetricGrid,
+  EmployerPagination,
+  EmployerPanel,
+  EmployerStatus,
+  EmployerTableWrap,
+  EmployerWorkspacePage,
+  useEmployerPagination,
+} from '../../../components/employer/workspace';
 
 const STYLES = `
   .es-page { color: var(--el-ink); }
@@ -628,6 +642,8 @@ const EmployerSupervisors: React.FC = () => {
     };
   }, [supervisors]);
 
+  const pagination = useEmployerPagination(supervisors);
+
   return (
     <EmployerLayout>
       <SEO
@@ -637,112 +653,57 @@ const EmployerSupervisors: React.FC = () => {
 
       <style>{STYLES}</style>
 
-      <div className="es-page">
-        <section className="es-hero">
-          <div className="es-command-card">
-            <div className="es-kicker">
-              <Sparkles size={13} />
-              Supervision Team
-            </div>
-
-            <h1 className="es-title">
-              Supervisor <span>Access</span>
-            </h1>
-
-            <p className="es-sub">
-              Invite mentors, manage employer-side access, and make sure active interns
-              have accountable supervision before placement workflows begin.
-            </p>
-
-            <button
-              type="button"
-              className="es-btn-primary"
-              onClick={() => setShowInviteModal(true)}
-            >
+      <EmployerWorkspacePage className="es-page">
+        <EmployerHero
+          icon={<Sparkles size={13} />}
+          eyebrow="Supervision Team"
+          title={<>Supervisor <span>Access</span></>}
+          subtitle="Invite mentors, manage employer-side access, and make sure active interns have accountable supervision before placement workflows begin."
+          actions={(
+            <EmployerButton variant="primary" onClick={() => setShowInviteModal(true)}>
               <Plus size={16} />
               Invite Supervisor
               <ArrowRight size={14} />
-            </button>
-          </div>
+            </EmployerButton>
+          )}
+          aside={(
+            <EmployerHealth
+              label="Activation rate"
+              value={`${metrics.activationRate}%`}
+              icon={<TrendingUp size={20} />}
+              note="Active supervisors are the backbone of credible internship monitoring. Pending accounts create supervision bottlenecks."
+            />
+          )}
+        />
 
-          <aside className="es-health-card">
-            <div className="es-health-top">
-              <div>
-                <div className="es-health-label">Activation rate</div>
-                <div className="es-health-score">{metrics.activationRate}%</div>
-              </div>
+        <EmployerMetricGrid className="es-metrics">
+          <EmployerMetric
+            label="Total supervisors"
+            value={metrics.total}
+            icon={<Users size={18} />}
+            note="All invited employer-side users."
+          />
+          <EmployerMetric
+            label="Active accounts"
+            value={metrics.active}
+            icon={<UserCheck size={18} />}
+            note="Supervisors ready to support interns."
+          />
+          <EmployerMetric
+            label="Admins"
+            value={metrics.admins}
+            icon={<Shield size={18} />}
+            note="Team members with elevated access."
+          />
+        </EmployerMetricGrid>
 
-              <div className="es-health-icon">
-                <TrendingUp size={20} />
-              </div>
-            </div>
-
-            <p className="es-health-note">
-              Active supervisors are the backbone of credible internship monitoring.
-              Pending accounts create supervision bottlenecks.
-            </p>
-          </aside>
-        </section>
-
-        <section className="es-metrics">
-          <div className="es-metric">
-            <div className="es-metric-top">
-              <div>
-                <div className="es-metric-label">Total supervisors</div>
-                <div className="es-metric-value">{metrics.total}</div>
-              </div>
-
-              <div className="es-metric-icon">
-                <Users size={18} />
-              </div>
-            </div>
-
-            <p className="es-metric-note">All invited employer-side users.</p>
-          </div>
-
-          <div className="es-metric">
-            <div className="es-metric-top">
-              <div>
-                <div className="es-metric-label">Active accounts</div>
-                <div className="es-metric-value">{metrics.active}</div>
-              </div>
-
-              <div className="es-metric-icon">
-                <UserCheck size={18} />
-              </div>
-            </div>
-
-            <p className="es-metric-note">Supervisors ready to support interns.</p>
-          </div>
-
-          <div className="es-metric">
-            <div className="es-metric-top">
-              <div>
-                <div className="es-metric-label">Admins</div>
-                <div className="es-metric-value">{metrics.admins}</div>
-              </div>
-
-              <div className="es-metric-icon">
-                <Shield size={18} />
-              </div>
-            </div>
-
-            <p className="es-metric-note">Team members with elevated access.</p>
-          </div>
-        </section>
-
-        <section className="es-card">
-          <div className="es-card-header">
-            <div>
-              <div className="es-card-label">Team access</div>
-              <h2 className="es-card-title">Supervisor management workspace</h2>
-              <p className="es-card-sub">
-                Showing {supervisors.length} employer-side supervision accounts.
-              </p>
-            </div>
-          </div>
-
-          <div className="es-table-wrap">
+        <EmployerPanel
+          className="es-card"
+          label="Team access"
+          title="Supervisor management workspace"
+          subtitle={`Showing ${supervisors.length} employer-side supervision accounts.`}
+        >
+          <EmployerTableWrap className="es-table-wrap">
             <table className="es-table">
               <thead>
                 <tr>
@@ -767,22 +728,15 @@ const EmployerSupervisors: React.FC = () => {
                 ) : supervisors.length === 0 ? (
                   <tr>
                     <td colSpan={5}>
-                      <div className="es-empty">
-                        <div className="es-empty-icon">
-                          <Users size={26} />
-                        </div>
-
-                        <p className="es-empty-title">No supervisors yet.</p>
-
-                        <p className="es-empty-text">
-                          Invite your team members so active interns can be assigned
-                          accountable mentors.
-                        </p>
-                      </div>
+                      <EmployerEmptyState
+                        icon={<Users size={26} />}
+                        title="No supervisors yet."
+                        message="Invite your team members so active interns can be assigned accountable mentors."
+                      />
                     </td>
                   </tr>
                 ) : (
-                  supervisors.map((supervisor) => {
+                  pagination.pagedItems.map((supervisor) => {
                     const isCurrentUser = user?.email === supervisor.email;
 
                     return (
@@ -821,19 +775,19 @@ const EmployerSupervisors: React.FC = () => {
                         </td>
 
                         <td>
-                          <span
-                            className={`es-status ${
-                              supervisor.is_active ? 'active' : 'inactive'
-                            }`}
+                          <EmployerStatus
+                            tone={supervisor.is_active ? 'success' : 'warning'}
+                            className={`es-status ${supervisor.is_active ? 'active' : 'inactive'}`}
+                            icon={
+                              supervisor.is_active ? (
+                                <UserCheck size={12} />
+                              ) : (
+                                <AlertCircle size={12} />
+                              )
+                            }
                           >
-                            {supervisor.is_active ? (
-                              <UserCheck size={12} />
-                            ) : (
-                              <AlertCircle size={12} />
-                            )}
-
                             {supervisor.is_active ? 'Active' : 'Inactive'}
-                          </span>
+                          </EmployerStatus>
                         </td>
 
                         <td style={{ textAlign: 'right' }}>
@@ -857,8 +811,16 @@ const EmployerSupervisors: React.FC = () => {
                 )}
               </tbody>
             </table>
-          </div>
-        </section>
+          </EmployerTableWrap>
+          <EmployerPagination
+            page={pagination.page}
+            pageSize={pagination.pageSize}
+            totalItems={pagination.totalItems}
+            totalPages={pagination.totalPages}
+            onPageChange={pagination.setPage}
+            onPageSizeChange={pagination.setPageSize}
+          />
+        </EmployerPanel>
 
         {showInviteModal && (
           <div className="es-modal-backdrop">
@@ -945,7 +907,7 @@ const EmployerSupervisors: React.FC = () => {
             </div>
           </div>
         )}
-      </div>
+      </EmployerWorkspacePage>
 
       <FeedbackModal {...feedbackProps} />
     </EmployerLayout>

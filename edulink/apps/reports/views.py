@@ -46,29 +46,6 @@ class ArtifactViewSet(viewsets.ReadOnlyModelViewSet):
             return []
         return super().get_authenticators()
 
-    @action(detail=False, methods=['get'], url_path='debug-storage', permission_classes=[permissions.IsAuthenticated])
-    def debug_storage(self, request):
-        import os
-        from django.conf import settings as django_settings
-        from django.core.files.storage import default_storage
-
-        return Response({
-            "settings_module": os.environ.get('DJANGO_SETTINGS_MODULE'),
-            "debug": django_settings.DEBUG,
-            "storage_backend_type": type(default_storage).__name__,
-            "storage_backend_real": type(default_storage._wrapped).__name__ if hasattr(default_storage, '_wrapped') and default_storage._wrapped else "not_yet_initialized",
-            "storages_default": django_settings.STORAGES.get("default", {}),
-            "s3_access_key_set": bool(os.environ.get('SUPABASE_S3_ACCESS_KEY')),
-            "s3_secret_key_set": bool(os.environ.get('SUPABASE_S3_SECRET_KEY')),
-            "s3_endpoint": os.environ.get('SUPABASE_S3_ENDPOINT', 'NOT SET'),
-            "storages_app_installed": 'storages' in django_settings.INSTALLED_APPS,
-            "all_s3_check": bool(
-                os.environ.get('SUPABASE_S3_ACCESS_KEY') and
-                os.environ.get('SUPABASE_S3_SECRET_KEY') and
-                os.environ.get('SUPABASE_S3_ENDPOINT')
-            ),
-        })
-
     @action(detail=False, methods=['post'], url_path='generate')
     def generate_artifact(self, request):
         """
@@ -216,7 +193,7 @@ class ArtifactViewSet(viewsets.ReadOnlyModelViewSet):
         try:
             mode, content = resolve_artifact_file_for_download(artifact=artifact)
         except NotFoundError:
-            return Response({"error": "File not found. Please regenerate this artifact."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "File not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception:
             logger.exception(f"[DOWNLOAD] File access failed for artifact {artifact.id}")
             return Response(

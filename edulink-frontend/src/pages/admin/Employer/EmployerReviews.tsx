@@ -16,6 +16,13 @@ import { EmployerLayout } from '../../../components/admin/employer';
 import { employerService } from '../../../services/employer/employerService';
 import { internshipService } from '../../../services/internship/internshipService';
 import { SEO } from '../../../components/common';
+import {
+  EmployerHealth,
+  EmployerHero,
+  EmployerMetric,
+  EmployerMetricGrid,
+  EmployerWorkspacePage,
+} from '../../../components/employer/workspace';
 
 const STYLES = `
   .er-page { color: var(--el-ink); }
@@ -518,89 +525,42 @@ const EmployerReviews: React.FC = () => {
 
       <style>{STYLES}</style>
 
-      <div className="er-page">
-        <section className="er-hero">
-          <div className="er-command-card">
-            <div className="er-kicker">
-              <Sparkles size={13} />
-              Review Operations
-            </div>
+      <EmployerWorkspacePage className="er-page">
+        <EmployerHero
+          icon={<Sparkles size={13} />}
+          eyebrow="Review Operations"
+          title={<>Reviews <span>& Approvals</span></>}
+          subtitle="Track items that need employer action, keep student applications moving, and avoid approval delays that weaken institution confidence."
+          aside={(
+            <EmployerHealth
+              label="Review health"
+              value={`${reviewHealth}%`}
+              icon={<TrendingUp size={20} />}
+              note="Estimated from pending approval load. A growing queue signals slower employer response cycles."
+            />
+          )}
+        />
 
-            <h1 className="er-title">
-              Reviews <span>& Approvals</span>
-            </h1>
-
-            <p className="er-sub">
-              Track items that need employer action, keep student applications moving,
-              and avoid approval delays that weaken institution confidence.
-            </p>
-          </div>
-
-          <aside className="er-health-card">
-            <div className="er-health-top">
-              <div>
-                <div className="er-health-label">Review health</div>
-                <div className="er-health-score">{reviewHealth}%</div>
-              </div>
-
-              <div className="er-health-icon">
-                <TrendingUp size={20} />
-              </div>
-            </div>
-
-            <p className="er-health-note">
-              Estimated from pending approval load. A growing queue signals slower
-              employer response cycles.
-            </p>
-          </aside>
-        </section>
-
-        <section className="er-metrics">
-          <div className="er-metric">
-            <div className="er-metric-top">
-              <div>
-                <div className="er-metric-label">Total pending</div>
-                <div className="er-metric-value">{reviewLoad}</div>
-              </div>
-
-              <div className="er-metric-icon">
-                <CheckSquare size={18} />
-              </div>
-            </div>
-
-            <p className="er-metric-note">All employer-side items waiting for review.</p>
-          </div>
-
-          <div className="er-metric">
-            <div className="er-metric-top">
-              <div>
-                <div className="er-metric-label">Profile requests</div>
-                <div className="er-metric-value">{stats.profileRequests}</div>
-              </div>
-
-              <div className="er-metric-icon">
-                <UserCog size={18} />
-              </div>
-            </div>
-
-            <p className="er-metric-note">Staff profile updates requiring approval.</p>
-          </div>
-
-          <div className="er-metric">
-            <div className="er-metric-top">
-              <div>
-                <div className="er-metric-label">Applications</div>
-                <div className="er-metric-value">{stats.applications}</div>
-              </div>
-
-              <div className="er-metric-icon">
-                <Briefcase size={18} />
-              </div>
-            </div>
-
-            <p className="er-metric-note">Student applications awaiting employer action.</p>
-          </div>
-        </section>
+        <EmployerMetricGrid className="er-metrics">
+          <EmployerMetric
+            label="Total pending"
+            value={reviewLoad}
+            icon={<CheckSquare size={18} />}
+            note="All employer-side items waiting for review."
+          />
+          <EmployerMetric
+            label="Profile requests"
+            value={stats.profileRequests}
+            icon={<UserCog size={18} />}
+            note="Staff profile updates requiring approval."
+          />
+          <EmployerMetric
+            label="Applications"
+            value={stats.applications}
+            icon={<Briefcase size={18} />}
+            note="Student applications awaiting employer action."
+          />
+        </EmployerMetricGrid>
 
         <section className="er-review-grid">
           <ReviewCard
@@ -645,7 +605,7 @@ const EmployerReviews: React.FC = () => {
             </p>
           </section>
         )}
-      </div>
+      </EmployerWorkspacePage>
     </EmployerLayout>
   );
 };

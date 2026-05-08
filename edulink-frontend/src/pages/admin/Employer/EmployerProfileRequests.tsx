@@ -20,6 +20,16 @@ import {
   type EmployerStaffProfileRequest,
 } from '../../../services/employer/employerService';
 import { sanitizeAdminError } from '../../../utils/adminErrorSanitizer';
+import {
+  EmployerEmptyState,
+  EmployerHealth,
+  EmployerHero,
+  EmployerMetric,
+  EmployerMetricGrid,
+  EmployerPanel,
+  EmployerTableWrap,
+  EmployerWorkspacePage,
+} from '../../../components/employer/workspace';
 
 const STYLES = `
   .epr-page { color: var(--el-ink); }
@@ -523,107 +533,54 @@ const EmployerProfileRequests: React.FC = () => {
 
       <style>{STYLES}</style>
 
-      <div className="epr-page">
-        <section className="epr-hero">
-          <div className="epr-command-card">
-            <div className="epr-kicker">
-              <Sparkles size={13} />
-              Staff Profile Governance
-            </div>
+      <EmployerWorkspacePage className="epr-page">
+        <EmployerHero
+          icon={<Sparkles size={13} />}
+          eyebrow="Staff Profile Governance"
+          title={<>Profile <span>Update Requests</span></>}
+          subtitle="Review staff-requested profile changes before they affect employer records, team access, or institution-facing supervision details."
+          aside={(
+            <EmployerHealth
+              label="Review health"
+              value={`${metrics.reviewHealth}%`}
+              icon={<UserCog size={20} />}
+              note="Estimated from pending profile changes. A growing queue can create outdated supervisor information and access confusion."
+            />
+          )}
+        />
 
-            <h1 className="epr-title">
-              Profile <span>Update Requests</span>
-            </h1>
-
-            <p className="epr-sub">
-              Review staff-requested profile changes before they affect employer records,
-              team access, or institution-facing supervision details.
-            </p>
-          </div>
-
-          <aside className="epr-health-card">
-            <div className="epr-health-top">
-              <div>
-                <div className="epr-health-label">Review health</div>
-                <div className="epr-health-score">{metrics.reviewHealth}%</div>
-              </div>
-
-              <div className="epr-health-icon">
-                <UserCog size={20} />
-              </div>
-            </div>
-
-            <p className="epr-health-note">
-              Estimated from pending profile changes. A growing queue can create outdated
-              supervisor information and access confusion.
-            </p>
-          </aside>
-        </section>
-
-        <section className="epr-metrics">
-          <div className="epr-metric">
-            <div className="epr-metric-top">
-              <div>
-                <div className="epr-metric-label">Pending requests</div>
-                <div className="epr-metric-value">{metrics.total}</div>
-              </div>
-
-              <div className="epr-metric-icon">
-                <Clock size={18} />
-              </div>
-            </div>
-
-            <p className="epr-metric-note">Staff updates waiting for employer review.</p>
-          </div>
-
-          <div className="epr-metric">
-            <div className="epr-metric-top">
-              <div>
-                <div className="epr-metric-label">Fields changed</div>
-                <div className="epr-metric-value">{metrics.fieldsChanged}</div>
-              </div>
-
-              <div className="epr-metric-icon">
-                <UserCog size={18} />
-              </div>
-            </div>
-
-            <p className="epr-metric-note">Total profile fields affected by pending requests.</p>
-          </div>
-
-          <div className="epr-metric">
-            <div className="epr-metric-top">
-              <div>
-                <div className="epr-metric-label">Governance state</div>
-                <div className="epr-metric-value">
-                  {metrics.total === 0 ? 'OK' : 'Open'}
-                </div>
-              </div>
-
-              <div className="epr-metric-icon">
-                <CheckCircle2 size={18} />
-              </div>
-            </div>
-
-            <p className="epr-metric-note">
-              {metrics.total === 0
+        <EmployerMetricGrid className="epr-metrics">
+          <EmployerMetric
+            label="Pending requests"
+            value={metrics.total}
+            icon={<Clock size={18} />}
+            note="Staff updates waiting for employer review."
+          />
+          <EmployerMetric
+            label="Fields changed"
+            value={metrics.fieldsChanged}
+            icon={<UserCog size={18} />}
+            note="Total profile fields affected by pending requests."
+          />
+          <EmployerMetric
+            label="Governance state"
+            value={metrics.total === 0 ? 'OK' : 'Open'}
+            icon={<CheckCircle2 size={18} />}
+            note={
+              metrics.total === 0
                 ? 'No pending staff data changes.'
-                : 'Staff changes require administrator action.'}
-            </p>
-          </div>
-        </section>
+                : 'Staff changes require administrator action.'
+            }
+          />
+        </EmployerMetricGrid>
 
-        <section className="epr-card">
-          <div className="epr-card-header">
-            <div className="epr-card-label">Approval queue</div>
-            <h2 className="epr-card-title">Staff profile change requests</h2>
-            <p className="epr-card-sub">
-              Showing {requests.length} pending profile update request
-              {requests.length === 1 ? '' : 's'}.
-            </p>
-          </div>
-
-          <div className="epr-table-wrap">
+        <EmployerPanel
+          className="epr-card"
+          label="Approval queue"
+          title="Staff profile change requests"
+          subtitle={`Showing ${requests.length} pending profile update request${requests.length === 1 ? '' : 's'}.`}
+        >
+          <EmployerTableWrap className="epr-table-wrap">
             <table className="epr-table">
               <thead>
                 <tr>
@@ -647,17 +604,11 @@ const EmployerProfileRequests: React.FC = () => {
                 ) : requests.length === 0 ? (
                   <tr>
                     <td colSpan={4}>
-                      <div className="epr-empty">
-                        <div className="epr-empty-icon">
-                          <User size={26} />
-                        </div>
-
-                        <p className="epr-empty-title">No pending profile requests.</p>
-
-                        <p className="epr-empty-text">
-                          Staff profile changes that need approval will appear here.
-                        </p>
-                      </div>
+                      <EmployerEmptyState
+                        icon={<User size={26} />}
+                        title="No pending profile requests."
+                        message="Staff profile changes that need approval will appear here."
+                      />
                     </td>
                   </tr>
                 ) : (
@@ -735,9 +686,9 @@ const EmployerProfileRequests: React.FC = () => {
                 )}
               </tbody>
             </table>
-          </div>
-        </section>
-      </div>
+          </EmployerTableWrap>
+        </EmployerPanel>
+      </EmployerWorkspacePage>
 
       <FeedbackModal {...feedbackProps} />
     </EmployerLayout>

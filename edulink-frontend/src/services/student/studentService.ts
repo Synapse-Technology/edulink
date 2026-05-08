@@ -16,6 +16,7 @@ export interface StudentProfile {
   id_document: string | null;
   institution_id: string | null;
   profile_picture: string | null;
+  profile_picture_url?: string | null;
   trust_level?: number;
   trust_points?: number;
 }

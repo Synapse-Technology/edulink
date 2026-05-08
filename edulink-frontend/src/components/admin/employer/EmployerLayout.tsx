@@ -17,13 +17,13 @@ const STYLES = `
     --el-muted: #6f747b;
     --el-sidebar: #0d1013;
     --el-sidebar-2: #15191d;
-    --el-accent: #1a5cff;
-    --el-accent-soft: rgba(26, 92, 255, 0.1);
+    --el-accent: #1ab8aa;
+    --el-accent-soft: rgba(26, 184, 170, 0.11);
     --el-shadow: 0 12px 36px rgba(16, 19, 22, 0.08);
     --el-radius: 18px;
     min-height: 100vh;
     background:
-      radial-gradient(circle at top right, rgba(26,92,255,0.06), transparent 32%),
+      radial-gradient(circle at top right, rgba(26,184,170,0.08), transparent 32%),
       var(--el-bg);
     color: var(--el-ink);
   }
@@ -38,8 +38,8 @@ const STYLES = `
     --el-muted: #8a8580;
     --el-sidebar: #08090a;
     --el-sidebar-2: #151719;
-    --el-accent: #4d7fff;
-    --el-accent-soft: rgba(77,127,255,0.12);
+    --el-accent: #35d5c8;
+    --el-accent-soft: rgba(53,213,200,0.13);
     --el-shadow: 0 12px 36px rgba(0,0,0,0.35);
   }
 

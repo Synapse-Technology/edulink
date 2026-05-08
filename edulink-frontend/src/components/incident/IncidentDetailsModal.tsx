@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   AlertTriangle,
   CheckCircle,
@@ -706,7 +707,7 @@ const IncidentDetailsModal: React.FC<IncidentDetailsModalProps> = ({
 
   if (!show) return null;
 
-  return (
+  return createPortal(
     <>
       <style>{STYLES}</style>
       <div className="idm-backdrop" role="dialog" aria-modal="true" aria-labelledby="incident-details-title">
@@ -960,7 +961,8 @@ const IncidentDetailsModal: React.FC<IncidentDetailsModalProps> = ({
           </main>
         </div>
       </div>
-    </>
+    </>,
+    document.body
   );
 };
 

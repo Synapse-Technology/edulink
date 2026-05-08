@@ -1,7 +1,7 @@
 import os
 import logging
 from uuid import UUID
-from datetime import datetime
+from datetime import date, datetime
 from io import BytesIO
 from urllib.error import HTTPError
 from urllib.request import urlopen
@@ -20,11 +20,19 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.units import mm, inch, pica
 from reportlab.lib import colors
+from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
+from reportlab.graphics import renderPDF
+from reportlab.graphics.barcode.qr import QrCodeWidget
+from reportlab.graphics.shapes import Drawing
+try:
+    from svglib.svglib import svg2rlg
+except Exception:  # pragma: no cover - optional runtime fallback
+    svg2rlg = None
 
 from .models import Artifact, ArtifactStatus, ArtifactType
 from .pdf_components import (
@@ -44,7 +52,11 @@ from edulink.apps.internships.queries import (
     get_incidents_for_application,
     get_success_story_for_application
 )
-from edulink.apps.internships.logbook_format import normalize_logbook_metadata
+from edulink.apps.internships.logbook_format import (
+    format_iso_date,
+    get_week_start_date,
+    normalize_logbook_metadata,
+)
 from edulink.apps.students.queries import get_student_by_id, get_student_approved_affiliation
 from edulink.apps.employers.queries import get_employer_by_id, get_supervisor_by_id
 from edulink.apps.institutions.queries import get_institution_by_id, get_institution_staff_by_id
@@ -83,8 +95,16 @@ def resolve_artifact_file_for_download(*, artifact):
             logger.warning(f"Artifact file not found on local storage for {artifact.id}: {file_name}")
             raise NotFoundError(user_message="File not found")
         except Exception as exc:
-            logger.exception(f"Local storage open failed for artifact {artifact.id}")
-            raise exc
+            logger.warning(f"Local storage open failed for artifact {artifact.id}; attempting URL fallback")
+            artifact_url = _get_artifact_url(artifact)
+            if not artifact_url:
+                raise exc
+            try:
+                with urlopen(artifact_url) as remote_file:
+                    return "bytes", remote_file.read()
+            except Exception:
+                logger.exception(f"URL fallback failed for artifact {artifact.id}: {artifact_url}")
+                raise NotFoundError(user_message="File access failed")
 
     # S3/Supabase path — generate signed URL and fetch bytes
     artifact_url = _get_artifact_url(artifact)
@@ -119,56 +139,20 @@ def _get_artifact_url(artifact):
     except Exception as exc:
         logger.warning(f"Failed to generate URL for artifact {artifact.id}: {exc}")
         return None
-    
-    """
-    Resolve artifact binary content from storage backend.
-    
-    For Supabase Storage: RLS policies automatically enforce access control.
-    For Cloudinary (legacy): Direct URL access.
 
-    Returns:
-    - ("stream", file_like) when storage open succeeds
-    - ("bytes", bytes) when URL fallback succeeds
-    """
-    if not artifact.file or not artifact.file.name:
-        raise NotFoundError(user_message="File not found")
 
-    storage = artifact.file.storage
-    file_name = artifact.file.name
-
-    open_error = None
-    try:
-        return "stream", storage.open(file_name, mode="rb")
-    except FileNotFoundError:
-        logger.warning(f"Artifact file not found during open for {artifact.id}: {file_name}")
-        raise NotFoundError(user_message="File not found")
-    except Exception as exc:
-        open_error = exc
-        logger.warning(f"Storage open failed for artifact {artifact.id}; attempting URL fallback")
-
-    # Fallback to URL-based retrieval
-    artifact_url = _get_artifact_url(artifact)
-    if not artifact_url:
-        raise open_error
-
-    try:
-        with urlopen(artifact_url) as remote_file:
-            return "bytes", remote_file.read()
-    except HTTPError as exc:
-        if exc.code == 404:
-            logger.warning(f"Artifact URL missing for {artifact.id}: {artifact_url}")
-            raise NotFoundError(user_message="File not found")
-        logger.warning(f"HTTP {exc.code} fetching {artifact_url} for {artifact.id}")
-        raise open_error
-    except Exception:
-        raise open_error
-
-def _get_artifact_url(artifact):
-    """Get the artifact URL (Supabase or Cloudinary)."""
-    try:
-        return artifact.file.url
-    except Exception:
-        return None
+def _safe_metadata(value):
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    if isinstance(value, UUID):
+        return str(value)
+    if isinstance(value, (date, datetime)):
+        return value.isoformat()
+    if isinstance(value, dict):
+        return {str(k): _safe_metadata(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [_safe_metadata(item) for item in value]
+    return str(value)
 
 def _draw_chess_pattern(c, x, y, size=8, color=colors.HexColor("#1ab8aa")):
     """Draws a 3x3 chess pattern at (x,y)"""
@@ -182,130 +166,327 @@ def _draw_chess_pattern(c, x, y, size=8, color=colors.HexColor("#1ab8aa")):
     c.rect(x, y, size, size, fill=1, stroke=0)
     c.rect(x + size*2, y, size, size, fill=1, stroke=0)
 
+
+def _certificate_verification_url(tracking_code: str) -> str:
+    frontend_url = getattr(settings, "FRONTEND_URL", "https://edulinkcareer.me")
+    return f"{frontend_url.rstrip('/')}/verify/{tracking_code}"
+
+
+def _draw_wrapped_centered_text(c, text, x, y, max_width, font_name, font_size, leading, color):
+    from reportlab.lib.utils import simpleSplit
+
+    c.setFont(font_name, font_size)
+    c.setFillColor(color)
+    lines = simpleSplit(str(text or ""), font_name, font_size, max_width)
+    for line in lines:
+        c.drawCentredString(x, y, line)
+        y -= leading
+    return y
+
+
+def _draw_qr_code(c, value: str, x: float, y: float, size: float):
+    qr = QrCodeWidget(value)
+    bounds = qr.getBounds()
+    width = bounds[2] - bounds[0]
+    height = bounds[3] - bounds[1]
+    drawing = Drawing(size, size, transform=[size / width, 0, 0, size / height, 0, 0])
+    drawing.add(qr)
+    renderPDF.draw(drawing, c, x, y)
+
+
+def _find_report_asset_path(filename: str):
+    backend_asset_dir = os.path.join(os.path.dirname(__file__), "assets")
+    base_dir = getattr(settings, "BASE_DIR", None)
+    candidates = [os.path.join(backend_asset_dir, filename)]
+    if base_dir:
+        candidates.extend([
+            base_dir / "static" / "images" / filename,
+            base_dir.parent / "edulink-frontend" / "src" / "assets" / "images" / filename,
+            base_dir.parent / "edulink-frontend" / "public" / "images" / filename,
+        ])
+    for path in candidates:
+        if os.path.exists(path):
+            return str(path)
+    return None
+
+
+def _draw_svg_asset(c, path: str, x: float, y: float, max_width: float, max_height: float) -> bool:
+    if not svg2rlg:
+        return False
+    try:
+        drawing = svg2rlg(path)
+        if not drawing or not drawing.width or not drawing.height:
+            return False
+        ratio = min(max_width / drawing.width, max_height / drawing.height)
+        drawing.width *= ratio
+        drawing.height *= ratio
+        drawing.scale(ratio, ratio)
+        renderPDF.draw(drawing, c, x, y + (max_height - drawing.height) / 2)
+        return True
+    except Exception:
+        logger.warning("Failed to draw SVG report asset: %s", path, exc_info=True)
+        return False
+
+
+def _draw_png_asset(c, path: str, x: float, y: float, max_width: float, max_height: float) -> bool:
+    try:
+        logo = ImageReader(path)
+        image_width, image_height = logo.getSize()
+        ratio = min(max_width / image_width, max_height / image_height)
+        draw_width = image_width * ratio
+        draw_height = image_height * ratio
+        c.drawImage(
+            logo,
+            x,
+            y + (max_height - draw_height) / 2,
+            width=draw_width,
+            height=draw_height,
+            preserveAspectRatio=True,
+            mask="auto",
+        )
+        return True
+    except Exception:
+        logger.warning("Failed to draw PNG report asset: %s", path, exc_info=True)
+        return False
+
+
+def _draw_certificate_brand(c, *, x, y, max_width, max_height):
+    icon_width = max_height * 0.9
+    svg_logo = _find_report_asset_path("edulink-logo-v1-select.svg")
+    png_logo = _find_report_asset_path("edulink-logo-mark.png") or _find_report_asset_path("edulink_logo.png")
+    drew_icon = bool(
+        (svg_logo and _draw_svg_asset(c, svg_logo, x, y, icon_width, max_height))
+        or (png_logo and _draw_png_asset(c, png_logo, x, y, icon_width, max_height))
+    )
+
+    if not drew_icon:
+        c.setFillColor(THEME.brand)
+        c.circle(x + 6 * mm, y + max_height / 2, 5.5 * mm, fill=1, stroke=0)
+        c.setFillColor(colors.white)
+        c.setFont("Helvetica-Bold", 8)
+        c.drawCentredString(x + 6 * mm, y + max_height / 2 - 2 * mm, "EL")
+        icon_width = 12 * mm
+
+    c.setFillColor(THEME.brand_dark)
+    c.setFont("Helvetica-Bold", 15)
+    c.drawString(x + icon_width + 4 * mm, y + max_height / 2 + 0.8 * mm, "EduLink KE")
+    c.setFillColor(THEME.muted)
+    c.setFont("Helvetica", 4.8)
+    c.drawString(x + icon_width + 4 * mm, y + max_height / 2 - 3.2 * mm, "CONNECT  •  LEARN  •  GROW")
+
+
 def _generate_certificate_native(context):
     """
-    Generates a professional certificate using native ReportLab drawing commands.
-    This bypasses HTML/CSS rendering for pixel-perfect, robust results.
+    Generates the official EduLink completion certificate.
+
+    The certificate intentionally includes visible anti-forgery cues:
+    public verification QR, unique tracking code, artifact ID, issue timestamp,
+    tamper notice, and a low-opacity watermark. These are not cryptographic
+    security by themselves, but they make casual duplication obvious and point
+    employers/institutions to the authoritative verification endpoint.
     """
     buffer = BytesIO()
     c = canvas.Canvas(buffer, pagesize=landscape(A4))
     width, height = landscape(A4) # 297mm x 210mm (~841pt x 595pt)
-    
-    # Colors
-    teal = colors.HexColor("#1ab8aa")
-    dark_gray = colors.HexColor("#111827")
-    gray = colors.HexColor("#4b5563")
-    light_gray = colors.HexColor("#9ca3af")
-    
-    # --- 1. Border ---
-    margin = 10 * mm
-    c.setStrokeColor(teal)
-    c.setLineWidth(5)
-    c.rect(margin, margin, width - 2*margin, height - 2*margin)
-    
-    # --- 2. Patterns ---
-    # Top-Left
-    _draw_chess_pattern(c, margin + 15, height - margin - 40)
-    # Bottom-Right
-    _draw_chess_pattern(c, width - margin - 40, margin + 15)
-    
-    # --- 3. Header ---
-    c.setFont("Helvetica-Bold", 24)
-    c.setFillColor(teal)
-    c.drawCentredString(width/2, height - 40*mm, "EDULINK")
-    
-    c.setFont("Helvetica-Bold", 48)
-    c.setFillColor(dark_gray)
-    c.drawCentredString(width/2, height - 60*mm, "CERTIFICATE")
-    
-    c.setFont("Helvetica", 16)
-    c.setFillColor(gray)
-    c.drawCentredString(width/2, height - 70*mm, "OF PROFESSIONAL INTERNSHIP COMPLETION")
-    
-    # --- 4. Recipient ---
-    c.setFont("Helvetica-Oblique", 14)
-    c.setFillColor(gray)
-    c.drawCentredString(width/2, height - 85*mm, "This is to officially recognize that")
-    
-    student_name = context.get("student_name", "Unknown Student")
-    c.setFont("Helvetica-Bold", 36)
-    c.setFillColor(dark_gray)
-    c.drawCentredString(width/2, height - 100*mm, student_name)
-    
-    # Underline for name
-    name_width = c.stringWidth(student_name, "Helvetica-Bold", 36)
-    c.setStrokeColor(teal)
-    c.setLineWidth(2)
-    c.line(width/2 - name_width/2 - 10, height - 103*mm, width/2 + name_width/2 + 10, height - 103*mm)
-    
-    # --- 5. Achievement Text ---
-    position = context.get("position", "Intern")
-    employer = context.get("employer_name", "Unknown Employer")
-    institution = context.get("institution_name", "Unknown Institution")
-    
-    c.setFont("Helvetica", 16)
-    c.setFillColor(colors.HexColor("#374151"))
-    
-    # Line 1: has successfully completed...
-    text_y = height - 120*mm
-    c.drawCentredString(width/2, text_y, f"has successfully completed a professional internship as a")
-    
-    # Line 2: Position at Employer
-    # We construct this line manually to highlight
-    line2 = f"{position} at {employer}"
-    c.setFont("Helvetica-Bold", 16)
-    c.setFillColor(teal)
-    c.drawCentredString(width/2, text_y - 20, line2)
-    
-    # Line 3: Facilitated through
-    c.setFont("Helvetica", 16)
-    c.setFillColor(colors.HexColor("#374151"))
-    c.drawCentredString(width/2, text_y - 40, f"facilitated through {institution}.")
-    
-    # --- 6. Meta Info ---
-    start_date = context.get("start_date", "")
-    end_date = context.get("end_date", "")
-    dept = context.get("department", "")
-    
-    c.setFont("Helvetica", 11)
-    c.setFillColor(gray)
-    c.drawCentredString(width/2, text_y - 65, f"Duration: {start_date} — {end_date}   |   Department: {dept}")
-    
-    # --- 7. Signatures ---
-    sig_y = margin + 40*mm
-    
-    # Employer Sig (Left)
-    c.setStrokeColor(dark_gray)
-    c.setLineWidth(1)
-    c.line(width/2 - 90*mm, sig_y, width/2 - 20*mm, sig_y) # Line
-    
-    c.setFont("Helvetica-Bold", 11)
-    c.setFillColor(dark_gray)
-    c.drawCentredString(width/2 - 55*mm, sig_y - 15, context.get("employer_supervisor_name") or "Digital approval pending")
-    
-    c.setFont("Helvetica", 9)
-    c.setFillColor(gray)
-    c.drawCentredString(width/2 - 55*mm, sig_y - 28, "Employer Supervisor Digital Signature")
-    c.drawCentredString(width/2 - 55*mm, sig_y - 38, employer)
-    
-    # Institution Sig (Right)
-    c.line(width/2 + 20*mm, sig_y, width/2 + 90*mm, sig_y) # Line
-    
-    c.setFont("Helvetica-Bold", 11)
-    c.setFillColor(dark_gray)
-    c.drawCentredString(width/2 + 55*mm, sig_y - 15, context.get("institution_supervisor_name") or "Digital approval pending")
-    
-    c.setFont("Helvetica", 9)
-    c.setFillColor(gray)
-    c.drawCentredString(width/2 + 55*mm, sig_y - 28, "Institution Assessor Digital Signature")
-    c.drawCentredString(width/2 + 55*mm, sig_y - 38, institution)
-    
-    # --- 8. Footer (Verification) ---
+
+    teal = THEME.brand
+    teal_dark = THEME.brand_dark
+    teal_soft = THEME.brand_soft
+    ink = THEME.ink
+    muted = THEME.muted
+    line = THEME.line
+    surface = THEME.surface
+    gold = colors.HexColor("#c99a2e")
+
+    margin = 11 * mm
+    inner = 17 * mm
     tracking_code = context.get("tracking_code", "UNKNOWN")
-    c.setFont("Courier", 9)
-    c.setFillColor(light_gray)
-    footer_text = f"Verification URL: edulink.app/verify/{tracking_code}  |  Code: {tracking_code}"
-    c.drawCentredString(width/2, margin + 10, footer_text)
+    verification_url = context.get("verification_url") or _certificate_verification_url(tracking_code)
+    artifact_id = context.get("artifact_id") or "PENDING"
+    artifact_short = str(artifact_id)[:8].upper()
+    issued_at = context.get("issued_at", "")
+
+    # Certificate shell
+    c.setFillColor(colors.white)
+    c.rect(0, 0, width, height, fill=1, stroke=0)
+    c.setStrokeColor(teal)
+    c.setLineWidth(3)
+    c.rect(margin, margin, width - 2 * margin, height - 2 * margin)
+    c.setStrokeColor(gold)
+    c.setLineWidth(0.8)
+    c.rect(margin + 4, margin + 4, width - 2 * margin - 8, height - 2 * margin - 8)
+
+    # Watermark
+    c.saveState()
+    c.setFillColor(colors.Color(0.10, 0.72, 0.67, alpha=0.055))
+    c.translate(width / 2, height / 2)
+    c.rotate(24)
+    c.setFont("Helvetica-Bold", 76)
+    c.drawCentredString(0, -8, "EDULINK VERIFIED")
+    c.restoreState()
+
+    # Header brand rail
+    c.setFillColor(teal_soft)
+    c.roundRect(inner, height - 36 * mm, width - 2 * inner, 18 * mm, 6, fill=1, stroke=0)
+    _draw_certificate_brand(
+        c,
+        x=inner + 7 * mm,
+        y=height - 33 * mm,
+        max_width=49 * mm,
+        max_height=11 * mm,
+    )
+    c.setFillColor(muted)
+    c.setFont("Helvetica", 8)
+    c.drawString(inner + 59 * mm, height - 31 * mm, "Verified placement and attachment credential")
+
+    c.setFillColor(teal_dark)
+    c.setFont("Helvetica-Bold", 8)
+    c.drawRightString(width - inner, height - 25 * mm, "PUBLICLY VERIFIABLE")
+    c.setFillColor(muted)
+    c.setFont("Courier", 8)
+    c.drawRightString(width - inner, height - 30 * mm, tracking_code)
+
+    # Title
+    c.setFillColor(ink)
+    c.setFont("Helvetica-Bold", 32)
+    c.drawCentredString(width / 2, height - 53 * mm, "Certificate of Completion")
+    c.setFillColor(teal_dark)
+    c.setFont("Helvetica-Bold", 10)
+    c.drawCentredString(width / 2, height - 60 * mm, "INDUSTRIAL ATTACHMENT / INTERNSHIP RECORD")
+
+    # Recipient block
+    student_name = context.get("student_name", "Unknown Student")
+    c.setFillColor(muted)
+    c.setFont("Helvetica", 11)
+    c.drawCentredString(width / 2, height - 75 * mm, "This certificate is issued to")
+
+    name_y = _draw_wrapped_centered_text(
+        c,
+        student_name,
+        width / 2,
+        height - 90 * mm,
+        190 * mm,
+        "Helvetica-Bold",
+        30,
+        27,
+        ink,
+    )
+    c.setStrokeColor(teal)
+    c.setLineWidth(1.4)
+    c.line(width / 2 - 65 * mm, name_y - 1 * mm, width / 2 + 65 * mm, name_y - 1 * mm)
+
+    position = context.get("position", "Intern")
+    employer = context.get("employer_name", "N/A")
+    institution = context.get("institution_name", "N/A")
+    body_y = name_y - 11 * mm
+    c.setFillColor(colors.HexColor("#374151"))
+    c.setFont("Helvetica", 12)
+    c.drawCentredString(width / 2, body_y, "for successfully completing the approved placement as")
+    body_y -= 8 * mm
+    position_end_y = _draw_wrapped_centered_text(
+        c,
+        f"{position} at {employer}",
+        width / 2,
+        body_y,
+        185 * mm,
+        "Helvetica-Bold",
+        14,
+        13,
+        teal_dark,
+    )
+    academic_end_y = _draw_wrapped_centered_text(
+        c,
+        f"Academic certification recorded through {institution}.",
+        width / 2,
+        position_end_y - 5 * mm,
+        208 * mm,
+        "Helvetica",
+        10.4,
+        11,
+        colors.HexColor("#374151"),
+    )
+
+    # Detail cards
+    start_date = context.get("start_date", "N/A")
+    end_date = context.get("end_date", "N/A")
+    dept = context.get("department", "N/A")
+    card_h = 17 * mm
+    min_cards_y = 56 * mm
+    preferred_cards_y = 61 * mm
+    cards_y = max(min_cards_y, min(preferred_cards_y, academic_end_y - card_h - 7 * mm))
+    card_w = 72 * mm
+    gap = 6 * mm
+    cards_x = (width - (card_w * 3 + gap * 2)) / 2
+    card_data = [
+        ("PERIOD", f"{start_date} - {end_date}"),
+        ("DEPARTMENT", dept),
+        ("ARTIFACT ID", artifact_short),
+    ]
+    for idx, (label, value) in enumerate(card_data):
+        x = cards_x + idx * (card_w + gap)
+        c.setFillColor(surface)
+        c.roundRect(x, cards_y, card_w, card_h, 5, fill=1, stroke=0)
+        c.setStrokeColor(line)
+        c.roundRect(x, cards_y, card_w, card_h, 5, fill=0, stroke=1)
+        c.setFillColor(muted)
+        c.setFont("Helvetica-Bold", 6.8)
+        c.drawString(x + 5 * mm, cards_y + 10.5 * mm, label)
+        c.setFillColor(ink)
+        c.setFont("Helvetica-Bold", 8.8)
+        c.drawString(x + 5 * mm, cards_y + 5 * mm, str(value)[:38])
+
+    # Signatures
+    sig_y = 43 * mm
+    sig_blocks = [
+        (width / 2 - 91 * mm, context.get("employer_supervisor_name") or "Digital approval pending", "Employer Supervisor", employer),
+        (width / 2 + 21 * mm, context.get("institution_supervisor_name") or "Digital approval pending", "Institution Assessor", institution),
+    ]
+    for x, name, role, org in sig_blocks:
+        c.setStrokeColor(teal_dark)
+        c.setLineWidth(0.9)
+        c.line(x, sig_y + 8 * mm, x + 70 * mm, sig_y + 8 * mm)
+        c.setFillColor(ink)
+        c.setFont("Helvetica-Bold", 9)
+        c.drawCentredString(x + 35 * mm, sig_y + 3 * mm, str(name)[:46])
+        c.setFillColor(muted)
+        c.setFont("Helvetica", 7.5)
+        c.drawCentredString(x + 35 * mm, sig_y - 1 * mm, role)
+        c.drawCentredString(x + 35 * mm, sig_y - 5 * mm, str(org)[:54])
+
+    # Verification panel
+    panel_x = inner
+    panel_y = 18 * mm
+    panel_w = width - 2 * inner
+    panel_h = 18 * mm
+    c.setFillColor(teal_soft)
+    c.roundRect(panel_x, panel_y, panel_w, panel_h, 5, fill=1, stroke=0)
+    c.setStrokeColor(THEME.brand_border)
+    c.roundRect(panel_x, panel_y, panel_w, panel_h, 5, fill=0, stroke=1)
+
+    qr_size = 14 * mm
+    _draw_qr_code(c, verification_url, panel_x + 3 * mm, panel_y + 2 * mm, qr_size)
+    c.setFillColor(teal_dark)
+    c.setFont("Helvetica-Bold", 8)
+    c.drawString(panel_x + 21 * mm, panel_y + 11.2 * mm, "Verify this credential before relying on it")
+    c.setFillColor(muted)
+    c.setFont("Helvetica", 7.2)
+    c.drawString(panel_x + 21 * mm, panel_y + 7.2 * mm, verification_url[:112])
+    c.setFont("Courier", 7.2)
+    c.drawString(panel_x + 21 * mm, panel_y + 3.4 * mm, f"Code: {tracking_code}  |  Issued: {issued_at or 'N/A'}")
+
+    c.setFillColor(colors.HexColor("#6b5b16"))
+    c.setFont("Helvetica-Bold", 6.5)
+    c.drawRightString(
+        panel_x + panel_w - 4 * mm,
+        panel_y + 8 * mm,
+        "Tamper notice: valid only when the code and QR verify on EduLink.",
+    )
+
+    # Microtext
+    c.setFillColor(colors.HexColor("#9ca3af"))
+    c.setFont("Courier", 4.7)
+    micro = f"EDULINK VERIFIED CERTIFICATE {tracking_code} {artifact_id} " * 4
+    c.drawCentredString(width / 2, margin + 2.8 * mm, micro[:220])
     
     c.showPage()
     c.save()
@@ -529,7 +710,7 @@ def _logbook_header_footer(canvas, doc, context):
     # Meta
     canvas.setFont('Helvetica', 9)
     canvas.setFillColor(THEME.faint)
-    text = f"Industrial Attachment Logbook  |  {context.get('generated_at', '')}"
+    text = f"Attachment Logbook Report  |  {context.get('generated_at', '')}"
     canvas.drawRightString(width - margin, height - 15*mm, text)
     
     # Divider
@@ -575,7 +756,7 @@ def _generate_logbook_report_native(context):
     styles = report_styles()
     elements = []
 
-    elements.append(Paragraph("Industrial Attachment Student Logbook", styles["title"]))
+    elements.append(Paragraph("Attachment Logbook Report", styles["title"]))
     elements.append(Paragraph(
         "Standard weekly record of work done, new skills learnt, supervisor review, and institution assessment.",
         styles["subtitle"],
@@ -650,7 +831,7 @@ def _generate_logbook_report_native(context):
             elements.append(Spacer(1, 9))
 
         weekly_summary = log.get("weekly_summary")
-        elements.append(Paragraph("Trainee's Weekly Report", styles["section"]))
+        elements.append(Paragraph("Student Weekly Report", styles["section"]))
         elements.append(Paragraph(weekly_summary or "No weekly summary recorded.", styles["body"]))
         elements.append(Spacer(1, 9))
 
@@ -841,13 +1022,18 @@ def generate_completion_certificate(*, application_id: UUID, actor_id: UUID) -> 
         student_id=application.student_id,
         artifact_type=ArtifactType.CERTIFICATE,
         generated_by=actor_id,
-        metadata=context,
+        metadata=_safe_metadata(context),
         tracking_code=tracking_code,
         status=ArtifactStatus.PENDING  # Explicitly set to PENDING
     )
     
     context["artifact_id"] = str(artifact.id)
     context["tracking_code"] = tracking_code
+    context["verification_url"] = _certificate_verification_url(tracking_code)
+    from django.utils import timezone
+    context["issued_at"] = timezone.now().strftime("%d %b %Y %H:%M")
+    artifact.metadata = _safe_metadata(context)
+    artifact.save(update_fields=['metadata', 'updated_at'])
     
     # Update status to PROCESSING before generation
     artifact.status = ArtifactStatus.PROCESSING
@@ -870,7 +1056,6 @@ def generate_completion_certificate(*, application_id: UUID, actor_id: UUID) -> 
     artifact.file.save(filename, ContentFile(pdf_content))
     
     # Mark as SUCCESS with completion timestamp
-    from django.utils import timezone
     artifact.status = ArtifactStatus.SUCCESS
     artifact.completed_at = timezone.now()
     artifact.save()
@@ -981,12 +1166,15 @@ def generate_performance_summary(*, application_id: UUID, actor_id: UUID) -> Art
     
     # Final assessments are role-specific; keep legacy final_feedback as a fallback only.
     feedback_parts = []
-    if application.employer_final_feedback:
-        feedback_parts.append(f"Employer supervisor: {application.employer_final_feedback}")
-    if application.institution_final_feedback:
-        feedback_parts.append(f"Institution assessor: {application.institution_final_feedback}")
-    if not feedback_parts and application.final_feedback:
-        feedback_parts.append(application.final_feedback)
+    employer_feedback = _safe_text(getattr(application, "employer_final_feedback", None), default="")
+    institution_feedback = _safe_text(getattr(application, "institution_final_feedback", None), default="")
+    legacy_feedback = _safe_text(getattr(application, "final_feedback", None), default="")
+    if employer_feedback:
+        feedback_parts.append(f"Employer supervisor: {employer_feedback}")
+    if institution_feedback:
+        feedback_parts.append(f"Institution assessor: {institution_feedback}")
+    if not feedback_parts and legacy_feedback:
+        feedback_parts.append(legacy_feedback)
     final_feedback = "\n\n".join(feedback_parts) or "No final feedback recorded."
     
     # Fallback to SuccessStory or REPORT if final_feedback is empty (Legacy support)
@@ -1013,10 +1201,10 @@ def generate_performance_summary(*, application_id: UUID, actor_id: UUID) -> Art
         "milestones_reached": milestones_reached,
         "incident_count": incident_count,
         "final_feedback": final_feedback,
-        "employer_final_rating": application.employer_final_rating,
-        "institution_final_rating": application.institution_final_rating,
-        "employer_final_feedback_by": _get_user_display_name(application.employer_final_feedback_by),
-        "institution_final_feedback_by": _get_user_display_name(application.institution_final_feedback_by),
+        "employer_final_rating": _safe_text(getattr(application, "employer_final_rating", None), default=""),
+        "institution_final_rating": _safe_text(getattr(application, "institution_final_rating", None), default=""),
+        "employer_final_feedback_by": _get_user_display_name(getattr(application, "employer_final_feedback_by", None)),
+        "institution_final_feedback_by": _get_user_display_name(getattr(application, "institution_final_feedback_by", None)),
         "current_year": datetime.now().year,
         "artifact_id": None,
         "tracking_code": None
@@ -1029,7 +1217,7 @@ def generate_performance_summary(*, application_id: UUID, actor_id: UUID) -> Art
         student_id=application.student_id,
         artifact_type=ArtifactType.PERFORMANCE_SUMMARY,
         generated_by=actor_id,
-        metadata=context,
+        metadata=_safe_metadata(context),
         tracking_code=tracking_code
     )
     
@@ -1111,6 +1299,12 @@ def generate_logbook_report(*, application_id: UUID, actor_id: UUID) -> Artifact
     logbooks_data = []
     for item in evidence_items:
         metadata = normalize_logbook_metadata(item.metadata)
+        if not metadata.get("week_start_date"):
+            fallback_week_start = format_iso_date(get_week_start_date(item.created_at.date()))
+            metadata = normalize_logbook_metadata({
+                **metadata,
+                "week_start_date": fallback_week_start,
+            })
         logbooks_data.append({
             "title": item.title,
             "description": item.description,
@@ -1155,7 +1349,7 @@ def generate_logbook_report(*, application_id: UUID, actor_id: UUID) -> Artifact
         student_id=application.student_id,
         artifact_type=ArtifactType.LOGBOOK_REPORT,
         generated_by=actor_id,
-        metadata=context,
+        metadata=_safe_metadata(context),
         tracking_code=tracking_code
     )
     

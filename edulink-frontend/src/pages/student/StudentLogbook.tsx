@@ -1529,7 +1529,7 @@ const StudentLogbook: React.FC = () => {
                   ))}
                   <div className="lb-preview-entry" style={{ borderLeft: '3px solid var(--accent)' }}>
                     <div className="lb-preview-day-label" style={{ color: 'var(--accent)' }}>
-                      Trainee Weekly Report
+                      Student Weekly Report
                     </div>
                     <p className="lb-preview-content">{weeklySummary}</p>
                   </div>

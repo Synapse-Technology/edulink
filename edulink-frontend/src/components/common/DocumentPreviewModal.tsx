@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   AlertCircle,
   Download,
@@ -557,7 +558,7 @@ const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({ show, onHid
 
   if (!show) return null;
 
-  return (
+  return createPortal(
     <>
       <style>{STYLES}</style>
       <div className="dpm-backdrop" role="dialog" aria-modal="true" aria-labelledby="document-preview-title">
@@ -619,7 +620,8 @@ const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({ show, onHid
           </footer>
         </div>
       </div>
-    </>
+    </>,
+    document.body
   );
 };
 

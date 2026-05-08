@@ -712,7 +712,7 @@ const StudentLogbookDetail: React.FC = () => {
                     {/* Weekly summary */}
                     {weeklySummary && (
                       <div className="ld-summary-block">
-                        <div className="ld-summary-label">Trainee Weekly Report</div>
+                        <div className="ld-summary-label">Student Weekly Report</div>
                         <p className="ld-summary-text">{weeklySummary}</p>
                       </div>
                     )}

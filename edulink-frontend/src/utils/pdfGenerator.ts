@@ -38,7 +38,7 @@ export const generateLogbookPDF = (data: LogbookReportData) => {
   
   doc.setFontSize(13);
   doc.setTextColor(darkColor[0], darkColor[1], darkColor[2]);
-  doc.text('Industrial Attachment Student Logbook', pageWidth - 14, 22, { align: 'right' });
+  doc.text('Attachment Logbook Draft', pageWidth - 14, 22, { align: 'right' });
   
   doc.setFontSize(9);
   doc.setTextColor(grayColor[0], grayColor[1], grayColor[2]);
@@ -135,7 +135,7 @@ export const generateLogbookPDF = (data: LogbookReportData) => {
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(darkColor[0], darkColor[1], darkColor[2]);
-  doc.text("Trainee's Weekly Report", 14, finalY + 12);
+  doc.text("Student Weekly Report", 14, finalY + 12);
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(darkColor[0], darkColor[1], darkColor[2]);

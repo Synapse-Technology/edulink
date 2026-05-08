@@ -1,29 +1,462 @@
 import React, { useState } from 'react';
-import { Table, Button, Badge, Form, Modal, Alert, Spinner } from 'react-bootstrap';
-import { AlertTriangle, Plus, CheckCircle, Clock } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import { useOutletContext } from 'react-router-dom';
+import { AlertTriangle, Plus, CheckCircle, Clock, X, ChevronRight, Info } from 'lucide-react';
 import { internshipService } from '../../../../services/internship/internshipService';
 import type { Incident } from '../../../../services/internship/internshipService';
 import { toast } from 'react-hot-toast';
 import type { SupervisorDashboardContext } from './SupervisorDashboard';
 import SupervisorTableSkeleton from '../../../../components/admin/skeletons/SupervisorTableSkeleton';
 import IncidentDetailsModal from '../../../../components/incident/IncidentDetailsModal';
+import styled, { keyframes, css } from 'styled-components';
 
+/* ─── Animations ──────────────────────────────────────────────────── */
+const fadeUp = keyframes`
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+`;
+
+const overlayIn = keyframes`
+  from { opacity: 0; }
+  to   { opacity: 1; }
+`;
+
+const slideUp = keyframes`
+  from { opacity: 0; transform: translateY(24px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0)   scale(1); }
+`;
+
+/* ─── Layout ──────────────────────────────────────────────────────── */
+const Page = styled.div`
+  animation: ${fadeUp} 0.3s ease both;
+`;
+
+const PageHeader = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+`;
+
+const TitleGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 14px;
+`;
+
+const IconBox = styled.div`
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: #FEF2F2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid rgba(220,53,69,0.12);
+`;
+
+const TitleText = styled.div`
+  h1 {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--navy);
+    margin: 0 0 3px;
+    letter-spacing: -0.02em;
+  }
+  p {
+    font-size: 13px;
+    color: var(--steel);
+    margin: 0;
+  }
+`;
+
+/* ─── Primary action button ───────────────────────────────────────── */
+const ReportBtn = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 18px;
+  background: #DC2626;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.12s;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+
+  &:hover  { background: #B91C1C; transform: translateY(-1px); }
+  &:active { transform: translateY(0); }
+`;
+
+/* ─── Error banner ────────────────────────────────────────────────── */
+const ErrorBanner = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: #FEF2F2;
+  border: 1px solid rgba(220,38,38,0.18);
+  border-left: 3px solid #DC2626;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #7F1D1D;
+  margin-bottom: 1.25rem;
+`;
+
+/* ─── Card ────────────────────────────────────────────────────────── */
+const Card = styled.div`
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+`;
+
+const CardHead = styled.div`
+  padding: 1.1rem 1.5rem 1rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+
+  h5 { font-size: 14px; font-weight: 600; color: var(--navy); margin: 0; }
+  span { font-size: 12px; color: var(--steel); }
+`;
+
+/* ─── Table ───────────────────────────────────────────────────────── */
+const TableWrap = styled.div`
+  overflow-x: auto;
+`;
+
+const Table = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+`;
+
+const Thead = styled.thead`
+  background: var(--fog);
+
+  th {
+    padding: 10px 16px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--steel);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  th:first-child { padding-left: 1.5rem; }
+  th:last-child  { padding-right: 1.5rem; text-align: right; }
+`;
+
+const Tbody = styled.tbody`
+  tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.12s;
+    &:last-child { border-bottom: none; }
+    &:hover { background: var(--fog); }
+  }
+
+  td {
+    padding: 13px 16px;
+    vertical-align: middle;
+  }
+
+  td:first-child { padding-left: 1.5rem; }
+  td:last-child  { padding-right: 1.5rem; text-align: right; }
+`;
+
+const TitleCell = styled.div`
+  p { font-size: 13.5px; font-weight: 600; color: var(--navy); margin: 0 0 2px; }
+  span {
+    font-size: 12px;
+    color: var(--steel);
+    display: block;
+    max-width: 280px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+`;
+
+const DateCell = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--steel);
+  font-size: 12.5px;
+`;
+
+const StudentCell = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  strong { font-size: 13px; font-weight: 600; color: var(--navy); }
+  span   { font-size: 11.5px; color: var(--steel); }
+`;
+
+const ViewBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: var(--accent-dim);
+  color: var(--accent);
+  border: none;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.14s;
+
+  &:hover { background: #BFDBFE; }
+`;
+
+/* ─── Status badges ───────────────────────────────────────────────── */
+type StatusConfig = { bg: string; color: string; dot: string; label: string };
+
+const STATUS_MAP: Record<string, StatusConfig> = {
+  OPEN:             { bg: '#FEF2F2', color: '#B91C1C', dot: '#DC2626',  label: 'Open' },
+  ASSIGNED:         { bg: '#FFFBEB', color: '#92400E', dot: '#D97706',  label: 'Assigned' },
+  INVESTIGATING:    { bg: '#EFF6FF', color: '#1D4ED8', dot: '#3B82F6',  label: 'Investigating' },
+  PENDING_APPROVAL: { bg: '#F5F3FF', color: '#5B21B6', dot: '#7C3AED',  label: 'Pending Approval' },
+  RESOLVED:         { bg: '#F0FDF4', color: '#166534', dot: '#16A34A',  label: 'Resolved' },
+  DISMISSED:        { bg: '#F9FAFB', color: '#4B5563', dot: '#9CA3AF',  label: 'Dismissed' },
+};
+
+const StatusPill = styled.span<{ $cfg: StatusConfig }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  background: ${p => p.$cfg.bg};
+  color: ${p => p.$cfg.color};
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+
+  &::before {
+    content: '';
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: ${p => p.$cfg.dot};
+    flex-shrink: 0;
+  }
+`;
+
+/* ─── Empty state ─────────────────────────────────────────────────── */
+const Empty = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4rem 1rem;
+  text-align: center;
+
+  div.icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: #F0FDF4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+  }
+
+  h5 { font-size: 15px; font-weight: 600; color: var(--navy); margin: 0 0 6px; }
+  p  { font-size: 13px; color: var(--steel); margin: 0; }
+`;
+
+/* ─── Modal overlay ───────────────────────────────────────────────── */
+const Overlay = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(13, 33, 55, 0.42);
+  z-index: 12000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: ${overlayIn} 0.2s ease;
+  backdrop-filter: blur(2px);
+`;
+
+const ModalBox = styled.div`
+  width: 100%;
+  max-width: 500px;
+  background: var(--white);
+  border-radius: 14px;
+  box-shadow: 0 24px 48px rgba(13,33,55,0.18);
+  animation: ${slideUp} 0.22s ease both;
+  overflow: hidden;
+`;
+
+const ModalHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.1rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+
+  h3 { font-size: 15px; font-weight: 600; color: var(--navy); margin: 0; }
+`;
+
+const CloseBtn = styled.button`
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: var(--steel);
+  border-radius: 6px;
+  display: flex;
+  transition: background 0.14s, color 0.14s;
+
+  &:hover { background: var(--mist); color: var(--navy); }
+`;
+
+const ModalBody = styled.div`
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+`;
+
+const WarnNote = styled.div`
+  display: flex;
+  gap: 10px;
+  padding: 10px 14px;
+  background: #FFFBEB;
+  border: 1px solid rgba(217,119,6,0.18);
+  border-left: 3px solid #D97706;
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: #78350F;
+  line-height: 1.5;
+
+  svg { flex-shrink: 0; margin-top: 1px; }
+`;
+
+const FormGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+`;
+
+const Label = styled.label`
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--steel);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+`;
+
+const sharedInput = css`
+  width: 100%;
+  padding: 9px 12px;
+  background: var(--fog);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13.5px;
+  color: var(--navy);
+  font-family: var(--font);
+  transition: border-color 0.15s, box-shadow 0.15s;
+  outline: none;
+
+  &::placeholder { color: var(--steel); }
+
+  &:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(47,111,237,0.12);
+    background: var(--white);
+  }
+`;
+
+const Select = styled.select`${sharedInput}`;
+const Input  = styled.input`${sharedInput}`;
+const Textarea = styled.textarea`
+  ${sharedInput}
+  resize: vertical;
+  min-height: 100px;
+  line-height: 1.55;
+`;
+
+const ModalFooter = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border);
+  background: var(--fog);
+`;
+
+const CancelBtn = styled.button`
+  padding: 8px 18px;
+  background: var(--white);
+  border: 1px solid var(--border-md);
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--slate);
+  cursor: pointer;
+  transition: background 0.14s;
+
+  &:hover { background: var(--mist); }
+`;
+
+const SubmitBtn = styled.button`
+  padding: 8px 20px;
+  background: #DC2626;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  transition: background 0.15s;
+
+  &:hover:not(:disabled) { background: #B91C1C; }
+  &:disabled { opacity: 0.6; cursor: not-allowed; }
+`;
+
+const Spinner = styled.span`
+  width: 13px;
+  height: 13px;
+  border: 2px solid rgba(255,255,255,0.35);
+  border-top-color: white;
+  border-radius: 50%;
+  display: inline-block;
+  animation: spin 0.6s linear infinite;
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+`;
+
+/* ─── Component ───────────────────────────────────────────────────── */
 const SupervisorIncidents: React.FC = () => {
   const { internships, incidents: initialIncidents } = useOutletContext<SupervisorDashboardContext>();
-  const activeInternships = internships.filter(internship => internship.status === 'ACTIVE');
-  const [incidents, setIncidents] = useState(initialIncidents);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const activeInternships = internships.filter(i => i.status === 'ACTIVE');
 
-  // Create Modal State
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [selectedInternship, setSelectedInternship] = useState<string>('');
-  const [incidentTitle, setIncidentTitle] = useState('');
+  const [incidents, setIncidents]               = useState(initialIncidents);
+  const [loading, setLoading]                   = useState(false);
+  const [error, setError]                       = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal]   = useState(false);
+  const [selectedInternship, setSelectedInternship] = useState('');
+  const [incidentTitle, setIncidentTitle]       = useState('');
   const [incidentDescription, setIncidentDescription] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-
-  // Details Modal State
+  const [submitting, setSubmitting]             = useState(false);
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
 
@@ -31,10 +464,9 @@ const SupervisorIncidents: React.FC = () => {
     try {
       setLoading(true);
       const data = await internshipService.getIncidents();
-      setIncidents(data);
-    } catch (err: any) {
-      console.error("Failed to fetch incidents", err);
-      setError("Failed to load incidents.");
+      setIncidents(Array.isArray(data) ? data : (data as any)?.results ?? []);
+    } catch {
+      setError('Failed to load incidents.');
     } finally {
       setLoading(false);
     }
@@ -43,22 +475,17 @@ const SupervisorIncidents: React.FC = () => {
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedInternship || !incidentTitle || !incidentDescription) return;
-
     try {
       setSubmitting(true);
       await internshipService.reportIncident(selectedInternship, incidentTitle, incidentDescription);
-      toast.success("Incident reported successfully");
+      toast.success('Incident reported successfully');
       setShowCreateModal(false);
-      
-      // Reset form
       setIncidentTitle('');
       setIncidentDescription('');
       setSelectedInternship('');
-      
-      fetchData(); // Refresh list
-    } catch (err: any) {
-      console.error("Failed to report incident", err);
-      toast.error("Failed to report incident");
+      fetchData();
+    } catch {
+      toast.error('Failed to report incident');
     } finally {
       setSubmitting(false);
     }
@@ -70,239 +497,181 @@ const SupervisorIncidents: React.FC = () => {
   };
 
   const handleIncidentUpdate = (updated: Incident) => {
-    setIncidents(prev => prev.map(inc => (inc.id === updated.id ? updated : inc)));
+    setIncidents(prev => prev.map(inc => inc.id === updated.id ? updated : inc));
     setSelectedIncident(updated);
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'OPEN': 
-        return (
-          <Badge bg="danger" className="bg-danger bg-opacity-10 text-danger border border-danger-subtle px-3 py-2 fw-medium rounded-3">
-            Open
-          </Badge>
-        );
-      case 'ASSIGNED': 
-        return (
-          <Badge bg="warning" className="bg-warning bg-opacity-10 text-warning border border-warning-subtle px-3 py-2 fw-medium rounded-3">
-            Assigned
-          </Badge>
-        );
-      case 'INVESTIGATING': 
-        return (
-          <Badge bg="info" className="bg-info bg-opacity-10 text-info border border-info-subtle px-3 py-2 fw-medium rounded-3">
-            Investigating
-          </Badge>
-        );
-      case 'PENDING_APPROVAL': 
-        return (
-          <Badge bg="primary" className="bg-primary bg-opacity-10 text-primary border border-primary-subtle px-3 py-2 fw-medium rounded-3">
-            Pending Approval
-          </Badge>
-        );
-      case 'RESOLVED': 
-        return (
-          <Badge bg="success" className="bg-success bg-opacity-10 text-success border border-success-subtle px-3 py-2 fw-medium rounded-3">
-            Resolved
-          </Badge>
-        );
-      case 'DISMISSED': 
-        return (
-          <Badge bg="secondary" className="bg-secondary bg-opacity-10 text-secondary border border-secondary-subtle px-3 py-2 fw-medium rounded-3">
-            Dismissed
-          </Badge>
-        );
-      default: 
-        return (
-          <Badge bg="secondary" className="bg-secondary bg-opacity-10 text-secondary border border-secondary-subtle px-3 py-2 fw-medium rounded-3">
-            {status}
-          </Badge>
-        );
-    }
+  const getStatusPill = (status: string) => {
+    const cfg = STATUS_MAP[status] ?? { bg: '#F9FAFB', color: '#4B5563', dot: '#9CA3AF', label: status };
+    return <StatusPill $cfg={cfg}>{cfg.label}</StatusPill>;
   };
 
-  if (loading) {
-    return (
-      <div className="container-fluid px-4 px-lg-5 py-4">
-        <SupervisorTableSkeleton hasAction={true} />
-      </div>
-    );
-  }
+  if (loading) return <SupervisorTableSkeleton hasAction />;
 
   return (
-    <div className="container-fluid px-4 px-lg-5 py-4">
-      {/* Header Section */}
-      <div className="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center mb-5">
-        <div className="mb-4 mb-lg-0">
-          <div className="d-flex align-items-center gap-3 mb-3">
-            <div className="bg-danger bg-opacity-10 p-3 rounded-3">
-              <AlertTriangle size={28} className="text-danger" />
-            </div>
-            <div>
-              <h1 className="h2 fw-bold mb-1">Incidents & Misconduct</h1>
-              <p className="text-muted mb-0">
-                Report and track student incidents
-              </p>
-            </div>
-          </div>
-        </div>
-        <div>
-          <Button 
-            variant="danger" 
-            onClick={() => setShowCreateModal(true)}
-            className="d-flex align-items-center px-4 py-2 rounded-3 shadow-sm hover-lift"
-          >
-            <Plus size={18} className="me-2" />
-            Report Incident
-          </Button>
-        </div>
-      </div>
+    <Page>
+      <PageHeader>
+        <TitleGroup>
+          <IconBox>
+            <AlertTriangle size={22} color="#DC2626" />
+          </IconBox>
+          <TitleText>
+            <h1>Incidents &amp; Misconduct</h1>
+            <p>Report and track student incidents during their placement</p>
+          </TitleText>
+        </TitleGroup>
 
-      {error && <Alert variant="danger" className="mb-4">{error}</Alert>}
-      
-      <div className="card border-0 shadow-sm">
-        <div className="card-header bg-white border-0 pt-4 pb-3 px-4">
-          <h5 className="fw-bold mb-1">Reported Incidents</h5>
-          <p className="text-muted small mb-0">History of all incidents reported by you</p>
-        </div>
-        <div className="card-body p-0">
-          <div className="table-responsive">
-            <Table hover className="table align-middle mb-0">
-              <thead className="bg-light">
-                <tr>
-                  <th className="border-0 ps-4 py-3 text-muted small text-uppercase fw-semibold">Title / Description</th>
-                  <th className="border-0 py-3 text-muted small text-uppercase fw-semibold">Status</th>
-                  <th className="border-0 py-3 text-muted small text-uppercase fw-semibold">Reported Date</th>
-                  <th className="border-0 py-3 text-muted small text-uppercase fw-semibold">Internship / Student</th>
-                  <th className="border-0 pe-4 py-3 text-end text-muted small text-uppercase fw-semibold">Resolution</th>
+        <ReportBtn onClick={() => setShowCreateModal(true)}>
+          <Plus size={16} />
+          Report incident
+        </ReportBtn>
+      </PageHeader>
+
+      {error && (
+        <ErrorBanner>
+          <AlertTriangle size={15} />
+          {error}
+        </ErrorBanner>
+      )}
+
+      <Card>
+        <CardHead>
+          <h5>Reported incidents</h5>
+          <span>{incidents.length} total</span>
+        </CardHead>
+
+        <TableWrap>
+          <Table>
+            <Thead>
+              <tr>
+                <th>Title / Description</th>
+                <th>Status</th>
+                <th>Reported</th>
+                <th>Student</th>
+                <th>Action</th>
+              </tr>
+            </Thead>
+            <Tbody>
+              {incidents.length > 0 ? incidents.map(incident => (
+                <tr key={incident.id}>
+                  <td>
+                    <TitleCell>
+                      <p>{incident.title}</p>
+                      <span>{incident.description}</span>
+                    </TitleCell>
+                  </td>
+                  <td>{getStatusPill(incident.status)}</td>
+                  <td>
+                    <DateCell>
+                      <Clock size={13} />
+                      {new Date(incident.created_at).toLocaleDateString('en-GB', {
+                        day: '2-digit', month: 'short', year: 'numeric'
+                      })}
+                    </DateCell>
+                  </td>
+                  <td>
+                    <StudentCell>
+                      <strong>{incident.student_info?.name ?? 'Unknown'}</strong>
+                      <span>{incident.internship_title ?? 'Untitled placement'}</span>
+                    </StudentCell>
+                  </td>
+                  <td>
+                    <ViewBtn onClick={() => handleViewDetails(incident)}>
+                      Details <ChevronRight size={12} />
+                    </ViewBtn>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {incidents.length > 0 ? (
-                  incidents.map((incident) => (
-                    <tr key={incident.id} className="border-top">
-                      <td className="ps-4 py-3">
-                        <div className="fw-bold text-dark">{incident.title}</div>
-                        <div className="small text-muted text-truncate" style={{ maxWidth: '300px' }}>
-                          {incident.description}
-                        </div>
-                      </td>
-                      <td className="py-3">{getStatusBadge(incident.status)}</td>
-                      <td className="py-3">
-                        <div className="d-flex align-items-center text-muted">
-                          <Clock size={14} className="me-2" />
-                          {new Date(incident.created_at).toLocaleDateString()}
-                        </div>
-                      </td>
-                      <td className="py-3">
-                        <div className="d-flex align-items-center gap-2">
-                          <small className="text-muted bg-light px-2 py-1 rounded border">
-                            {incident.internship_title || 'Untitled'}
-                          </small>
-                          <span className="small text-muted">-</span>
-                          <span className="small fw-medium text-dark">
-                            {incident.student_info?.name || 'Unknown'}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="text-end pe-4 py-3">
-                        <Button
-                          variant="outline-primary"
-                          size="sm"
-                          onClick={() => handleViewDetails(incident)}
-                        >
-                          View Details
-                        </Button>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={5} className="text-center py-5">
-                      <div className="d-flex flex-column align-items-center">
-                        <div className="bg-light rounded-circle p-4 mb-3">
-                          <CheckCircle size={48} className="text-success opacity-50" />
-                        </div>
-                        <h5 className="fw-bold text-dark">No Incidents Reported</h5>
-                        <p className="text-muted mb-0">There are no open incidents to display.</p>
+              )) : (
+                <tr>
+                  <td colSpan={5}>
+                    <Empty>
+                      <div className="icon">
+                        <CheckCircle size={28} color="#16A34A" />
                       </div>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </Table>
-          </div>
-        </div>
-      </div>
+                      <h5>No incidents reported</h5>
+                      <p>There are no incidents on record at this time.</p>
+                    </Empty>
+                  </td>
+                </tr>
+              )}
+            </Tbody>
+          </Table>
+        </TableWrap>
+      </Card>
 
-      {/* Create Incident Modal */}
-      <Modal show={showCreateModal} onHide={() => setShowCreateModal(false)} centered>
-        <Form onSubmit={handleCreateSubmit}>
-          <Modal.Header closeButton className="border-0 pb-0">
-            <Modal.Title className="fw-bold">Report New Incident</Modal.Title>
-          </Modal.Header>
-          <Modal.Body className="pt-3">
-            <Alert variant="warning" className="d-flex align-items-start border-warning-subtle bg-warning bg-opacity-10 rounded-3 mb-4">
-              <AlertTriangle size={20} className="me-2 flex-shrink-0 mt-1" />
-              <div className="small">
-                This report will be escalated to the Institution Admin and will be visible on the student's record.
-              </div>
-            </Alert>
+      {/* ── Report incident modal ── */}
+      {showCreateModal && createPortal(
+        <Overlay onClick={() => setShowCreateModal(false)}>
+          <ModalBox onClick={e => e.stopPropagation()}>
+            <form onSubmit={handleCreateSubmit}>
+              <ModalHeader>
+                <h3>Report new incident</h3>
+                <CloseBtn type="button" onClick={() => setShowCreateModal(false)} aria-label="Close">
+                  <X size={17} />
+                </CloseBtn>
+              </ModalHeader>
 
-            <Form.Group className="mb-3">
-              <Form.Label className="fw-medium small text-uppercase text-muted">Select Internship / Student</Form.Label>
-              <Form.Select 
-                required
-                value={selectedInternship}
-                onChange={(e) => setSelectedInternship(e.target.value)}
-                className="bg-light border-0 py-2"
-              >
-                <option value="">-- Select Internship --</option>
-                {activeInternships.map(internship => (
-                  <option key={internship.id} value={internship.id}>
-                    {internship.student_info?.name || 'Unknown Student'} - {internship.title}
-                  </option>
-                ))}
-              </Form.Select>
-            </Form.Group>
+              <ModalBody>
+                <WarnNote>
+                  <Info size={15} color="#D97706" />
+                  This report will be escalated to the Institution Admin and will appear on the student's record.
+                </WarnNote>
 
-            <Form.Group className="mb-3">
-              <Form.Label className="fw-medium small text-uppercase text-muted">Incident Title</Form.Label>
-              <Form.Control 
-                type="text" 
-                required
-                placeholder="Brief summary of the issue"
-                value={incidentTitle}
-                onChange={(e) => setIncidentTitle(e.target.value)}
-                className="bg-light border-0 py-2"
-              />
-            </Form.Group>
+                <FormGroup>
+                  <Label htmlFor="internship-select">Internship / Student</Label>
+                  <Select
+                    id="internship-select"
+                    required
+                    value={selectedInternship}
+                    onChange={e => setSelectedInternship(e.target.value)}
+                  >
+                    <option value="">Select a placement…</option>
+                    {activeInternships.map(i => (
+                      <option key={i.id} value={i.id}>
+                        {i.student_info?.name ?? 'Unknown student'} — {i.title}
+                      </option>
+                    ))}
+                  </Select>
+                </FormGroup>
 
-            <Form.Group className="mb-3">
-              <Form.Label className="fw-medium small text-uppercase text-muted">Description</Form.Label>
-              <Form.Control 
-                as="textarea" 
-                rows={4} 
-                required
-                placeholder="Detailed description of the incident..."
-                value={incidentDescription}
-                onChange={(e) => setIncidentDescription(e.target.value)}
-                className="bg-light border-0"
-              />
-            </Form.Group>
-          </Modal.Body>
-          <Modal.Footer className="border-0 pt-0">
-            <Button variant="light" onClick={() => setShowCreateModal(false)} className="px-4 rounded-3">
-              Cancel
-            </Button>
-            <Button variant="danger" type="submit" disabled={submitting} className="px-4 rounded-3">
-              {submitting ? <Spinner animation="border" size="sm" /> : 'Report Incident'}
-            </Button>
-          </Modal.Footer>
-        </Form>
-      </Modal>
+                <FormGroup>
+                  <Label htmlFor="incident-title">Incident title</Label>
+                  <Input
+                    id="incident-title"
+                    type="text"
+                    required
+                    placeholder="Brief summary of the incident"
+                    value={incidentTitle}
+                    onChange={e => setIncidentTitle(e.target.value)}
+                  />
+                </FormGroup>
 
-      {/* Incident Details Modal */}
+                <FormGroup>
+                  <Label htmlFor="incident-desc">Description</Label>
+                  <Textarea
+                    id="incident-desc"
+                    required
+                    placeholder="Describe what happened in detail…"
+                    value={incidentDescription}
+                    onChange={e => setIncidentDescription(e.target.value)}
+                  />
+                </FormGroup>
+              </ModalBody>
+
+              <ModalFooter>
+                <CancelBtn type="button" onClick={() => setShowCreateModal(false)}>
+                  Cancel
+                </CancelBtn>
+                <SubmitBtn type="submit" disabled={submitting}>
+                  {submitting ? <><Spinner /> Submitting…</> : 'Report incident'}
+                </SubmitBtn>
+              </ModalFooter>
+            </form>
+          </ModalBox>
+        </Overlay>,
+        document.body
+      )}
+
       {selectedIncident && (
         <IncidentDetailsModal
           show={showDetailsModal}
@@ -312,17 +681,7 @@ const SupervisorIncidents: React.FC = () => {
           isAdmin={false}
         />
       )}
-
-      <style>{`
-        .hover-lift {
-          transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        .hover-lift:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-        }
-      `}</style>
-    </div>
+    </Page>
   );
 };
 

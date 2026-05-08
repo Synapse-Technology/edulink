@@ -292,7 +292,10 @@ class ApplicationViewSet(viewsets.ReadOnlyModelViewSet):
         """
         Handle application actions: shortlist, accept, reject, complete, certify
         """
-        application = self.get_object()
+        try:
+            application = InternshipApplication.objects.select_related("opportunity").get(pk=pk)
+        except InternshipApplication.DoesNotExist:
+            return Response({"detail": "Application not found"}, status=status.HTTP_404_NOT_FOUND)
         serializer = InternshipActionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         action_name = serializer.validated_data['action']
@@ -454,7 +457,10 @@ class ApplicationViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True, methods=['post'])
     def assign_supervisor(self, request, pk=None):
-        application = self.get_object()
+        try:
+            application = InternshipApplication.objects.select_related("opportunity").get(pk=pk)
+        except InternshipApplication.DoesNotExist:
+            return Response({"detail": "Application not found"}, status=status.HTTP_404_NOT_FOUND)
         opportunity = application.opportunity
         serializer = AssignSupervisorSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -505,7 +511,10 @@ class ApplicationViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True, methods=['post'], url_path='submit-final-feedback')
     def submit_feedback(self, request, pk=None):
-        application = self.get_object()
+        try:
+            application = InternshipApplication.objects.select_related("opportunity").get(pk=pk)
+        except InternshipApplication.DoesNotExist:
+            return Response({"detail": "Application not found"}, status=status.HTTP_404_NOT_FOUND)
         serializer = SubmitFinalFeedbackSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
@@ -552,7 +561,10 @@ class ApplicationViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True, methods=['post'])
     def report_incident(self, request, pk=None):
-        application = self.get_object()
+        try:
+            application = InternshipApplication.objects.select_related("opportunity").get(pk=pk)
+        except InternshipApplication.DoesNotExist:
+            return Response({"detail": "Application not found"}, status=status.HTTP_404_NOT_FOUND)
         serializer = CreateIncidentSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         

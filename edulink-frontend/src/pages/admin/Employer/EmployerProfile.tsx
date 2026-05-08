@@ -23,6 +23,11 @@ import {
 } from '../../../services/employer/employerService';
 import { showToast } from '../../../utils/toast';
 import { SEO } from '../../../components/common';
+import {
+  EmployerHealth,
+  EmployerHero,
+  EmployerWorkspacePage,
+} from '../../../components/employer/workspace';
 
 const STYLES = `
   .ep-page { color: var(--el-ink); }
@@ -715,24 +720,14 @@ const EmployerProfile: React.FC = () => {
 
       <style>{STYLES}</style>
 
-      <div className="ep-page">
-        <section className="ep-hero">
-          <div className="ep-command-card">
-            <div className="ep-kicker">
-              <Sparkles size={13} />
-              Employer Identity
-            </div>
-
-            <h1 className="ep-title">
-              Company <span>Profile</span>
-            </h1>
-
-            <p className="ep-sub">
-              Keep your employer information accurate, credible, and institution-ready.
-              Students and universities rely on this profile to trust placement opportunities.
-            </p>
-
-            <div className="ep-hero-actions">
+      <EmployerWorkspacePage className="ep-page">
+        <EmployerHero
+          icon={<Sparkles size={13} />}
+          eyebrow="Employer Identity"
+          title={<>Company <span>Profile</span></>}
+          subtitle="Keep your employer information accurate, credible, and institution-ready. Students and universities rely on this profile to trust placement opportunities."
+          actions={(
+            <>
               {!isEditing ? (
                 <button
                   type="button"
@@ -758,27 +753,17 @@ const EmployerProfile: React.FC = () => {
                   Cancel editing
                 </button>
               )}
-            </div>
-          </div>
-
-          <aside className="ep-health-card">
-            <div className="ep-health-top">
-              <div>
-                <div className="ep-health-label">Profile completeness</div>
-                <div className="ep-health-score">{profileHealth}%</div>
-              </div>
-
-              <div className="ep-health-icon">
-                <ShieldCheck size={20} />
-              </div>
-            </div>
-
-            <p className="ep-health-note">
-              Complete employer records improve student confidence and reduce institution
-              verification friction.
-            </p>
-          </aside>
-        </section>
+            </>
+          )}
+          aside={(
+            <EmployerHealth
+              label="Profile completeness"
+              value={`${profileHealth}%`}
+              icon={<ShieldCheck size={20} />}
+              note="Complete employer records improve student confidence and reduce institution verification friction."
+            />
+          )}
+        />
 
         <div className="ep-layout">
           <main className="ep-main">
@@ -1138,7 +1123,7 @@ const EmployerProfile: React.FC = () => {
             </section>
           </aside>
         </div>
-      </div>
+      </EmployerWorkspacePage>
     </EmployerLayout>
   );
 };

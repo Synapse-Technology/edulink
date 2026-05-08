@@ -1,23 +1,41 @@
 import React, { useState, useEffect } from 'react';
 import InstitutionSidebar from './InstitutionSidebar';
 import InstitutionHeader from './InstitutionHeader';
+import '../../institution/workspace/InstitutionWorkspace.css';
 
 interface InstitutionLayoutProps {
   children: React.ReactNode;
 }
 
+const SIDEBAR_WIDTH = 280;
+
+const STYLES = `
+  .institution-layout {
+    --inst-bg: #f6f7f9;
+    --inst-surface: #ffffff;
+    --inst-surface-2: #f0fdfa;
+    --inst-border: #dbe7e4;
+    --inst-ink: #0f172a;
+    --inst-muted: #64748b;
+    --inst-accent: #1ab8aa;
+    --inst-accent-soft: rgba(26, 184, 170, 0.11);
+    --inst-shadow: 0 14px 38px rgba(15, 23, 42, 0.08);
+    background:
+      radial-gradient(circle at top right, rgba(26, 184, 170, 0.08), transparent 34%),
+      var(--inst-bg);
+    color: var(--inst-ink);
+  }
+`;
+
 const InstitutionLayout: React.FC<InstitutionLayoutProps> = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 992);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 992);
 
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth < 992);
-      if (window.innerWidth >= 992) {
-        setIsSidebarOpen(true);
-      } else {
-        setIsSidebarOpen(false);
-      }
+      const mobile = window.innerWidth < 992;
+      setIsMobile(mobile);
+      setIsSidebarOpen(!mobile);
     };
 
     window.addEventListener('resize', handleResize);
@@ -26,54 +44,64 @@ const InstitutionLayout: React.FC<InstitutionLayoutProps> = ({ children }) => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
-  };
-
   return (
-    <div className="institution-layout min-vh-100 bg-light">
-      <InstitutionSidebar 
-        isOpen={isSidebarOpen} 
+    <div
+      className="institution-layout min-vh-100"
+    >
+      <style>{STYLES}</style>
+      <InstitutionSidebar
+        isOpen={isSidebarOpen}
         onClose={() => isMobile && setIsSidebarOpen(false)}
         isMobile={isMobile}
       />
-      
-      <div 
-        className="main-content d-flex flex-column min-vh-100 transition-all"
-        style={{ 
-          marginLeft: isMobile ? 0 : '260px', 
-          transition: 'margin-left 0.3s ease-in-out',
-          width: isMobile ? '100%' : 'calc(100% - 260px)'
+
+      <div
+        className="institution-main d-flex flex-column min-vh-100"
+        style={{
+          marginLeft: isMobile ? 0 : `${SIDEBAR_WIDTH}px`,
+          width: isMobile ? '100%' : `calc(100% - ${SIDEBAR_WIDTH}px)`,
+          transition: 'margin-left 0.25s ease, width 0.25s ease',
         }}
       >
-        <InstitutionHeader 
-          onToggleSidebar={toggleSidebar}
-          notificationCount={0} 
+        <InstitutionHeader
+          onToggleSidebar={() => setIsSidebarOpen(prev => !prev)}
+          notificationCount={0}
         />
-        
-        <main className="flex-grow-1 p-4">
-          {children}
+
+        <main className="flex-grow-1 px-3 px-md-4 py-4">
+          <div className="container-fluid px-0">
+            {children}
+          </div>
         </main>
-        
-        <footer className="bg-white py-3 px-4 border-top">
-          <div className="container-fluid">
-            <div className="row align-items-center">
-              <div className="col-md-6 text-center text-md-start">
-                <small className="text-muted">© {new Date().getFullYear()} Edulink. All rights reserved.</small>
-              </div>
-              <div className="col-md-6 text-center text-md-end">
-                <small className="text-muted">Institution Portal</small>
-              </div>
+
+        <footer
+          className="px-3 px-md-4 py-3"
+          style={{
+            background: '#f6f7f9',
+            borderTop: '1px solid #e7eaf0',
+          }}
+        >
+          <div className="container-fluid px-0">
+            <div className="d-flex flex-column flex-md-row justify-content-between gap-2">
+              <small className="text-muted">
+                © {new Date().getFullYear()} EduLink KE
+              </small>
+              <small className="text-muted">
+                Institution Portal · Secure placement infrastructure
+              </small>
             </div>
           </div>
         </footer>
       </div>
-      
-      {/* Mobile Overlay */}
+
       {isMobile && isSidebarOpen && (
-        <div 
-          className="position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-50"
-          style={{ zIndex: 1040 }}
+        <div
+          className="position-fixed top-0 start-0 w-100 h-100"
+          style={{
+            zIndex: 1040,
+            background: 'rgba(15, 23, 42, 0.38)',
+            backdropFilter: 'blur(2px)',
+          }}
           onClick={() => setIsSidebarOpen(false)}
         />
       )}

@@ -1,13 +1,13 @@
 import React from 'react';
-import { 
-  PieChart, 
-  Pie, 
-  Cell, 
-  Tooltip, 
-  Legend, 
-  ResponsiveContainer
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
 } from 'recharts';
-import { Card, Row, Col } from 'react-bootstrap';
+import { Row, Col } from 'react-bootstrap';
 import { PieChart as PieChartIcon, Activity, Users } from 'lucide-react';
 import type { PlacementStats } from '../../../services/institution/institutionService';
 
@@ -15,15 +15,14 @@ interface DashboardChartsProps {
   stats: PlacementStats | null;
 }
 
-// Custom Palette - Shades of Blue/Purple/Teal
-const COLORS = ['#4318FF', '#6AD2FF', '#EFF4FB', '#33C3F0', '#9D7BD8', '#F2F4F7'];
+const COLORS = ['#111827', '#475569', '#94a3b8', '#cbd5e1', '#e2e8f0', '#f1f5f9'];
+const PARTICIPATION_COLORS = ['#111827', '#e2e8f0'];
 
 const DashboardCharts: React.FC<DashboardChartsProps> = ({ stats }) => {
   if (!stats) return null;
 
   const hasData = stats.summary.total_placements > 0;
 
-  // Transform funnel object into array for Recharts
   const pieData = [
     { name: 'Applied', value: stats.funnel.applied },
     { name: 'Shortlisted', value: stats.funnel.shortlisted },
@@ -33,14 +32,13 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ stats }) => {
     { name: 'Certified', value: stats.funnel.certified },
   ].filter(item => item.value > 0);
 
-  // Active vs Inactive Students Data
   const activeCount = stats.funnel.active || 0;
-  const totalStudents = stats.summary.total_students;
+  const totalStudents = stats.summary.total_students || 0;
   const inactiveCount = Math.max(0, totalStudents - activeCount);
 
   const participationData = [
     { name: 'Active', value: activeCount },
-    { name: 'Inactive', value: inactiveCount }
+    { name: 'Inactive', value: inactiveCount },
   ];
 
   const sourceData = [
@@ -49,149 +47,234 @@ const DashboardCharts: React.FC<DashboardChartsProps> = ({ stats }) => {
     { name: 'External Declared', value: stats.source_breakdown?.external_declared || 0 },
   ].filter(item => item.value > 0);
 
-  // Participation Colors: Active (Solid Blue), Inactive (Light Gray)
-  const PARTICIPATION_COLORS = ['#4318FF', '#EFF4FB'];
+  const activePercentage = Math.round((activeCount / (totalStudents || 1)) * 100);
+
+  const tooltipStyle = {
+    borderRadius: 14,
+    border: '1px solid #e7eaf0',
+    boxShadow: '0 16px 36px rgba(15, 23, 42, 0.10)',
+    fontSize: '0.82rem',
+  };
 
   if (!hasData) {
-     return (
-        <Card className="border-0 shadow-sm mb-4 text-center py-5">
-            <Card.Body>
-                <div className="text-muted mb-3 d-flex justify-content-center">
-                    <Activity size={48} strokeWidth={1.5} className="text-muted opacity-50" />
-                </div>
-                <h5 className="text-muted">No Placement Data Available</h5>
-                <p className="text-muted small mb-0">
-                    Analytics will appear here once students start participating in internships.
-                </p>
-            </Card.Body>
-        </Card>
-     );
+    return (
+      <div className="analytics-empty-state">
+        <Activity size={46} className="text-muted mb-3" />
+        <h5 className="fw-semibold mb-2">No placement analytics yet</h5>
+        <p className="text-muted mb-0">
+          Analytics will appear once students start moving through internships.
+        </p>
+      </div>
+    );
   }
 
+  const ChartCard = ({
+    title,
+    subtitle,
+    icon: Icon,
+    children,
+  }: {
+    title: string;
+    subtitle: string;
+    icon: any;
+    children: React.ReactNode;
+  }) => (
+    <div className="institution-chart-card h-100">
+      <div className="institution-chart-header">
+        <div className="institution-chart-icon">
+          <Icon size={18} />
+        </div>
+
+        <div>
+          <h6 className="institution-chart-title">{title}</h6>
+          <p className="institution-chart-subtitle">{subtitle}</p>
+        </div>
+      </div>
+
+      {children}
+    </div>
+  );
+
   return (
-    <Row className="g-4 mb-4">
-      {/* Participation Chart (Active vs Inactive) */}
-      <Col lg={6}>
-        <Card className="border-0 shadow-sm h-100 rounded-4">
-          <Card.Body className="p-4">
-            <h5 className="card-title mb-4 d-flex align-items-center fw-bold text-dark">
-                <Users size={20} className="me-2 text-primary"/>
-                Student Participation
-            </h5>
-            <div style={{ width: '100%', height: 300, minWidth: 0 }}>
-              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+    <>
+      <style>{`
+        .institution-chart-card {
+          background: #ffffff;
+          border: 1px solid #e7eaf0;
+          border-radius: 24px;
+          padding: 24px;
+        }
+
+        .institution-chart-header {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 20px;
+        }
+
+        .institution-chart-icon {
+          width: 42px;
+          height: 42px;
+          border-radius: 14px;
+          background: #f6f7f9;
+          border: 1px solid #edf0f4;
+          color: #111827;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .institution-chart-title {
+          color: #111827;
+          font-weight: 740;
+          letter-spacing: -0.03em;
+          margin-bottom: 2px;
+        }
+
+        .institution-chart-subtitle {
+          color: #64748b;
+          font-size: 0.84rem;
+          margin-bottom: 0;
+        }
+
+        .analytics-empty-state {
+          background: #ffffff;
+          border: 1px dashed #dbe2ea;
+          border-radius: 22px;
+          padding: 52px 24px;
+          text-align: center;
+        }
+      `}</style>
+
+      <Row className="g-4">
+        <Col lg={6}>
+          <ChartCard
+            title="Student Participation"
+            subtitle="Active students compared to total verified students"
+            icon={Users}
+          >
+            <div style={{ width: '100%', height: 290, minWidth: 0 }}>
+              <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={participationData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={60}
-                    outerRadius={90}
-                    paddingAngle={0}
+                    innerRadius={64}
+                    outerRadius={92}
                     dataKey="value"
                     stroke="none"
                   >
                     {participationData.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={PARTICIPATION_COLORS[index % PARTICIPATION_COLORS.length]} />
+                      <Cell
+                        key={index}
+                        fill={PARTICIPATION_COLORS[index % PARTICIPATION_COLORS.length]}
+                      />
                     ))}
                   </Pie>
-                  <Tooltip 
-                     contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}
-                     itemStyle={{ color: '#2B3674', fontWeight: 600 }}
-                  />
-                  <Legend 
-                    verticalAlign="bottom" 
-                    height={36} 
+
+                  <Tooltip contentStyle={tooltipStyle} />
+
+                  <Legend
+                    verticalAlign="bottom"
+                    height={34}
                     iconType="circle"
+                    wrapperStyle={{ fontSize: '0.82rem', color: '#64748b' }}
                   />
-                  {/* Center Text */}
-                  <text x="50%" y="45%" textAnchor="middle" dominantBaseline="middle">
-                    <tspan x="50%" dy="0" fontSize="24" fontWeight="bold" fill="#2B3674">
-                        {Math.round((activeCount / (totalStudents || 1)) * 100)}%
+
+                  <text x="50%" y="44%" textAnchor="middle" dominantBaseline="middle">
+                    <tspan x="50%" dy="0" fontSize="26" fontWeight="760" fill="#111827">
+                      {activePercentage}%
                     </tspan>
-                    <tspan x="50%" dy="20" fontSize="12" fill="#A3AED0">
-                        Active
+                    <tspan x="50%" dy="22" fontSize="12" fill="#64748b">
+                      Active
                     </tspan>
                   </text>
                 </PieChart>
               </ResponsiveContainer>
             </div>
-          </Card.Body>
-        </Card>
-      </Col>
+          </ChartCard>
+        </Col>
 
-      {/* Status Breakdown Chart */}
-      <Col lg={6}>
-        <Card className="border-0 shadow-sm h-100 rounded-4">
-          <Card.Body className="p-4">
-            <h5 className="card-title mb-4 d-flex align-items-center fw-bold text-dark">
-                <PieChartIcon size={20} className="me-2 text-info"/>
-                Placement Status
-            </h5>
-            <div style={{ width: '100%', height: 300, minWidth: 0 }}>
-              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+        <Col lg={6}>
+          <ChartCard
+            title="Placement Status"
+            subtitle="Application and placement progression breakdown"
+            icon={PieChartIcon}
+          >
+            <div style={{ width: '100%', height: 290, minWidth: 0 }}>
+              <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={pieData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    paddingAngle={5}
+                    innerRadius={64}
+                    outerRadius={88}
+                    paddingAngle={4}
                     dataKey="value"
                     stroke="none"
                   >
                     {pieData.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      <Cell key={index} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip 
-                     contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}
+
+                  <Tooltip contentStyle={tooltipStyle} />
+
+                  <Legend
+                    verticalAlign="bottom"
+                    height={34}
+                    iconType="circle"
+                    wrapperStyle={{ fontSize: '0.82rem', color: '#64748b' }}
                   />
-                  <Legend verticalAlign="bottom" height={36} iconType="circle"/>
                 </PieChart>
               </ResponsiveContainer>
             </div>
-          </Card.Body>
-        </Card>
-      </Col>
+          </ChartCard>
+        </Col>
 
-      {sourceData.length > 0 && (
-        <Col lg={12}>
-          <Card className="border-0 shadow-sm h-100 rounded-4">
-            <Card.Body className="p-4">
-              <h5 className="card-title mb-4 d-flex align-items-center fw-bold text-dark">
-                  <Activity size={20} className="me-2 text-success"/>
-                  Placement Source Mix
-              </h5>
+        {sourceData.length > 0 && (
+          <Col lg={12}>
+            <ChartCard
+              title="Placement Source Mix"
+              subtitle="How institution placements are being sourced"
+              icon={Activity}
+            >
               <div style={{ width: '100%', height: 260, minWidth: 0 }}>
-                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
                       data={sourceData}
                       cx="50%"
                       cy="50%"
                       innerRadius={58}
-                      outerRadius={82}
+                      outerRadius={84}
                       paddingAngle={4}
                       dataKey="value"
                       stroke="none"
                     >
                       {sourceData.map((_, index) => (
-                        <Cell key={`source-cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        <Cell key={index} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }} />
-                    <Legend verticalAlign="bottom" height={36} iconType="circle"/>
+
+                    <Tooltip contentStyle={tooltipStyle} />
+
+                    <Legend
+                      verticalAlign="bottom"
+                      height={34}
+                      iconType="circle"
+                      wrapperStyle={{ fontSize: '0.82rem', color: '#64748b' }}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
-            </Card.Body>
-          </Card>
-        </Col>
-      )}
-    </Row>
+            </ChartCard>
+          </Col>
+        )}
+      </Row>
+    </>
   );
 };
 

@@ -5,7 +5,6 @@ import {
   Briefcase,
   CheckCircle2,
   GraduationCap,
-  Search,
   ShieldCheck,
   Sparkles,
   TrendingUp,
@@ -24,6 +23,24 @@ import { showToast } from '../../../utils/toast';
 import { FeedbackModal } from '../../../components/common';
 import { useFeedbackModal } from '../../../hooks/useFeedbackModal';
 import { SEO } from '../../../components/common';
+import {
+  EmployerButton,
+  EmployerEmptyState,
+  EmployerHealth,
+  EmployerHero,
+  EmployerMetric,
+  EmployerMetricGrid,
+  EmployerPagination,
+  EmployerPanel,
+  EmployerSearch,
+  EmployerSelect,
+  EmployerStatus,
+  EmployerTableWrap,
+  EmployerToolbar,
+  EmployerToolbarGrid,
+  EmployerWorkspacePage,
+  useEmployerPagination,
+} from '../../../components/employer/workspace';
 
 const STYLES = `
   .ei-page { color: var(--el-ink); }
@@ -771,6 +788,8 @@ const EmployerInterns: React.FC = () => {
     };
   }, [applications]);
 
+  const pagination = useEmployerPagination(filteredInterns);
+
   return (
     <EmployerLayout>
       <SEO
@@ -780,111 +799,58 @@ const EmployerInterns: React.FC = () => {
 
       <style>{STYLES}</style>
 
-      <div className="ei-page">
-        <section className="ei-hero">
-          <div className="ei-command-card">
-            <div className="ei-kicker">
-              <Sparkles size={13} />
-              Internship Operations
-            </div>
+      <EmployerWorkspacePage className="ei-page">
+        <EmployerHero
+          icon={<Sparkles size={13} />}
+          eyebrow="Internship Operations"
+          title={<>Active <span>Internships</span></>}
+          subtitle="Manage intern supervision, mentor assignments, placement outcomes, and institution-facing internship accountability."
+          aside={(
+            <EmployerHealth
+              label="Mentorship coverage"
+              value={`${metrics.mentorshipRate}%`}
+              icon={<TrendingUp size={20} />}
+              note="Percentage of interns with assigned mentors. Missing supervision weakens placement trust and student support quality."
+            />
+          )}
+        />
 
-            <h1 className="ei-title">
-              Active <span>Internships</span>
-            </h1>
+        <EmployerMetricGrid className="ei-metrics">
+          <EmployerMetric
+            label="Active interns"
+            value={metrics.active}
+            icon={<Briefcase size={18} />}
+            note="Currently ongoing placements."
+          />
+          <EmployerMetric
+            label="Completed"
+            value={metrics.completed}
+            icon={<CheckCircle2 size={18} />}
+            note="Placements marked as completed."
+          />
+          <EmployerMetric
+            label="Certified"
+            value={metrics.certified}
+            icon={<ShieldCheck size={18} />}
+            note="Institution-ready completion proof."
+          />
+          <EmployerMetric
+            label="Mentors assigned"
+            value={metrics.assigned}
+            icon={<Users size={18} />}
+            note="Interns with employer supervision."
+          />
+        </EmployerMetricGrid>
 
-            <p className="ei-sub">
-              Manage intern supervision, mentor assignments, placement outcomes, and
-              institution-facing internship accountability.
-            </p>
-          </div>
+        <EmployerToolbar className="ei-toolbar">
+          <EmployerToolbarGrid className="ei-toolbar-grid">
+            <EmployerSearch
+              placeholder="Search intern, email, position, department, or mentor..."
+              value={searchTerm}
+              onChange={setSearchTerm}
+            />
 
-          <aside className="ei-health-card">
-            <div className="ei-health-top">
-              <div>
-                <div className="ei-health-label">Mentorship coverage</div>
-                <div className="ei-health-score">{metrics.mentorshipRate}%</div>
-              </div>
-
-              <div className="ei-health-icon">
-                <TrendingUp size={20} />
-              </div>
-            </div>
-
-            <p className="ei-health-note">
-              Percentage of interns with assigned mentors. Missing supervision weakens
-              placement trust and student support quality.
-            </p>
-          </aside>
-        </section>
-
-        <section className="ei-metrics">
-          <div className="ei-metric">
-            <div className="ei-metric-top">
-              <div>
-                <div className="ei-metric-label">Active interns</div>
-                <div className="ei-metric-value">{metrics.active}</div>
-              </div>
-              <div className="ei-metric-icon">
-                <Briefcase size={18} />
-              </div>
-            </div>
-            <p className="ei-metric-note">Currently ongoing placements.</p>
-          </div>
-
-          <div className="ei-metric">
-            <div className="ei-metric-top">
-              <div>
-                <div className="ei-metric-label">Completed</div>
-                <div className="ei-metric-value">{metrics.completed}</div>
-              </div>
-              <div className="ei-metric-icon">
-                <CheckCircle2 size={18} />
-              </div>
-            </div>
-            <p className="ei-metric-note">Placements marked as completed.</p>
-          </div>
-
-          <div className="ei-metric">
-            <div className="ei-metric-top">
-              <div>
-                <div className="ei-metric-label">Certified</div>
-                <div className="ei-metric-value">{metrics.certified}</div>
-              </div>
-              <div className="ei-metric-icon">
-                <ShieldCheck size={18} />
-              </div>
-            </div>
-            <p className="ei-metric-note">Institution-ready completion proof.</p>
-          </div>
-
-          <div className="ei-metric">
-            <div className="ei-metric-top">
-              <div>
-                <div className="ei-metric-label">Mentors assigned</div>
-                <div className="ei-metric-value">{metrics.assigned}</div>
-              </div>
-              <div className="ei-metric-icon">
-                <Users size={18} />
-              </div>
-            </div>
-            <p className="ei-metric-note">Interns with employer supervision.</p>
-          </div>
-        </section>
-
-        <section className="ei-toolbar">
-          <div className="ei-toolbar-grid">
-            <div className="ei-search">
-              <Search size={16} />
-              <input
-                type="text"
-                placeholder="Search intern, email, position, department, or mentor..."
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-              />
-            </div>
-
-            <select
-              className="ei-select"
+            <EmployerSelect
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value)}
             >
@@ -893,20 +859,17 @@ const EmployerInterns: React.FC = () => {
                   {option.label}
                 </option>
               ))}
-            </select>
-          </div>
-        </section>
+            </EmployerSelect>
+          </EmployerToolbarGrid>
+        </EmployerToolbar>
 
-        <section className="ei-card">
-          <div className="ei-card-header">
-            <div className="ei-card-label">Supervision queue</div>
-            <h2 className="ei-card-title">Intern management workspace</h2>
-            <p className="ei-card-sub">
-              Showing {filteredInterns.length} of {applications.length} internship records.
-            </p>
-          </div>
-
-          <div className="ei-table-wrap">
+        <EmployerPanel
+          className="ei-card"
+          label="Supervision queue"
+          title="Intern management workspace"
+          subtitle={`Showing ${filteredInterns.length} of ${applications.length} internship records.`}
+        >
+          <EmployerTableWrap className="ei-table-wrap">
             <table className="ei-table">
               <thead>
                 <tr>
@@ -928,19 +891,15 @@ const EmployerInterns: React.FC = () => {
                 ) : filteredInterns.length === 0 ? (
                   <tr>
                     <td colSpan={5}>
-                      <div className="ei-empty">
-                        <div className="ei-empty-icon">
-                          <GraduationCap size={26} />
-                        </div>
-                        <p className="ei-empty-title">No interns found.</p>
-                        <p className="ei-empty-text">
-                          Try changing the search term or status filter.
-                        </p>
-                      </div>
+                      <EmployerEmptyState
+                        icon={<GraduationCap size={26} />}
+                        title="No interns found."
+                        message="Try changing the search term or status filter."
+                      />
                     </td>
                   </tr>
                 ) : (
-                  filteredInterns.map((app) => {
+                  pagination.pagedItems.map((app) => {
                     const statusMeta = getStatusMeta(app.status);
                     const StatusIcon = statusMeta.icon;
                     const trustLevel = (app.student_info?.trust_level as TrustLevel) || 0;
@@ -989,10 +948,19 @@ const EmployerInterns: React.FC = () => {
                         </td>
 
                         <td>
-                          <span className={`ei-status ${statusMeta.className}`}>
-                            <StatusIcon size={12} />
+                          <EmployerStatus
+                            tone={
+                              statusMeta.className === 'completed' || statusMeta.className === 'certified'
+                                ? 'success'
+                                : statusMeta.className === 'active'
+                                  ? 'info'
+                                  : 'muted'
+                            }
+                            icon={<StatusIcon size={12} />}
+                            className={`ei-status ${statusMeta.className}`}
+                          >
                             {statusMeta.label}
-                          </span>
+                          </EmployerStatus>
 
                           {hasMentor ? (
                             <div className="ei-signal good">
@@ -1011,25 +979,25 @@ const EmployerInterns: React.FC = () => {
 
                         <td style={{ textAlign: 'right' }}>
                           <div className="ei-actions">
-                            <button
-                              type="button"
+                            <EmployerButton
+                              variant="secondary"
                               className="ei-btn"
                               onClick={() => handleReviewClick(app.id)}
                             >
                               Details
                               <ArrowRight size={13} />
-                            </button>
+                            </EmployerButton>
 
                             {app.status === 'ACTIVE' && (
-                              <button
-                                type="button"
+                              <EmployerButton
+                                variant={hasMentor ? 'success' : 'warning'}
                                 className={`ei-btn ${
                                   hasMentor ? 'ei-btn-success' : 'ei-btn-warning'
                                 }`}
                                 onClick={() => handleAssignClick(app)}
                               >
                                 {hasMentor ? 'Reassign' : 'Assign mentor'}
-                              </button>
+                              </EmployerButton>
                             )}
                           </div>
                         </td>
@@ -1039,8 +1007,16 @@ const EmployerInterns: React.FC = () => {
                 )}
               </tbody>
             </table>
-          </div>
-        </section>
+          </EmployerTableWrap>
+          <EmployerPagination
+            page={pagination.page}
+            pageSize={pagination.pageSize}
+            totalItems={pagination.totalItems}
+            totalPages={pagination.totalPages}
+            onPageChange={pagination.setPage}
+            onPageSizeChange={pagination.setPageSize}
+          />
+        </EmployerPanel>
 
         {showAssignModal && selectedApp && (
           <div className="ei-modal-backdrop">
@@ -1111,7 +1087,7 @@ const EmployerInterns: React.FC = () => {
             </div>
           </div>
         )}
-      </div>
+      </EmployerWorkspacePage>
 
       <FeedbackModal {...feedbackProps} />
     </EmployerLayout>

@@ -1,10 +1,39 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Form, Button, Row, Col, Nav, Spinner, Badge } from 'react-bootstrap';
+import {
+  Form,
+  Button,
+  Row,
+  Col,
+  Nav,
+  Spinner,
+} from 'react-bootstrap';
 import { useForm } from 'react-hook-form';
-import { Save, Globe, Building2, Mail, Phone, GraduationCap, Shield, CheckCircle, XCircle, X, PenTool, Image as ImageIcon } from 'lucide-react';
+import {
+  Save,
+  Globe,
+  Building2,
+  Mail,
+  Phone,
+  GraduationCap,
+  Shield,
+  CheckCircle,
+  XCircle,
+  X,
+  PenTool,
+  Image as ImageIcon,
+  Settings,
+  MapPin,
+  BadgeCheck,
+} from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { institutionService, type InstitutionProfile } from '../../../services/institution/institutionService';
+
+import {
+  institutionService,
+  type InstitutionProfile,
+} from '../../../services/institution/institutionService';
+
 import AcademicStructure from '../../../components/admin/institution/AcademicStructure';
+import { InstitutionWorkspacePage } from '../../../components/institution/workspace';
 import InstitutionSettingsSkeleton from '../../../components/admin/skeletons/InstitutionSettingsSkeleton';
 import { sanitizeAdminError } from '../../../utils/adminErrorSanitizer';
 
@@ -13,12 +42,17 @@ const InstitutionSettings: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  
+
   const [profile, setProfile] = useState<InstitutionProfile | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<Partial<InstitutionProfile>>();
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<Partial<InstitutionProfile>>();
 
   useEffect(() => {
     fetchProfile();
@@ -26,8 +60,10 @@ const InstitutionSettings: React.FC = () => {
 
   const fetchProfile = async () => {
     setIsLoading(true);
+
     try {
       const data = await institutionService.getProfile();
+
       setProfile(data);
       setLogoPreview(data.logo || null);
       reset(data);
@@ -39,40 +75,45 @@ const InstitutionSettings: React.FC = () => {
     }
   };
 
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (e.target.files && e.target.files[0]) {
-          const file = e.target.files[0];
-          setLogoFile(file);
-          setLogoPreview(URL.createObjectURL(file));
-      }
+  const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      const file = event.target.files[0];
+
+      setLogoFile(file);
+      setLogoPreview(URL.createObjectURL(file));
+    }
   };
 
   const onSubmit = async (data: Partial<InstitutionProfile>) => {
     setIsSaving(true);
-    
+
     try {
       let payload: Partial<InstitutionProfile> | FormData;
 
       if (logoFile) {
         const formData = new FormData();
+
         if (data.website_url) formData.append('website_url', data.website_url);
         if (data.contact_email) formData.append('contact_email', data.contact_email);
         if (data.contact_phone) formData.append('contact_phone', data.contact_phone);
         if (data.address) formData.append('address', data.address);
         if (data.description) formData.append('description', data.description);
+
         formData.append('logo', logoFile);
+
         payload = formData;
       } else {
         payload = {
-            website_url: data.website_url,
-            contact_email: data.contact_email,
-            contact_phone: data.contact_phone,
-            address: data.address,
-            description: data.description
+          website_url: data.website_url,
+          contact_email: data.contact_email,
+          contact_phone: data.contact_phone,
+          address: data.address,
+          description: data.description,
         };
       }
-      
+
       const updatedProfile = await institutionService.updateProfile(payload);
+
       setProfile(updatedProfile);
       setLogoPreview(updatedProfile.logo || null);
       setLogoFile(null);
@@ -92,310 +133,710 @@ const InstitutionSettings: React.FC = () => {
   }
 
   return (
-    <div className="institution-settings">
-      <div className="d-flex justify-content-between align-items-center mb-4">
+    <InstitutionWorkspacePage className="institution-settings-page">
+      <style>{`
+        .settings-hero {
+          background: #ffffff;
+          border: 1px solid #e7eaf0;
+          border-radius: 30px;
+          padding: 30px;
+          margin-bottom: 24px;
+        }
+
+        .settings-eyebrow {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 14px;
+          border-radius: 999px;
+          background: #f4f6f8;
+          border: 1px solid #e6e9ee;
+          font-size: 0.74rem;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #64748b;
+          margin-bottom: 18px;
+        }
+
+        .settings-title {
+          font-size: clamp(1.8rem, 3vw, 2.45rem);
+          font-weight: 760;
+          letter-spacing: -0.06em;
+          line-height: 1.05;
+          color: #111827;
+          margin-bottom: 12px;
+        }
+
+        .settings-subtitle {
+          color: #64748b;
+          max-width: 780px;
+          line-height: 1.75;
+          margin-bottom: 0;
+        }
+
+        .settings-shell {
+          display: grid;
+          grid-template-columns: 280px 1fr;
+          gap: 24px;
+          align-items: start;
+        }
+
+        .settings-side-card,
+        .settings-main-card {
+          background: #ffffff;
+          border: 1px solid #e7eaf0;
+          border-radius: 26px;
+          overflow: hidden;
+        }
+
+        .settings-side-card {
+          position: sticky;
+          top: 92px;
+        }
+
+        .settings-nav {
+          padding: 10px;
+          gap: 6px;
+        }
+
+        .settings-nav .nav-link {
+          border-radius: 16px;
+          color: #64748b;
+          font-weight: 700;
+          font-size: 0.9rem;
+          padding: 13px 14px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          cursor: pointer;
+        }
+
+        .settings-nav .nav-link.active {
+          background: #111827;
+          color: #ffffff;
+        }
+
+        .settings-main-header {
+          padding: 24px;
+          border-bottom: 1px solid #eef2f6;
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 20px;
+        }
+
+        .settings-section-title {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          font-size: 1.08rem;
+          font-weight: 740;
+          letter-spacing: -0.03em;
+          color: #111827;
+          margin-bottom: 4px;
+        }
+
+        .settings-section-subtitle {
+          color: #64748b;
+          font-size: 0.88rem;
+          margin-bottom: 0;
+        }
+
+        .settings-primary-btn {
+          min-height: 42px;
+          border-radius: 14px !important;
+          background: #111827 !important;
+          border: 1px solid #111827 !important;
+          color: #ffffff !important;
+          font-weight: 700 !important;
+          padding-inline: 18px !important;
+          box-shadow: none !important;
+        }
+
+        .settings-soft-btn {
+          min-height: 42px;
+          border-radius: 14px !important;
+          background: #ffffff !important;
+          border: 1px solid #e2e8f0 !important;
+          color: #111827 !important;
+          font-weight: 700 !important;
+          padding-inline: 18px !important;
+          box-shadow: none !important;
+        }
+
+        .profile-identity-card {
+          background: #fbfcfd;
+          border: 1px solid #edf0f4;
+          border-radius: 24px;
+          padding: 22px;
+        }
+
+        .profile-logo {
+          width: 86px;
+          height: 86px;
+          border-radius: 24px;
+          object-fit: cover;
+          border: 1px solid #e2e8f0;
+          background: #ffffff;
+        }
+
+        .profile-logo-placeholder {
+          width: 86px;
+          height: 86px;
+          border-radius: 24px;
+          background: #ffffff;
+          border: 1px dashed #cbd5e1;
+          color: #64748b;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-direction: column;
+          text-align: center;
+        }
+
+        .settings-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 7px 12px;
+          border-radius: 999px;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          color: #475569;
+          font-size: 0.78rem;
+          font-weight: 700;
+          white-space: nowrap;
+        }
+
+        .settings-pill-success {
+          background: #f0fdf4;
+          border-color: #dcfce7;
+          color: #166534;
+        }
+
+        .settings-pill-warning {
+          background: #fffbeb;
+          border-color: #fde68a;
+          color: #92400e;
+        }
+
+        .settings-pill-info {
+          background: #eff6ff;
+          border-color: #dbeafe;
+          color: #1d4ed8;
+        }
+
+        .settings-info-card {
+          background: #ffffff;
+          border: 1px solid #edf0f4;
+          border-radius: 22px;
+          padding: 20px;
+          height: 100%;
+        }
+
+        .settings-info-label {
+          color: #64748b;
+          font-size: 0.74rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          margin-bottom: 8px;
+        }
+
+        .settings-info-value {
+          color: #111827;
+          font-weight: 700;
+          line-height: 1.55;
+          word-break: break-word;
+        }
+
+        .settings-muted-value {
+          color: #64748b;
+          line-height: 1.65;
+          margin-bottom: 0;
+        }
+
+        .settings-input,
+        .settings-textarea,
+        .settings-file {
+          min-height: 46px;
+          border-radius: 14px !important;
+          border: 1px solid #dbe2ea !important;
+          box-shadow: none !important;
+        }
+
+        .settings-textarea {
+          min-height: auto;
+        }
+
+        .settings-input:focus,
+        .settings-textarea:focus,
+        .settings-file:focus {
+          border-color: #111827 !important;
+        }
+
+        .settings-input-group {
+          position: relative;
+        }
+
+        .settings-input-icon {
+          position: absolute;
+          top: 50%;
+          left: 14px;
+          transform: translateY(-50%);
+          color: #64748b;
+          z-index: 2;
+        }
+
+        .settings-input-with-icon {
+          padding-left: 42px !important;
+        }
+
+        .readonly-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 18px;
+        }
+
+        @media (max-width: 992px) {
+          .settings-shell {
+            grid-template-columns: 1fr;
+          }
+
+          .settings-side-card {
+            position: static;
+          }
+
+          .settings-main-header {
+            flex-direction: column;
+          }
+
+          .readonly-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .settings-hero {
+            padding: 22px;
+          }
+        }
+      `}</style>
+
+      <div className="settings-hero">
         <div>
-          <h4 className="fw-bold mb-1">Settings</h4>
-          <p className="text-muted mb-0">Manage your institution profile and account settings.</p>
+          <div className="settings-eyebrow">
+            <Settings size={15} />
+            Institution Settings
+          </div>
+
+          <h1 className="settings-title">
+            Manage your institution profile and academic configuration.
+          </h1>
+
+          <p className="settings-subtitle">
+            Keep your institution identity, contact information, verification status,
+            and academic structure clean, accurate, and ready for placement workflows.
+          </p>
         </div>
       </div>
 
-      <Row>
-        <Col md={3}>
-          <Card className="border-0 shadow-sm mb-4">
-            <Card.Body className="p-0">
-              <Nav className="flex-column nav-pills p-2" activeKey={activeTab} onSelect={(k) => setActiveTab(k || 'profile')}>
-                <Nav.Link eventKey="profile" className="d-flex align-items-center gap-2 mb-1">
-                  <Building2 size={18} />
-                  Institution Profile
-                </Nav.Link>
-                <Nav.Link eventKey="academic" className="d-flex align-items-center gap-2 mb-1">
-                  <GraduationCap size={18} />
-                  Academic Structure
-                </Nav.Link>
-              </Nav>
-            </Card.Body>
-          </Card>
-        </Col>
+      <div className="settings-shell">
+        <aside className="settings-side-card">
+          <Nav
+            className="settings-nav flex-column"
+            activeKey={activeTab}
+            onSelect={key => setActiveTab(key || 'profile')}
+          >
+            <Nav.Link eventKey="profile">
+              <Building2 size={18} />
+              Institution Profile
+            </Nav.Link>
 
-        <Col md={9}>
-          <Card className="border-0 shadow-sm">
-            <Card.Body className="p-4">
-              {activeTab === 'academic' && <AcademicStructure />}
-              {activeTab === 'profile' && profile && (
-                <>
-                  {isEditing ? (
-                    <Form onSubmit={handleSubmit(onSubmit)}>
-                      <div className="d-flex justify-content-between align-items-center mb-4">
-                        <h5 className="mb-0">Edit Profile</h5>
+            <Nav.Link eventKey="academic">
+              <GraduationCap size={18} />
+              Academic Structure
+            </Nav.Link>
+          </Nav>
+        </aside>
+
+        <section className="settings-main-card">
+          {activeTab === 'academic' && (
+            <>
+              <div className="settings-main-header">
+                <div>
+                  <div className="settings-section-title">
+                    <GraduationCap size={19} />
+                    Academic Structure
+                  </div>
+
+                  <p className="settings-section-subtitle">
+                    Manage departments and cohorts used across verification, reporting, and placement workflows.
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-4">
+                <AcademicStructure />
+              </div>
+            </>
+          )}
+
+          {activeTab === 'profile' && profile && (
+            <>
+              <div className="settings-main-header">
+                <div>
+                  <div className="settings-section-title">
+                    <Building2 size={19} />
+                    Institution Profile
+                  </div>
+
+                  <p className="settings-section-subtitle">
+                    Public institution identity and contact details used across EduLink.
+                  </p>
+                </div>
+
+                {!isEditing && (
+                  <Button
+                    className="settings-primary-btn d-flex align-items-center gap-2"
+                    onClick={() => setIsEditing(true)}
+                  >
+                    <PenTool size={16} />
+                    Edit Profile
+                  </Button>
+                )}
+              </div>
+
+              <div className="p-4">
+                {isEditing ? (
+                  <Form onSubmit={handleSubmit(onSubmit)}>
+                    <div className="profile-identity-card mb-4">
+                      <div className="d-flex align-items-center gap-4 flex-wrap">
+                        {logoPreview ? (
+                          <img
+                            src={logoPreview}
+                            alt="Logo Preview"
+                            className="profile-logo"
+                          />
+                        ) : (
+                          <div className="profile-logo-placeholder">
+                            <ImageIcon size={24} />
+                            <small>No logo</small>
+                          </div>
+                        )}
+
+                        <div className="flex-grow-1">
+                          <Form.Label className="small fw-semibold">
+                            Institution Logo
+                          </Form.Label>
+
+                          <Form.Control
+                            type="file"
+                            accept="image/*"
+                            onChange={handleLogoChange}
+                            className="settings-file"
+                          />
+
+                          <Form.Text className="text-muted small">
+                            Recommended size: 200x200px. Max size: 2MB.
+                          </Form.Text>
+                        </div>
                       </div>
-
-                      <div className="mb-4 d-flex align-items-center gap-3">
-                        <div className="position-relative">
-                            {logoPreview ? (
-                                <img 
-                                    src={logoPreview} 
-                                    alt="Logo Preview" 
-                                    className="rounded-circle object-fit-cover border"
-                                    style={{ width: '100px', height: '100px' }}
-                                />
-                            ) : (
-                                <div 
-                                    className="rounded-circle bg-light d-flex flex-column align-items-center justify-content-center text-muted border" 
-                                    style={{ width: '100px', height: '100px' }}
-                                >
-                                     <ImageIcon size={24} className="mb-1" />
-                                     <small style={{fontSize: '10px'}}>Not Customized</small>
-                                </div>
-                            )}
-                        </div>
-                        <div>
-                            <Form.Label>Institution Logo</Form.Label>
-                            <Form.Control 
-                                type="file" 
-                                accept="image/*"
-                                onChange={handleLogoChange}
-                                size="sm"
-                            />
-                            <Form.Text className="text-muted small">
-                                Recommended size: 200x200px. Max size: 2MB.
-                            </Form.Text>
-                        </div>
-                      </div>
-
-                      <Row className="mb-3">
-                        <Col md={6}>
-                          <Form.Group className="mb-3">
-                            <Form.Label>Institution Name</Form.Label>
-                            <Form.Control 
-                                type="text" 
-                                value={profile.name} 
-                                disabled 
-                                className="bg-light"
-                            />
-                            <Form.Text className="text-muted">
-                                Institution name cannot be changed directly.
-                            </Form.Text>
-                          </Form.Group>
-                        </Col>
-                        <Col md={6}>
-                          <Form.Group className="mb-3">
-                            <Form.Label>Website URL</Form.Label>
-                            <div className="input-group">
-                              <span className="input-group-text bg-light"><Globe size={16} /></span>
-                              <Form.Control 
-                                type="text" 
-                                {...register('website_url')}
-                                placeholder="https://example.edu"
-                              />
-                            </div>
-                          </Form.Group>
-                        </Col>
-                      </Row>
-
-                      <Row className="mb-3">
-                        <Col md={6}>
-                          <Form.Group className="mb-3">
-                            <Form.Label>Contact Email</Form.Label>
-                            <div className="input-group">
-                              <span className="input-group-text bg-light"><Mail size={16} /></span>
-                              <Form.Control 
-                                type="email" 
-                                {...register('contact_email', { 
-                                    required: 'Contact email is required',
-                                    pattern: {
-                                        value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                                        message: "Invalid email address"
-                                    }
-                                })}
-                                className={errors.contact_email ? 'is-invalid' : ''}
-                                placeholder="contact@example.edu"
-                              />
-                              {errors.contact_email && <div className="invalid-feedback">{errors.contact_email.message}</div>}
-                            </div>
-                          </Form.Group>
-                        </Col>
-                        <Col md={6}>
-                          <Form.Group className="mb-3">
-                            <Form.Label>Contact Phone</Form.Label>
-                            <div className="input-group">
-                              <span className="input-group-text bg-light"><Phone size={16} /></span>
-                              <Form.Control 
-                                type="text" 
-                                {...register('contact_phone')}
-                                placeholder="e.g. +1 (555) 123-4567"
-                              />
-                            </div>
-                          </Form.Group>
-                        </Col>
-                      </Row>
-
-                      <Form.Group className="mb-4">
-                        <Form.Label>Address</Form.Label>
-                        <Form.Control 
-                            as="textarea" 
-                            rows={3} 
-                            {...register('address')}
-                            placeholder="Enter physical address..."
-                        />
-                      </Form.Group>
-
-                       <Form.Group className="mb-4">
-                        <Form.Label>Description</Form.Label>
-                        <Form.Control 
-                            as="textarea" 
-                            rows={4} 
-                            {...register('description')}
-                            placeholder="Tell us about your institution..."
-                        />
-                      </Form.Group>
-
-                      <div className="d-flex justify-content-end gap-2">
-                        <Button 
-                            variant="outline-secondary" 
-                            onClick={() => {
-                                reset(profile);
-                                setIsEditing(false);
-                            }}
-                            disabled={isSaving}
-                        >
-                            <X size={18} className="me-2" /> Cancel
-                        </Button>
-                        <Button 
-                            variant="primary" 
-                            type="submit" 
-                            className="d-flex align-items-center gap-2"
-                            disabled={isSaving}
-                        >
-                          {isSaving ? <Spinner animation="border" size="sm" /> : <Save size={18} />}
-                          Save Changes
-                        </Button>
-                      </div>
-                    </Form>
-                  ) : (
-                    <div className="read-only-view">
-                        <div className="d-flex justify-content-between align-items-start mb-4">
-                            <div className="d-flex align-items-center gap-3">
-                                {profile.logo ? (
-                                    <img 
-                                        src={profile.logo} 
-                                        alt="Institution Logo" 
-                                        className="rounded-circle object-fit-cover border"
-                                        style={{ width: '80px', height: '80px' }}
-                                    />
-                                ) : (
-                                    <div 
-                                        className="rounded-circle bg-light d-flex flex-column align-items-center justify-content-center text-muted border p-1 text-center" 
-                                        style={{ width: '80px', height: '80px' }}
-                                    >
-                                         <ImageIcon size={20} className="mb-1" />
-                                         <small style={{fontSize: '8px', lineHeight: '1.2'}}>Not Customized</small>
-                                    </div>
-                                )}
-                                <div>
-                                    <h5 className="mb-1">Institution Profile</h5>
-                                    <p className="text-muted small mb-0">Manage public information</p>
-                                </div>
-                            </div>
-                            <Button variant="primary" size="sm" onClick={() => setIsEditing(true)}>
-                                <PenTool size={16} className="me-2" /> Edit Profile
-                            </Button>
-                        </div>
-                        
-                        <div className="bg-light p-3 rounded mb-4">
-                            <h6 className="mb-3 text-muted text-uppercase small fw-bold">Institution Details</h6>
-                            <Row className="g-3">
-                                <Col md={6}>
-                                    <div className="d-flex align-items-center gap-2 mb-2">
-                                        <span className="text-muted small" style={{minWidth: '80px'}}>Status:</span>
-                                        {profile.is_active ? (
-                                            <Badge bg="success" className="d-flex align-items-center gap-1">
-                                                <CheckCircle size={10} /> Active
-                                            </Badge>
-                                        ) : (
-                                            <Badge bg="warning" text="dark" className="d-flex align-items-center gap-1">
-                                                <XCircle size={10} /> Inactive
-                                            </Badge>
-                                        )}
-                                        {profile.is_verified && (
-                                            <Badge bg="info" className="d-flex align-items-center gap-1">
-                                                <Shield size={10} /> Verified
-                                            </Badge>
-                                        )}
-                                    </div>
-                                    <div className="d-flex align-items-center gap-2">
-                                        <span className="text-muted small" style={{minWidth: '80px'}}>Trust Level:</span>
-                                        <strong>{profile.trust_level || 0}</strong>
-                                    </div>
-                                </Col>
-                                <Col md={6}>
-                                     <div className="d-flex align-items-center gap-2 mb-1">
-                                        <span className="text-muted small">Primary Domain</span>
-                                    </div>
-                                    <div className="fw-medium">{profile.domain || 'Not set'}</div>
-                                </Col>
-                            </Row>
-                        </div>
-
-                        <Row className="g-4">
-                             <Col md={6}>
-                                <h6 className="text-muted text-uppercase small fw-bold mb-3">Basic Information</h6>
-                                <div className="mb-3">
-                                    <label className="small text-muted d-block">Institution Name</label>
-                                    <span className="fw-medium">{profile.name}</span>
-                                </div>
-                                <div className="mb-3">
-                                    <label className="small text-muted d-block">Description</label>
-                                    <p className="text-muted small mb-0">{profile.description || 'No description provided.'}</p>
-                                </div>
-                             </Col>
-                             <Col md={6}>
-                                <h6 className="text-muted text-uppercase small fw-bold mb-3">Contact Information</h6>
-                                <div className="mb-3">
-                                    <div className="d-flex align-items-center mb-1">
-                                        <Mail size={16} className="text-muted me-2" />
-                                        <label className="small text-muted">Email</label>
-                                    </div>
-                                    <span className="fw-medium ms-4">{profile.contact_email || 'N/A'}</span>
-                                </div>
-                                <div className="mb-3">
-                                    <div className="d-flex align-items-center mb-1">
-                                        <Phone size={16} className="text-muted me-2" />
-                                        <label className="small text-muted">Phone</label>
-                                    </div>
-                                    <span className="fw-medium ms-4">{profile.contact_phone || 'N/A'}</span>
-                                </div>
-                                <div className="mb-3">
-                                    <div className="d-flex align-items-center mb-1">
-                                        <Globe size={16} className="text-muted me-2" />
-                                        <label className="small text-muted">Website</label>
-                                    </div>
-                                    {profile.website_url ? (
-                                        <a href={profile.website_url} target="_blank" rel="noopener noreferrer" className="ms-4 text-decoration-none">
-                                            {profile.website_url}
-                                        </a>
-                                    ) : (
-                                        <span className="fw-medium ms-4">N/A</span>
-                                    )}
-                                </div>
-                                <div className="mb-3">
-                                    <div className="d-flex align-items-center mb-1">
-                                        <Building2 size={16} className="text-muted me-2" />
-                                        <label className="small text-muted">Address</label>
-                                    </div>
-                                    <p className="ms-4 mb-0 text-muted small">{profile.address || 'N/A'}</p>
-                                </div>
-                             </Col>
-                        </Row>
                     </div>
-                  )}
-                </>
-              )}
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-    </div>
+
+                    <Row className="g-4 mb-3">
+                      <Col md={6}>
+                        <Form.Group>
+                          <Form.Label className="small fw-semibold">
+                            Institution Name
+                          </Form.Label>
+
+                          <Form.Control
+                            type="text"
+                            value={profile.name}
+                            disabled
+                            className="settings-input bg-light"
+                          />
+
+                          <Form.Text className="text-muted">
+                            Institution name cannot be changed directly.
+                          </Form.Text>
+                        </Form.Group>
+                      </Col>
+
+                      <Col md={6}>
+                        <Form.Group>
+                          <Form.Label className="small fw-semibold">
+                            Website URL
+                          </Form.Label>
+
+                          <div className="settings-input-group">
+                            <Globe size={16} className="settings-input-icon" />
+
+                            <Form.Control
+                              type="text"
+                              {...register('website_url')}
+                              placeholder="https://example.edu"
+                              className="settings-input settings-input-with-icon"
+                            />
+                          </div>
+                        </Form.Group>
+                      </Col>
+                    </Row>
+
+                    <Row className="g-4 mb-3">
+                      <Col md={6}>
+                        <Form.Group>
+                          <Form.Label className="small fw-semibold">
+                            Contact Email
+                          </Form.Label>
+
+                          <div className="settings-input-group">
+                            <Mail size={16} className="settings-input-icon" />
+
+                            <Form.Control
+                              type="email"
+                              {...register('contact_email', {
+                                required: 'Contact email is required',
+                                pattern: {
+                                  value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                                  message: 'Invalid email address',
+                                },
+                              })}
+                              className={`settings-input settings-input-with-icon ${
+                                errors.contact_email ? 'is-invalid' : ''
+                              }`}
+                              placeholder="contact@example.edu"
+                            />
+
+                            {errors.contact_email && (
+                              <div className="invalid-feedback">
+                                {errors.contact_email.message}
+                              </div>
+                            )}
+                          </div>
+                        </Form.Group>
+                      </Col>
+
+                      <Col md={6}>
+                        <Form.Group>
+                          <Form.Label className="small fw-semibold">
+                            Contact Phone
+                          </Form.Label>
+
+                          <div className="settings-input-group">
+                            <Phone size={16} className="settings-input-icon" />
+
+                            <Form.Control
+                              type="text"
+                              {...register('contact_phone')}
+                              placeholder="e.g. +254 700 000 000"
+                              className="settings-input settings-input-with-icon"
+                            />
+                          </div>
+                        </Form.Group>
+                      </Col>
+                    </Row>
+
+                    <Form.Group className="mb-4">
+                      <Form.Label className="small fw-semibold">
+                        Address
+                      </Form.Label>
+
+                      <Form.Control
+                        as="textarea"
+                        rows={3}
+                        {...register('address')}
+                        placeholder="Enter physical address..."
+                        className="settings-textarea"
+                      />
+                    </Form.Group>
+
+                    <Form.Group className="mb-4">
+                      <Form.Label className="small fw-semibold">
+                        Description
+                      </Form.Label>
+
+                      <Form.Control
+                        as="textarea"
+                        rows={4}
+                        {...register('description')}
+                        placeholder="Tell us about your institution..."
+                        className="settings-textarea"
+                      />
+                    </Form.Group>
+
+                    <div className="d-flex justify-content-end gap-2">
+                      <Button
+                        className="settings-soft-btn d-flex align-items-center gap-2"
+                        onClick={() => {
+                          reset(profile);
+                          setLogoPreview(profile.logo || null);
+                          setLogoFile(null);
+                          setIsEditing(false);
+                        }}
+                        disabled={isSaving}
+                      >
+                        <X size={17} />
+                        Cancel
+                      </Button>
+
+                      <Button
+                        className="settings-primary-btn d-flex align-items-center gap-2"
+                        type="submit"
+                        disabled={isSaving}
+                      >
+                        {isSaving ? (
+                          <Spinner animation="border" size="sm" />
+                        ) : (
+                          <Save size={17} />
+                        )}
+                        Save Changes
+                      </Button>
+                    </div>
+                  </Form>
+                ) : (
+                  <>
+                    <div className="profile-identity-card mb-4">
+                      <div className="d-flex align-items-center gap-4 flex-wrap">
+                        {profile.logo ? (
+                          <img
+                            src={profile.logo}
+                            alt="Institution Logo"
+                            className="profile-logo"
+                          />
+                        ) : (
+                          <div className="profile-logo-placeholder">
+                            <ImageIcon size={24} />
+                            <small>No logo</small>
+                          </div>
+                        )}
+
+                        <div>
+                          <h4 className="fw-bold mb-1">
+                            {profile.name}
+                          </h4>
+
+                          <p className="text-muted mb-3">
+                            {profile.description || 'No description provided.'}
+                          </p>
+
+                          <div className="d-flex flex-wrap gap-2">
+                            {profile.is_active ? (
+                              <span className="settings-pill settings-pill-success">
+                                <CheckCircle size={13} />
+                                Active
+                              </span>
+                            ) : (
+                              <span className="settings-pill settings-pill-warning">
+                                <XCircle size={13} />
+                                Inactive
+                              </span>
+                            )}
+
+                            {profile.is_verified && (
+                              <span className="settings-pill settings-pill-info">
+                                <Shield size={13} />
+                                Verified
+                              </span>
+                            )}
+
+                            <span className="settings-pill">
+                              <BadgeCheck size={13} />
+                              Trust Level {profile.trust_level || 0}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="readonly-grid">
+                      <div className="settings-info-card">
+                        <div className="settings-info-label">
+                          Institution Name
+                        </div>
+                        <div className="settings-info-value">
+                          {profile.name}
+                        </div>
+                      </div>
+
+                      <div className="settings-info-card">
+                        <div className="settings-info-label">
+                          Primary Domain
+                        </div>
+                        <div className="settings-info-value">
+                          {profile.domain || 'Not set'}
+                        </div>
+                      </div>
+
+                      <div className="settings-info-card">
+                        <div className="settings-info-label d-flex align-items-center gap-2">
+                          <Mail size={14} />
+                          Email
+                        </div>
+                        <div className="settings-info-value">
+                          {profile.contact_email || 'N/A'}
+                        </div>
+                      </div>
+
+                      <div className="settings-info-card">
+                        <div className="settings-info-label d-flex align-items-center gap-2">
+                          <Phone size={14} />
+                          Phone
+                        </div>
+                        <div className="settings-info-value">
+                          {profile.contact_phone || 'N/A'}
+                        </div>
+                      </div>
+
+                      <div className="settings-info-card">
+                        <div className="settings-info-label d-flex align-items-center gap-2">
+                          <Globe size={14} />
+                          Website
+                        </div>
+
+                        {profile.website_url ? (
+                          <a
+                            href={profile.website_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="settings-info-value text-decoration-none d-inline-block"
+                          >
+                            {profile.website_url}
+                          </a>
+                        ) : (
+                          <div className="settings-info-value">N/A</div>
+                        )}
+                      </div>
+
+                      <div className="settings-info-card">
+                        <div className="settings-info-label d-flex align-items-center gap-2">
+                          <MapPin size={14} />
+                          Address
+                        </div>
+                        <p className="settings-muted-value">
+                          {profile.address || 'N/A'}
+                        </p>
+                      </div>
+
+                      <div className="settings-info-card" style={{ gridColumn: '1 / -1' }}>
+                        <div className="settings-info-label">
+                          Institution Description
+                        </div>
+                        <p className="settings-muted-value">
+                          {profile.description || 'No description provided.'}
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </>
+          )}
+        </section>
+      </div>
+    </InstitutionWorkspacePage>
   );
 };
 

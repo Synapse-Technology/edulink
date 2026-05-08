@@ -25,6 +25,10 @@ import InternshipLifecyclePanel from '../../../components/internship/InternshipL
 import { useFeedbackModal } from '../../../hooks/useFeedbackModal';
 import { sanitizeAdminError } from '../../../utils/adminErrorSanitizer';
 import { SEO } from '../../../components/common';
+import {
+  EmployerHealth,
+  EmployerWorkspacePage,
+} from '../../../components/employer/workspace';
 
 const STYLES = `
   .ead-page { color: var(--el-ink); }
@@ -872,7 +876,7 @@ const EmployerApplicationDetail: React.FC = () => {
 
       <style>{STYLES}</style>
 
-      <div className="ead-page">
+      <EmployerWorkspacePage className="ead-page">
         <button
           type="button"
           className="ead-back"
@@ -1014,21 +1018,12 @@ const EmployerApplicationDetail: React.FC = () => {
           </div>
 
           <aside className="ead-health-card">
-            <div className="ead-health-top">
-              <div>
-                <div className="ead-health-label">Placement readiness</div>
-                <div className="ead-health-score">{readinessScore}%</div>
-              </div>
-
-              <div className="ead-health-icon">
-                <UserCheck size={20} />
-              </div>
-            </div>
-
-            <p className="ead-health-note">
-              Estimated from the application lifecycle, mentor assignment, and start or
-              completion readiness state.
-            </p>
+            <EmployerHealth
+              label="Placement readiness"
+              value={`${readinessScore}%`}
+              icon={<UserCheck size={20} />}
+              note="Estimated from the application lifecycle, mentor assignment, and start or completion readiness state."
+            />
           </aside>
         </section>
 
@@ -1401,7 +1396,7 @@ const EmployerApplicationDetail: React.FC = () => {
             </div>
           </div>
         )}
-      </div>
+      </EmployerWorkspacePage>
 
       <FeedbackModal {...feedbackProps} />
 

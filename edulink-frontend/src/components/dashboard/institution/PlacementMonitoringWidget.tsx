@@ -1,6 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Table, Badge, Button, Modal, Form, InputGroup } from 'react-bootstrap';
-import { AlertTriangle, Flag, FileText, Search, RefreshCw, Users, Activity } from 'lucide-react';
+import { Button, Modal, Form, InputGroup } from 'react-bootstrap';
+import {
+  AlertTriangle,
+  Flag,
+  FileText,
+  Search,
+  RefreshCw,
+  Users,
+  Activity,
+  Building2,
+} from 'lucide-react';
 import { FeedbackModal } from '../../common';
 import { useFeedbackModal } from '../../../hooks/useFeedbackModal';
 import { institutionService } from '../../../services/institution/institutionService';
@@ -26,26 +35,45 @@ interface Placement {
 
 const PlacementMonitoringWidget: React.FC = () => {
   const [placements, setPlacements] = useState<Placement[]>([]);
+  const [filteredPlacements, setFilteredPlacements] = useState<Placement[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+
   const [showFlagModal, setShowFlagModal] = useState(false);
   const [selectedPlacement, setSelectedPlacement] = useState<Placement | null>(null);
   const [incidentTitle, setIncidentTitle] = useState('');
   const [incidentDescription, setIncidentDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const { feedbackProps, showError, showSuccess } = useFeedbackModal();
 
-  // Evidence Modal State
   const [showEvidenceModal, setShowEvidenceModal] = useState(false);
   const [evidencePlacement, setEvidencePlacement] = useState<Placement | null>(null);
+
+  const { feedbackProps, showError, showSuccess } = useFeedbackModal();
 
   useEffect(() => {
     fetchPlacements();
   }, []);
 
+  useEffect(() => {
+    const search = searchTerm.toLowerCase();
+
+    setFilteredPlacements(
+      placements.filter(placement =>
+        (placement.student_info?.name || '').toLowerCase().includes(search) ||
+        (placement.student_info?.email || '').toLowerCase().includes(search) ||
+        placement.title.toLowerCase().includes(search) ||
+        placement.employer_name.toLowerCase().includes(search) ||
+        placement.department.toLowerCase().includes(search)
+      )
+    );
+  }, [placements, searchTerm]);
+
   const fetchPlacements = async () => {
     try {
+      setLoading(true);
       const data = await institutionService.getPlacements();
       setPlacements(data);
+      setFilteredPlacements(data);
     } catch (error) {
       console.error('Failed to fetch placements', error);
     } finally {
@@ -65,25 +93,29 @@ const PlacementMonitoringWidget: React.FC = () => {
     setShowEvidenceModal(true);
   };
 
-  const handleFlagSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleFlagSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     if (!selectedPlacement) return;
-    
+
     setSubmitting(true);
+
     try {
       await internshipService.reportIncident(
         selectedPlacement.id,
         incidentTitle,
         incidentDescription
       );
+
       setShowFlagModal(false);
-      showSuccess('Incident Reported', 'The incident has been reported successfully and recorded in the ledger.');
-      // Refresh list if needed, though incident reporting doesn't change placement status usually unless severe
+
+      showSuccess(
+        'Incident Reported',
+        'The incident has been reported and recorded.'
+      );
     } catch (error: any) {
-      console.error('Failed to report incident', error);
       showError(
         'Submission Failed',
-        'We could not report the incident at this time.',
+        'We could not report the incident.',
         error.response?.data?.error || error.message
       );
     } finally {
@@ -91,213 +123,499 @@ const PlacementMonitoringWidget: React.FC = () => {
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusClass = (status: string) => {
     switch (status) {
-      case 'ACTIVE': return 'success';
-      case 'COMPLETED': return 'info';
-      case 'TERMINATED': return 'danger';
-      case 'CERTIFIED': return 'primary';
-      default: return 'secondary';
+      case 'ACTIVE':
+        return 'monitor-status-active';
+      case 'COMPLETED':
+        return 'monitor-status-completed';
+      case 'TERMINATED':
+        return 'monitor-status-terminated';
+      case 'CERTIFIED':
+        return 'monitor-status-certified';
+      default:
+        return 'monitor-status-default';
     }
   };
 
   if (loading) {
     return (
-        <Card className="border-0 shadow-sm">
-            <Card.Header className="bg-white py-3 border-0">
-                <div className="d-flex justify-content-between align-items-center">
-                    <div className="placeholder-glow w-25">
-                         <span className="placeholder col-12 bg-secondary bg-opacity-10 rounded"></span>
-                    </div>
-                </div>
-            </Card.Header>
-            <Card.Body className="p-0">
-                 <div className="p-4">
-                    {[1, 2, 3].map((i) => (
-                        <div key={i} className="d-flex mb-4 placeholder-glow">
-                            <div className="me-3" style={{ width: 40, height: 40 }}>
-                                <span className="placeholder col-12 h-100 rounded-circle bg-secondary bg-opacity-10"></span>
-                            </div>
-                            <div className="flex-grow-1">
-                                <span className="placeholder col-4 bg-secondary bg-opacity-10 rounded mb-2"></span>
-                                <br />
-                                <span className="placeholder col-3 bg-secondary bg-opacity-10 rounded"></span>
-                            </div>
-                        </div>
-                    ))}
-                 </div>
-            </Card.Body>
-        </Card>
+      <div className="monitor-card">
+        <div className="monitor-header">
+          <div className="placeholder-glow w-25">
+            <span className="placeholder col-12 rounded"></span>
+          </div>
+        </div>
+
+        <div className="p-4">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="d-flex mb-4 placeholder-glow">
+              <span
+                className="placeholder rounded-3 me-3"
+                style={{ width: 42, height: 42 }}
+              />
+              <div className="flex-grow-1">
+                <span className="placeholder col-4 rounded mb-2" />
+                <br />
+                <span className="placeholder col-3 rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     );
   }
 
   return (
-    <Card className="border-0 shadow-sm rounded-4 overflow-hidden">
-      <Card.Header className="bg-white py-4 px-4 border-0 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+    <div className="monitor-card">
+      <style>{`
+        .monitor-card {
+          background: #ffffff;
+          border: 1px solid #e7eaf0;
+          border-radius: 26px;
+          overflow: hidden;
+        }
+
+        .monitor-header {
+          padding: 24px;
+          border-bottom: 1px solid #eef2f6;
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 20px;
+        }
+
+        .monitor-title {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          font-size: 1.05rem;
+          font-weight: 740;
+          letter-spacing: -0.03em;
+          color: #111827;
+          margin-bottom: 4px;
+        }
+
+        .monitor-title-icon {
+          width: 42px;
+          height: 42px;
+          border-radius: 14px;
+          background: #f6f7f9;
+          border: 1px solid #edf0f4;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .monitor-subtitle {
+          color: #64748b;
+          font-size: 0.88rem;
+          margin-bottom: 0;
+        }
+
+        .monitor-actions {
+          display: flex;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+
+        .monitor-input {
+          height: 42px;
+          border-radius: 14px !important;
+          border: 1px solid #dbe2ea !important;
+          box-shadow: none !important;
+          background: #ffffff !important;
+        }
+
+        .monitor-refresh-btn,
+        .monitor-soft-btn,
+        .monitor-danger-btn,
+        .monitor-primary-btn {
+          min-height: 40px;
+          border-radius: 14px !important;
+          font-weight: 700 !important;
+          box-shadow: none !important;
+        }
+
+        .monitor-refresh-btn,
+        .monitor-soft-btn {
+          background: #ffffff !important;
+          border: 1px solid #e2e8f0 !important;
+          color: #111827 !important;
+        }
+
+        .monitor-danger-btn {
+          background: #ffffff !important;
+          border: 1px solid #fee2e2 !important;
+          color: #dc2626 !important;
+        }
+
+        .monitor-primary-btn {
+          background: #111827 !important;
+          border: 1px solid #111827 !important;
+          color: #ffffff !important;
+        }
+
+        .monitor-table-wrap {
+          width: 100%;
+          overflow-x: auto;
+          overflow-y: auto;
+          max-height: 560px;
+        }
+
+        .monitor-table {
+          width: 100%;
+          min-width: 1150px;
+          table-layout: fixed;
+          margin-bottom: 0;
+        }
+
+        .monitor-table thead th {
+          position: sticky;
+          top: 0;
+          z-index: 3;
+          border: none;
+          background: #f8fafc;
+          color: #64748b;
+          font-size: 0.72rem;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          font-weight: 700;
+          padding: 16px 18px;
+          white-space: nowrap;
+        }
+
+        .monitor-table tbody td {
+          border-top: 1px solid #f1f5f9;
+          padding: 18px;
+          vertical-align: middle;
+          background: #ffffff;
+        }
+
+        .monitor-table tbody tr:hover td {
+          background: #fbfcfd;
+        }
+
+        .student-col { width: 310px; }
+        .role-col { width: 260px; }
+        .company-col { width: 220px; }
+        .department-col { width: 180px; }
+        .status-col { width: 150px; }
+        .actions-col { width: 220px; }
+
+        .monitor-avatar {
+          width: 42px;
+          height: 42px;
+          border-radius: 15px;
+          background: #111827;
+          color: #ffffff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 750;
+          flex-shrink: 0;
+        }
+
+        .monitor-primary-text {
+          font-weight: 720;
+          color: #111827;
+          line-height: 1.3;
+        }
+
+        .monitor-muted {
+          color: #64748b;
+          font-size: 0.8rem;
+          margin-top: 4px;
+        }
+
+        .monitor-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 7px 12px;
+          border-radius: 999px;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          color: #475569;
+          font-size: 0.78rem;
+          font-weight: 700;
+          white-space: nowrap;
+        }
+
+        .monitor-status-active {
+          background: #f0fdf4;
+          border-color: #dcfce7;
+          color: #166534;
+        }
+
+        .monitor-status-completed {
+          background: #eff6ff;
+          border-color: #dbeafe;
+          color: #1d4ed8;
+        }
+
+        .monitor-status-terminated {
+          background: #fef2f2;
+          border-color: #fee2e2;
+          color: #991b1b;
+        }
+
+        .monitor-status-certified {
+          background: #111827;
+          border-color: #111827;
+          color: #ffffff;
+        }
+
+        .monitor-status-default {
+          background: #f8fafc;
+          border-color: #e2e8f0;
+          color: #475569;
+        }
+
+        .monitor-empty-state {
+          padding: 58px 24px;
+          text-align: center;
+        }
+
+        .monitor-modal .modal-content {
+          border: none;
+          border-radius: 26px;
+          overflow: hidden;
+        }
+
+        .monitor-modal .modal-header {
+          padding: 22px 24px;
+          border-bottom: 1px solid #eef2f6;
+        }
+
+        .monitor-modal .form-control {
+          border-radius: 14px;
+          border: 1px solid #dbe2ea;
+          box-shadow: none !important;
+        }
+
+        .monitor-modal .form-control:focus {
+          border-color: #111827;
+        }
+
+        @media (max-width: 992px) {
+          .monitor-header {
+            flex-direction: column;
+          }
+        }
+      `}</style>
+
+      <div className="monitor-header">
         <div>
-            <h5 className="mb-1 fw-bold d-flex align-items-center text-dark">
-                <div className="bg-primary bg-opacity-10 p-2 rounded-3 me-2">
-                    <Activity className="text-primary" size={20} />
-                </div>
-                Placement Monitoring
-            </h5>
-            <p className="text-muted small mb-0">Track active students and manage incidents across all departments</p>
+          <div className="monitor-title">
+            <div className="monitor-title-icon">
+              <Activity size={19} />
+            </div>
+            Placement Monitoring
+          </div>
+
+          <p className="monitor-subtitle">
+            Track active students, review evidence, and report placement issues.
+          </p>
         </div>
-        
-        <div className="d-flex gap-2">
-            <InputGroup className="input-group-sm" style={{ width: '250px' }}>
-                <InputGroup.Text className="bg-light border-0 rounded-start-3">
-                    <Search size={14} className="text-muted" />
-                </InputGroup.Text>
-                <Form.Control className="bg-light border-0 rounded-end-3 ps-0" placeholder="Search student name or role..." />
-            </InputGroup>
-            <Button variant="light" size="sm" onClick={fetchPlacements} className="rounded-3 text-muted border-0 bg-light px-3" title="Refresh">
-                <RefreshCw size={14} />
-            </Button>
+
+        <div className="monitor-actions">
+          <InputGroup style={{ width: 270 }}>
+            <InputGroup.Text className="bg-white border-end-0 rounded-start-4">
+              <Search size={15} className="text-muted" />
+            </InputGroup.Text>
+
+            <Form.Control
+              className="monitor-input border-start-0 rounded-end-4"
+              placeholder="Search placements..."
+              value={searchTerm}
+              onChange={event => setSearchTerm(event.target.value)}
+            />
+          </InputGroup>
+
+          <Button
+            className="monitor-refresh-btn"
+            onClick={fetchPlacements}
+            title="Refresh"
+          >
+            <RefreshCw size={15} />
+          </Button>
         </div>
-      </Card.Header>
-      
-      <div className="table-responsive">
-        <Table hover className="mb-0 align-middle">
-          <thead className="bg-light bg-opacity-50">
+      </div>
+
+      <div className="monitor-table-wrap">
+        <table className="table monitor-table align-middle">
+          <thead>
             <tr>
-              <th className="border-0 ps-4 py-3 text-uppercase text-muted small fw-bold">Student</th>
-              <th className="border-0 py-3 text-uppercase text-muted small fw-bold">Role</th>
-              <th className="border-0 py-3 text-uppercase text-muted small fw-bold">Company</th>
-              <th className="border-0 py-3 text-uppercase text-muted small fw-bold">Department</th>
-              <th className="border-0 py-3 text-uppercase text-muted small fw-bold">Status</th>
-              <th className="border-0 text-end pe-4 py-3 text-uppercase text-muted small fw-bold">Actions</th>
+              <th className="student-col">Student</th>
+              <th className="role-col">Role</th>
+              <th className="company-col">Company</th>
+              <th className="department-col">Department</th>
+              <th className="status-col">Status</th>
+              <th className="actions-col text-end">Actions</th>
             </tr>
           </thead>
+
           <tbody>
-            {placements.length === 0 ? (
+            {filteredPlacements.length === 0 ? (
               <tr>
-                <td colSpan={6} className="text-center py-5">
-                  <div className="d-flex flex-column align-items-center justify-content-center py-4">
-                      <div className="bg-light rounded-circle p-4 mb-3">
-                          <Users size={32} className="text-muted opacity-50" />
-                      </div>
-                      <h6 className="text-muted fw-bold">No active placements found</h6>
-                      <p className="text-muted small mb-0">Once students are placed, they will appear here.</p>
+                <td colSpan={6}>
+                  <div className="monitor-empty-state">
+                    <Users size={46} className="text-muted mb-3" />
+                    <h5 className="fw-semibold mb-2">No placements found</h5>
+                    <p className="text-muted mb-0">
+                      Active placement records will appear here.
+                    </p>
                   </div>
                 </td>
               </tr>
             ) : (
-              placements.map((placement) => (
-                <tr key={placement.id} className="border-bottom border-light">
-                  <td className="ps-4 py-3">
-                    <div className="d-flex align-items-center">
-                        <div className="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center me-3" style={{ width: '36px', height: '36px', fontSize: '0.9rem', fontWeight: 600 }}>
-                            {placement.student_info?.name?.charAt(0) || '?'}
+              filteredPlacements.map(placement => (
+                <tr key={placement.id}>
+                  <td className="student-col">
+                    <div className="d-flex align-items-center gap-3">
+                      <div className="monitor-avatar">
+                        {placement.student_info?.name?.charAt(0) || '?'}
+                      </div>
+
+                      <div>
+                        <div className="d-flex align-items-center gap-2 flex-wrap">
+                          <div className="monitor-primary-text">
+                            {placement.student_info?.name || 'Unknown'}
+                          </div>
+
+                          <TrustBadge
+                            level={(placement.student_info?.trust_level as TrustLevel) || 0}
+                            entityType="student"
+                            size="sm"
+                            showLabel={false}
+                          />
                         </div>
-                        <div>
-                            <div className="d-flex align-items-center gap-2">
-                                <div className="fw-semibold text-dark">{placement.student_info?.name || 'Unknown'}</div>
-                                <TrustBadge 
-                                  level={(placement.student_info?.trust_level as TrustLevel) || 0} 
-                                  entityType="student" 
-                                  size="sm" 
-                                  showLabel={false} 
-                                />
-                            </div>
-                            <div className="small text-muted">{placement.student_info?.email}</div>
+
+                        <div className="monitor-muted">
+                          {placement.student_info?.email}
                         </div>
+                      </div>
                     </div>
                   </td>
-                  <td className="py-3 text-dark">{placement.title}</td>
-                  <td className="py-3">
-                    <div className="d-flex align-items-center">
-                        <div className="bg-light p-1 rounded me-2">
-                             <Activity size={12} className="text-muted" />
-                        </div>
-                        <span className="text-dark fw-medium">{placement.employer_name}</span>
+
+                  <td className="role-col">
+                    <div className="monitor-primary-text">
+                      {placement.title}
                     </div>
                   </td>
-                  <td className="py-3 text-muted">{placement.department}</td>
-                  <td className="py-3">
-                    <Badge bg={getStatusBadge(placement.status)} className="px-3 py-2 rounded-pill fw-normal">
-                        {placement.status}
-                    </Badge>
+
+                  <td className="company-col">
+                    <span className="monitor-pill">
+                      <Building2 size={13} />
+                      {placement.employer_name}
+                    </span>
                   </td>
-                  <td className="text-end pe-4 py-3">
-                    <Button 
-                      variant="light" 
-                      size="sm" 
-                      className="d-inline-flex align-items-center me-2 text-primary bg-primary bg-opacity-10 border-0"
-                      onClick={() => handleReviewClick(placement)}
-                      title="Review Evidence"
-                    >
-                      <FileText size={14} className="me-1" /> Review
-                    </Button>
-                    <Button 
-                      variant="light" 
-                      size="sm" 
-                      className="d-inline-flex align-items-center text-danger bg-danger bg-opacity-10 border-0"
-                      onClick={() => handleFlagClick(placement)}
-                      title="Flag Issue"
-                    >
-                      <Flag size={14} className="me-1" /> Report
-                    </Button>
+
+                  <td className="department-col">
+                    <span className="monitor-pill">
+                      {placement.department}
+                    </span>
+                  </td>
+
+                  <td className="status-col">
+                    <span className={`monitor-pill ${getStatusClass(placement.status)}`}>
+                      {placement.status}
+                    </span>
+                  </td>
+
+                  <td className="actions-col text-end">
+                    <div className="d-flex justify-content-end gap-2">
+                      <Button
+                        className="monitor-soft-btn d-flex align-items-center gap-2"
+                        onClick={() => handleReviewClick(placement)}
+                      >
+                        <FileText size={14} />
+                        Review
+                      </Button>
+
+                      <Button
+                        className="monitor-danger-btn d-flex align-items-center gap-2"
+                        onClick={() => handleFlagClick(placement)}
+                      >
+                        <Flag size={14} />
+                        Report
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))
             )}
           </tbody>
-        </Table>
+        </table>
       </div>
 
-      {/* Flag Issue Modal */}
-      <Modal show={showFlagModal} onHide={() => setShowFlagModal(false)} centered>
-        <Modal.Header closeButton className="border-0 pb-0">
-          <Modal.Title className="text-danger d-flex align-items-center fs-5">
-            <div className="bg-danger bg-opacity-10 p-2 rounded-circle me-2">
-                <AlertTriangle size={20} />
-            </div>
-            Report Incident
-          </Modal.Title>
-        </Modal.Header>
+      <Modal
+        show={showFlagModal}
+        onHide={() => setShowFlagModal(false)}
+        centered
+        dialogClassName="monitor-modal"
+      >
         <Form onSubmit={handleFlagSubmit}>
-          <Modal.Body className="pt-2">
-            <p className="text-muted mb-4 small">
-              Reporting an incident for <strong className="text-dark">{selectedPlacement?.student_info?.name}</strong>. 
-              This will be permanently recorded in the ledger.
+          <Modal.Header closeButton>
+            <Modal.Title className="d-flex align-items-center gap-2 text-danger">
+              <AlertTriangle size={20} />
+              Report Incident
+            </Modal.Title>
+          </Modal.Header>
+
+          <Modal.Body className="p-4">
+            <p className="text-muted small mb-4">
+              Reporting an incident for{' '}
+              <strong className="text-dark">
+                {selectedPlacement?.student_info?.name}
+              </strong>
+              . This will be recorded for institutional review.
             </p>
+
             <Form.Group className="mb-3">
-              <Form.Label className="small fw-bold text-muted text-uppercase">Issue Title</Form.Label>
-              <Form.Control 
-                type="text" 
-                placeholder="e.g., Unexcused Absence, Safety Violation" 
+              <Form.Label className="small fw-bold">Issue Title</Form.Label>
+              <Form.Control
+                type="text"
+                placeholder="e.g. Unexcused absence"
                 value={incidentTitle}
-                onChange={(e) => setIncidentTitle(e.target.value)}
+                onChange={event => setIncidentTitle(event.target.value)}
                 required
-                className="bg-light border-0"
               />
             </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label className="small fw-bold text-muted text-uppercase">Description</Form.Label>
-              <Form.Control 
-                as="textarea" 
-                rows={4} 
-                placeholder="Provide detailed context about the incident..." 
+
+            <Form.Group>
+              <Form.Label className="small fw-bold">Description</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={4}
+                placeholder="Provide detailed incident context..."
                 value={incidentDescription}
-                onChange={(e) => setIncidentDescription(e.target.value)}
+                onChange={event => setIncidentDescription(event.target.value)}
                 required
-                className="bg-light border-0"
               />
             </Form.Group>
           </Modal.Body>
-          <Modal.Footer className="border-0 pt-0">
-            <Button variant="light" onClick={() => setShowFlagModal(false)}>
+
+          <Modal.Footer>
+            <Button
+              className="monitor-soft-btn"
+              onClick={() => setShowFlagModal(false)}
+            >
               Cancel
             </Button>
-            <Button variant="danger" type="submit" disabled={submitting}>
+
+            <Button
+              className="monitor-danger-btn"
+              type="submit"
+              disabled={submitting}
+            >
               {submitting ? 'Submitting...' : 'Submit Report'}
             </Button>
           </Modal.Footer>
         </Form>
       </Modal>
 
-      {/* Evidence Modal */}
       {evidencePlacement && (
         <PlacementEvidenceModal
           placement={evidencePlacement}
@@ -305,8 +623,9 @@ const PlacementMonitoringWidget: React.FC = () => {
           onHide={() => setShowEvidenceModal(false)}
         />
       )}
+
       <FeedbackModal {...feedbackProps} />
-    </Card>
+    </div>
   );
 };
 

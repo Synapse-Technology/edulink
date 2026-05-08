@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ShieldCheck, ShieldAlert, FileText, Calendar, User, Hash, Clock, Download } from 'lucide-react';
+import {
+  ShieldCheck,
+  ShieldAlert,
+  FileText,
+  Calendar,
+  User,
+  Clock,
+  Printer,
+  ChevronRight,
+} from 'lucide-react';
 import { apiClient } from '../services/api/client';
 
 interface VerificationResult {
@@ -16,6 +25,7 @@ interface VerificationResult {
 
 const VerifyArtifact: React.FC = () => {
   const { artifactId } = useParams<{ artifactId: string }>();
+
   const [loading, setLoading] = useState(true);
   const [result, setResult] = useState<VerificationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -29,166 +39,421 @@ const VerifyArtifact: React.FC = () => {
   const verifyArtifact = async (id: string) => {
     setLoading(true);
     setError(null);
+
     try {
-      const response = await apiClient.get<VerificationResult>(`/api/reports/artifacts/verify/${id}/`, {
-        headers: { 'skip-auth': 'true' }
-      });
+      const response = await apiClient.get<VerificationResult>(
+        `/api/reports/artifacts/verify/${id}/`,
+        {
+          headers: { 'skip-auth': 'true' },
+        }
+      );
+
       setResult(response);
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to verify artifact. It may not exist or the ID is incorrect.');
+      setError(
+        err.response?.data?.error ||
+          'This artifact could not be verified.'
+      );
       setResult(null);
     } finally {
       setLoading(false);
     }
   };
 
+  const formatDate = (date: string) => {
+    return new Date(date).toLocaleDateString(undefined, {
+      dateStyle: 'long',
+    });
+  };
+
   return (
-    <div className="min-h-screen bg-light d-flex flex-column">
+    <div
+      className="min-vh-100"
+      style={{
+        background: '#f7f8fa',
+      }}
+    >
       {/* Header */}
-      <header className="bg-white border-bottom py-3">
-        <div className="container d-flex justify-content-between align-items-center">
-          <Link to="/" className="text-decoration-none d-flex align-items-center gap-2">
-            <div className="bg-primary rounded-3 p-1">
-              <ShieldCheck className="text-white" size={24} />
+      <header
+        className="border-bottom"
+        style={{
+          background: '#ffffff',
+          borderColor: '#e9ecef',
+        }}
+      >
+        <div className="container py-3">
+          <div className="d-flex align-items-center justify-content-between">
+            <Link
+              to="/"
+              className="text-decoration-none d-flex align-items-center gap-3"
+            >
+              <div
+                className="d-flex align-items-center justify-content-center"
+                style={{
+                  width: 42,
+                  height: 42,
+                  borderRadius: 12,
+                  background: '#111827',
+                }}
+              >
+                <ShieldCheck size={20} color="white" />
+              </div>
+
+              <div>
+                <div
+                  className="fw-semibold text-dark"
+                  style={{
+                    fontSize: '1rem',
+                    letterSpacing: '-0.03em',
+                  }}
+                >
+                  EduLink KE
+                </div>
+
+                <div
+                  className="text-muted"
+                  style={{
+                    fontSize: '0.78rem',
+                  }}
+                >
+                  Artifact Verification
+                </div>
+              </div>
+            </Link>
+
+            <div
+              className="d-none d-md-flex align-items-center gap-2 text-muted"
+              style={{ fontSize: '0.82rem' }}
+            >
+              <span>Secure Ledger Validation</span>
             </div>
-            <span className="fw-bold fs-4 text-dark" style={{ letterSpacing: '-0.5px' }}>EDULINK</span>
-          </Link>
-          <div className="text-muted small d-none d-md-block">
-            Professional Artifact Verification System
           </div>
         </div>
       </header>
 
-      <main className="flex-grow-1 py-5">
+      <main className="py-5">
         <div className="container">
           <div className="row justify-content-center">
-            <div className="col-lg-8 col-xl-7">
-              {loading ? (
+            <div className="col-xl-8 col-lg-9">
+
+              {/* Loading */}
+              {loading && (
                 <div className="text-center py-5">
-                  <div className="spinner-border text-primary mb-3" role="status">
-                    <span className="visually-hidden">Loading...</span>
-                  </div>
-                  <p className="text-muted">Querying Edulink Ledger...</p>
+                  <div
+                    className="spinner-border"
+                    role="status"
+                    style={{
+                      width: '3rem',
+                      height: '3rem',
+                      borderWidth: '0.25rem',
+                    }}
+                  />
+                  <p className="text-muted mt-4 mb-0">
+                    Verifying artifact authenticity...
+                  </p>
                 </div>
-              ) : error ? (
-                <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
-                  <div className="bg-danger py-4 text-center text-white">
-                    <ShieldAlert size={48} className="mb-2" />
-                    <h3 className="fw-bold mb-0">Verification Failed</h3>
+              )}
+
+              {/* Error */}
+              {!loading && error && (
+                <div
+                  className="bg-white border rounded-4 p-5 text-center"
+                  style={{
+                    borderColor: '#e5e7eb',
+                  }}
+                >
+                  <div
+                    className="mx-auto mb-4 d-flex align-items-center justify-content-center"
+                    style={{
+                      width: 72,
+                      height: 72,
+                      borderRadius: 20,
+                      background: '#fef2f2',
+                    }}
+                  >
+                    <ShieldAlert size={32} color="#dc2626" />
                   </div>
-                  <div className="card-body p-4 p-md-5 text-center">
-                    <p className="lead text-muted mb-4">{error}</p>
-                    <div className="d-grid gap-2 d-sm-flex justify-content-sm-center">
-                      <Link to="/" className="btn btn-outline-secondary px-4 rounded-pill">Back to Home</Link>
-                      <button onClick={() => artifactId && verifyArtifact(artifactId)} className="btn btn-primary px-4 rounded-pill">Try Again</button>
-                    </div>
+
+                  <h2
+                    className="fw-semibold text-dark mb-3"
+                    style={{
+                      letterSpacing: '-0.04em',
+                    }}
+                  >
+                    Verification Failed
+                  </h2>
+
+                  <p
+                    className="text-muted mx-auto mb-4"
+                    style={{
+                      maxWidth: 460,
+                    }}
+                  >
+                    {error}
+                  </p>
+
+                  <div className="d-flex justify-content-center gap-3 flex-wrap">
+                    <button
+                      onClick={() =>
+                        artifactId && verifyArtifact(artifactId)
+                      }
+                      className="btn btn-dark px-4"
+                      style={{
+                        borderRadius: 12,
+                        height: 46,
+                      }}
+                    >
+                      Retry Verification
+                    </button>
+
+                    <Link
+                      to="/"
+                      className="btn btn-light px-4"
+                      style={{
+                        borderRadius: 12,
+                        height: 46,
+                        border: '1px solid #dee2e6',
+                      }}
+                    >
+                      Return Home
+                    </Link>
                   </div>
                 </div>
-              ) : result && result.verified ? (
-                <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
-                  <div className="bg-success py-4 text-center text-white">
-                    <ShieldCheck size={48} className="mb-2" />
-                    <h3 className="fw-bold mb-0">Authenticity Verified</h3>
-                    <p className="mb-0 opacity-75 small">This document is a legitimate Edulink artifact</p>
-                  </div>
-                  
-                  <div className="card-body p-4 p-md-5">
-                    <div className="row g-4 mb-5">
-                      <div className="col-md-6">
-                        <div className="d-flex align-items-start gap-3">
-                          <div className="bg-light p-2 rounded-3 text-primary">
-                            <User size={20} />
-                          </div>
-                          <div>
-                            <div className="text-muted small text-uppercase fw-bold mb-1">Student Name</div>
-                            <div className="fw-bold fs-5 text-dark">{result.student_name}</div>
-                          </div>
-                        </div>
+              )}
+
+              {/* Success */}
+              {!loading && result?.verified && (
+                <>
+                  {/* Verification Status */}
+                  <div
+                    className="bg-white border rounded-4 p-4 p-lg-5 mb-4"
+                    style={{
+                      borderColor: '#e5e7eb',
+                    }}
+                  >
+                    <div className="text-center mb-5">
+                      <div
+                        className="mx-auto mb-4 d-flex align-items-center justify-content-center"
+                        style={{
+                          width: 88,
+                          height: 88,
+                          borderRadius: 24,
+                          background: '#ecfdf3',
+                        }}
+                      >
+                        <ShieldCheck size={42} color="#16a34a" />
                       </div>
-                      <div className="col-md-6">
-                        <div className="d-flex align-items-start gap-3">
-                          <div className="bg-light p-2 rounded-3 text-primary">
-                            <FileText size={20} />
-                          </div>
-                          <div>
-                            <div className="text-muted small text-uppercase fw-bold mb-1">Document Type</div>
-                            <div className="fw-bold fs-5 text-dark">{result.artifact_type}</div>
-                          </div>
-                        </div>
+
+                      <div
+                        className="d-inline-flex align-items-center gap-2 px-3 py-2 mb-4"
+                        style={{
+                          borderRadius: 999,
+                          background: '#f0fdf4',
+                          border: '1px solid #dcfce7',
+                          fontSize: '0.82rem',
+                          fontWeight: 600,
+                          color: '#166534',
+                        }}
+                      >
+                        VERIFIED AUTHENTIC DOCUMENT
                       </div>
-                      <div className="col-md-6">
-                        <div className="d-flex align-items-start gap-3">
-                          <div className="bg-light p-2 rounded-3 text-primary">
-                            <Calendar size={20} />
-                          </div>
-                          <div>
-                            <div className="text-muted small text-uppercase fw-bold mb-1">Generated On</div>
-                            <div className="fw-bold text-dark">{new Date(result.generated_at).toLocaleDateString(undefined, { dateStyle: 'long' })}</div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="col-md-6">
-                        <div className="d-flex align-items-start gap-3">
-                          <div className="bg-light p-2 rounded-3 text-primary">
-                            <Clock size={20} />
-                          </div>
-                          <div>
-                            <div className="text-muted small text-uppercase fw-bold mb-1">Ledger Timestamp</div>
-                            <div className="fw-bold text-dark">{new Date(result.ledger_timestamp).toLocaleString()}</div>
-                          </div>
-                        </div>
-                      </div>
+
+                      <h1
+                        className="fw-semibold text-dark mb-3"
+                        style={{
+                          fontSize: '2rem',
+                          letterSpacing: '-0.06em',
+                        }}
+                      >
+                        Artifact Successfully Verified
+                      </h1>
+
+                      <p
+                        className="text-muted mx-auto mb-0"
+                        style={{
+                          maxWidth: 580,
+                          lineHeight: 1.7,
+                        }}
+                      >
+                        This document exists on the EduLink verification ledger
+                        and has passed integrity validation checks.
+                      </p>
                     </div>
 
-                    <div className="bg-light rounded-4 p-4 border border-dashed mb-4">
-                      <div className="d-flex align-items-center gap-2 mb-3">
-                        <ShieldCheck size={18} className="text-primary" />
-                        <span className="fw-bold text-dark">Verification Code</span>
+                    {/* Main Grid */}
+                    <div className="row g-4">
+
+                      <div className="col-md-6">
+                        <div className="border rounded-4 p-4 h-100">
+                          <div className="d-flex align-items-start gap-3">
+                            <User size={20} className="text-muted mt-1" />
+
+                            <div>
+                              <div className="text-muted small mb-2">
+                                Student
+                              </div>
+
+                              <div className="fw-semibold text-dark fs-5">
+                                {result.student_name}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <div className="bg-white p-3 rounded-3 border small text-break font-monospace text-dark fw-bold mb-2">
+
+                      <div className="col-md-6">
+                        <div className="border rounded-4 p-4 h-100">
+                          <div className="d-flex align-items-start gap-3">
+                            <FileText size={20} className="text-muted mt-1" />
+
+                            <div>
+                              <div className="text-muted small mb-2">
+                                Artifact Type
+                              </div>
+
+                              <div className="fw-semibold text-dark fs-5">
+                                {result.artifact_type}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="col-md-6">
+                        <div className="border rounded-4 p-4 h-100">
+                          <div className="d-flex align-items-start gap-3">
+                            <Calendar size={20} className="text-muted mt-1" />
+
+                            <div>
+                              <div className="text-muted small mb-2">
+                                Generated On
+                              </div>
+
+                              <div className="fw-medium text-dark">
+                                {formatDate(result.generated_at)}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="col-md-6">
+                        <div className="border rounded-4 p-4 h-100">
+                          <div className="d-flex align-items-start gap-3">
+                            <Clock size={20} className="text-muted mt-1" />
+
+                            <div>
+                              <div className="text-muted small mb-2">
+                                Ledger Timestamp
+                              </div>
+
+                              <div className="fw-medium text-dark">
+                                {new Date(
+                                  result.ledger_timestamp
+                                ).toLocaleString()}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Verification Metadata */}
+                  <div
+                    className="bg-white border rounded-4 p-4 p-lg-5 mb-4"
+                    style={{
+                      borderColor: '#e5e7eb',
+                    }}
+                  >
+                    <div className="mb-4">
+                      <h4
+                        className="fw-semibold text-dark mb-2"
+                        style={{
+                          letterSpacing: '-0.04em',
+                        }}
+                      >
+                        Verification Metadata
+                      </h4>
+
+                      <p className="text-muted mb-0">
+                        Public authenticity references associated with this
+                        artifact.
+                      </p>
+                    </div>
+
+                    <div className="mb-4">
+                      <div className="text-muted small mb-2">
+                        Tracking Code
+                      </div>
+
+                      <div
+                        className="border rounded-3 p-3 bg-light font-monospace fw-semibold"
+                        style={{
+                          wordBreak: 'break-word',
+                        }}
+                      >
                         {result.tracking_code}
                       </div>
-                      <p className="small text-muted mb-0">
-                        Use this unique reference code to verify the authenticity of this document at any time through the official Edulink portal.
-                      </p>
                     </div>
 
-                    <div className="bg-light rounded-4 p-4 border border-dashed mb-4">
-                      <div className="d-flex align-items-center gap-2 mb-3">
-                        <Hash size={18} className="text-primary" />
-                        <span className="fw-bold text-dark">Immutable Ledger Record</span>
+                    <div>
+                      <div className="text-muted small mb-2">
+                        Ledger Signature
                       </div>
-                      <div className="bg-white p-3 rounded-3 border small text-break font-monospace text-muted mb-2">
+
+                      <div
+                        className="border rounded-3 p-3 bg-light font-monospace small text-muted"
+                        style={{
+                          wordBreak: 'break-word',
+                          lineHeight: 1.7,
+                        }}
+                      >
                         {result.ledger_hash}
                       </div>
-                      <p className="small text-muted mb-0">
-                        This cryptographic signature provides a permanent, tamper-proof record of this document's issuance on the Edulink ledger.
-                      </p>
-                    </div>
-
-                    <div className="d-grid gap-3 d-sm-flex align-items-center">
-                      <button 
-                        onClick={() => window.print()} 
-                        className="btn btn-primary px-4 rounded-pill d-flex align-items-center justify-content-center gap-2"
-                      >
-                        <Download size={18} />
-                        Print Verification
-                      </button>
-                      <Link to="/" className="text-muted text-decoration-none small hover-underline mx-auto mx-sm-0">
-                        Learn more about Edulink Trust System
-                      </Link>
                     </div>
                   </div>
-                </div>
-              ) : null}
 
-              <div className="mt-5 text-center">
-                <p className="text-muted small mb-0">
-                  &copy; {new Date().getFullYear()} Edulink Professional Platform. All rights reserved.
+                  {/* Footer Actions */}
+                  <div className="d-flex flex-column flex-md-row gap-3 align-items-center justify-content-between">
+                    <button
+                      onClick={() => window.print()}
+                      className="btn btn-dark px-4 d-flex align-items-center gap-2"
+                      style={{
+                        borderRadius: 12,
+                        height: 48,
+                      }}
+                    >
+                      <Printer size={18} />
+                      Print Verification
+                    </button>
+
+                    <Link
+                      to="/trust-policy"
+                      className="text-decoration-none text-dark fw-medium d-flex align-items-center gap-2"
+                    >
+                      Learn more about the trust policy
+                      <ChevronRight size={16} />
+                    </Link>
+                  </div>
+                </>
+              )}
+
+              {/* Footer */}
+              <div className="text-center mt-5 pt-3">
+                <p
+                  className="text-muted mb-0"
+                  style={{
+                    fontSize: '0.82rem',
+                    lineHeight: 1.8,
+                  }}
+                >
+                  © {new Date().getFullYear()} EduLink KE
                   <br />
-                  Secure Artifact Verification Protocol v1.0
+                  Secure document authenticity infrastructure
                 </p>
               </div>
+
             </div>
           </div>
         </div>

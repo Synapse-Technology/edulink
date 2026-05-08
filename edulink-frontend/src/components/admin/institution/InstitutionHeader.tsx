@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Menu, User, Settings, LogOut } from 'lucide-react';
+import { Bell, Menu, User, Settings, LogOut, Search } from 'lucide-react';
 import { useAuthStore } from '../../../stores/authStore';
 import TrustBadge, { type TrustLevel } from '../../common/TrustBadge';
 
@@ -9,9 +9,9 @@ interface InstitutionHeaderProps {
   notificationCount?: number;
 }
 
-const InstitutionHeader: React.FC<InstitutionHeaderProps> = ({ 
+const InstitutionHeader: React.FC<InstitutionHeaderProps> = ({
   onToggleSidebar,
-  notificationCount = 0
+  notificationCount = 0,
 }) => {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
@@ -22,108 +22,194 @@ const InstitutionHeader: React.FC<InstitutionHeaderProps> = ({
   };
 
   return (
-    <nav className="navbar navbar-expand navbar-light bg-white border-bottom sticky-top px-3" style={{ height: '64px' }}>
-      <div className="d-flex align-items-center w-100">
-        <button 
-          className="btn btn-link text-dark p-0 me-3 d-lg-none" 
+    <nav
+      className="sticky-top px-3 px-md-4"
+      style={{
+        width: '100%',
+        height: 72,
+        background: 'rgba(255,255,255,0.92)',
+        backdropFilter: 'blur(12px)',
+        borderBottom: '1px solid #e7eaf0',
+        zIndex: 1020,
+        left: 0,
+        right: 0,
+      }}
+    >
+      <div className="h-100 d-flex align-items-center justify-content-between gap-3">
+        <button
+          className="btn d-lg-none d-flex align-items-center justify-content-center"
           onClick={onToggleSidebar}
-          aria-label="Toggle Sidebar"
+          aria-label="Toggle sidebar"
+          style={{
+            width: 42,
+            height: 42,
+            borderRadius: 14,
+            border: '1px solid #e2e8f0',
+            background: '#ffffff',
+          }}
         >
-          <Menu size={24} />
+          <Menu size={21} />
         </button>
 
-        <h5 className="mb-0 d-none d-md-block text-primary fw-bold">Institution Portal</h5>
-        
-        <div className="d-flex align-items-center ms-auto gap-3">
-          {/* Trust Badge */}
+        <div className="d-none d-md-block">
+          <div
+            className="fw-semibold text-dark"
+            style={{
+              fontSize: '0.98rem',
+              letterSpacing: '-0.02em',
+            }}
+          >
+            Institution Portal
+          </div>
+          <div className="text-muted" style={{ fontSize: '0.78rem' }}>
+            Placement oversight and verification
+          </div>
+        </div>
+
+        <div
+          className="d-none d-xl-flex align-items-center ms-3 px-3"
+          style={{
+            height: 42,
+            width: 340,
+            borderRadius: 14,
+            background: '#f6f7f9',
+            border: '1px solid #edf0f4',
+          }}
+        >
+          <Search size={16} className="text-muted me-2" />
+          <span className="text-muted small">
+            Search students, reports, applications...
+          </span>
+        </div>
+
+        <div className="d-flex align-items-center gap-2 gap-md-3" style={{ marginLeft: 'auto' }}>
           {user && (
-            <div className="d-none d-md-block">
-               <TrustBadge 
-                 level={(user.trustLevel as TrustLevel) || 0} 
-                 entityType="institution" 
-                 size="sm"
-               />
+            <div className="d-none d-lg-block">
+              <TrustBadge
+                level={(user.trustLevel as TrustLevel) || 0}
+                entityType="institution"
+                size="sm"
+              />
             </div>
           )}
-          
-          {/* Notifications */}
+
           <div className="dropdown">
-            <button 
-              className="btn btn-light rounded-circle position-relative p-2"
+            <button
+              className="btn position-relative d-flex align-items-center justify-content-center"
               type="button"
               data-bs-toggle="dropdown"
               aria-expanded="false"
+              style={{
+                width: 42,
+                height: 42,
+                borderRadius: 14,
+                border: '1px solid #e2e8f0',
+                background: '#ffffff',
+              }}
             >
-              <Bell size={20} className="text-secondary" />
+              <Bell size={18} className="text-secondary" />
+
               {notificationCount > 0 && (
                 <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-white">
                   {notificationCount}
-                  <span className="visually-hidden">unread messages</span>
                 </span>
               )}
             </button>
-            <div className="dropdown-menu dropdown-menu-end shadow border-0" style={{minWidth: '300px'}}>
-              <div className="d-flex justify-content-between align-items-center px-3 py-2 border-bottom bg-light rounded-top">
-                <span className="fw-semibold small text-uppercase text-muted">Notifications</span>
-                {notificationCount > 0 && <span className="badge bg-primary rounded-pill">{notificationCount} New</span>}
+
+            <div
+              className="dropdown-menu dropdown-menu-end border-0 mt-2 p-0 overflow-hidden"
+              style={{
+                minWidth: 320,
+                borderRadius: 18,
+                boxShadow: '0 18px 45px rgba(15, 23, 42, 0.12)',
+              }}
+            >
+              <div className="px-4 py-3 border-bottom bg-white">
+                <div className="fw-semibold text-dark">Notifications</div>
+                <small className="text-muted">
+                  Updates from your institution workflow
+                </small>
               </div>
+
               <div className="p-4 text-center text-muted">
                 <small>No new notifications</small>
               </div>
             </div>
           </div>
 
-          <div className="vr h-50 my-auto text-muted opacity-25"></div>
-
-          {/* User Menu */}
           <div className="dropdown">
-            <button 
-              className="btn btn-link text-decoration-none dropdown-toggle d-flex align-items-center p-0"
+            <button
+              className="btn text-decoration-none d-flex align-items-center gap-2 p-1"
               type="button"
               data-bs-toggle="dropdown"
               aria-expanded="false"
+              style={{
+                borderRadius: 16,
+                border: '1px solid #e2e8f0',
+                background: '#ffffff',
+              }}
             >
-              <div className="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center me-2 shadow-sm" style={{width: '36px', height: '36px'}}>
-                <span className="fw-bold">{user?.firstName?.charAt(0) || 'A'}</span>
+              <div
+                className="rounded-circle d-flex align-items-center justify-content-center"
+                style={{
+                  width: 36,
+                  height: 36,
+                  background: '#111827',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                }}
+              >
+                {user?.firstName?.charAt(0) || 'A'}
               </div>
-              <div className="d-none d-md-block text-start">
-                <p className="mb-0 small fw-bold text-dark">{user?.firstName} {user?.lastName}</p>
-                <p className="mb-0 x-small text-muted" style={{fontSize: '0.75rem'}}>
-                  Administrator
+
+              <div className="d-none d-md-block text-start pe-2">
+                <p className="mb-0 small fw-semibold text-dark">
+                  {user?.firstName} {user?.lastName}
+                </p>
+                <p className="mb-0 text-muted" style={{ fontSize: '0.72rem' }}>
+                  Institution Admin
                 </p>
               </div>
             </button>
-            <ul className="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
-              <li>
-                <div className="px-3 py-2 d-md-none">
-                <p className="mb-0 small fw-bold">{user?.firstName} {user?.lastName}</p>
-                <p className="mb-0 x-small text-muted">{user?.email}</p>
-                <div className="mt-2">
-                  <TrustBadge 
-                    level={(user?.trustLevel as TrustLevel) || 0} 
-                    entityType="institution" 
-                    size="sm"
-                  />
-                </div>
-              </div>
+
+            <ul
+              className="dropdown-menu dropdown-menu-end border-0 mt-2 p-2"
+              style={{
+                minWidth: 230,
+                borderRadius: 18,
+                boxShadow: '0 18px 45px rgba(15, 23, 42, 0.12)',
+              }}
+            >
+              <li className="px-3 py-2">
+                <p className="mb-0 small fw-semibold">
+                  {user?.firstName} {user?.lastName}
+                </p>
+                <p className="mb-0 text-muted" style={{ fontSize: '0.75rem' }}>
+                  {user?.email}
+                </p>
               </li>
-              <li><hr className="dropdown-divider d-md-none" /></li>
+
+              <li><hr className="dropdown-divider" /></li>
+
               <li>
-                <button className="dropdown-item d-flex align-items-center py-2">
+                <button className="dropdown-item rounded-3 d-flex align-items-center py-2">
                   <User size={16} className="me-2 text-muted" />
                   Profile
                 </button>
               </li>
+
               <li>
-                <button className="dropdown-item d-flex align-items-center py-2">
+                <button className="dropdown-item rounded-3 d-flex align-items-center py-2">
                   <Settings size={16} className="me-2 text-muted" />
                   Settings
                 </button>
               </li>
+
               <li><hr className="dropdown-divider" /></li>
+
               <li>
-                <button 
-                  className="dropdown-item d-flex align-items-center py-2 text-danger"
+                <button
+                  className="dropdown-item rounded-3 d-flex align-items-center py-2 text-danger"
                   onClick={handleLogout}
                 >
                   <LogOut size={16} className="me-2" />

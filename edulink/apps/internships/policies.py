@@ -23,24 +23,42 @@ def can_create_internship(actor, institution_id: Optional[UUID] = None, employer
     """
     Institution Admins can create internships for their institution.
     Employer Admins can create internships for their employer (if trusted).
+    If employer_id is present, the opportunity is employer-owned even when it
+    targets an institution.
     """
     if getattr(actor, "is_system_admin", False) is True:
         return True
 
-    authorized_as_institution = False
-    authorized_as_employer = False
+    if employer_id:
+        employer = get_employer_by_id(employer_id)
+        return bool(employer and employer_can_post(actor, employer))
 
     if institution_id and actor.is_institution_admin:
         actor_inst_id = get_actor_institution_id(actor)
-        if actor_inst_id == institution_id:
-            authorized_as_institution = True
-            
-    if employer_id:
-        employer = get_employer_by_id(employer_id)
-        if employer and employer_can_post(actor, employer):
-            authorized_as_employer = True
-            
-    return authorized_as_institution or authorized_as_employer
+        return actor_inst_id == institution_id
+
+    return False
+
+
+def _is_institution_owned_opportunity(opportunity: InternshipOpportunity) -> bool:
+    return bool(opportunity.institution_id and not opportunity.employer_id)
+
+
+def _actor_owns_opportunity_management(actor, opportunity: InternshipOpportunity) -> bool:
+    """
+    Returns True only for the posting owner that can manage opportunity and
+    application workflow decisions. Institution targeting is not ownership.
+    """
+    if getattr(actor, "is_system_admin", False) is True:
+        return True
+
+    if opportunity.employer_id:
+        return can_create_internship(actor, employer_id=opportunity.employer_id)
+
+    if opportunity.institution_id:
+        return can_create_internship(actor, institution_id=opportunity.institution_id)
+
+    return False
 
 def can_view_opportunity(actor, opportunity: InternshipOpportunity) -> bool:
     """
@@ -53,14 +71,9 @@ def can_view_opportunity(actor, opportunity: InternshipOpportunity) -> bool:
     if opportunity.status == OpportunityStatus.OPEN:
         return True
 
-    # If DRAFT or CLOSED, only owners can see
-    if actor.is_institution_admin and opportunity.institution_id:
-        return get_actor_institution_id(actor) == opportunity.institution_id
-        
-    if actor.is_employer_admin and opportunity.employer_id:
-        employer = get_employer_for_user(actor.id)
-        if employer and employer.id == opportunity.employer_id:
-            return True
+    # If DRAFT or CLOSED, only the posting owner can see
+    if _actor_owns_opportunity_management(actor, opportunity):
+        return True
             
     return False
 
@@ -81,7 +94,7 @@ def can_view_application(actor, application: InternshipApplication) -> bool:
     if actor.is_institution_admin:
         if opportunity.origin == InternshipOpportunity.ORIGIN_EXTERNAL_STUDENT_DECLARED:
             return False
-        if opportunity.institution_id:
+        if _is_institution_owned_opportunity(opportunity):
             if get_actor_institution_id(actor) == opportunity.institution_id:
                 return True
 
@@ -185,23 +198,11 @@ def can_transition_opportunity(actor, opportunity: InternshipOpportunity, target
     
     # DRAFT -> OPEN
     if current_state == OpportunityStatus.DRAFT and target_state == OpportunityStatus.OPEN:
-        if getattr(actor, "is_system_admin", False) is True:
-            return True
-        if opportunity.institution_id and can_create_internship(actor, institution_id=opportunity.institution_id):
-            return True
-        if opportunity.employer_id and can_create_internship(actor, employer_id=opportunity.employer_id):
-            return True
-        return False
+        return _actor_owns_opportunity_management(actor, opportunity)
         
     # OPEN -> CLOSED
     if current_state == OpportunityStatus.OPEN and target_state == OpportunityStatus.CLOSED:
-        if getattr(actor, "is_system_admin", False) is True:
-            return True
-        if opportunity.institution_id and can_create_internship(actor, institution_id=opportunity.institution_id):
-            return True
-        if opportunity.employer_id and can_create_internship(actor, employer_id=opportunity.employer_id):
-            return True
-        return False
+        return _actor_owns_opportunity_management(actor, opportunity)
         
     return False
 
@@ -214,11 +215,7 @@ def can_transition_application(actor, application: InternshipApplication, target
     
     # Helper to check owner authority
     def is_owner():
-        if opportunity.institution_id and can_create_internship(actor, institution_id=opportunity.institution_id):
-            return True
-        if opportunity.employer_id and can_create_internship(actor, employer_id=opportunity.employer_id):
-            return True
-        return False
+        return _actor_owns_opportunity_management(actor, opportunity)
 
     # APPLIED -> SHORTLISTED
     if current_state == ApplicationStatus.APPLIED and target_state == ApplicationStatus.SHORTLISTED:

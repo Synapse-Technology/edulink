@@ -8,7 +8,6 @@ import {
   Filter,
   MapPin,
   Plus,
-  Search,
   Users,
 } from 'lucide-react';
 import { FeedbackModal } from '../../../components/common';
@@ -20,6 +19,17 @@ import type { InternshipOpportunity } from '../../../services/internship/interns
 import CreateInternshipModal from '../../../components/dashboard/institution/CreateInternshipModal';
 import InternshipDetailsModal from '../../../components/dashboard/InternshipDetailsModal';
 import { sanitizeAdminError } from '../../../utils/adminErrorSanitizer';
+import {
+  EmployerButton,
+  EmployerEmptyState,
+  EmployerHero,
+  EmployerMetric,
+  EmployerMetricGrid,
+  EmployerSearch,
+  EmployerSelect,
+  EmployerToolbar,
+  EmployerWorkspacePage,
+} from '../../../components/employer/workspace';
 
 const STYLES = `
   .eo-page {
@@ -583,111 +593,61 @@ const EmployerOpportunities: React.FC = () => {
     <EmployerLayout>
       <style>{STYLES}</style>
 
-      <div className="eo-page">
-        <section className="eo-hero">
-          <div>
-            <div className="eo-kicker">
-              <Briefcase size={13} />
-              Opportunity operations
-            </div>
+      <EmployerWorkspacePage className="eo-page">
+        <EmployerHero
+          icon={<Briefcase size={13} />}
+          eyebrow="Opportunity operations"
+          title={<>Internship <span>pipeline</span></>}
+          subtitle="Manage recruitment, visibility, applications, and supervision readiness from a single employer workspace."
+          actions={(
+            <EmployerButton variant="primary" onClick={() => setShowCreateModal(true)}>
+              <Plus size={17} />
+              Post opportunity
+            </EmployerButton>
+          )}
+        />
 
-            <h1 className="eo-title">
-              Internship <span>pipeline</span>
-            </h1>
+        <EmployerMetricGrid className="eo-stats">
+          <EmployerMetric
+            label="Total roles"
+            value={opportunityStats.total}
+            icon={<Briefcase size={18} />}
+          />
+          <EmployerMetric
+            label="Open"
+            value={opportunityStats.open}
+            icon={<CheckCircle2 size={18} />}
+          />
+          <EmployerMetric
+            label="Draft"
+            value={opportunityStats.draft}
+            icon={<Clock size={18} />}
+          />
+          <EmployerMetric
+            label="Closed"
+            value={opportunityStats.closed}
+            icon={<Calendar size={18} />}
+          />
+        </EmployerMetricGrid>
 
-            <p className="eo-subtitle">
-              Manage recruitment, visibility, applications, and supervision readiness
-              from a single employer workspace.
-            </p>
-          </div>
+        <EmployerToolbar className="eo-toolbar">
+          <EmployerSearch
+            placeholder="Search opportunities..."
+            value={searchQuery}
+            onChange={setSearchQuery}
+          />
 
-          <button
-            type="button"
-            className="eo-create-btn"
-            onClick={() => setShowCreateModal(true)}
+          <EmployerSelect
+            leadingIcon={<Filter size={16} />}
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value)}
           >
-            <Plus size={17} />
-            Post opportunity
-          </button>
-        </section>
-
-        <section className="eo-stats">
-          <div className="eo-stat">
-            <div className="eo-stat-top">
-              <div>
-                <div className="eo-stat-label">Total roles</div>
-                <div className="eo-stat-value">{opportunityStats.total}</div>
-              </div>
-              <div className="eo-stat-icon">
-                <Briefcase size={18} />
-              </div>
-            </div>
-          </div>
-
-          <div className="eo-stat">
-            <div className="eo-stat-top">
-              <div>
-                <div className="eo-stat-label">Open</div>
-                <div className="eo-stat-value">{opportunityStats.open}</div>
-              </div>
-              <div className="eo-stat-icon">
-                <CheckCircle2 size={18} />
-              </div>
-            </div>
-          </div>
-
-          <div className="eo-stat">
-            <div className="eo-stat-top">
-              <div>
-                <div className="eo-stat-label">Draft</div>
-                <div className="eo-stat-value">{opportunityStats.draft}</div>
-              </div>
-              <div className="eo-stat-icon">
-                <Clock size={18} />
-              </div>
-            </div>
-          </div>
-
-          <div className="eo-stat">
-            <div className="eo-stat-top">
-              <div>
-                <div className="eo-stat-label">Closed</div>
-                <div className="eo-stat-value">{opportunityStats.closed}</div>
-              </div>
-              <div className="eo-stat-icon">
-                <Calendar size={18} />
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="eo-toolbar">
-          <div className="eo-search">
-            <Search size={16} />
-
-            <input
-              type="text"
-              placeholder="Search opportunities..."
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-            />
-          </div>
-
-          <div className="eo-select-wrap">
-            <Filter size={16} />
-
-            <select
-              className="eo-select"
-              value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value)}
-            >
-              <option value="">All statuses</option>
-              <option value="DRAFT">Draft</option>
-              <option value="OPEN">Open</option>
-              <option value="CLOSED">Closed</option>
-            </select>
-          </div>
-        </section>
+            <option value="">All statuses</option>
+            <option value="DRAFT">Draft</option>
+            <option value="OPEN">Open</option>
+            <option value="CLOSED">Closed</option>
+          </EmployerSelect>
+        </EmployerToolbar>
 
         <section className="eo-list">
           {isLoading ? (
@@ -709,28 +669,21 @@ const EmployerOpportunities: React.FC = () => {
               </div>
             ))
           ) : filteredOpportunities.length === 0 ? (
-            <div className="eo-empty">
-              <div className="eo-empty-icon">
-                <Briefcase size={32} />
-              </div>
-
-              <h3>No opportunities found</h3>
-
-              <p>
-                {searchQuery || statusFilter
+            <EmployerEmptyState
+              icon={<Briefcase size={32} />}
+              title="No opportunities found"
+              message={
+                searchQuery || statusFilter
                   ? 'No opportunities match your current filters. Adjust the search or status filter.'
-                  : 'Start your employer pipeline by posting your first internship opportunity.'}
-              </p>
-
-              <button
-                type="button"
-                className="eo-create-btn"
-                onClick={() => setShowCreateModal(true)}
-              >
-                <Plus size={16} />
-                Post opportunity
-              </button>
-            </div>
+                  : 'Start your employer pipeline by posting your first internship opportunity.'
+              }
+              action={(
+                <EmployerButton variant="primary" onClick={() => setShowCreateModal(true)}>
+                  <Plus size={16} />
+                  Post opportunity
+                </EmployerButton>
+              )}
+            />
           ) : (
             filteredOpportunities.map((opp) => {
               const statusKey = getStatusKey(opp.status);
@@ -813,7 +766,7 @@ const EmployerOpportunities: React.FC = () => {
             })
           )}
         </section>
-      </div>
+      </EmployerWorkspacePage>
 
       <CreateInternshipModal
         show={showCreateModal}

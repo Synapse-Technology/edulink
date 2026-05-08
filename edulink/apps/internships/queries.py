@@ -52,35 +52,39 @@ def check_supervisor_assigned_to_application(supervisor_id: str, application_id:
 def get_opportunities_for_user(user) -> QuerySet[InternshipOpportunity]:
     """
     Returns opportunities visible to the user.
-    - Public (OPEN) opportunities are visible to everyone.
-    - Owners (Employer/Institution Admins) see their own opportunities regardless of status.
+    - Public/unauthenticated and student users see OPEN opportunities.
+    - Management users see opportunities owned by their organization.
+    - Employer ownership takes precedence over institution targeting.
     - Students see only OPEN opportunities.
     """
     queryset = InternshipOpportunity.objects.all().order_by('-created_at')
 
-    # Base filter: Publicly open opportunities
-    visibility_filter = Q(status=OpportunityStatus.OPEN)
-
     if not user.is_authenticated:
-        return queryset.filter(visibility_filter)
+        return queryset.filter(status=OpportunityStatus.OPEN)
 
     if user.is_system_admin:
         return queryset
 
-    # Identify user's organization affiliations
     user_id = user.id if isinstance(user.id, UUID) else UUID(str(user.id))
     
     # Institution Admin Visibility
     if user.is_institution_admin:
         inst = get_institution_for_user(str(user_id))
         if inst:
-            visibility_filter |= Q(institution_id=inst.id)
+            return queryset.filter(
+                institution_id=inst.id,
+                employer_id__isnull=True,
+            ).exclude(
+                origin=InternshipOpportunity.ORIGIN_EXTERNAL_STUDENT_DECLARED
+            )
+        return InternshipOpportunity.objects.none()
 
     # Employer Admin Visibility
     if user.is_employer_admin:
         employer = get_employer_for_user(user_id)
         if employer:
-            visibility_filter |= Q(employer_id=employer.id)
+            return queryset.filter(employer_id=employer.id)
+        return InternshipOpportunity.objects.none()
     
     # Student Visibility (Only OPEN opportunities with valid deadlines, or no deadline)
     if user.is_student:
@@ -97,14 +101,19 @@ def get_opportunities_for_user(user) -> QuerySet[InternshipOpportunity]:
     if user.is_supervisor:
         employer = get_employer_for_user(user_id)
         if employer:
-             visibility_filter |= Q(employer_id=employer.id)
+            return queryset.filter(employer_id=employer.id)
              
         from edulink.apps.institutions.queries import get_institution_staff_profile
         staff = get_institution_staff_profile(str(user_id))
         if staff:
-             visibility_filter |= Q(institution_id=staff.institution_id)
+            return queryset.filter(
+                institution_id=staff.institution_id,
+                employer_id__isnull=True,
+            ).exclude(
+                origin=InternshipOpportunity.ORIGIN_EXTERNAL_STUDENT_DECLARED
+            )
 
-    return queryset.filter(visibility_filter).distinct()
+    return queryset.filter(status=OpportunityStatus.OPEN).distinct()
 
 def get_applications_for_user(user) -> QuerySet[InternshipApplication]:
     """
@@ -132,7 +141,8 @@ def get_applications_for_user(user) -> QuerySet[InternshipApplication]:
             # Institution monitoring/reporting for affiliated students lives in
             # dedicated institution queries, not the application management feed.
             return queryset.filter(
-                opportunity__institution_id=inst.id
+                opportunity__institution_id=inst.id,
+                opportunity__employer_id__isnull=True,
             ).exclude(
                 opportunity__origin=InternshipOpportunity.ORIGIN_EXTERNAL_STUDENT_DECLARED
             )
@@ -201,7 +211,7 @@ def get_application_by_id(application_id: UUID) -> Optional[InternshipApplicatio
         return None
 
 def get_evidence_for_application(application_id: UUID) -> QuerySet[InternshipEvidence]:
-    return InternshipEvidence.objects.filter(application_id=application_id)
+    return InternshipEvidence.objects.filter(application_id=application_id).order_by('-created_at', '-id')
 
 def get_incidents_for_application(application_id: UUID) -> QuerySet[Incident]:
     return Incident.objects.filter(application_id=application_id)
@@ -218,7 +228,7 @@ def get_pending_evidence_for_user(user) -> QuerySet[InternshipEvidence]:
         return InternshipEvidence.objects.filter(
             application__status=ApplicationStatus.ACTIVE,
             status=InternshipEvidence.STATUS_SUBMITTED,
-        ).select_related('application', 'application__opportunity')
+        ).select_related('application', 'application__opportunity').order_by('-created_at', '-id')
 
     if user.is_institution_admin:
         from edulink.apps.institutions.queries import get_institution_for_user
@@ -231,7 +241,7 @@ def get_pending_evidence_for_user(user) -> QuerySet[InternshipEvidence]:
                 Q(application__student_id__in=affiliated_student_ids),
                 application__status=ApplicationStatus.ACTIVE,
                 institution_review_status__isnull=True
-            ).select_related('application', 'application__opportunity').distinct()
+            ).select_related('application', 'application__opportunity').distinct().order_by('-created_at', '-id')
 
     if user.is_employer_admin:
         from edulink.apps.employers.queries import get_employer_for_user
@@ -241,7 +251,7 @@ def get_pending_evidence_for_user(user) -> QuerySet[InternshipEvidence]:
                 application__opportunity__employer_id=employer.id,
                 application__status=ApplicationStatus.ACTIVE,
                 employer_review_status__isnull=True
-            ).select_related('application', 'application__opportunity').distinct()
+            ).select_related('application', 'application__opportunity').distinct().order_by('-created_at', '-id')
 
     if user.is_supervisor:
         from edulink.apps.employers.queries import get_supervisor_id_for_user
@@ -279,7 +289,7 @@ def get_pending_evidence_for_user(user) -> QuerySet[InternshipEvidence]:
                 )
             )
         
-        return InternshipEvidence.objects.filter(filters).select_related('application', 'application__opportunity')
+        return InternshipEvidence.objects.filter(filters).select_related('application', 'application__opportunity').order_by('-created_at', '-id')
     
     return InternshipEvidence.objects.none()
 

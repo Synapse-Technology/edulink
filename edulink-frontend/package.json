@@ -44,6 +44,7 @@
     "react-hot-toast": "^2.6.0",
     "react-router-dom": "^7.9.6",
     "recharts": "^3.7.0",
+    "styled-components": "^6.4.1",
     "tailwindcss": "^4.1.17",
     "yup": "^1.7.1",
     "zustand": "^5.0.10"
@@ -56,6 +57,7 @@
     "@types/prop-types": "^15.7.15",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
+    "@types/styled-components": "^5.1.36",
     "@typescript-eslint/eslint-plugin": "^8.48.0",
     "@typescript-eslint/parser": "^8.48.0",
     "@vitejs/plugin-react": "^5.1.1",

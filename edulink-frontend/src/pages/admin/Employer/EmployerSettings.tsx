@@ -20,6 +20,11 @@ import { FeedbackModal } from '../../../components/common';
 import { SEO } from '../../../components/common';
 import { useFeedbackModal } from '../../../hooks/useFeedbackModal';
 import { sanitizeAdminError } from '../../../utils/adminErrorSanitizer';
+import {
+  EmployerHealth,
+  EmployerHero,
+  EmployerWorkspacePage,
+} from '../../../components/employer/workspace';
 
 const STYLES = `
   .eset-page { color: var(--el-ink); }
@@ -503,42 +508,21 @@ const EmployerSettings: React.FC = () => {
 
       <style>{STYLES}</style>
 
-      <div className="eset-page">
-        <section className="eset-hero">
-          <div className="eset-command-card">
-            <div className="eset-kicker">
-              <Sparkles size={13} />
-              Account Security
-            </div>
-
-            <h1 className="eset-title">
-              Security <span>Settings</span>
-            </h1>
-
-            <p className="eset-sub">
-              Manage password protection and sensitive account actions. This area controls
-              employer portal access, so changes should be made carefully.
-            </p>
-          </div>
-
-          <aside className="eset-health-card">
-            <div className="eset-health-top">
-              <div>
-                <div className="eset-health-label">Security posture</div>
-                <div className="eset-health-score">{securityScore}%</div>
-              </div>
-
-              <div className="eset-health-icon">
-                <Shield size={20} />
-              </div>
-            </div>
-
-            <p className="eset-health-note">
-              Estimated account security readiness based on password hygiene and sensitive
-              account action state.
-            </p>
-          </aside>
-        </section>
+      <EmployerWorkspacePage className="eset-page">
+        <EmployerHero
+          icon={<Sparkles size={13} />}
+          eyebrow="Account Security"
+          title={<>Security <span>Settings</span></>}
+          subtitle="Manage password protection and sensitive account actions. This area controls employer portal access, so changes should be made carefully."
+          aside={(
+            <EmployerHealth
+              label="Security posture"
+              value={`${securityScore}%`}
+              icon={<Shield size={20} />}
+              note="Estimated account security readiness based on password hygiene and sensitive account action state."
+            />
+          )}
+        />
 
         <div className="eset-layout">
           <main className="eset-main">
@@ -780,7 +764,7 @@ const EmployerSettings: React.FC = () => {
             </section>
           </aside>
         </div>
-      </div>
+      </EmployerWorkspacePage>
 
       <FeedbackModal {...feedbackProps} />
     </EmployerLayout>

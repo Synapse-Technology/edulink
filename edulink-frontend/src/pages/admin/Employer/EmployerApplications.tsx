@@ -6,7 +6,6 @@ import {
   CheckCircle2,
   Clock,
   FileText,
-  Search,
   ShieldCheck,
   Sparkles,
   TrendingUp,
@@ -24,6 +23,24 @@ import { sanitizeAdminError } from '../../../utils/adminErrorSanitizer';
 import type { InternshipApplication } from '../../../services/internship/internshipService';
 import TrustBadge, { type TrustLevel } from '../../../components/common/TrustBadge';
 import { SEO } from '../../../components/common';
+import {
+  EmployerButton,
+  EmployerEmptyState,
+  EmployerHealth,
+  EmployerHero,
+  EmployerMetric,
+  EmployerMetricGrid,
+  EmployerPagination,
+  EmployerPanel,
+  EmployerSearch,
+  EmployerSelect,
+  EmployerStatus,
+  EmployerTableWrap,
+  EmployerToolbar,
+  EmployerToolbarGrid,
+  EmployerWorkspacePage,
+  useEmployerPagination,
+} from '../../../components/employer/workspace';
 
 const STYLES = `
   .ea-page {
@@ -663,6 +680,8 @@ const EmployerApplications: React.FC = () => {
     };
   }, [applications]);
 
+  const pagination = useEmployerPagination(filteredApplications);
+
   return (
     <EmployerLayout>
       <SEO
@@ -672,113 +691,58 @@ const EmployerApplications: React.FC = () => {
 
       <style>{STYLES}</style>
 
-      <div className="ea-page">
-        <section className="ea-hero">
-          <div className="ea-command-card">
-            <div className="ea-kicker">
-              <Sparkles size={13} />
-              Recruitment Operations
-            </div>
+      <EmployerWorkspacePage className="ea-page">
+        <EmployerHero
+          icon={<Sparkles size={13} />}
+          eyebrow="Recruitment Operations"
+          title={<>Candidate <span>Pipeline</span></>}
+          subtitle="Review applicants, shortlist qualified students, approve placements, and keep your institution-facing recruitment workflow credible and responsive."
+          aside={(
+            <EmployerHealth
+              label="Pipeline response"
+              value={`${metrics.responseRate}%`}
+              icon={<TrendingUp size={21} />}
+              note="Estimated from applications that have moved beyond initial submission. A low rate may signal slow employer review cycles."
+            />
+          )}
+        />
 
-            <h1 className="ea-title">
-              Candidate <span>Pipeline</span>
-            </h1>
+        <EmployerMetricGrid className="ea-metrics">
+          <EmployerMetric
+            label="Awaiting review"
+            value={metrics.awaitingReview}
+            icon={<Clock size={19} />}
+            note="New candidates needing employer action."
+          />
+          <EmployerMetric
+            label="Shortlisted"
+            value={metrics.shortlisted}
+            icon={<Users size={19} />}
+            note="Candidates moved into serious consideration."
+          />
+          <EmployerMetric
+            label="Approved"
+            value={metrics.accepted}
+            icon={<Briefcase size={19} />}
+            note="Students approved for placement workflow."
+          />
+          <EmployerMetric
+            label="Verified candidates"
+            value={metrics.verifiedCandidates}
+            icon={<ShieldCheck size={19} />}
+            note="Applicants with at least basic trust verification."
+          />
+        </EmployerMetricGrid>
 
-            <p className="ea-sub">
-              Review applicants, shortlist qualified students, approve placements, and keep your
-              institution-facing recruitment workflow credible and responsive.
-            </p>
-          </div>
+        <EmployerToolbar className="ea-toolbar">
+          <EmployerToolbarGrid className="ea-toolbar-grid">
+            <EmployerSearch
+              placeholder="Search candidate, email, role, or department..."
+              value={searchTerm}
+              onChange={setSearchTerm}
+            />
 
-          <aside className="ea-health-card">
-            <div>
-              <div className="ea-health-top">
-                <div>
-                  <div className="ea-health-label">Pipeline response</div>
-                  <div className="ea-health-score">{metrics.responseRate}%</div>
-                </div>
-
-                <div className="ea-health-icon">
-                  <TrendingUp size={21} />
-                </div>
-              </div>
-
-              <p className="ea-health-note">
-                Estimated from applications that have moved beyond initial submission. A low rate
-                may signal slow employer review cycles.
-              </p>
-            </div>
-          </aside>
-        </section>
-
-        <section className="ea-metrics">
-          <div className="ea-metric">
-            <div className="ea-metric-top">
-              <div>
-                <div className="ea-metric-label">Awaiting review</div>
-                <div className="ea-metric-value">{metrics.awaitingReview}</div>
-              </div>
-              <div className="ea-metric-icon">
-                <Clock size={19} />
-              </div>
-            </div>
-            <p className="ea-metric-note">New candidates needing employer action.</p>
-          </div>
-
-          <div className="ea-metric">
-            <div className="ea-metric-top">
-              <div>
-                <div className="ea-metric-label">Shortlisted</div>
-                <div className="ea-metric-value">{metrics.shortlisted}</div>
-              </div>
-              <div className="ea-metric-icon">
-                <Users size={19} />
-              </div>
-            </div>
-            <p className="ea-metric-note">Candidates moved into serious consideration.</p>
-          </div>
-
-          <div className="ea-metric">
-            <div className="ea-metric-top">
-              <div>
-                <div className="ea-metric-label">Approved</div>
-                <div className="ea-metric-value">{metrics.accepted}</div>
-              </div>
-              <div className="ea-metric-icon">
-                <Briefcase size={19} />
-              </div>
-            </div>
-            <p className="ea-metric-note">Students approved for placement workflow.</p>
-          </div>
-
-          <div className="ea-metric">
-            <div className="ea-metric-top">
-              <div>
-                <div className="ea-metric-label">Verified candidates</div>
-                <div className="ea-metric-value">{metrics.verifiedCandidates}</div>
-              </div>
-              <div className="ea-metric-icon">
-                <ShieldCheck size={19} />
-              </div>
-            </div>
-            <p className="ea-metric-note">Applicants with at least basic trust verification.</p>
-          </div>
-        </section>
-
-        <section className="ea-toolbar">
-          <div className="ea-toolbar-grid">
-            <div className="ea-search">
-              <Search size={16} />
-              <input
-                type="text"
-                placeholder="Search candidate, email, role, or department..."
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-              />
-            </div>
-
-            <select
-              className="ea-select"
+            <EmployerSelect
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value)}
             >
@@ -787,10 +751,9 @@ const EmployerApplications: React.FC = () => {
                   {option.label}
                 </option>
               ))}
-            </select>
+            </EmployerSelect>
 
-            <select
-              className="ea-select"
+            <EmployerSelect
               value={trustFilter}
               onChange={(event) => setTrustFilter(event.target.value)}
             >
@@ -799,22 +762,17 @@ const EmployerApplications: React.FC = () => {
                   {option.label}
                 </option>
               ))}
-            </select>
-          </div>
-        </section>
+            </EmployerSelect>
+          </EmployerToolbarGrid>
+        </EmployerToolbar>
 
-        <section className="ea-card">
-          <div className="ea-card-header">
-            <div>
-              <div className="ea-card-label">Application queue</div>
-              <h2 className="ea-card-title">Candidate review workspace</h2>
-              <p className="ea-card-sub">
-                Showing {filteredApplications.length} of {applications.length} recruitment-stage applications.
-              </p>
-            </div>
-          </div>
-
-          <div className="ea-table-wrap">
+        <EmployerPanel
+          className="ea-card"
+          label="Application queue"
+          title="Candidate review workspace"
+          subtitle={`Showing ${filteredApplications.length} of ${applications.length} recruitment-stage applications.`}
+        >
+          <EmployerTableWrap className="ea-table-wrap">
             <table className="ea-table">
               <thead>
                 <tr>
@@ -836,19 +794,15 @@ const EmployerApplications: React.FC = () => {
                 ) : filteredApplications.length === 0 ? (
                   <tr>
                     <td colSpan={5}>
-                      <div className="ea-empty">
-                        <div className="ea-empty-icon">
-                          <FileText size={25} />
-                        </div>
-                        <p className="ea-empty-title">No matching applications found.</p>
-                        <p className="ea-empty-text">
-                          Try changing the search term, status filter, or trust tier filter.
-                        </p>
-                      </div>
+                      <EmployerEmptyState
+                        icon={<FileText size={25} />}
+                        title="No matching applications found."
+                        message="Try changing the search term, status filter, or trust tier filter."
+                      />
                     </td>
                   </tr>
                 ) : (
-                  filteredApplications.map((app) => {
+                  pagination.pagedItems.map((app) => {
                     const statusMeta = getStatusMeta(app.status);
                     const StatusIcon = statusMeta.icon;
                     const trustLevel = (app.student_info?.trust_level as TrustLevel) || 0;
@@ -909,21 +863,32 @@ const EmployerApplications: React.FC = () => {
                         </td>
 
                         <td>
-                          <span className={`ea-status ${statusMeta.className}`}>
-                            <StatusIcon size={12} />
+                          <EmployerStatus
+                            tone={
+                              statusMeta.className === 'accepted'
+                                ? 'success'
+                                : statusMeta.className === 'rejected'
+                                  ? 'danger'
+                                  : statusMeta.className === 'shortlisted'
+                                    ? 'info'
+                                    : 'warning'
+                            }
+                            icon={<StatusIcon size={12} />}
+                            className={`ea-status ${statusMeta.className}`}
+                          >
                             {statusMeta.label}
-                          </span>
+                          </EmployerStatus>
                         </td>
 
                         <td style={{ textAlign: 'right' }}>
-                          <button
-                            type="button"
+                          <EmployerButton
+                            variant="secondary"
                             className="ea-review-btn"
                             onClick={() => handleReviewClick(app.id)}
                           >
                             Review
                             <ArrowRight size={13} />
-                          </button>
+                          </EmployerButton>
                         </td>
                       </tr>
                     );
@@ -931,9 +896,17 @@ const EmployerApplications: React.FC = () => {
                 )}
               </tbody>
             </table>
-          </div>
-        </section>
-      </div>
+          </EmployerTableWrap>
+          <EmployerPagination
+            page={pagination.page}
+            pageSize={pagination.pageSize}
+            totalItems={pagination.totalItems}
+            totalPages={pagination.totalPages}
+            onPageChange={pagination.setPage}
+            onPageSizeChange={pagination.setPageSize}
+          />
+        </EmployerPanel>
+      </EmployerWorkspacePage>
     </EmployerLayout>
   );
 };

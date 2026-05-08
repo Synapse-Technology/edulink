@@ -1,19 +1,241 @@
-import React from 'react';
+// ─── SupervisorHeader.tsx ──────────────────────────────────────────────────
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Menu, User, Settings, LogOut } from 'lucide-react';
+import { Bell, Menu, User, Settings, LogOut, ChevronDown } from 'lucide-react';
 import { useAuthStore } from '../../../../stores/authStore';
+import styled, { keyframes, css } from 'styled-components';
+
+const scaleIn = keyframes`
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)   scale(1); }
+`;
+
+const Header = styled.nav`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1030;
+  height: var(--header-h);
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 1.5rem;
+  gap: 0.75rem;
+  box-shadow: var(--shadow-xs);
+`;
+
+const MenuToggle = styled.button`
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  color: var(--slate);
+  border-radius: var(--radius-sm);
+  transition: background 0.14s, color 0.14s;
+  flex-shrink: 0;
+
+  &:hover { background: var(--mist); color: var(--navy); }
+
+  @media (max-width: 991px) { display: flex; align-items: center; }
+`;
+
+const PageTitle = styled.h5`
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--navy);
+  letter-spacing: -0.01em;
+  margin: 0;
+  white-space: nowrap;
+
+  @media (max-width: 767px) { display: none; }
+`;
+
+const Spacer = styled.div`
+  flex: 1;
+`;
+
+const Actions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+`;
+
+const Sep = styled.div`
+  width: 1px;
+  height: 20px;
+  background: var(--border-md);
+  margin: 0 6px;
+`;
+
+const IconBtn = styled.button`
+  position: relative;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 7px;
+  color: var(--slate);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.14s, color 0.14s;
+
+  &:hover { background: var(--mist); color: var(--navy); }
+`;
+
+const Badge = styled.span`
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  min-width: 16px;
+  height: 16px;
+  background: #E53E3E;
+  color: white;
+  font-size: 9px;
+  font-weight: 700;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--white);
+  padding: 0 3px;
+`;
+
+const UserBtn = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px 4px 4px;
+  border-radius: var(--radius);
+  transition: background 0.14s;
+
+  &:hover { background: var(--mist); }
+`;
+
+const Avatar = styled.div`
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid rgba(47,111,237,0.2);
+  flex-shrink: 0;
+`;
+
+const UserMeta = styled.div`
+  text-align: left;
+  @media (max-width: 575px) { display: none; }
+
+  p { font-size: 13px; font-weight: 600; color: var(--navy); margin: 0; line-height: 1.2; }
+  span { font-size: 11px; color: var(--steel); }
+`;
+
+const DropdownWrap = styled.div`
+  position: relative;
+`;
+
+const Dropdown = styled.div<{ $open: boolean }>`
+  display: ${p => p.$open ? 'block' : 'none'};
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 200px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  animation: ${p => p.$open ? css`${scaleIn} 0.18s ease both` : 'none'};
+  z-index: 999;
+`;
+
+const DropItem = styled.button<{ $danger?: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 9px 14px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: ${p => p.$danger ? '#C53030' : 'var(--slate)'};
+  text-align: left;
+  transition: background 0.12s, color 0.12s;
+
+  &:hover {
+    background: ${p => p.$danger ? '#FFF5F5' : 'var(--mist)'};
+    color: ${p => p.$danger ? '#C53030' : 'var(--navy)'};
+  }
+
+  svg { flex-shrink: 0; }
+`;
+
+const DropDivider = styled.div`
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+`;
+
+const NotifDropdown = styled(Dropdown)`
+  min-width: 280px;
+`;
+
+const NotifHeader = styled.div`
+  padding: 10px 14px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+
+  span { font-size: 12px; font-weight: 600; color: var(--steel); text-transform: uppercase; letter-spacing: 0.06em; }
+`;
+
+const NotifEmpty = styled.div`
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--steel);
+  font-size: 13px;
+`;
 
 interface SupervisorHeaderProps {
   onToggleSidebar: () => void;
   notificationCount?: number;
 }
 
-const SupervisorHeader: React.FC<SupervisorHeaderProps> = ({ 
+const SupervisorHeader: React.FC<SupervisorHeaderProps> = ({
   onToggleSidebar,
-  notificationCount = 0
+  notificationCount = 0,
 }) => {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
+  const [userOpen, setUserOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const userRef = useRef<HTMLDivElement>(null);
+  const notifRef = useRef<HTMLDivElement>(null);
+
+  const initials = `${user?.firstName?.[0] ?? ''}${user?.lastName?.[0] ?? ''}` || 'S';
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (userRef.current && !userRef.current.contains(e.target as Node)) setUserOpen(false);
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -21,101 +243,80 @@ const SupervisorHeader: React.FC<SupervisorHeaderProps> = ({
   };
 
   return (
-    <nav className="navbar navbar-expand navbar-light bg-white border-bottom sticky-top px-3" style={{ height: '64px' }}>
-      <div className="d-flex align-items-center w-100">
-        <button 
-          className="btn btn-link text-dark p-0 me-3 d-lg-none" 
-          onClick={onToggleSidebar}
-          aria-label="Toggle Sidebar"
-        >
-          <Menu size={24} />
-        </button>
+    <Header>
+      <MenuToggle onClick={onToggleSidebar} aria-label="Toggle sidebar">
+        <Menu size={20} />
+      </MenuToggle>
 
-        <h5 className="mb-0 d-none d-md-block text-primary fw-bold">Supervisor Portal</h5>
-        
-        <div className="d-flex align-items-center ms-auto gap-3">
-          {/* Notifications */}
-          <div className="dropdown">
-            <button 
-              className="btn btn-light rounded-circle position-relative p-2"
-              type="button"
-              data-bs-toggle="dropdown"
-              aria-expanded="false"
-            >
-              <Bell size={20} className="text-secondary" />
+      <PageTitle>Supervisor Portal</PageTitle>
+      <Spacer />
+
+      <Actions>
+        {/* Notifications */}
+        <DropdownWrap ref={notifRef}>
+          <IconBtn
+            aria-label="Notifications"
+            onClick={() => { setNotifOpen(o => !o); setUserOpen(false); }}
+          >
+            <Bell size={18} />
+            {notificationCount > 0 && <Badge>{notificationCount}</Badge>}
+          </IconBtn>
+          <NotifDropdown $open={notifOpen}>
+            <NotifHeader>
+              <span>Notifications</span>
               {notificationCount > 0 && (
-                <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-white">
-                  {notificationCount}
-                  <span className="visually-hidden">unread messages</span>
+                <span style={{ color: 'var(--accent)', textTransform: 'none', letterSpacing: 0, fontSize: '12px' }}>
+                  {notificationCount} new
                 </span>
               )}
-            </button>
-            <div className="dropdown-menu dropdown-menu-end shadow border-0" style={{minWidth: '300px'}}>
-              <div className="d-flex justify-content-between align-items-center px-3 py-2 border-bottom bg-light rounded-top">
-                <span className="fw-semibold small text-uppercase text-muted">Notifications</span>
-                {notificationCount > 0 && <span className="badge bg-primary rounded-pill">{notificationCount} New</span>}
-              </div>
-              <div className="p-4 text-center text-muted">
-                <small>No new notifications</small>
-              </div>
-            </div>
-          </div>
+            </NotifHeader>
+            <NotifEmpty>No new notifications</NotifEmpty>
+          </NotifDropdown>
+        </DropdownWrap>
 
-          <div className="vr h-50 my-auto text-muted opacity-25"></div>
+        <Sep />
 
-          {/* User Menu */}
-          <div className="dropdown">
-            <button 
-              className="btn btn-link text-decoration-none dropdown-toggle d-flex align-items-center p-0"
-              type="button"
-              data-bs-toggle="dropdown"
-              aria-expanded="false"
-            >
-              <div className="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center me-2 shadow-sm" style={{width: '36px', height: '36px'}}>
-                <span className="fw-bold">{user?.firstName?.charAt(0) || 'S'}</span>
-              </div>
-              <div className="d-none d-md-block text-start">
-                <p className="mb-0 small fw-bold text-dark">{user?.firstName} {user?.lastName}</p>
-                <p className="mb-0 x-small text-muted" style={{fontSize: '0.75rem'}}>
-                  Supervisor
-                </p>
-              </div>
-            </button>
-            <ul className="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
-              <li>
-                <div className="px-3 py-2 d-md-none">
-                  <p className="mb-0 small fw-bold">{user?.firstName} {user?.lastName}</p>
-                  <p className="mb-0 x-small text-muted">{user?.email}</p>
-                </div>
-              </li>
-              <li><hr className="dropdown-divider d-md-none" /></li>
-              <li>
-                <button className="dropdown-item d-flex align-items-center py-2">
-                  <User size={16} className="me-2 text-muted" />
-                  Profile
-                </button>
-              </li>
-              <li>
-                <button className="dropdown-item d-flex align-items-center py-2">
-                  <Settings size={16} className="me-2 text-muted" />
-                  Settings
-                </button>
-              </li>
-              <li><hr className="dropdown-divider" /></li>
-              <li>
-                <button 
-                  className="dropdown-item d-flex align-items-center py-2 text-danger"
-                  onClick={handleLogout}
-                >
-                  <LogOut size={16} className="me-2" />
-                  Sign Out
-                </button>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </nav>
+        {/* User menu */}
+        <DropdownWrap ref={userRef}>
+          <UserBtn
+            onClick={() => { setUserOpen(o => !o); setNotifOpen(false); }}
+            aria-haspopup="true"
+            aria-expanded={userOpen}
+          >
+            <Avatar>{initials}</Avatar>
+            <UserMeta>
+              <p>{user?.firstName} {user?.lastName}</p>
+              <span>Supervisor</span>
+            </UserMeta>
+            <ChevronDown
+              size={13}
+              style={{
+                color: 'var(--steel)',
+                transform: userOpen ? 'rotate(180deg)' : 'none',
+                transition: 'transform 0.2s',
+                marginLeft: 2,
+              }}
+            />
+          </UserBtn>
+
+          <Dropdown $open={userOpen}>
+            <DropItem>
+              <User size={15} />
+              Profile
+            </DropItem>
+            <DropItem>
+              <Settings size={15} />
+              Settings
+            </DropItem>
+            <DropDivider />
+            <DropItem $danger onClick={handleLogout}>
+              <LogOut size={15} />
+              Sign out
+            </DropItem>
+          </Dropdown>
+        </DropdownWrap>
+      </Actions>
+    </Header>
   );
 };
 

@@ -9,11 +9,16 @@ from edulink.apps.internships.models import (
     InternshipOpportunity,
     OpportunityStatus,
 )
-from edulink.apps.internships.policies import can_view_application
+from edulink.apps.internships.policies import (
+    can_transition_application,
+    can_transition_opportunity,
+    can_view_application,
+)
 from edulink.apps.internships.queries import (
     get_active_placements_for_monitoring,
     get_applications_for_user,
     get_certification_applications_for_institution_user,
+    get_opportunities_for_user,
 )
 from edulink.apps.students.models import Student, StudentInstitutionAffiliation
 
@@ -144,11 +149,29 @@ def employer_application(db, employer, affiliated_student):
     )
 
 
+@pytest.fixture
+def employer_targeted_to_institution_application(db, employer, institution, affiliated_student):
+    opportunity = InternshipOpportunity.objects.create(
+        title="Employer-owned institution-targeted opportunity",
+        description="Employer application targeted to an institution fixture",
+        employer_id=employer.id,
+        institution_id=institution.id,
+        status=OpportunityStatus.OPEN,
+    )
+    return InternshipApplication.objects.create(
+        opportunity=opportunity,
+        student_id=affiliated_student.id,
+        status=ApplicationStatus.APPLIED,
+        application_snapshot={},
+    )
+
+
 @pytest.mark.django_db
 def test_institution_application_feed_is_limited_to_institution_owned_opportunities(
     institution_admin,
     institution_application,
     employer_application,
+    employer_targeted_to_institution_application,
 ):
     visible_ids = set(
         get_applications_for_user(institution_admin).values_list("id", flat=True)
@@ -156,6 +179,7 @@ def test_institution_application_feed_is_limited_to_institution_owned_opportunit
 
     assert institution_application.id in visible_ids
     assert employer_application.id not in visible_ids
+    assert employer_targeted_to_institution_application.id not in visible_ids
 
 
 @pytest.mark.django_db
@@ -192,11 +216,93 @@ def test_employer_application_feed_is_limited_to_employer_owned_opportunities(
 
 
 @pytest.mark.django_db
+def test_policy_does_not_let_employer_admin_manage_institution_application(
+    employer_admin,
+    institution_application,
+):
+    opportunity = institution_application.opportunity
+
+    assert can_view_application(employer_admin, institution_application) is False
+    assert can_transition_application(
+        employer_admin,
+        institution_application,
+        ApplicationStatus.SHORTLISTED,
+    ) is False
+    assert can_transition_opportunity(
+        employer_admin,
+        opportunity,
+        OpportunityStatus.CLOSED,
+    ) is False
+
+
+@pytest.mark.django_db
+def test_employer_opportunity_feed_excludes_institution_owned_opportunities(
+    employer_admin,
+    institution_application,
+    employer_application,
+):
+    visible_ids = set(
+        get_opportunities_for_user(employer_admin).values_list("id", flat=True)
+    )
+
+    assert employer_application.opportunity_id in visible_ids
+    assert institution_application.opportunity_id not in visible_ids
+
+
+@pytest.mark.django_db
 def test_policy_does_not_let_institution_admin_view_external_employer_application(
     institution_admin,
     employer_application,
 ):
     assert can_view_application(institution_admin, employer_application) is False
+
+
+@pytest.mark.django_db
+def test_policy_does_not_let_institution_admin_manage_employer_targeted_application(
+    institution_admin,
+    employer_admin,
+    employer_targeted_to_institution_application,
+):
+    application = employer_targeted_to_institution_application
+    opportunity = application.opportunity
+
+    assert can_view_application(institution_admin, application) is False
+    assert can_transition_application(
+        institution_admin,
+        application,
+        ApplicationStatus.SHORTLISTED,
+    ) is False
+    assert can_transition_opportunity(
+        institution_admin,
+        opportunity,
+        OpportunityStatus.CLOSED,
+    ) is False
+
+    assert can_view_application(employer_admin, application) is True
+    assert can_transition_application(
+        employer_admin,
+        application,
+        ApplicationStatus.SHORTLISTED,
+    ) is True
+    assert can_transition_opportunity(
+        employer_admin,
+        opportunity,
+        OpportunityStatus.CLOSED,
+    ) is True
+
+
+@pytest.mark.django_db
+def test_institution_opportunity_feed_excludes_employer_targeted_opportunities(
+    institution_admin,
+    institution_application,
+    employer_targeted_to_institution_application,
+):
+    visible_ids = set(
+        get_opportunities_for_user(institution_admin).values_list("id", flat=True)
+    )
+
+    assert institution_application.opportunity_id in visible_ids
+    assert employer_targeted_to_institution_application.opportunity_id not in visible_ids
 
 
 @pytest.mark.django_db

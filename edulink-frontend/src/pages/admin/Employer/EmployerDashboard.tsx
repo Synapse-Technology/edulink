@@ -30,6 +30,12 @@ import type { Employer } from '../../../services/employer/employerService';
 import { useErrorHandler } from '../../../hooks/useErrorHandler';
 import { showToast } from '../../../utils/toast';
 import PilotReadinessPanel, { type PilotReadinessItem } from '../../../components/pilot/PilotReadinessPanel';
+import {
+  EmployerHealth,
+  EmployerHero,
+  EmployerMetricGrid,
+  EmployerWorkspacePage,
+} from '../../../components/employer/workspace';
 
 const STYLES = `
   .ed-page {
@@ -747,24 +753,14 @@ const EmployerDashboard: React.FC = () => {
 
       <style>{STYLES}</style>
 
-      <div className="ed-page">
-        <section className="ed-hero">
-          <div className="ed-command-card">
-            <div className="ed-kicker">
-              <Sparkles size={13} />
-              Employer Operations
-            </div>
-
-            <h1 className="ed-title">
-              Placement <span>Command Center</span>
-            </h1>
-
-            <p className="ed-sub">
-              Welcome back, {user?.firstName || 'Admin'}. Review candidates, coordinate supervisors,
-              monitor active interns, and keep institution-facing placement evidence moving.
-            </p>
-
-            <div className="ed-hero-actions">
+      <EmployerWorkspacePage className="ed-page">
+        <EmployerHero
+          icon={<Sparkles size={13} />}
+          eyebrow="Employer Operations"
+          title={<>Placement <span>Command Center</span></>}
+          subtitle={`Welcome back, ${user?.firstName || 'Admin'}. Review candidates, coordinate supervisors, monitor active interns, and keep institution-facing placement evidence moving.`}
+          actions={(
+            <>
               <Link to="/employer/dashboard/opportunities" className="ed-btn ed-btn-primary">
                 <Plus size={15} />
                 Post opportunity
@@ -774,29 +770,17 @@ const EmployerDashboard: React.FC = () => {
                 Review applications
                 <ArrowRight size={15} />
               </Link>
-            </div>
-          </div>
-
-          <aside className="ed-health-card">
-            <div>
-              <div className="ed-health-top">
-                <div>
-                  <div className="ed-health-label">Pipeline response</div>
-                  <div className="ed-health-score">{responseRate}%</div>
-                </div>
-
-                <div className="ed-health-icon">
-                  <TrendingUp size={21} />
-                </div>
-              </div>
-
-              <p className="ed-health-note">
-                Estimated from applications that moved beyond initial submission. A weak response rate
-                signals slow employer operations.
-              </p>
-            </div>
-          </aside>
-        </section>
+            </>
+          )}
+          aside={(
+            <EmployerHealth
+              label="Pipeline response"
+              value={`${responseRate}%`}
+              icon={<TrendingUp size={21} />}
+              note="Estimated from applications that moved beyond initial submission. A weak response rate signals slow employer operations."
+            />
+          )}
+        />
 
         {currentEmployer && currentEmployer.trust_level < 1 && (
           <div className="ed-alert warning" role="alert">
@@ -818,7 +802,7 @@ const EmployerDashboard: React.FC = () => {
           </div>
         )}
 
-        <section className="ed-metrics">
+        <EmployerMetricGrid className="ed-metrics">
           <Link to="/employer/dashboard/interns" className="ed-metric">
             <div className="ed-metric-top">
               <div>
@@ -878,7 +862,7 @@ const EmployerDashboard: React.FC = () => {
               Manage team <ArrowRight size={13} />
             </span>
           </Link>
-        </section>
+        </EmployerMetricGrid>
 
         <div style={{ marginBottom: 22 }}>
           <PilotReadinessPanel
@@ -1049,7 +1033,7 @@ const EmployerDashboard: React.FC = () => {
             </section>
           </aside>
         </div>
-      </div>
+      </EmployerWorkspacePage>
     </EmployerLayout>
   );
 };
