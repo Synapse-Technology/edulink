@@ -7,6 +7,15 @@ DEBUG = True
 
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", "*"]
 
+# Use SQLite locally for developer convenience and separation from production
+# Production continues to use Postgres/Supabase as configured in prod.py
+DATABASES = {
+	"default": {
+		"ENGINE": "django.db.backends.sqlite3",
+		"NAME": str(BASE_DIR / "dev.sqlite3"),
+	}
+}
+
 # Email backend for development - use SMTP for actual email sending
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 
