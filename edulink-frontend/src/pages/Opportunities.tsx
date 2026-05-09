@@ -736,27 +736,24 @@ const Opportunities: React.FC = () => {
           </section>
         )}
 
-        {/* Employer CTA */}
-        <section className="marketplace-cta-section" data-aos="fade-up">
-          <div className="container">
-            <div className="cta-panel">
-              <div>
-                <h2 className="fw-bold mb-2">Hiring interns or attachees?</h2>
-                <p className="lead mb-0">
-                  Verified employers can publish opportunities and manage student applications inside EduLink.
-                </p>
-              </div>
-              <div className="cta-actions">
-                <button
-                  className="btn btn-light btn-lg"
-                  onClick={() => navigate('/employer/onboarding')}
-                >
-                  Register as Employer
-                </button>
+        {/* Employer CTA - only show to unauthenticated users */}
+        {!user && (
+          <section className="marketplace-cta-section" data-aos="fade-up">
+            <div className="container">
+              <div className="cta-panel">
+                <div aria-hidden="true" />
+                <div className="cta-actions">
+                  <button
+                    className="btn btn-light btn-lg"
+                    onClick={() => navigate('/employer/onboarding')}
+                  >
+                    Register as Employer
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
       </main>
 
       {/* Apply Modal */}

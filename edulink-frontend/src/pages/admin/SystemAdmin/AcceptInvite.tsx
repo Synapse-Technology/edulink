@@ -1,6 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Eye, EyeOff, Shield, AlertCircle, User, Lock, CheckCircle, ArrowRight } from 'lucide-react';
+import {
+  AlertCircle,
+  ArrowRight,
+  CheckCircle,
+  Eye,
+  EyeOff,
+  Lock,
+  Shield,
+  User,
+} from 'lucide-react';
+
 import adminAuthService from '../../../services/auth/adminAuthService';
 import { sanitizeAdminError } from '../../../utils/adminErrorSanitizer';
 
@@ -13,13 +23,13 @@ const AcceptInvite: React.FC = () => {
     firstName: '',
     lastName: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
   });
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string>('');
+  const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
@@ -28,37 +38,58 @@ const AcceptInvite: React.FC = () => {
     }
   }, [token]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
+  const passwordChecks = useMemo(() => {
+    const password = formData.password;
+
+    return {
+      length: password.length >= 8,
+      uppercase: /[A-Z]/.test(password),
+      lowercase: /[a-z]/.test(password),
+      number: /\d/.test(password),
+      match:
+        formData.confirmPassword.length > 0 &&
+        password === formData.confirmPassword,
+    };
+  }, [formData.password, formData.confirmPassword]);
+
+  const passwordScore = Object.values(passwordChecks).filter(Boolean).length;
+
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = event.target;
+
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
+
     if (error) setError('');
   };
 
   const validateForm = () => {
     if (!formData.firstName.trim() || !formData.lastName.trim()) {
-      setError('First name and last name are required');
+      setError('First name and last name are required.');
       return false;
     }
-    if (formData.password.length < 8) {
-      setError('Password must be at least 8 characters long');
+
+    if (!passwordChecks.length) {
+      setError('Password must be at least 8 characters long.');
       return false;
     }
+
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+      setError('Passwords do not match.');
       return false;
     }
+
     return true;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setError('');
 
     if (!token) {
-      setError('Missing invitation token');
+      setError('Missing invitation token.');
       return;
     }
 
@@ -70,16 +101,21 @@ const AcceptInvite: React.FC = () => {
       await adminAuthService.acceptInvite({
         token,
         password: formData.password,
-        first_name: formData.firstName,
-        last_name: formData.lastName
+        first_name: formData.firstName.trim(),
+        last_name: formData.lastName.trim(),
       });
+
       setSuccess(true);
+
       setTimeout(() => {
         navigate('/admin/login');
       }, 3000);
     } catch (err: any) {
       const sanitized = sanitizeAdminError(err);
-      setError(sanitized.userMessage || 'Failed to accept invitation. Please try again.');
+      setError(
+        sanitized.userMessage ||
+          'Failed to accept invitation. Please try again.',
+      );
     } finally {
       setIsLoading(false);
     }
@@ -87,171 +123,567 @@ const AcceptInvite: React.FC = () => {
 
   if (success) {
     return (
-      <div className="min-vh-100 bg-light d-flex align-items-center py-3">
-        <div className="container">
-          <div className="row justify-content-center">
-            <div className="col-xl-5 col-lg-6 col-md-8">
-              <div className="card shadow border-0 rounded-lg text-center p-5">
-                <div className="mb-4">
-                  <div className="d-inline-flex align-items-center justify-content-center bg-success bg-opacity-10 rounded-circle p-3 mb-3">
-                    <CheckCircle size={48} className="text-success" />
-                  </div>
-                  <h2 className="h4 mb-2">Account Setup Complete!</h2>
-                  <p className="text-muted mb-0">
-                    Your account has been successfully created. Redirecting you to the login page...
-                  </p>
-                </div>
-                <button 
-                  onClick={() => navigate('/admin/login')} 
-                  className="btn btn-primary w-100"
-                >
-                  Go to Login <ArrowRight size={16} className="ms-2" />
-                </button>
-              </div>
-            </div>
+      <main className="accept-page">
+        <section className="accept-success-card">
+          <div className="success-icon">
+            <CheckCircle size={46} />
           </div>
-        </div>
-    </div>
+
+          <span>Account activated</span>
+
+          <h1>Admin account setup complete</h1>
+
+          <p>
+            Your platform staff account has been created successfully. You can
+            now sign in through the system admin console.
+          </p>
+
+          <button
+            type="button"
+            className="accept-submit"
+            onClick={() => navigate('/admin/login')}
+          >
+            Go to login
+            <ArrowRight size={16} />
+          </button>
+
+          <small>Redirecting to login shortly...</small>
+        </section>
+
+        <style>{styles}</style>
+      </main>
     );
   }
 
   return (
-    <div className="min-vh-100 bg-light d-flex align-items-center py-3">
-      <div className="container">
-        <div className="row justify-content-center">
-          <div className="col-xl-5 col-lg-6 col-md-8">
-            <div className="card shadow border-0 rounded-lg">
-              <div className="card-header bg-primary text-white py-3">
-                <div className="text-center">
-                  <div className="d-inline-flex align-items-center justify-content-center bg-white rounded-circle p-2 mb-2">
-                    <Shield size={24} className="text-primary" />
-                  </div>
-                  <h1 className="h5 mb-0">Complete Your Profile</h1>
-                  <p className="small mb-0 opacity-75">
-                    Set up your admin account details
-                  </p>
-                </div>
-              </div>
+    <main className="accept-page">
+      <section className="accept-shell">
+        <aside className="accept-context">
+          <div className="context-icon">
+            <Shield size={30} />
+          </div>
 
-              <div className="card-body p-4">
-                {error && (
-                  <div className="alert alert-danger d-flex align-items-center mb-4" role="alert">
-                    <AlertCircle size={20} className="me-2 flex-shrink-0" />
-                    <div>{error}</div>
-                  </div>
-                )}
+          <span>Secure staff activation</span>
 
-                <form onSubmit={handleSubmit}>
-                  <div className="row g-3 mb-3">
-                    <div className="col-md-6">
-                      <label className="form-label small fw-bold text-muted">First Name</label>
-                      <div className="input-group">
-                        <span className="input-group-text bg-light border-end-0">
-                          <User size={18} className="text-muted" />
-                        </span>
-                        <input
-                          type="text"
-                          name="firstName"
-                          className="form-control border-start-0 ps-0"
-                          placeholder="John"
-                          value={formData.firstName}
-                          onChange={handleInputChange}
-                          required
-                        />
-                      </div>
-                    </div>
-                    <div className="col-md-6">
-                      <label className="form-label small fw-bold text-muted">Last Name</label>
-                      <div className="input-group">
-                        <span className="input-group-text bg-light border-end-0">
-                          <User size={18} className="text-muted" />
-                        </span>
-                        <input
-                          type="text"
-                          name="lastName"
-                          className="form-control border-start-0 ps-0"
-                          placeholder="Doe"
-                          value={formData.lastName}
-                          onChange={handleInputChange}
-                          required
-                        />
-                      </div>
-                    </div>
-                  </div>
+          <h1>Complete your platform admin profile</h1>
 
-                  <div className="mb-3">
-                    <label className="form-label small fw-bold text-muted">Create Password</label>
-                    <div className="input-group">
-                      <span className="input-group-text bg-light border-end-0">
-                        <Lock size={18} className="text-muted" />
-                      </span>
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        name="password"
-                        className="form-control border-start-0 border-end-0 ps-0"
-                        placeholder="At least 8 characters"
-                        value={formData.password}
-                        onChange={handleInputChange}
-                        required
-                        minLength={8}
-                      />
-                      <button
-                        type="button"
-                        className="btn btn-light border border-start-0"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                      </button>
-                    </div>
-                  </div>
+          <p>
+            This link provisions internal EduLink platform access. Use your real
+            name and create a strong password before continuing.
+          </p>
 
-                  <div className="mb-4">
-                    <label className="form-label small fw-bold text-muted">Confirm Password</label>
-                    <div className="input-group">
-                      <span className="input-group-text bg-light border-end-0">
-                        <Lock size={18} className="text-muted" />
-                      </span>
-                      <input
-                        type={showConfirmPassword ? "text" : "password"}
-                        name="confirmPassword"
-                        className="form-control border-start-0 border-end-0 ps-0"
-                        placeholder="Re-enter password"
-                        value={formData.confirmPassword}
-                        onChange={handleInputChange}
-                        required
-                      />
-                      <button
-                        type="button"
-                        className="btn btn-light border border-start-0"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      >
-                        {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                      </button>
-                    </div>
-                  </div>
+          <div className="context-list">
+            <div>
+              <Lock size={16} />
+              <span>Invitation-token protected</span>
+            </div>
 
-                  <button 
-                    type="submit" 
-                    className="btn btn-primary w-100 py-2 fw-bold"
-                    disabled={isLoading || !token}
-                  >
-                    {isLoading ? (
-                      <>
-                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                        Setting up account...
-                      </>
-                    ) : (
-                      'Complete Setup'
-                    )}
-                  </button>
-                </form>
-              </div>
+            <div>
+              <Shield size={16} />
+              <span>Admin access audit trail</span>
+            </div>
+
+            <div>
+              <CheckCircle size={16} />
+              <span>Redirects to console login after setup</span>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
-    );
-  };
+        </aside>
 
-  export default AcceptInvite;
+        <section className="accept-card">
+          <header className="accept-card-header">
+            <span>Account setup</span>
+            <h2>Activate invitation</h2>
+            <p>Enter your identity details and secure your account.</p>
+          </header>
+
+          {error && (
+            <div className="accept-error">
+              <AlertCircle size={18} />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="accept-form">
+            <div className="name-grid">
+              <label className="accept-field">
+                <span>First name</span>
+
+                <div className="input-wrap">
+                  <User size={16} />
+                  <input
+                    type="text"
+                    name="firstName"
+                    placeholder="First name"
+                    value={formData.firstName}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+              </label>
+
+              <label className="accept-field">
+                <span>Last name</span>
+
+                <div className="input-wrap">
+                  <User size={16} />
+                  <input
+                    type="text"
+                    name="lastName"
+                    placeholder="Last name"
+                    value={formData.lastName}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+              </label>
+            </div>
+
+            <label className="accept-field">
+              <span>Create password</span>
+
+              <div className="input-wrap">
+                <Lock size={16} />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  name="password"
+                  placeholder="At least 8 characters"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  required
+                  minLength={8}
+                />
+
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </label>
+
+            <label className="accept-field">
+              <span>Confirm password</span>
+
+              <div className="input-wrap">
+                <Lock size={16} />
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  name="confirmPassword"
+                  placeholder="Re-enter password"
+                  value={formData.confirmPassword}
+                  onChange={handleInputChange}
+                  required
+                />
+
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword((prev) => !prev)}
+                  aria-label={
+                    showConfirmPassword ? 'Hide password' : 'Show password'
+                  }
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff size={16} />
+                  ) : (
+                    <Eye size={16} />
+                  )}
+                </button>
+              </div>
+            </label>
+
+            <div className="password-panel">
+              <div className="password-panel-top">
+                <span>Password strength</span>
+                <strong>
+                  {passwordScore >= 4
+                    ? 'Strong'
+                    : passwordScore >= 2
+                      ? 'Moderate'
+                      : 'Weak'}
+                </strong>
+              </div>
+
+              <div className="password-meter">
+                <span style={{ width: `${(passwordScore / 5) * 100}%` }} />
+              </div>
+
+              <div className="password-checks">
+                <span className={passwordChecks.length ? 'passed' : ''}>
+                  8+ characters
+                </span>
+                <span className={passwordChecks.uppercase ? 'passed' : ''}>
+                  Uppercase
+                </span>
+                <span className={passwordChecks.lowercase ? 'passed' : ''}>
+                  Lowercase
+                </span>
+                <span className={passwordChecks.number ? 'passed' : ''}>
+                  Number
+                </span>
+                <span className={passwordChecks.match ? 'passed' : ''}>
+                  Passwords match
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              className="accept-submit"
+              disabled={isLoading || !token}
+            >
+              {isLoading ? 'Activating account...' : 'Complete setup'}
+              {!isLoading && <ArrowRight size={16} />}
+            </button>
+          </form>
+        </section>
+      </section>
+
+      <style>{styles}</style>
+    </main>
+  );
+};
+
+const styles = `
+  .accept-page {
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at top right, rgba(15,23,42,.08), transparent 28%),
+      #f8fafc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    color: #111827;
+    font-family:
+      Inter,
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      sans-serif;
+  }
+
+  .accept-shell {
+    width: min(1040px, 100%);
+    display: grid;
+    grid-template-columns: 1fr 460px;
+    gap: 18px;
+  }
+
+  .accept-context,
+  .accept-card,
+  .accept-success-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 24px 70px rgba(15,23,42,.08);
+    border-radius: 26px;
+  }
+
+  .accept-context {
+    padding: 34px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .context-icon {
+    width: 62px;
+    height: 62px;
+    border-radius: 20px;
+    background: #ecfdf5;
+    color: #047857;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 22px;
+  }
+
+  .accept-context > span,
+  .accept-card-header > span,
+  .accept-success-card > span {
+    color: #047857;
+    font-size: .72rem;
+    font-weight: 900;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  .accept-context h1 {
+    color: #0f172a;
+    font-size: clamp(2rem, 4vw, 3rem);
+    line-height: 1.02;
+    font-weight: 900;
+    letter-spacing: -.06em;
+    margin: 0 0 14px;
+  }
+
+  .accept-context p,
+  .accept-card-header p,
+  .accept-success-card p {
+    color: #64748b;
+    line-height: 1.7;
+    margin: 0;
+  }
+
+  .context-list {
+    display: grid;
+    gap: 10px;
+    margin-top: 26px;
+  }
+
+  .context-list div {
+    min-height: 44px;
+    border-radius: 14px;
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 12px;
+    color: #334155;
+    font-weight: 800;
+    font-size: .86rem;
+  }
+
+  .context-list svg {
+    color: #047857;
+  }
+
+  .accept-card {
+    overflow: hidden;
+  }
+
+  .accept-card-header {
+    padding: 24px;
+    border-bottom: 1px solid #eef2f7;
+  }
+
+  .accept-card-header h2,
+  .accept-success-card h1 {
+    color: #0f172a;
+    font-size: 1.45rem;
+    font-weight: 900;
+    letter-spacing: -.035em;
+    margin: 0 0 6px;
+  }
+
+  .accept-error {
+    margin: 18px 24px 0;
+    border: 1px solid #fecaca;
+    background: #fef2f2;
+    color: #991b1b;
+    border-radius: 14px;
+    padding: 12px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-weight: 750;
+  }
+
+  .accept-error svg {
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .accept-form {
+    padding: 24px;
+    display: grid;
+    gap: 16px;
+  }
+
+  .name-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .accept-field {
+    display: grid;
+    gap: 7px;
+  }
+
+  .accept-field > span {
+    color: #334155;
+    font-size: .82rem;
+    font-weight: 850;
+  }
+
+  .input-wrap {
+    min-height: 46px;
+    border: 1px solid #dbe3ea;
+    border-radius: 14px;
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 0 12px;
+    color: #94a3b8;
+  }
+
+  .input-wrap input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: none;
+    color: #111827;
+    font-weight: 650;
+    background: transparent;
+  }
+
+  .input-wrap button {
+    border: 0;
+    background: transparent;
+    color: #64748b;
+    display: flex;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .password-panel {
+    border: 1px solid #e5e7eb;
+    background: #f8fafc;
+    border-radius: 16px;
+    padding: 14px;
+  }
+
+  .password-panel-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+
+  .password-panel-top span {
+    color: #64748b;
+    font-size: .78rem;
+    font-weight: 850;
+  }
+
+  .password-panel-top strong {
+    color: #0f172a;
+    font-size: .8rem;
+    font-weight: 900;
+  }
+
+  .password-meter {
+    height: 8px;
+    border-radius: 999px;
+    background: #e5e7eb;
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+
+  .password-meter span {
+    display: block;
+    height: 100%;
+    background: #047857;
+    border-radius: inherit;
+    transition: width .2s ease;
+  }
+
+  .password-checks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+  }
+
+  .password-checks span {
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    color: #94a3b8;
+    border-radius: 999px;
+    padding: 6px 8px;
+    font-size: .72rem;
+    font-weight: 850;
+  }
+
+  .password-checks span.passed {
+    background: #ecfdf5;
+    border-color: #bbf7d0;
+    color: #047857;
+  }
+
+  .accept-submit {
+    min-height: 48px;
+    border: 0;
+    border-radius: 14px;
+    background: #0f172a;
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-weight: 900;
+    cursor: pointer;
+  }
+
+  .accept-submit:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+  }
+
+  .accept-success-card {
+    width: min(560px, 100%);
+    padding: 34px;
+    text-align: center;
+  }
+
+  .success-icon {
+    width: 82px;
+    height: 82px;
+    border-radius: 26px;
+    background: #ecfdf5;
+    color: #047857;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 18px;
+  }
+
+  .accept-success-card p {
+    margin-bottom: 22px;
+  }
+
+  .accept-success-card small {
+    display: block;
+    color: #94a3b8;
+    margin-top: 14px;
+  }
+
+  @media (max-width: 920px) {
+    .accept-shell {
+      grid-template-columns: 1fr;
+    }
+
+    .accept-context {
+      display: none;
+    }
+  }
+
+  @media (max-width: 560px) {
+    .accept-page {
+      padding: 14px;
+      align-items: flex-start;
+    }
+
+    .name-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .accept-card-header,
+    .accept-form {
+      padding: 18px;
+    }
+
+    .accept-error {
+      margin: 14px 18px 0;
+    }
+  }
+`;
+
+export default AcceptInvite;

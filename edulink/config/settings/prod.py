@@ -56,13 +56,24 @@ DATABASES = {
     )
 }
 
-# Email
-EMAIL_BACKEND = os.environ.get("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
-EMAIL_HOST = os.environ.get("EMAIL_HOST", EMAIL_HOST if 'EMAIL_HOST' in globals() else "")
+# Email (Mailtrap Live SMTP)
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "live.smtp.mailtrap.io"
 EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
-EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "True").lower() in {"1", "true", "yes"}
-EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
-EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = True
+EMAIL_USE_SSL = False
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "api").strip() or "api"
+
+# Support either EMAIL_HOST_PASSWORD or MAILTRAP_API_TOKEN on Render.
+EMAIL_HOST_PASSWORD = os.environ.get(
+    "EMAIL_HOST_PASSWORD",
+    os.environ.get("MAILTRAP_API_TOKEN", "")
+).strip()
+if not EMAIL_HOST_PASSWORD:
+    raise ImproperlyConfigured(
+        "EMAIL_HOST_PASSWORD (or MAILTRAP_API_TOKEN) must be set for Mailtrap Live SMTP in production."
+    )
+
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "Edulink <no-reply@edulinkcareer.me>")
 EMAIL_CONNECT_TIMEOUT = int(os.environ.get("EMAIL_CONNECT_TIMEOUT", "5"))
 

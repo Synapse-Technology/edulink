@@ -23,7 +23,7 @@ describe('Frontend Error Handling', () => {
         message: 'Email is required',
         status_code: 400,
         timestamp: '2026-04-11T13:58:41Z',
-        context: { email: ['This field is required.'] },
+        field_errors: { email: ['This field is required.'] },
       };
 
       const parsed = parseErrorResponse(backendError);
@@ -116,7 +116,7 @@ describe('Frontend Error Handling', () => {
         message: 'Validation failed',
         status_code: 400,
         timestamp: '2026-04-11T13:58:41Z',
-        context: {
+        field_errors: {
           email: ['Email is required.', 'Email must be valid.'],
           password: ['Password must be at least 8 characters.'],
         },
@@ -126,6 +126,22 @@ describe('Frontend Error Handling', () => {
 
       expect(parsed.fieldValidations).toHaveLength(2);
       expect(parsed.fieldValidations?.[0]?.errors).toHaveLength(2);
+    });
+
+    it('should treat "None" message as empty and fall back to status copy', () => {
+      const backendError = {
+        error_code: 'VALIDATION_ERROR',
+        message: 'None',
+        status_code: 400,
+        timestamp: '2026-04-11T13:58:41Z',
+        field_errors: { username: ['A user with that username already exists.'] },
+      };
+
+      const parsed = parseErrorResponse(backendError);
+
+      expect(parsed.message).not.toBe('None');
+      expect(parsed.fieldValidations).toHaveLength(1);
+      expect(parsed.fieldValidations?.[0]?.field).toBe('username');
     });
   });
 

@@ -34,22 +34,27 @@ export function parseErrorResponse(error: any): ParsedErrorResponse {
   // Handle backend JSON format: {error_code, message, status_code, timestamp, context}
   if (error && typeof error === 'object' && 'error_code' in error) {
     const backendError = error as Partial<BackendErrorResponse>;
+    const fieldValidations = extractFieldValidations(
+      backendError.context,
+      backendError.field_errors || backendError.fieldErrors
+    );
     return {
       errorCode: backendError.error_code || 'UNKNOWN',
       message: getUserFacingErrorMessage(backendError.message, backendError.status_code, backendError.error_code),
       statusCode: backendError.status_code || 500,
       title: getTitleForStatus(backendError.status_code || 500),
-      userMessage: getUserMessageForStatus(backendError.status_code || 500, backendError.message),
+      userMessage: getUserMessageForStatus(backendError.status_code || 500, backendError.message || undefined),
       timestamp: backendError.timestamp || new Date().toISOString(),
       context: backendError.context,
       isRetryable: isErrorRetryable(backendError.status_code || 500, backendError.error_code),
       suggestedAction: getSuggestedAction(backendError.status_code || 500, backendError.error_code),
-      fieldValidations: extractFieldValidations(backendError.context),
+      fieldValidations,
     };
   }
 
   // Handle ApiError instances
   if (error instanceof ApiError) {
+    const fieldValidations = extractFieldValidationsFromData(error.data);
     return {
       errorCode: getErrorCodeFromApiError(error),
       message: getUserFacingErrorMessage(error.message, error.status, getErrorCodeFromApiError(error)),
@@ -60,7 +65,7 @@ export function parseErrorResponse(error: any): ParsedErrorResponse {
       context: error.data,
       isRetryable: isErrorRetryable(error.status || 500),
       suggestedAction: getSuggestedAction(error.status || 500),
-      fieldValidations: extractFieldValidationsFromData(error.data),
+      fieldValidations,
     };
   }
 
@@ -129,18 +134,41 @@ function getErrorCodeFromApiError(error: ApiError): string {
 /**
  * Extract field-level validation errors from context
  */
-function extractFieldValidations(context?: Record<string, any>): ErrorFieldValidation[] {
-  if (!context) return [];
+function extractFieldValidations(
+  context?: Record<string, any>,
+  fieldErrors?: Record<string, any>,
+): ErrorFieldValidation[] {
+  const normalized: ErrorFieldValidation[] = [];
 
-  return Object.entries(context)
-    .filter(([_key, value]) => {
-      return Array.isArray(value) || (typeof value === 'object' && value !== null && 'errors' in value);
-    })
-    .map(([field, value]) => ({
-      field,
-      errors: Array.isArray(value) ? value : (value as any).errors || [],
-    }))
-    .filter(v => v.errors.length > 0);
+  const pushFieldErrors = (source?: Record<string, any>) => {
+    if (!source) return;
+
+    Object.entries(source).forEach(([field, value]) => {
+      if (field === 'validation_errors' && value && typeof value === 'object') {
+        pushFieldErrors(value as Record<string, any>);
+        return;
+      }
+
+      const errors = Array.isArray(value)
+        ? value
+        : typeof value === 'object' && value !== null && 'errors' in value
+          ? (value as any).errors || []
+          : [value];
+
+      const normalizedErrors = errors
+        .map((errorItem: unknown) => String(errorItem).trim())
+        .filter(Boolean);
+
+      if (normalizedErrors.length > 0) {
+        normalized.push({ field, errors: normalizedErrors });
+      }
+    });
+  };
+
+  pushFieldErrors(fieldErrors);
+  pushFieldErrors(context);
+
+  return normalized;
 }
 
 /**
@@ -149,16 +177,7 @@ function extractFieldValidations(context?: Record<string, any>): ErrorFieldValid
 function extractFieldValidationsFromData(data?: any): ErrorFieldValidation[] {
   if (!data) return [];
 
-  if (data.fieldErrors && typeof data.fieldErrors === 'object') {
-    return Object.entries(data.fieldErrors)
-      .map(([field, errors]) => ({
-        field,
-        errors: Array.isArray(errors) ? errors : [String(errors)],
-      }))
-      .filter(v => v.errors.length > 0);
-  }
-
-  return [];
+  return extractFieldValidations(data.context, data.field_errors || data.fieldErrors);
 }
 
 /**

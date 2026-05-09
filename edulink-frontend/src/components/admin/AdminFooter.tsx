@@ -5,24 +5,26 @@ interface AdminFooterProps {
   className?: string;
 }
 
-const AdminFooter: React.FC<AdminFooterProps> = ({ className = '' }) => {
+const AdminFooter: React.FC<AdminFooterProps> = ({
+  className = '',
+}) => {
   const currentYear = new Date().getFullYear();
 
   const footerLinks = {
-    admin: [
-      { name: 'Dashboard', href: '/dashboard/admin' },
-      { name: 'Users', href: '/admin/users' },
-      { name: 'Institutions', href: '/admin/institutions' },
-      { name: 'Employer Requests', href: '/admin/employers/requests' },
-      { name: 'Analytics', href: '/admin/analytics' },
+    access: [
+      { name: 'Institutions', href: '/institutions/request' },
+      { name: 'Employer Onboarding', href: '/employer/onboarding' },
+      { name: 'Student Opportunities', href: '/opportunities' },
     ],
+
     support: [
       { name: 'Support Center', href: '/support' },
       { name: 'FAQ', href: '/faq' },
       { name: 'Contact', href: '/contact' },
-      { name: 'System Health', href: '/admin/health' },
     ],
-    legal: [
+
+    trust: [
+      { name: 'Trust & Verification', href: '/trust-policy' },
       { name: 'Privacy Policy', href: '/privacy' },
       { name: 'Terms of Service', href: '/terms' },
     ],
@@ -31,43 +33,43 @@ const AdminFooter: React.FC<AdminFooterProps> = ({ className = '' }) => {
   return (
     <footer className={`admin-footer ${className}`}>
       <div className="admin-footer-container">
+        {/* Top */}
         <div className="admin-footer-content">
-          {/* Brand Section */}
+          {/* Brand */}
           <div className="admin-footer-brand">
             <Link to="/" className="admin-footer-logo">
-              <span className="admin-footer-logo-text">EduLink</span>
-              <span className="admin-footer-logo-badge">Admin Portal</span>
+              <div className="admin-footer-logo-stack">
+                <span className="admin-footer-logo-text">
+                  EduLink
+                </span>
+
+                <span className="admin-footer-logo-badge">
+                  Partner Access
+                </span>
+              </div>
             </Link>
+
             <p className="admin-footer-description">
-              Streamlining educational management with powerful administrative tools for modern institutions.
+              EduLink KE helps institutions and employers
+              manage verified attachment and internship
+              workflows through structured placement,
+              supervision, reporting, and completion records.
             </p>
-            <div className="admin-footer-social">
-              <a href="#" className="admin-social-link" aria-label="Twitter">
-                <svg className="admin-social-icon" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
-                </svg>
-              </a>
-              <a href="#" className="admin-social-link" aria-label="LinkedIn">
-                <svg className="admin-social-icon" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
-                </svg>
-              </a>
-              <a href="#" className="admin-social-link" aria-label="GitHub">
-                <svg className="admin-social-icon" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                </svg>
-              </a>
+
+            <div className="admin-footer-meta">
+              Verified placements · Institutional oversight · Trusted outcomes
             </div>
           </div>
 
-          {/* Links Sections */}
+          {/* Links */}
           <div className="admin-footer-links">
             <div className="admin-footer-links-group">
-              <h3 className="admin-footer-links-title">Admin</h3>
-              <ul className="admin-footer-links-list">
-                {footerLinks.admin.map((link) => (
-                  <li key={link.name} className="admin-footer-links-item">
-                    <Link to={link.href} className="admin-footer-link">
+              <h3>Access</h3>
+
+              <ul>
+                {footerLinks.access.map((link) => (
+                  <li key={link.name}>
+                    <Link to={link.href}>
                       {link.name}
                     </Link>
                   </li>
@@ -76,11 +78,12 @@ const AdminFooter: React.FC<AdminFooterProps> = ({ className = '' }) => {
             </div>
 
             <div className="admin-footer-links-group">
-              <h3 className="admin-footer-links-title">Support</h3>
-              <ul className="admin-footer-links-list">
+              <h3>Support</h3>
+
+              <ul>
                 {footerLinks.support.map((link) => (
-                  <li key={link.name} className="admin-footer-links-item">
-                    <Link to={link.href} className="admin-footer-link">
+                  <li key={link.name}>
+                    <Link to={link.href}>
                       {link.name}
                     </Link>
                   </li>
@@ -89,11 +92,12 @@ const AdminFooter: React.FC<AdminFooterProps> = ({ className = '' }) => {
             </div>
 
             <div className="admin-footer-links-group">
-              <h3 className="admin-footer-links-title">Legal</h3>
-              <ul className="admin-footer-links-list">
-                {footerLinks.legal.map((link) => (
-                  <li key={link.name} className="admin-footer-links-item">
-                    <Link to={link.href} className="admin-footer-link">
+              <h3>Trust</h3>
+
+              <ul>
+                {footerLinks.trust.map((link) => (
+                  <li key={link.name}>
+                    <Link to={link.href}>
                       {link.name}
                     </Link>
                   </li>
@@ -103,16 +107,24 @@ const AdminFooter: React.FC<AdminFooterProps> = ({ className = '' }) => {
           </div>
         </div>
 
-        {/* Bottom Section */}
+        {/* Bottom */}
         <div className="admin-footer-bottom">
           <div className="admin-footer-bottom-content">
             <p className="admin-footer-copyright">
-              © {currentYear} EduLink Admin Portal. All rights reserved. <br/>
-                Designed & Developed by <a href="https://sinapstechnology.co.ke" target="_blank" rel="noopener noreferrer" className="admin-footer-design-link">Sinaps Technology</a>
+              © {currentYear} EduLink KE. All rights reserved.
             </p>
-            <div className="admin-footer-bottom-links">
-              <Link to="/privacy" className="admin-footer-bottom-link">Privacy</Link>
-              <Link to="/terms" className="admin-footer-bottom-link">Terms</Link>
+
+            <div className="admin-footer-bottom-right">
+              <span>Built by</span>
+
+              <a
+                href="https://sinapstechnology.tech"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="admin-footer-design-link"
+              >
+                Sinaps Technology
+              </a>
             </div>
           </div>
         </div>
@@ -120,191 +132,166 @@ const AdminFooter: React.FC<AdminFooterProps> = ({ className = '' }) => {
 
       <style>{`
         .admin-footer {
-          background: #111827;
+          background: #0f172a;
           color: #d1d5db;
           margin-top: auto;
+          border-top: 1px solid rgba(255,255,255,.05);
         }
 
         .admin-footer-container {
           max-width: 1200px;
           margin: 0 auto;
-          padding: 3rem 1rem 2rem;
+          padding: 4rem 1rem 2rem;
         }
 
         .admin-footer-content {
           display: grid;
           grid-template-columns: 1fr;
-          gap: 2rem;
-          margin-bottom: 2rem;
+          gap: 3rem;
+          margin-bottom: 2.5rem;
         }
 
         .admin-footer-brand {
-          max-width: 20rem;
+          max-width: 28rem;
         }
 
         .admin-footer-logo {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.5rem;
           text-decoration: none;
-          margin-bottom: 1rem;
+          display: inline-block;
+          margin-bottom: 1.2rem;
+        }
+
+        .admin-footer-logo-stack {
+          display: flex;
+          flex-direction: column;
         }
 
         .admin-footer-logo-text {
-          font-size: 1.25rem;
-          font-weight: 700;
-          color: white;
-          letter-spacing: -0.025em;
+          color: #ffffff;
+          font-size: 1.5rem;
+          font-weight: 850;
+          letter-spacing: -.04em;
         }
 
         .admin-footer-logo-badge {
-          font-size: 0.625rem;
-          font-weight: 600;
+          margin-top: 4px;
           color: #10b981;
-          background: rgba(16, 185, 129, 0.1);
-          padding: 0.25rem 0.5rem;
-          border-radius: 0.25rem;
+          font-size: .72rem;
+          font-weight: 800;
+          letter-spacing: .08em;
           text-transform: uppercase;
-          letter-spacing: 0.05em;
         }
 
         .admin-footer-description {
-          font-size: 0.875rem;
-          line-height: 1.5;
-          margin-bottom: 1.5rem;
-          color: #9ca3af;
+          color: #94a3b8;
+          line-height: 1.8;
+          font-size: .92rem;
+          margin-bottom: 1rem;
         }
 
-        .admin-footer-social {
-          display: flex;
-          gap: 0.75rem;
-        }
-
-        .admin-social-link {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 2rem;
-          height: 2rem;
-          background: rgba(255, 255, 255, 0.1);
-          border-radius: 0.375rem;
-          color: #d1d5db;
-          transition: all 0.2s ease;
-        }
-
-        .admin-social-link:hover {
-          background: rgba(255, 255, 255, 0.2);
-          color: white;
-        }
-
-        .admin-social-icon {
-          width: 1rem;
-          height: 1rem;
+        .admin-footer-meta {
+          color: #64748b;
+          font-size: .78rem;
+          font-weight: 700;
+          line-height: 1.6;
         }
 
         .admin-footer-links {
           display: grid;
-          grid-template-columns: repeat(2, 1fr);
+          grid-template-columns: repeat(2,1fr);
           gap: 2rem;
         }
 
-        .admin-footer-links-group {
-          min-width: 0;
-        }
-
-        .admin-footer-links-title {
-          font-size: 0.875rem;
-          font-weight: 600;
-          color: white;
-          margin-bottom: 0.75rem;
+        .admin-footer-links-group h3 {
+          color: #ffffff;
+          font-size: .82rem;
+          font-weight: 850;
+          letter-spacing: .08em;
           text-transform: uppercase;
-          letter-spacing: 0.05em;
+          margin-bottom: 1rem;
         }
 
-        .admin-footer-links-list {
+        .admin-footer-links-group ul {
           list-style: none;
           margin: 0;
           padding: 0;
         }
 
-        .admin-footer-links-item {
-          margin-bottom: 0.5rem;
+        .admin-footer-links-group li {
+          margin-bottom: .75rem;
         }
 
-        .admin-footer-link {
-          font-size: 0.875rem;
-          color: #9ca3af;
+        .admin-footer-links-group a {
+          color: #94a3b8;
           text-decoration: none;
-          transition: color 0.2s ease;
+          font-size: .9rem;
+          transition: color .2s ease;
         }
 
-        .admin-footer-link:hover {
-          color: white;
+        .admin-footer-links-group a:hover {
+          color: #ffffff;
         }
 
         .admin-footer-bottom {
-          border-top: 1px solid #374151;
-          padding-top: 2rem;
+          border-top: 1px solid rgba(255,255,255,.06);
+          padding-top: 1.5rem;
         }
 
         .admin-footer-bottom-content {
           display: flex;
           flex-direction: column;
-          justify-content: space-between;
-          align-items: center;
           gap: 1rem;
         }
 
         .admin-footer-copyright {
-          font-size: 0.875rem;
-          color: #9ca3af;
           margin: 0;
+          color: #64748b;
+          font-size: .84rem;
         }
 
-        .admin-footer-bottom-links {
+        .admin-footer-bottom-right {
           display: flex;
-          gap: 1rem;
+          align-items: center;
+          gap: .45rem;
+          color: #64748b;
+          font-size: .84rem;
         }
 
-        .admin-footer-bottom-link {
-          font-size: 0.875rem;
-          color: #9ca3af;
+        .admin-footer-design-link {
+          color: #10b981;
           text-decoration: none;
-          transition: color 0.2s ease;
+          font-weight: 700;
         }
 
-        .admin-footer-bottom-link:hover {
-          color: white;
-        }
-
-        @media (min-width: 640px) {
-          .admin-footer-container {
-            padding: 3rem 1.5rem 2rem;
-          }
-
-          .admin-footer-links {
-            grid-template-columns: repeat(3, 1fr);
-          }
+        .admin-footer-design-link:hover {
+          color: #34d399;
         }
 
         @media (min-width: 768px) {
           .admin-footer-content {
-            grid-template-columns: 1fr 2fr;
-            gap: 3rem;
+            grid-template-columns: 1fr 1.2fr;
+          }
+
+          .admin-footer-links {
+            grid-template-columns: repeat(3,1fr);
           }
 
           .admin-footer-bottom-content {
             flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
           }
         }
 
         @media (min-width: 1024px) {
           .admin-footer-container {
-            padding: 4rem 2rem 2rem;
+            padding: 4.5rem 2rem 2rem;
           }
+        }
 
-          .admin-footer-content {
-            gap: 4rem;
+        @media (max-width: 560px) {
+          .admin-footer-links {
+            grid-template-columns: 1fr;
           }
         }
       `}</style>

@@ -87,6 +87,9 @@ def _format_domain_error(exc: EduLinkError) -> Response:
     # Include context if available (for debugging)
     if exc.context:
         data["context"] = exc.context
+        validation_errors = exc.context.get("validation_errors") if isinstance(exc.context, dict) else None
+        if isinstance(validation_errors, dict) and validation_errors:
+            data["field_errors"] = validation_errors
     
     # Include developer message in debug mode (can be controlled by settings)
     # Uncomment if DEBUG=True should include developer details:
@@ -125,25 +128,72 @@ def _format_api_error(exc: APIException, response: Response) -> Response:
     
     exc_name = exc.__class__.__name__
     error_code = error_code_map.get(exc_name, "API_ERROR")
+    response_data = response.data if isinstance(response.data, dict) else {}
+
+    if exc_name == "ValidationError":
+        field_errors = _extract_field_errors(response_data)
+        message = _first_non_empty_message(response_data.get("detail")) or "Please correct the highlighted fields and try again."
+        data = {
+            "error_code": error_code,
+            "message": message,
+            "status_code": response.status_code,
+        }
+        if field_errors:
+            data["field_errors"] = field_errors
+        return Response(data, status=response.status_code)
     
     # Extract detail message
-    detail = response.data.get("detail") if isinstance(response.data, dict) else str(response.data)
+    detail = response_data.get("detail") if response_data else str(response.data)
     
     # Reconstruct response in EduLink format
     data = {
         "error_code": error_code,
-        "message": str(detail),
+        "message": _first_non_empty_message(detail) or "An error occurred.",
         "status_code": response.status_code,
     }
     
     # Keep additional details if present (e.g., for validation errors)
-    if isinstance(response.data, dict):
+    if response_data:
         # Copy field-level errors for validation errors
-        for key, value in response.data.items():
+        for key, value in response_data.items():
             if key != "detail":
                 data[key] = value
     
     return Response(data, status=response.status_code)
+
+
+def _extract_field_errors(data: dict) -> dict:
+    if not isinstance(data, dict):
+        return {}
+
+    field_errors = {}
+    for key, value in data.items():
+        if key in {"detail", "status_code", "error_code", "message"}:
+            continue
+
+        if isinstance(value, dict) and "errors" in value:
+            errors = value.get("errors")
+        elif isinstance(value, list):
+            errors = value
+        else:
+            errors = [value]
+
+        normalized = [str(error).strip() for error in errors if str(error).strip()]
+        if normalized:
+            field_errors[key] = normalized
+
+    return field_errors
+
+
+def _first_non_empty_message(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        stripped = value.strip()
+        if stripped.lower() in {"none", "null", "undefined"}:
+            return ""
+        return stripped
+    return str(value).strip()
 
 
 def _format_unhandled_error(exc: Exception) -> Response:

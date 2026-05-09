@@ -87,6 +87,9 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             "registration_number",
             "institution_id",
         ]
+        extra_kwargs = {
+            "username": {"required": False, "allow_blank": True},
+        }
     
     def validate(self, attrs):
         """Validate password confirmation."""

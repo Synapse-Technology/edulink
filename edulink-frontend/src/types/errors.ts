@@ -11,6 +11,8 @@ export interface BackendErrorResponse {
   status_code: number;
   timestamp: string;
   context?: Record<string, any>;
+  field_errors?: Record<string, any>;
+  fieldErrors?: Record<string, any>;
 }
 
 export interface ErrorFieldValidation {

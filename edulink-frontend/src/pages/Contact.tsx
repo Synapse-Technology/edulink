@@ -1,188 +1,289 @@
 import React, { useState } from 'react';
+import {
+  ArrowRight,
+  Building2,
+  Mail,
+  MapPin,
+  MessageSquare,
+  Phone,
+  ShieldCheck,
+} from 'lucide-react';
+
 import { contactService } from '../services/contact/contactService';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { showToast } from '../utils/toast';
 
 const Contact: React.FC = () => {
   useErrorHandler({
-    onValidationError: () => showToast.error('Please check your form entries.'),
-    onAuthError: () => showToast.error('Session expired. Please refresh and try again.'),
-    onUnexpected: (error) => showToast.error(error.message || 'Failed to send message.')
+    onValidationError: () =>
+      showToast.error('Please check your form entries.'),
+
+    onAuthError: () =>
+      showToast.error('Session expired. Please refresh and try again.'),
+
+    onUnexpected: (error) =>
+      showToast.error(error.message || 'Failed to send message.'),
   });
 
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     subject: '',
-    message: ''
+    message: '',
   });
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState('');
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+
+    setFormData((prev) => ({
       ...prev,
-      [name]:value
+      [name]: value,
     }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (isSubmitting) return;
-    
+
     try {
       setIsSubmitting(true);
-      
+
       await contactService.submitContactForm({
         name: formData.name,
         email: formData.email,
         subject: formData.subject,
-        message: formData.message
+        message: formData.message,
       });
-      
-      setMessage('Your message has been sent. Thank you!');
-      showToast.success('Message sent successfully!');
-      setFormData({ name: '', email: '', subject: '', message: '' });
+
+      setMessage(
+        'Your message has been sent successfully. We will respond as soon as possible.',
+      );
+
+      showToast.success('Message sent successfully.');
+
+      setFormData({
+        name: '',
+        email: '',
+        subject: '',
+        message: '',
+      });
     } catch (error) {
-      console.error('Failed to send message:', error);
+      console.error(error);
       showToast.error('Failed to send message. Please try again.');
     } finally {
       setIsSubmitting(false);
-      setTimeout(() => setMessage(''), 5000);
+
+      setTimeout(() => {
+        setMessage('');
+      }, 5000);
     }
   };
 
   return (
     <>
-      {/* Page Title */}
-      <div className="page-title" data-aos="fade">
-        <div className="heading">
-          <div className="container">
-            <div className="row d-flex justify-content-center text-center">
-              <div className="col-lg-8">
-                <h1>Contact Us</h1>
-                <p className="mb-0">Have questions or feedback? We'd love to hear from you. Reach out, and we'll get back to you as soon as possible.</p>
+      <main className="contact-page">
+        <section className="contact-hero">
+          <div className="contact-container">
+            <div className="contact-hero-grid">
+              <div>
+                <div className="contact-badge">
+                  <MessageSquare size={15} />
+                  EduLink Contact Center
+                </div>
+
+                <h1>
+                  Reach the EduLink KE team.
+                </h1>
+
+                <p>
+                  Contact us about internships, institution onboarding,
+                  employer workflows, support requests, partnerships, or
+                  platform feedback.
+                </p>
+
+                <div className="contact-meta-grid">
+                  <div className="contact-meta-card">
+                    <ShieldCheck size={18} />
+                    <div>
+                      <strong>Operational support</strong>
+                      <span>
+                        Placement, verification, and workflow assistance.
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="contact-meta-card">
+                    <Building2 size={18} />
+                    <div>
+                      <strong>Institution ready</strong>
+                      <span>
+                        Support for universities, departments, and employers.
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        </div>
-        <nav className="breadcrumbs">
-          <div className="container">
-            <ol>
-              <li><a href="/">Home</a></li>
-              <li className="current">Contact</li>
-            </ol>
-          </div>
-        </nav>
-      </div>
 
-      <main className="main">
-        {/* Contact Section */}
-        <section id="contact" className="contact section">
-          
-          <div className="mb-5" data-aos="fade-up" data-aos-delay="200">
-            <iframe 
-              style={{border: 0, width: '100%', height: '300px'}} 
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3988.9443834945417!2d37.01026481475404!3d-1.196570999130081!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x182f462198528753%3A0x86113f898de544d1!2sJomo%20Kenyatta%20University%20of%20Agriculture%20and%20Technology!5e0!3m2!1sen!2ske!4v1624536284693!5m2!1sen!2ske" 
-              frameBorder="0" 
-              allowFullScreen={true}
-              title="JKUAT Location"
-            />
-          </div>
+              <div className="contact-info-panel">
+                <div className="contact-info-card">
+                  <MapPin size={18} />
 
-          <div className="container" data-aos="fade-up" data-aos-delay="100">
-            <div className="row gy-4">
-              
-              <div className="col-lg-4">
-                <div className="info-item d-flex" data-aos="fade-up" data-aos-delay="300">
-                  <i className="bi bi-geo-alt flex-shrink-0"></i>
                   <div>
-                    <h3>Address</h3>
+                    <h3>Location</h3>
                     <p>JKUAT Main Campus, Juja, Kenya</p>
                   </div>
                 </div>
 
-                <div className="info-item d-flex" data-aos="fade-up" data-aos-delay="400">
-                  <i className="bi bi-telephone flex-shrink-0"></i>
+                <div className="contact-info-card">
+                  <Mail size={18} />
+
                   <div>
-                    <h3>Call Us</h3>
-                    <p>+254 712 345 678</p>
+                    <h3>Email</h3>
+                    <p>info@sinapstechnology.tech</p>
                   </div>
                 </div>
 
-                <div className="info-item d-flex" data-aos="fade-up" data-aos-delay="500">
-                  <i className="bi bi-envelope flex-shrink-0"></i>
+                <div className="contact-info-card">
+                  <Phone size={18} />
+
                   <div>
-                    <h3>Email Us</h3>
-                    <p>info@edulink.co.ke</p>
+                    <h3>Support line</h3>
+                    <p>Use the support center for ticket-based assistance.</p>
                   </div>
+                </div>
+
+                <div className="contact-map">
+                  <iframe
+                    title="JKUAT Location"
+                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3988.9443834945417!2d37.01026481475404!3d-1.196570999130081!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x182f462198528753%3A0x86113f898de544d1!2sJomo%20Kenyatta%20University%20of%20Agriculture%20and%20Technology!5e0!3m2!1sen!2ske!4v1624536284693!5m2!1sen!2ske"
+                    loading="lazy"
+                    allowFullScreen
+                  />
                 </div>
               </div>
+            </div>
+          </div>
+        </section>
 
-              <div className="col-lg-8">
-                <form onSubmit={handleSubmit} className="php-email-form" data-aos="fade-up" data-aos-delay="200">
-                  <div className="row gy-4">
-                    <div className="col-md-6">
-                      <input 
-                        type="text" 
-                        name="name" 
-                        className="form-control" 
-                        placeholder="Your Name" 
+        <section className="contact-form-section">
+          <div className="contact-container">
+            <div className="contact-form-layout">
+              <aside className="contact-form-side">
+                <span>Communication</span>
+
+                <h2>Send a message</h2>
+
+                <p>
+                  For account or technical issues, use the support center.
+                  For partnerships, onboarding, collaboration, or platform
+                  inquiries, use the form here.
+                </p>
+
+                <div className="contact-side-points">
+                  <div>
+                    <ArrowRight size={16} />
+                    <span>
+                      Include enough context for faster responses.
+                    </span>
+                  </div>
+
+                  <div>
+                    <ArrowRight size={16} />
+                    <span>
+                      One issue or inquiry per message is recommended.
+                    </span>
+                  </div>
+
+                  <div>
+                    <ArrowRight size={16} />
+                    <span>
+                      Institution and employer inquiries are prioritized.
+                    </span>
+                  </div>
+                </div>
+              </aside>
+
+              <div className="contact-form-panel">
+                <form onSubmit={handleSubmit}>
+                  <div className="contact-form-grid">
+                    <div className="contact-field">
+                      <label>Your Name</label>
+
+                      <input
+                        type="text"
+                        name="name"
+                        placeholder="John Doe"
                         value={formData.name}
                         onChange={handleInputChange}
-                        required 
+                        required
                       />
                     </div>
-                    
-                    <div className="col-md-6">
-                      <input 
-                        type="email" 
-                        className="form-control" 
-                        name="email" 
-                        placeholder="Your Email" 
+
+                    <div className="contact-field">
+                      <label>Email Address</label>
+
+                      <input
+                        type="email"
+                        name="email"
+                        placeholder="john@example.com"
                         value={formData.email}
                         onChange={handleInputChange}
-                        required 
+                        required
                       />
                     </div>
-                    
-                    <div className="col-md-12">
-                      <input 
-                        type="text" 
-                        className="form-control" 
-                        name="subject" 
-                        placeholder="Subject" 
+
+                    <div className="contact-field full">
+                      <label>Subject</label>
+
+                      <input
+                        type="text"
+                        name="subject"
+                        placeholder="Partnership inquiry, onboarding request, collaboration..."
                         value={formData.subject}
                         onChange={handleInputChange}
-                        required 
+                        required
                       />
                     </div>
-                    
-                    <div className="col-md-12">
-                      <textarea 
-                        className="form-control" 
-                        name="message" 
-                        rows={6} 
-                        placeholder="Message" 
+
+                    <div className="contact-field full">
+                      <label>Message</label>
+
+                      <textarea
+                        name="message"
+                        rows={7}
+                        placeholder={`Describe:
+- your inquiry
+- organization or institution if applicable
+- what you would like help with
+- relevant context`}
                         value={formData.message}
                         onChange={handleInputChange}
-                        required 
+                        required
                       />
                     </div>
-                    
-                    <div className="col-md-12 text-center">
-                      {message && (
-                        <div className={message.includes('error') ? 'error-message' : 'sent-message'}>
-                          {message}
-                        </div>
-                      )}
-                      
-                      <button type="submit" disabled={isSubmitting}>
-                        {isSubmitting ? 'Sending Message...' : 'Send Message'}
-                      </button>
-                    </div>
                   </div>
+
+                  {message && (
+                    <div className="contact-success-message">
+                      {message}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    className="contact-submit-btn"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting
+                      ? 'Sending message...'
+                      : 'Send message'}
+                  </button>
                 </form>
               </div>
             </div>
@@ -191,168 +292,333 @@ const Contact: React.FC = () => {
       </main>
 
       <style>{`
-        /* Page Title */
-        .page-title {
-          --default-color: var(--contrast-color);
-          --background-color: var(--accent-color);
-          --heading-color: var(--contrast-color);
-          color: var(--default-color);
-          background-color: var(--background-color);
-          position: relative;
+        .contact-page {
+          background: #ffffff;
+          color: #111827;
         }
 
-        .page-title .heading {
-          position: relative;
-          padding: 80px 0;
-          border-top: 1px solid rgba(var(--default-color-rgb), 0.1);
+        .contact-container {
+          width: 100%;
+          max-width: 1140px;
+          margin: 0 auto;
+          padding: 0 20px;
         }
 
-        .page-title .heading h1 {
-          font-size: 2.5rem;
-          font-weight: 700;
-          color: var(--heading-color);
+        .contact-hero {
+          padding: 76px 0 60px;
+          background:
+            radial-gradient(circle at top right, rgba(6,155,142,.12), transparent 34%),
+            linear-gradient(180deg, #ffffff 0%, #f6faf9 100%);
         }
 
-        .page-title nav {
-          background-color: color-mix(in srgb, var(--accent-color) 90%, black 5%);
-          padding: 20px 0;
+        .contact-hero-grid {
+          display: grid;
+          grid-template-columns: 1fr minmax(320px,.72fr);
+          gap: 40px;
+          align-items: start;
         }
 
-        .page-title nav ol {
-          display: flex;
-          flex-wrap: wrap;
-          list-style: none;
-          margin: 0;
-          font-size: 1rem;
-          font-weight: 400;
-          padding: 0;
-        }
-
-        .page-title nav ol li + li {
-          padding-left: 10px;
-        }
-
-        .page-title nav ol li + li::before {
-          content: "/";
-          display: inline-block;
-          padding-right: 10px;
-          color: color-mix(in srgb, var(--contrast-color), transparent 70%);
-        }
-
-        .page-title nav ol li.current {
-          color: var(--contrast-color);
-          font-weight: 400;
-        }
-
-        .page-title nav a {
-          color: var(--contrast-color);
-        }
-
-        .page-title nav a:hover {
-          color: var(--accent-color);
-        }
-
-        /* Contact Section */
-        .contact {
-          padding-top: 8px;
-          padding-bottom: 40px;
-        }
-
-        .contact .info-item + .info-item {
-          margin-top: 40px;
-        }
-
-        .contact .info-item i {
-          color: var(--contrast-color);
-          background: var(--accent-color);
-          font-size: 20px;
-          width: 48px;
-          height: 48px;
-          display: flex;
-          justify-content: center;
+        .contact-badge {
+          display: inline-flex;
           align-items: center;
-          border-radius: 50px;
-          transition: all 0.3s ease-in-out;
-          margin-right: 15px;
+          gap: 7px;
+          padding: 7px 12px;
+          border-radius: 999px;
+          background: rgba(6,155,142,.08);
+          border: 1px solid rgba(6,155,142,.14);
+          color: #069b8e;
+          font-size: .74rem;
+          font-weight: 850;
+          text-transform: uppercase;
+          letter-spacing: .1em;
+          margin-bottom: 18px;
         }
 
-        .contact .info-item h3 {
-          padding: 0;
-          font-size: 18px;
-          font-weight: 700;
-          margin-bottom: 5px;
+        .contact-hero h1 {
+          font-size: clamp(2.4rem,5vw,4.5rem);
+          line-height: .98;
+          letter-spacing: -.08em;
+          font-weight: 900;
+          color: #071a18;
+          margin: 0 0 18px;
         }
 
-        .contact .info-item p {
-          padding: 0;
+        .contact-hero p {
+          color: #5f6b7a;
+          line-height: 1.8;
+          font-size: 1rem;
+          max-width: 620px;
+          margin: 0;
+        }
+
+        .contact-meta-grid {
+          display: grid;
+          gap: 14px;
+          margin-top: 30px;
+        }
+
+        .contact-meta-card {
+          display: flex;
+          gap: 14px;
+          padding: 18px;
+          border-radius: 18px;
+          background: #ffffff;
+          border: 1px solid #e5e7eb;
+        }
+
+        .contact-meta-card svg {
+          color: #069b8e;
+          flex-shrink: 0;
+        }
+
+        .contact-meta-card strong {
+          display: block;
+          font-size: .92rem;
+          margin-bottom: 4px;
+        }
+
+        .contact-meta-card span {
+          color: #6b7280;
+          font-size: .86rem;
+          line-height: 1.6;
+        }
+
+        .contact-info-panel {
+          background:
+            linear-gradient(180deg, rgba(255,255,255,.98), rgba(246,250,249,.98)),
+            #ffffff;
+          border: 1px solid #e5e7eb;
+          border-radius: 26px;
+          padding: 22px;
+          color: #111827;
+          box-shadow: 0 18px 44px rgba(17,24,39,.08);
+        }
+
+        .contact-info-card {
+          display: flex;
+          gap: 14px;
+          margin-bottom: 20px;
+        }
+
+        .contact-info-card svg {
+          color: #0bbfa3;
+          flex-shrink: 0;
+          margin-top: 2px;
+        }
+
+        .contact-info-card h3 {
+          color: #111827;
+          font-size: .9rem;
+          font-weight: 850;
+          margin: 0 0 4px;
+        }
+
+        .contact-info-card p {
+          color: #4b5563;
+          line-height: 1.6;
+          font-size: .84rem;
+          margin: 0;
+        }
+
+        .contact-info-panel .contact-info-card {
+          border-bottom: 1px solid #edf2f7;
+          padding-bottom: 16px;
+        }
+
+        .contact-info-panel .contact-info-card:last-of-type {
+          border-bottom: 0;
           margin-bottom: 0;
-          font-size: 14px;
+          padding-bottom: 0;
         }
 
-        .contact .php-email-form {
-          height: 100%;
+        .contact-map {
+          margin-top: 20px;
+          overflow: hidden;
+          border-radius: 18px;
+          border: 1px solid rgba(255,255,255,.08);
         }
 
-        .contact .php-email-form input[type=text],
-        .contact .php-email-form input[type=email],
-        .contact .php-email-form textarea {
-          font-size: 14px;
-          padding: 10px 15px;
-          box-shadow: none;
-          border-radius: 0;
-          color: var(--default-color);
-          background-color: color-mix(in srgb, var(--background-color), transparent 50%);
-          border-color: color-mix(in srgb, var(--default-color), transparent 80%);
-        }
-
-        .contact .php-email-form input[type=text]:focus,
-        .contact .php-email-form input[type=email]:focus,
-        .contact .php-email-form textarea:focus {
-          border-color: var(--accent-color);
-        }
-
-        .contact .php-email-form input[type=text]::placeholder,
-        .contact .php-email-form input[type=email]::placeholder,
-        .contact .php-email-form textarea::placeholder {
-          color: color-mix(in srgb, var(--default-color), transparent 70%);
-        }
-
-        .contact .php-email-form button[type=submit] {
-          color: var(--contrast-color);
-          background: var(--accent-color);
+        .contact-map iframe {
+          width: 100%;
+          height: 320px;
           border: 0;
-          padding: 10px 30px 12px 30px;
-          transition: 0.4s;
-          border-radius: 50px;
+          display: block;
         }
 
-        .contact .php-email-form button[type=submit]:hover {
-          background: color-mix(in srgb, var(--accent-color), transparent 20%);
+        .contact-form-section {
+          padding: 64px 0;
         }
 
-        .contact .php-email-form button[type=submit]:disabled {
-          opacity: 0.6;
+        .contact-form-layout {
+          display: grid;
+          grid-template-columns: .78fr 1.22fr;
+          gap: 36px;
+        }
+
+        .contact-form-side span {
+          display: inline-block;
+          color: #069b8e;
+          font-size: .74rem;
+          font-weight: 850;
+          text-transform: uppercase;
+          letter-spacing: .1em;
+          margin-bottom: 12px;
+        }
+
+        .contact-form-side h2 {
+          font-size: clamp(1.8rem,3vw,2.5rem);
+          line-height: 1.08;
+          letter-spacing: -.06em;
+          font-weight: 900;
+          margin: 0 0 14px;
+        }
+
+        .contact-form-side p {
+          color: #6b7280;
+          line-height: 1.75;
+        }
+
+        .contact-side-points {
+          margin-top: 24px;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .contact-side-points div {
+          display: flex;
+          gap: 10px;
+          align-items: flex-start;
+          color: #5f6b7a;
+          font-size: .9rem;
+          line-height: 1.6;
+        }
+
+        .contact-side-points svg {
+          color: #069b8e;
+          flex-shrink: 0;
+          margin-top: 2px;
+        }
+
+        .contact-form-panel {
+          background: #ffffff;
+          border: 1px solid #e5e7eb;
+          border-radius: 24px;
+          padding: 22px;
+          box-shadow: 0 18px 44px rgba(17,24,39,.06);
+        }
+
+        .contact-form-grid {
+          display: grid;
+          grid-template-columns: repeat(2,minmax(0,1fr));
+          gap: 16px;
+        }
+
+        .contact-field {
+          display: flex;
+          flex-direction: column;
+          gap: 7px;
+        }
+
+        .contact-field.full {
+          grid-column: 1 / -1;
+        }
+
+        .contact-field label {
+          color: #111827;
+          font-size: .74rem;
+          font-weight: 850;
+          text-transform: uppercase;
+          letter-spacing: .05em;
+        }
+
+        .contact-field input,
+        .contact-field textarea {
+          width: 100%;
+          border: 1.5px solid #e5e7eb;
+          border-radius: 12px;
+          background: #ffffff;
+          color: #111827;
+          padding: 12px 13px;
+          outline: none;
+          font: 600 .9rem system-ui,sans-serif;
+          transition: border-color .16s ease, box-shadow .16s ease;
+        }
+
+        .contact-field input {
+          height: 46px;
+        }
+
+        .contact-field textarea {
+          resize: vertical;
+          min-height: 170px;
+          line-height: 1.6;
+        }
+
+        .contact-field input:focus,
+        .contact-field textarea:focus {
+          border-color: #069b8e;
+          box-shadow: 0 0 0 3.5px rgba(6,155,142,.16);
+        }
+
+        .contact-success-message {
+          margin-top: 18px;
+          border-radius: 12px;
+          background: rgba(5,150,82,.1);
+          color: #047857;
+          padding: 14px;
+          font-size: .88rem;
+          font-weight: 700;
+        }
+
+        .contact-submit-btn {
+          margin-top: 18px;
+          width: 100%;
+          height: 48px;
+          border: 0;
+          border-radius: 12px;
+          background: #069b8e;
+          color: #ffffff;
+          font-weight: 900;
+          cursor: pointer;
+        }
+
+        .contact-submit-btn:hover:not(:disabled) {
+          background: #057e73;
+        }
+
+        .contact-submit-btn:disabled {
+          opacity: .6;
           cursor: not-allowed;
         }
 
-        .contact .error-message {
-          display: block;
-          color: #ffffff;
-          background: #ed3c0d;
-          text-align: center;
-          padding: 15px;
-          margin-bottom: 24px;
-          font-weight: 600;
+        @media (max-width: 980px) {
+          .contact-hero-grid,
+          .contact-form-layout {
+            grid-template-columns: 1fr;
+          }
+
+          .contact-form-section {
+            padding: 56px 0;
+          }
         }
 
-        .contact .sent-message {
-          display: block;
-          color: #ffffff;
-          background: #059652;
-          text-align: center;
-          padding: 15px;
-          margin-bottom: 24px;
-          font-weight: 600;
+        @media (max-width: 640px) {
+          .contact-hero {
+            padding: 56px 0 40px;
+          }
+
+          .contact-form-section {
+            padding: 48px 0;
+          }
+
+          .contact-form-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .contact-form-panel {
+            padding: 18px;
+          }
         }
       `}</style>
     </>

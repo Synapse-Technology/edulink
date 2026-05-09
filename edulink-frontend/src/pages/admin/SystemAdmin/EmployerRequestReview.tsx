@@ -1,104 +1,125 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Building, 
-  Search, 
-  CheckCircle, 
-  XCircle, 
-  Mail, 
-  Phone,
-  Eye,
-  Calendar,
-  Hash,
-  Globe,
-  Clock,
-  AlertTriangle,
-  Users,
-  User,
-  ShieldAlert,
-  Info,
+import React, { useEffect, useMemo, useState } from 'react';
+import {
   Activity,
+  AlertTriangle,
   Briefcase,
-  MapPinned
+  Building,
+  Calendar,
+  CheckCircle,
+  Clock,
+  Eye,
+  Globe,
+  Hash,
+  Mail,
+  Search,
+  Shield,
+  ShieldAlert,
+  User,
+  Users,
+  X,
+  XCircle,
 } from 'lucide-react';
-import { Badge, Button, Modal, Form, Alert, OverlayTrigger, Tooltip } from 'react-bootstrap';
 import { toast } from 'react-hot-toast';
+
 import { employerService } from '../../../services/employer/employerService';
-import type { Employer, EmployerRequest, ReviewRequestData } from '../../../services/employer/employerService';
+import type {
+  Employer,
+  EmployerRequest,
+  ReviewRequestData,
+} from '../../../services/employer/employerService';
 import AdminLayout from '../../../components/admin/AdminLayout';
 import EmployerManagementSkeleton from '../../../components/admin/skeletons/EmployerManagementSkeleton';
 import { sanitizeAdminError } from '../../../utils/adminErrorSanitizer';
+
+type ActiveTab = 'employers' | 'requests';
+type ReviewAction = 'APPROVE' | 'REJECT';
 
 const EmployerRequestReview: React.FC = () => {
   const [employers, setEmployers] = useState<Employer[]>([]);
   const [requests, setRequests] = useState<EmployerRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
-  
-  const [activeTab, setActiveTab] = useState<'employers' | 'requests'>('requests');
+
+  const [activeTab, setActiveTab] = useState<ActiveTab>('requests');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
 
-  // Modal States
-  const [selectedRequest, setSelectedRequest] = useState<EmployerRequest | null>(null);
-  const [selectedEmployer, setSelectedEmployer] = useState<Employer | null>(null);
+  const [selectedRequest, setSelectedRequest] =
+    useState<EmployerRequest | null>(null);
+  const [selectedEmployer, setSelectedEmployer] =
+    useState<Employer | null>(null);
+
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [showEmployerModal, setShowEmployerModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
-  const [showViewRequestModal, setShowViewRequestModal] = useState(false);
-  const [showViewEmployerModal, setShowViewEmployerModal] = useState(false);
-  
-  const [action, setAction] = useState<'APPROVE' | 'REJECT'>('APPROVE');
+
+  const [action, setAction] = useState<ReviewAction>('APPROVE');
   const [rejectionReason, setRejectionReason] = useState('');
   const [rejectionReasonCode, setRejectionReasonCode] = useState('OTHER');
   const [submittingReview, setSubmittingReview] = useState(false);
 
+  useEffect(() => {
+    fetchData();
+  }, []);
+
   const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('en-GB').format(date); // en-GB uses DD/MM/YYYY
+    return new Intl.DateTimeFormat('en-GB').format(new Date(dateString));
   };
 
   const formatDateTime = (dateString: string | null | undefined) => {
     if (!dateString) return 'N/A';
-    const date = new Date(dateString);
+
     return new Intl.DateTimeFormat('en-GB', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
-      second: '2-digit'
-    }).format(date);
+    }).format(new Date(dateString));
   };
 
   const fetchData = async () => {
-    setLoading(true);
     try {
+      if (loading) {
+        setLoading(true);
+      } else {
+        setRefreshing(true);
+      }
+
       const [employersData, requestsData] = await Promise.all([
         employerService.getEmployers(),
-        employerService.getRequests() // Fetches all requests (pending, approved, rejected)
+        employerService.getRequests(),
       ]);
+
       setEmployers(employersData);
       setRequests(requestsData);
+      setError('');
     } catch (err: any) {
-      console.error('Error fetching data:', err);
-      // Check for specific status codes if available in the error object
-      if (err.status === 404 || (err.response && err.response.status === 404)) {
-        setError('The employer service endpoints could not be found. Please ensure the backend is running and up to date.');
-      } else if (err.status === 403 || (err.response && err.response.status === 403)) {
+      if (err.status === 404 || err.response?.status === 404) {
+        setError(
+          'The employer service endpoints could not be found. Please ensure the backend is running and up to date.',
+        );
+      } else if (err.status === 403 || err.response?.status === 403) {
         setError('You do not have permission to view this data.');
       } else {
         const sanitized = sanitizeAdminError(err);
-        setError(sanitized.userMessage || 'Failed to fetch data. Please check your connection.');
+        setError(
+          sanitized.userMessage ||
+            'Failed to fetch data. Please check your connection.',
+        );
       }
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const handleReviewClick = (request: EmployerRequest, reviewAction: 'APPROVE' | 'REJECT') => {
+  const handleReviewClick = (
+    request: EmployerRequest,
+    reviewAction: ReviewAction,
+  ) => {
     setSelectedRequest(request);
     setAction(reviewAction);
     setRejectionReason('');
@@ -108,83 +129,138 @@ const EmployerRequestReview: React.FC = () => {
 
   const handleViewRequest = (request: EmployerRequest) => {
     setSelectedRequest(request);
-    setShowViewRequestModal(true);
+    setShowRequestModal(true);
   };
 
   const handleViewEmployer = (employer: Employer) => {
     setSelectedEmployer(employer);
-    setShowViewEmployerModal(true);
+    setShowEmployerModal(true);
   };
 
   const handleSubmitReview = async () => {
     if (!selectedRequest) return;
 
     if (action === 'REJECT' && !rejectionReason.trim()) {
-      toast.error('Please provide a rejection reason');
+      toast.error('Please provide a rejection reason.');
       return;
     }
 
     setSubmittingReview(true);
+
     try {
       const reviewData: ReviewRequestData = {
         action: action === 'APPROVE' ? 'approve' : 'reject',
         ...(action === 'REJECT' && {
           rejection_reason_code: rejectionReasonCode,
-          rejection_reason: rejectionReason
-        })
+          rejection_reason: rejectionReason,
+        }),
       };
 
       await employerService.reviewRequest(selectedRequest.id, reviewData);
-      
-      // Refresh data
+
       await fetchData();
+
       setShowReviewModal(false);
+      setShowRequestModal(false);
       setSelectedRequest(null);
-      setShowViewRequestModal(false); // Close view modal if open
-      
-    } catch (err: any) {
+      setRejectionReason('');
+      setRejectionReasonCode('OTHER');
+
+      toast.success(
+        action === 'APPROVE'
+          ? 'Employer request approved.'
+          : 'Employer request rejected.',
+      );
+    } catch (err) {
       const sanitized = sanitizeAdminError(err);
-      toast.error(sanitized.userMessage || 'Failed to submit review');
+      toast.error(sanitized.userMessage || 'Failed to submit review.');
     } finally {
       setSubmittingReview(false);
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const counts = useMemo(
+    () => ({
+      totalEmployers: employers.length,
+      activeEmployers: employers.filter((item) => item.status === 'ACTIVE')
+        .length,
+      pendingRequests: requests.filter((item) => item.status === 'PENDING')
+        .length,
+      rejectedRequests: requests.filter((item) => item.status === 'REJECTED')
+        .length,
+      totalCapacity: employers.reduce(
+        (sum, item) => sum + Number(item.max_active_students || 0),
+        0,
+      ),
+      activeRequests: requests.length,
+    }),
+    [employers, requests],
+  );
+
+  const filteredEmployers = useMemo(() => {
+    const query = searchTerm.toLowerCase().trim();
+
+    return employers.filter((employer) => {
+      const matchesSearch =
+        !query ||
+        employer.name?.toLowerCase().includes(query) ||
+        employer.official_email?.toLowerCase().includes(query) ||
+        employer.domain?.toLowerCase().includes(query);
+
+      if (!matchesSearch) return false;
+      if (filterStatus === 'all') return true;
+
+      return employer.status === filterStatus;
+    });
+  }, [employers, filterStatus, searchTerm]);
+
+  const filteredRequests = useMemo(() => {
+    const query = searchTerm.toLowerCase().trim();
+
+    return requests.filter((request) => {
+      const matchesSearch =
+        !query ||
+        request.tracking_code?.toLowerCase().includes(query) ||
+        request.name?.toLowerCase().includes(query) ||
+        request.official_email?.toLowerCase().includes(query);
+
+      if (!matchesSearch) return false;
+      if (filterStatus === 'all') return true;
+
+      return request.status === filterStatus;
+    });
+  }, [filterStatus, requests, searchTerm]);
+
+  const getStatusMeta = (status: string) => {
     switch (status) {
       case 'ACTIVE':
-        return <Badge bg="success" className="bg-opacity-10 text-success border border-success border-opacity-25">Active</Badge>;
+        return {
+          label: 'Active',
+          className: 'status-success',
+        };
       case 'APPROVED':
-        return <Badge bg="secondary" className="bg-opacity-10 text-secondary border border-secondary border-opacity-25">Inactive</Badge>;
+        return {
+          label: 'Approved inactive',
+          className: 'status-muted',
+        };
       case 'PENDING':
       case 'REQUESTED':
-        return <Badge bg="warning" className="bg-opacity-10 text-warning border border-warning border-opacity-25">Pending</Badge>;
+        return {
+          label: 'Pending',
+          className: 'status-warning',
+        };
       case 'REJECTED':
-        return <Badge bg="danger" className="bg-opacity-10 text-danger border border-danger border-opacity-25">Rejected</Badge>;
+        return {
+          label: 'Rejected',
+          className: 'status-danger',
+        };
       default:
-        return <Badge bg="secondary">{status}</Badge>;
+        return {
+          label: status || 'Unknown',
+          className: 'status-muted',
+        };
     }
   };
-
-  const filteredEmployers = employers.filter(emp => {
-    const matchesSearch = 
-      emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      emp.official_email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      emp.domain.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    if (filterStatus === 'all') return matchesSearch;
-    return matchesSearch && emp.status === filterStatus;
-  });
-
-  const filteredRequests = requests.filter(req => {
-    const matchesSearch = 
-      req.tracking_code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      req.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      req.official_email.toLowerCase().includes(searchTerm.toLowerCase());
-
-    if (filterStatus === 'all') return matchesSearch;
-    return matchesSearch && req.status === filterStatus;
-  });
 
   if (loading) {
     return (
@@ -196,612 +272,1472 @@ const EmployerRequestReview: React.FC = () => {
 
   return (
     <AdminLayout>
-      <div className="container-fluid mt-4">
-        {/* Page Header */}
-        <div className="d-flex justify-content-between align-items-center mb-4">
+      <div className="employer-ops-page">
+        <header className="employer-ops-header">
           <div>
-            <h1 className="h3 fw-bold mb-1">Employer Management</h1>
-            <p className="text-muted mb-0">Manage employers and onboarding requests</p>
+            <span className="employer-kicker">
+              <Shield size={14} />
+              Employer trust operations
+            </span>
+
+            <h1>Employer Onboarding Center</h1>
+
+            <p>
+              Review employer access requests, inspect organization credibility,
+              monitor partnership status, and manage internship hosting capacity.
+            </p>
           </div>
-          <div className="d-flex gap-2">
-            <Button variant="outline-primary" onClick={fetchData}>
-              Refresh Data
-            </Button>
+
+          <div className="employer-header-actions">
+            <button
+              type="button"
+              className="employer-btn secondary"
+              onClick={fetchData}
+              disabled={refreshing}
+            >
+              <Activity size={16} />
+              {refreshing ? 'Refreshing' : 'Refresh'}
+            </button>
           </div>
-        </div>
-      
+        </header>
+
         {error && (
-          <Alert variant="danger" dismissible onClose={() => setError('')} className="shadow-sm border-danger">
-            <div className="d-flex align-items-center">
-              <AlertTriangle className="me-3 flex-shrink-0" size={24} />
-              <div>
-                <h6 className="alert-heading fw-bold mb-1">Error Loading Data</h6>
-                <p className="mb-0 small">{error}</p>
-              </div>
+          <div className="employer-error" role="alert">
+            <AlertTriangle size={18} />
+            <div>
+              <strong>Error loading data</strong>
+              <span>{error}</span>
             </div>
-          </Alert>
+            <button type="button" onClick={() => setError('')}>
+              <X size={15} />
+            </button>
+          </div>
         )}
 
-        {/* Stats Cards */}
-        <div className="row g-4 mb-4">
-          <div className="col-md-6 col-lg-3">
-            <div className="card border-0 shadow-sm h-100">
-              <div className="card-body">
-                <div className="d-flex justify-content-between align-items-start">
-                  <div>
-                    <h6 className="text-muted mb-2">Total Employers</h6>
-                    <h2 className="mb-1">{employers.length}</h2>
-                    <small className="text-muted">Registered Organizations</small>
-                  </div>
-                  <div className="bg-primary bg-opacity-10 p-2 rounded">
-                    <Building className="text-primary" size={24} />
-                  </div>
-                </div>
-              </div>
+        <section className="employer-signal-grid">
+          <article>
+            <div className="signal-icon neutral">
+              <Building size={20} />
             </div>
-          </div>
-          <div className="col-md-6 col-lg-3">
-            <div className="card border-0 shadow-sm h-100">
-              <div className="card-body">
-                <div className="d-flex justify-content-between align-items-start">
-                  <div>
-                    <h6 className="text-muted mb-2">Active Partners</h6>
-                    <h2 className="mb-1">{employers.filter(e => e.status === 'ACTIVE').length}</h2>
-                    <small className="text-success">Verified & Operational</small>
-                  </div>
-                  <div className="bg-success bg-opacity-10 p-2 rounded">
-                    <Users className="text-success" size={24} />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="col-md-6 col-lg-3">
-            <div className="card border-0 shadow-sm h-100">
-              <div className="card-body">
-                <div className="d-flex justify-content-between align-items-start">
-                  <div>
-                    <h6 className="text-muted mb-2">Inactive/Rejected</h6>
-                    <h2 className="mb-1">{employers.filter(e => e.status !== 'ACTIVE' && e.status !== 'REQUESTED').length}</h2>
-                    <small className="text-danger">Suspended or Declined</small>
-                  </div>
-                  <div className="bg-danger bg-opacity-10 p-2 rounded">
-                    <ShieldAlert className="text-danger" size={24} />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="col-md-6 col-lg-3">
-            <div className="card border-0 shadow-sm h-100">
-              <div className="card-body">
-                <div className="d-flex justify-content-between align-items-start">
-                  <div>
-                    <h6 className="text-muted mb-2">Pending Requests</h6>
-                    <h2 className="mb-1">{requests.filter(r => r.status === 'PENDING').length}</h2>
-                    <small className="text-warning">Requires Attention</small>
-                  </div>
-                  <div className="bg-warning bg-opacity-10 p-2 rounded">
-                    <Clock className="text-warning" size={24} />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+            <strong>{counts.totalEmployers}</strong>
+            <span>Registered employers</span>
+          </article>
 
-        {/* Filters and Tabs */}
-        <div className="card border-0 shadow-sm mb-4">
-          <div className="card-header bg-transparent border-bottom-0 pt-4 px-4">
-            <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-              <ul className="nav nav-tabs card-header-tabs mb-0">
-                <li className="nav-item">
-                  <button 
-                    className={`nav-link ${activeTab === 'employers' ? 'active fw-bold text-primary' : 'text-muted'}`}
-                    onClick={() => setActiveTab('employers')}
-                  >
-                    Active Employers
-                    <Badge bg="secondary" className="ms-2 rounded-pill bg-opacity-25 text-secondary">{employers.length}</Badge>
-                  </button>
-                </li>
-                <li className="nav-item">
-                  <button 
-                    className={`nav-link ${activeTab === 'requests' ? 'active fw-bold text-primary' : 'text-muted'}`}
-                    onClick={() => setActiveTab('requests')}
-                  >
-                    Requests History
-                    <Badge bg="secondary" className="ms-2 rounded-pill bg-opacity-25 text-secondary">{requests.length}</Badge>
-                  </button>
-                </li>
-              </ul>
-              
-              <div className="d-flex gap-2">
-                <div className="input-group">
-                  <span className="input-group-text bg-light border-end-0">
-                    <Search size={18} className="text-muted" />
-                  </span>
-                  <input 
-                    type="text" 
-                    className="form-control border-start-0 bg-light" 
-                    placeholder={activeTab === 'requests' ? "Search by tracking code, name..." : "Search employers..."}
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-                <select 
-                  className="form-select w-auto bg-light"
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                >
-                  <option value="all">All Status</option>
-                  <option value="PENDING">Pending</option>
-                  <option value="APPROVED">Inactive (Approved)</option>
-                  <option value="REJECTED">Rejected</option>
-                  <option value="ACTIVE">Active</option>
-                </select>
-              </div>
+          <article>
+            <div className="signal-icon success">
+              <Users size={20} />
+            </div>
+            <strong>{counts.activeEmployers}</strong>
+            <span>Active partners</span>
+          </article>
+
+          <article>
+            <div className="signal-icon warning">
+              <Clock size={20} />
+            </div>
+            <strong>{counts.pendingRequests}</strong>
+            <span>Pending requests</span>
+          </article>
+
+          <article>
+            <div className="signal-icon danger">
+              <ShieldAlert size={20} />
+            </div>
+            <strong>{counts.rejectedRequests}</strong>
+            <span>Rejected requests</span>
+          </article>
+
+          <article>
+            <div className="signal-icon indigo">
+              <Briefcase size={20} />
+            </div>
+            <strong>{counts.totalCapacity}</strong>
+            <span>Hosting capacity</span>
+          </article>
+
+          <article>
+            <div className="signal-icon blue">
+              <Activity size={20} />
+            </div>
+            <strong>{counts.activeRequests}</strong>
+            <span>Total request records</span>
+          </article>
+        </section>
+
+        <section className="employer-panel">
+          <div className="employer-panel-header">
+            <div>
+              <span className="employer-panel-kicker">
+                Verification and partner access
+              </span>
+
+              <h2>Employer registry</h2>
+
+              <p>
+                Review onboarding history and inspect verified employer records.
+              </p>
+            </div>
+
+            <div className="employer-tabs">
+              <button
+                type="button"
+                className={activeTab === 'requests' ? 'active' : ''}
+                onClick={() => setActiveTab('requests')}
+              >
+                Requests
+                <span>{requests.length}</span>
+              </button>
+
+              <button
+                type="button"
+                className={activeTab === 'employers' ? 'active' : ''}
+                onClick={() => setActiveTab('employers')}
+              >
+                Employers
+                <span>{employers.length}</span>
+              </button>
             </div>
           </div>
 
-          <div className="card-body p-0">
-            {activeTab === 'employers' ? (
-              <div className="table-responsive" style={{ maxHeight: '600px', overflowY: 'auto' }}>
-                <table className="table table-hover align-middle mb-0">
-                  <thead className="sticky-top bg-white" style={{ zIndex: 1 }}>
+          <div className="employer-filter-bar">
+            <div className="employer-search">
+              <Search size={16} />
+              <input
+                type="text"
+                placeholder={
+                  activeTab === 'requests'
+                    ? 'Search tracking code, organization, email...'
+                    : 'Search employer, email, domain...'
+                }
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+              />
+            </div>
+
+            <select
+              value={filterStatus}
+              onChange={(event) => setFilterStatus(event.target.value)}
+            >
+              <option value="all">All statuses</option>
+              <option value="PENDING">Pending</option>
+              <option value="APPROVED">Approved inactive</option>
+              <option value="REJECTED">Rejected</option>
+              <option value="ACTIVE">Active</option>
+            </select>
+          </div>
+
+          {activeTab === 'requests' ? (
+            <div className="employer-table-wrap">
+              {filteredRequests.length === 0 ? (
+                <div className="employer-empty">
+                  <CheckCircle size={42} />
+                  <h3>No requests found</h3>
+                  <p>Try adjusting your search or status filter.</p>
+                </div>
+              ) : (
+                <table className="employer-table">
+                  <thead>
                     <tr>
-                      <th className="ps-4 py-3">Organization</th>
-                      <th className="py-3">Contact</th>
-                      <th className="py-3">Type</th>
-                      <th className="py-3">Status</th>
-                      <th className="text-end pe-4 py-3">Actions</th>
+                      <th>Tracking</th>
+                      <th>Organization</th>
+                      <th>Contact</th>
+                      <th>Status</th>
+                      <th>Submitted</th>
+                      <th>Actions</th>
                     </tr>
                   </thead>
+
                   <tbody>
-                    {filteredEmployers.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="text-center py-5 text-muted">
-                          No employers found.
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredEmployers.map(employer => (
-                        <tr key={employer.id}>
-                          <td className="ps-4">
-                            <div className="d-flex align-items-center">
-                              <div className="rounded-3 bg-primary bg-opacity-10 p-2 me-3">
-                                <Building size={18} className="text-primary" />
-                              </div>
-                              <div>
-                                <div className="fw-bold text-dark">{employer.name}</div>
-                                <div className="small text-muted d-flex align-items-center">
-                                  <Globe size={12} className="me-1" />
-                                  {employer.domain}
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-                          <td>
-                            <div className="small">
-                              <div className="d-flex align-items-center mb-1">
-                                <Mail size={12} className="me-2 text-muted" />
-                                <span className="text-dark">{employer.official_email}</span>
-                              </div>
-                              <div className="d-flex align-items-center">
-                                <User size={12} className="me-2 text-muted" />
-                                <span className="text-muted">{employer.contact_person}</span>
-                              </div>
-                            </div>
-                          </td>
-                          <td><Badge bg="info" className="bg-opacity-10 text-info border border-info border-opacity-25">{employer.organization_type}</Badge></td>
-                          <td>{getStatusBadge(employer.status)}</td>
-                          <td className="text-end pe-4">
-                            <Button variant="light" size="sm" className="btn-icon rounded-circle" onClick={() => handleViewEmployer(employer)}>
-                              <Eye size={16} className="text-primary" />
-                            </Button>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="table-responsive" style={{ maxHeight: '600px', overflowY: 'auto' }}>
-                <table className="table table-hover align-middle mb-0">
-                  <thead className="sticky-top bg-white" style={{ zIndex: 1 }}>
-                    <tr>
-                      <th className="ps-4 py-3">Tracking Code</th>
-                      <th className="py-3">Organization</th>
-                      <th className="py-3">Contact</th>
-                      <th className="py-3 text-center">Submitted</th>
-                      <th className="text-end pe-4 py-3">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredRequests.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="text-center py-5 text-muted">
-                          No requests found.
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredRequests.map(request => (
+                    {filteredRequests.map((request) => {
+                      const status = getStatusMeta(request.status);
+
+                      return (
                         <tr key={request.id}>
-                          <td className="ps-4">
-                            <div className="d-flex align-items-center">
-                              <Hash size={14} className="me-2 text-muted" />
-                              <span className="font-monospace fw-bold text-primary">{request.tracking_code || '-'}</span>
+                          <td>
+                            <span className="tracking-code">
+                              <Hash size={12} />
+                              {request.tracking_code || '—'}
+                            </span>
+                          </td>
+
+                          <td>
+                            <div className="employer-identity">
+                              <div className="employer-avatar">
+                                <Briefcase size={18} />
+                              </div>
+
+                              <div>
+                                <strong>{request.name}</strong>
+                                <span>
+                                  <Globe size={12} />
+                                  {request.domain || 'No domain'}
+                                </span>
+                              </div>
                             </div>
                           </td>
+
                           <td>
-                            <div className="fw-bold text-dark">{request.name}</div>
-                            <div className="small text-muted">{request.domain}</div>
-                          </td>
-                          <td>
-                            <div className="d-flex align-items-center">
-                              <Mail size={14} className="me-2 text-muted" />
-                              <span className="small text-dark">{request.official_email}</span>
+                            <div className="employer-contact">
+                              <span>
+                                <Mail size={12} />
+                                {request.official_email}
+                              </span>
+
+                              <span>
+                                <User size={12} />
+                                {request.contact_person || 'No contact person'}
+                              </span>
                             </div>
                           </td>
-                          <td className="text-center">
-                            <div className="small text-muted">
-                              <Calendar size={12} className="me-1" />
+
+                          <td>
+                            <span className={`employer-status ${status.className}`}>
+                              {status.label}
+                            </span>
+                          </td>
+
+                          <td>
+                            <span className="employer-date">
+                              <Calendar size={13} />
                               {formatDate(request.created_at)}
-                            </div>
+                            </span>
                           </td>
-                          <td className="text-end pe-4">
-                            <Button variant="light" size="sm" className="btn-icon rounded-circle me-1" onClick={() => handleViewRequest(request)}>
-                              <Eye size={16} className="text-primary" />
-                            </Button>
-                            {request.status === 'PENDING' && (
-                              <>
-                                <OverlayTrigger placement="top" overlay={<Tooltip>Approve</Tooltip>}>
-                                  <Button 
-                                    variant="light" 
-                                    size="sm" 
-                                    className="btn-icon rounded-circle text-success me-1"
-                                    onClick={() => handleReviewClick(request, 'APPROVE')}
+
+                          <td>
+                            <div className="employer-row-actions">
+                              <button
+                                type="button"
+                                onClick={() => handleViewRequest(request)}
+                              >
+                                <Eye size={14} />
+                                View
+                              </button>
+
+                              {request.status === 'PENDING' && (
+                                <>
+                                  <button
+                                    type="button"
+                                    className="success"
+                                    onClick={() =>
+                                      handleReviewClick(request, 'APPROVE')
+                                    }
                                   >
-                                    <CheckCircle size={16} />
-                                  </Button>
-                                </OverlayTrigger>
-                                <OverlayTrigger placement="top" overlay={<Tooltip>Reject</Tooltip>}>
-                                  <Button 
-                                    variant="light" 
-                                    size="sm" 
-                                    className="btn-icon rounded-circle text-danger"
-                                    onClick={() => handleReviewClick(request, 'REJECT')}
+                                    <CheckCircle size={14} />
+                                    Approve
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    className="danger"
+                                    onClick={() =>
+                                      handleReviewClick(request, 'REJECT')
+                                    }
                                   >
-                                    <XCircle size={16} />
-                                  </Button>
-                                </OverlayTrigger>
-                              </>
-                            )}
+                                    <XCircle size={14} />
+                                    Reject
+                                  </button>
+                                </>
+                              )}
+                            </div>
                           </td>
                         </tr>
-                      ))
-                    )}
+                      );
+                    })}
                   </tbody>
                 </table>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* View Request Modal */}
-        <Modal show={showViewRequestModal} onHide={() => setShowViewRequestModal(false)} size="lg" centered className="border-0">
-          <div className="modal-content border-0 shadow-lg">
-            <div className="modal-header bg-primary text-white py-3">
-              <div className="d-flex align-items-center">
-                <div className="bg-white bg-opacity-20 p-2 rounded-3 me-3">
-                  <Info size={20} className="text-white" />
-                </div>
-                <h5 className="modal-title fw-bold mb-0">Onboarding Request Details</h5>
-              </div>
-              <button 
-                type="button" 
-                className="btn-close btn-close-white"
-                onClick={() => setShowViewRequestModal(false)}
-              ></button>
+              )}
             </div>
-            <Modal.Body className="p-4">
-              {selectedRequest && (
-                <div className="row g-4">
-                  <div className="col-md-4">
-                    <div className="card border-0 bg-light h-100">
-                      <div className="card-body text-center py-4">
-                        <div className="position-relative d-inline-block mb-3">
-                          <div className="rounded-circle bg-primary bg-opacity-10 p-4 shadow-sm">
-                            <Briefcase size={48} className="text-primary" />
-                          </div>
-                        </div>
-                        <h5 className="fw-bold mb-1">{selectedRequest.name}</h5>
-                        <p className="text-muted small mb-3">{selectedRequest.domain}</p>
-                        <div className="d-flex flex-column gap-2 mt-4">
-                          {getStatusBadge(selectedRequest.status)}
-                          <Badge bg="info" className="bg-opacity-10 text-info border border-info border-opacity-25">{selectedRequest.organization_type}</Badge>
-                        </div>
-                        
-                        {selectedRequest.tracking_code && (
-                          <div className="mt-4 p-3 bg-white rounded-3 border border-dashed">
-                            <small className="text-muted d-block mb-1 text-uppercase fw-bold letter-spacing-1" style={{fontSize: '10px'}}>Tracking Code</small>
-                            <span className="font-monospace fw-bold text-primary">
-                              {selectedRequest.tracking_code}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="col-md-8">
-                    <div className="mb-4">
-                      <h6 className="text-uppercase text-muted fw-bold small mb-3 letter-spacing-1">
-                        <Building size={14} className="me-2 text-primary" />
-                        Organization Information
-                      </h6>
-                      <div className="bg-white rounded-3 border p-3">
-                        <div className="row g-3">
-                          <div className="col-sm-6">
-                            <label className="text-muted small d-block mb-1">Official Website</label>
-                            <div className="d-flex align-items-center">
-                              <Globe size={14} className="me-2 text-muted" />
-                              <span className="fw-semibold text-break">{selectedRequest.website_url || 'N/A'}</span>
-                            </div>
-                          </div>
-                          <div className="col-sm-6">
-                            <label className="text-muted small d-block mb-1">Registration Number</label>
-                            <div className="d-flex align-items-center">
-                              <Hash size={14} className="me-2 text-muted" />
-                              <span className="fw-semibold">{selectedRequest.registration_number || 'N/A'}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+          ) : (
+            <div className="employer-table-wrap">
+              {filteredEmployers.length === 0 ? (
+                <div className="employer-empty">
+                  <Building size={42} />
+                  <h3>No employers found</h3>
+                  <p>Try adjusting your search or status filter.</p>
+                </div>
+              ) : (
+                <table className="employer-table">
+                  <thead>
+                    <tr>
+                      <th>Organization</th>
+                      <th>Contact</th>
+                      <th>Type</th>
+                      <th>Status</th>
+                      <th>Capacity</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
 
-                    <div className="mb-4">
-                      <h6 className="text-uppercase text-muted fw-bold small mb-3 letter-spacing-1">
-                        <Mail size={14} className="me-2 text-primary" />
-                        Contact Person
-                      </h6>
-                      <div className="bg-white rounded-3 border p-3">
-                        <div className="row g-3">
-                          <div className="col-sm-6">
-                            <label className="text-muted small d-block mb-1">Full Name</label>
-                            <div className="d-flex align-items-center">
-                              <User size={14} className="me-2 text-muted" />
-                              <span className="fw-semibold">{selectedRequest.contact_person}</span>
+                  <tbody>
+                    {filteredEmployers.map((employer) => {
+                      const status = getStatusMeta(employer.status);
+
+                      return (
+                        <tr key={employer.id}>
+                          <td>
+                            <div className="employer-identity">
+                              <div className="employer-avatar">
+                                <Building size={18} />
+                              </div>
+
+                              <div>
+                                <strong>{employer.name}</strong>
+                                <span>
+                                  <Globe size={12} />
+                                  {employer.domain || 'No domain'}
+                                </span>
+                              </div>
                             </div>
-                          </div>
-                          <div className="col-sm-6">
-                            <label className="text-muted small d-block mb-1">Email Address</label>
-                            <div className="d-flex align-items-center">
-                              <Mail size={14} className="me-2 text-muted" />
-                              <span className="fw-semibold text-break">{selectedRequest.official_email}</span>
+                          </td>
+
+                          <td>
+                            <div className="employer-contact">
+                              <span>
+                                <Mail size={12} />
+                                {employer.official_email}
+                              </span>
+
+                              <span>
+                                <User size={12} />
+                                {employer.contact_person || 'No contact person'}
+                              </span>
                             </div>
-                          </div>
-                          <div className="col-sm-6">
-                            <label className="text-muted small d-block mb-1">Phone Number</label>
-                            <div className="d-flex align-items-center">
-                              <Phone size={14} className="me-2 text-muted" />
-                              <span className="fw-semibold">{selectedRequest.phone_number || 'N/A'}</span>
+                          </td>
+
+                          <td>
+                            <span className="employer-type">
+                              {employer.organization_type}
+                            </span>
+                          </td>
+
+                          <td>
+                            <span className={`employer-status ${status.className}`}>
+                              {status.label}
+                            </span>
+                          </td>
+
+                          <td>
+                            <div className="capacity-pill">
+                              <strong>{employer.max_active_students}</strong>
+                              <span>students</span>
                             </div>
-                          </div>
-                        </div>
-                      </div>
+                          </td>
+
+                          <td>
+                            <div className="employer-row-actions">
+                              <button
+                                type="button"
+                                onClick={() => handleViewEmployer(employer)}
+                              >
+                                <Eye size={14} />
+                                View
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          )}
+        </section>
+      </div>
+
+      {showRequestModal && selectedRequest && (
+        <div className="employer-modal-backdrop">
+          <div className="employer-modal">
+            <header className="employer-modal-header">
+              <div>
+                <span>Employer request record</span>
+                <h2>{selectedRequest.name}</h2>
+              </div>
+
+              <button type="button" onClick={() => setShowRequestModal(false)}>
+                <X size={18} />
+              </button>
+            </header>
+
+            <div className="employer-modal-body">
+              <aside className="employer-record-summary">
+                <div className="employer-record-icon">
+                  <Briefcase size={34} />
+                </div>
+
+                <h3>{selectedRequest.name}</h3>
+                <p>{selectedRequest.domain}</p>
+
+                <span
+                  className={`employer-status ${
+                    getStatusMeta(selectedRequest.status).className
+                  }`}
+                >
+                  {getStatusMeta(selectedRequest.status).label}
+                </span>
+
+                {selectedRequest.tracking_code && (
+                  <div className="record-tracking">
+                    <span>Tracking code</span>
+                    <strong>{selectedRequest.tracking_code}</strong>
+                  </div>
+                )}
+              </aside>
+
+              <section className="employer-record-details">
+                <div className="record-block">
+                  <h4>
+                    <Building size={14} />
+                    Organization information
+                  </h4>
+
+                  <dl>
+                    <div>
+                      <dt>Website</dt>
+                      <dd>{selectedRequest.website_url || 'N/A'}</dd>
                     </div>
 
                     <div>
-                      <h6 className="text-uppercase text-muted fw-bold small mb-3 letter-spacing-1">
-                        <Clock size={14} className="me-2 text-primary" />
-                        Request History
-                      </h6>
-                      <div className="bg-white rounded-3 border p-3">
-                        <div className="row g-3">
-                          <div className="col-sm-6">
-                            <label className="text-muted small d-block mb-1">Submitted On</label>
-                            <div className="d-flex align-items-center">
-                              <Calendar size={14} className="me-2 text-muted" />
-                              <span className="fw-semibold">{formatDateTime(selectedRequest.created_at)}</span>
-                            </div>
-                          </div>
-                        </div>
-                        {selectedRequest.rejection_reason && (
-                          <div className="mt-3 p-3 bg-danger bg-opacity-10 border border-danger border-opacity-25 rounded-3">
-                            <div className="d-flex align-items-center text-danger mb-1">
-                              <ShieldAlert size={14} className="me-2" />
-                              <span className="fw-bold small text-uppercase">Rejection Reason</span>
-                            </div>
-                            <p className="mb-0 small text-danger">{selectedRequest.rejection_reason}</p>
-                          </div>
-                        )}
-                      </div>
+                      <dt>Registration number</dt>
+                      <dd>{selectedRequest.registration_number || 'N/A'}</dd>
                     </div>
-                  </div>
+
+                    <div>
+                      <dt>Organization type</dt>
+                      <dd>{selectedRequest.organization_type || 'N/A'}</dd>
+                    </div>
+                  </dl>
                 </div>
-              )}
-            </Modal.Body>
-            <Modal.Footer className="bg-light border-top-0 p-3">
-              {selectedRequest?.status === 'PENDING' && (
+
+                <div className="record-block">
+                  <h4>
+                    <Mail size={14} />
+                    Contact person
+                  </h4>
+
+                  <dl>
+                    <div>
+                      <dt>Name</dt>
+                      <dd>{selectedRequest.contact_person || 'N/A'}</dd>
+                    </div>
+
+                    <div>
+                      <dt>Email</dt>
+                      <dd>{selectedRequest.official_email}</dd>
+                    </div>
+
+                    <div>
+                      <dt>Phone</dt>
+                      <dd>{selectedRequest.phone_number || 'N/A'}</dd>
+                    </div>
+                  </dl>
+                </div>
+
+                <div className="record-block">
+                  <h4>
+                    <Clock size={14} />
+                    Request history
+                  </h4>
+
+                  <dl>
+                    <div>
+                      <dt>Submitted</dt>
+                      <dd>{formatDateTime(selectedRequest.created_at)}</dd>
+                    </div>
+
+                    {selectedRequest.rejection_reason && (
+                      <div>
+                        <dt>Rejection reason</dt>
+                        <dd>{selectedRequest.rejection_reason}</dd>
+                      </div>
+                    )}
+                  </dl>
+                </div>
+              </section>
+            </div>
+
+            <footer className="employer-modal-footer">
+              <button
+                type="button"
+                className="employer-btn ghost"
+                onClick={() => setShowRequestModal(false)}
+              >
+                Close
+              </button>
+
+              {selectedRequest.status === 'PENDING' && (
                 <>
-                  <Button variant="outline-danger" className="px-4" onClick={() => handleReviewClick(selectedRequest, 'REJECT')}>Reject Request</Button>
-                  <Button variant="success" className="px-4" onClick={() => handleReviewClick(selectedRequest, 'APPROVE')}>Approve Request</Button>
+                  <button
+                    type="button"
+                    className="employer-btn danger"
+                    onClick={() => handleReviewClick(selectedRequest, 'REJECT')}
+                  >
+                    Reject request
+                  </button>
+
+                  <button
+                    type="button"
+                    className="employer-btn success"
+                    onClick={() => handleReviewClick(selectedRequest, 'APPROVE')}
+                  >
+                    Approve request
+                  </button>
                 </>
               )}
-              <Button variant="outline-secondary" className="px-4" onClick={() => setShowViewRequestModal(false)}>Close</Button>
-            </Modal.Footer>
+            </footer>
           </div>
-        </Modal>
+        </div>
+      )}
 
-        {/* View Employer Modal */}
-        <Modal show={showViewEmployerModal} onHide={() => setShowViewEmployerModal(false)} size="lg" centered className="border-0">
-          <div className="modal-content border-0 shadow-lg">
-            <div className="modal-header bg-primary text-white py-3">
-              <div className="d-flex align-items-center">
-                <div className="bg-white bg-opacity-20 p-2 rounded-3 me-3">
-                  <Building size={20} className="text-white" />
-                </div>
-                <h5 className="modal-title fw-bold mb-0">Employer Profile Details</h5>
+      {showEmployerModal && selectedEmployer && (
+        <div className="employer-modal-backdrop">
+          <div className="employer-modal">
+            <header className="employer-modal-header">
+              <div>
+                <span>Employer profile</span>
+                <h2>{selectedEmployer.name}</h2>
               </div>
-              <button 
-                type="button" 
-                className="btn-close btn-close-white"
-                onClick={() => setShowViewEmployerModal(false)}
-              ></button>
-            </div>
-            <Modal.Body className="p-4">
-              {selectedEmployer && (
-                <div className="row g-4">
-                  <div className="col-md-4">
-                    <div className="card border-0 bg-light h-100">
-                      <div className="card-body text-center py-4">
-                        <div className="position-relative d-inline-block mb-3">
-                          <div className="rounded-circle bg-primary bg-opacity-10 p-4 shadow-sm">
-                            <Building size={48} className="text-primary" />
-                          </div>
-                          <span className="position-absolute bottom-0 end-0 bg-success border border-white border-2 rounded-circle p-2" title="Active"></span>
-                        </div>
-                        <h5 className="fw-bold mb-1">{selectedEmployer.name}</h5>
-                        <p className="text-muted small mb-3">{selectedEmployer.domain}</p>
-                        <div className="d-flex flex-column gap-2 mt-4">
-                          {getStatusBadge(selectedEmployer.status)}
-                          <Badge bg="info" className="bg-opacity-10 text-info border border-info border-opacity-25">{selectedEmployer.organization_type}</Badge>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
 
-                  <div className="col-md-8">
-                    <div className="mb-4">
-                      <h6 className="text-uppercase text-muted fw-bold small mb-3 letter-spacing-1">
-                        <MapPinned size={14} className="me-2 text-primary" />
-                        Organization Details
-                      </h6>
-                      <div className="bg-white rounded-3 border p-3">
-                        <div className="row g-3">
-                          <div className="col-sm-6">
-                            <label className="text-muted small d-block mb-1">Website</label>
-                            <div className="d-flex align-items-center">
-                              <Globe size={14} className="me-2 text-muted" />
-                              <span className="fw-semibold text-break">{selectedEmployer.website_url || 'N/A'}</span>
-                            </div>
-                          </div>
-                          <div className="col-sm-6">
-                            <label className="text-muted small d-block mb-1">Contact Person</label>
-                            <div className="d-flex align-items-center">
-                              <User size={14} className="me-2 text-muted" />
-                              <span className="fw-semibold">{selectedEmployer.contact_person}</span>
-                            </div>
-                          </div>
-                          <div className="col-sm-6">
-                            <label className="text-muted small d-block mb-1">Email Address</label>
-                            <div className="d-flex align-items-center">
-                              <Mail size={14} className="me-2 text-muted" />
-                              <span className="fw-semibold text-break">{selectedEmployer.official_email}</span>
-                            </div>
-                          </div>
-                          <div className="col-sm-6">
-                            <label className="text-muted small d-block mb-1">Phone Number</label>
-                            <div className="d-flex align-items-center">
-                              <Phone size={14} className="me-2 text-muted" />
-                              <span className="fw-semibold">{selectedEmployer.phone_number || 'N/A'}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
+              <button type="button" onClick={() => setShowEmployerModal(false)}>
+                <X size={18} />
+              </button>
+            </header>
+
+            <div className="employer-modal-body">
+              <aside className="employer-record-summary">
+                <div className="employer-record-icon">
+                  <Building size={34} />
+                </div>
+
+                <h3>{selectedEmployer.name}</h3>
+                <p>{selectedEmployer.domain}</p>
+
+                <span
+                  className={`employer-status ${
+                    getStatusMeta(selectedEmployer.status).className
+                  }`}
+                >
+                  {getStatusMeta(selectedEmployer.status).label}
+                </span>
+              </aside>
+
+              <section className="employer-record-details">
+                <div className="record-block">
+                  <h4>
+                    <Globe size={14} />
+                    Organization details
+                  </h4>
+
+                  <dl>
+                    <div>
+                      <dt>Website</dt>
+                      <dd>{selectedEmployer.website_url || 'N/A'}</dd>
                     </div>
 
-                    <div className="mb-4">
-                      <h6 className="text-uppercase text-muted fw-bold small mb-3 letter-spacing-1">
-                        <Activity size={14} className="me-2 text-primary" />
-                        Trust & Operational Capacity
-                      </h6>
-                      <div className="row g-3">
-                        <div className="col-sm-4">
-                          <div className="bg-light p-3 rounded-3 text-center border">
-                            <label className="text-muted small d-block mb-1 text-uppercase letter-spacing-1" style={{fontSize: '10px'}}>Trust Level</label>
-                            <div className="h5 fw-bold text-primary mb-0">{selectedEmployer.trust_level}</div>
-                          </div>
-                        </div>
-                        <div className="col-sm-4">
-                          <div className="bg-light p-3 rounded-3 text-center border">
-                            <label className="text-muted small d-block mb-1 text-uppercase letter-spacing-1" style={{fontSize: '10px'}}>Max Capacity</label>
-                            <div className="h5 fw-bold text-success mb-0">{selectedEmployer.max_active_students}</div>
-                          </div>
-                        </div>
-                        <div className="col-sm-4">
-                          <div className="bg-light p-3 rounded-3 text-center border">
-                            <label className="text-muted small d-block mb-1 text-uppercase letter-spacing-1" style={{fontSize: '10px'}}>Staff Ratio</label>
-                            <div className="h5 fw-bold text-warning mb-0">1:{selectedEmployer.supervisor_ratio}</div>
-                          </div>
-                        </div>
-                      </div>
+                    <div>
+                      <dt>Contact person</dt>
+                      <dd>{selectedEmployer.contact_person || 'N/A'}</dd>
+                    </div>
+
+                    <div>
+                      <dt>Email</dt>
+                      <dd>{selectedEmployer.official_email}</dd>
+                    </div>
+
+                    <div>
+                      <dt>Phone</dt>
+                      <dd>{selectedEmployer.phone_number || 'N/A'}</dd>
+                    </div>
+                  </dl>
+                </div>
+
+                <div className="record-block">
+                  <h4>
+                    <Activity size={14} />
+                    Trust & hosting capacity
+                  </h4>
+
+                  <div className="record-stat-grid">
+                    <div>
+                      <strong>{selectedEmployer.trust_level}</strong>
+                      <span>Trust level</span>
+                    </div>
+
+                    <div>
+                      <strong>{selectedEmployer.max_active_students}</strong>
+                      <span>Max students</span>
+                    </div>
+
+                    <div>
+                      <strong>1:{selectedEmployer.supervisor_ratio}</strong>
+                      <span>Staff ratio</span>
                     </div>
                   </div>
                 </div>
-              )}
-            </Modal.Body>
-            <Modal.Footer className="bg-light border-top-0 p-3">
-              <Button variant="outline-secondary" className="px-4" onClick={() => setShowViewEmployerModal(false)}>Close Profile</Button>
-              <Button variant="primary" className="px-4">Manage Partnerships</Button>
-            </Modal.Footer>
+              </section>
+            </div>
+
+            <footer className="employer-modal-footer">
+              <button
+                type="button"
+                className="employer-btn ghost"
+                onClick={() => setShowEmployerModal(false)}
+              >
+                Close profile
+              </button>
+
+              <button type="button" className="employer-btn secondary">
+                Manage partnership
+              </button>
+            </footer>
           </div>
-        </Modal>
+        </div>
+      )}
 
-        {/* Review Modal */}
-        <Modal show={showReviewModal} onHide={() => setShowReviewModal(false)}>
-          <Modal.Header closeButton>
-            <Modal.Title>{action === 'APPROVE' ? 'Approve Request' : 'Reject Request'}</Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
-            {action === 'APPROVE' ? (
-              <p>
-                Are you sure you want to approve <strong>{selectedRequest?.name}</strong>?
-                This will create an employer account and send an invite to <strong>{selectedRequest?.official_email}</strong>.
-              </p>
-            ) : (
-              <Form>
-                <Form.Group className="mb-3">
-                  <Form.Label>Rejection Reason Code</Form.Label>
-                  <Form.Select 
-                    value={rejectionReasonCode} 
-                    onChange={(e) => setRejectionReasonCode(e.target.value)}
-                  >
-                    <option value="DOMAIN_MISMATCH">Domain Mismatch</option>
-                    <option value="INVALID_DATA">Invalid Data</option>
-                    <option value="DUPLICATE">Duplicate Organization</option>
-                    <option value="OTHER">Other</option>
-                  </Form.Select>
-                </Form.Group>
-                <Form.Group className="mb-3">
-                  <Form.Label>Detailed Reason</Form.Label>
-                  <Form.Control 
-                    as="textarea" 
-                    rows={3} 
-                    value={rejectionReason}
-                    onChange={(e) => setRejectionReason(e.target.value)}
-                    placeholder="Please explain why this request is being rejected..."
-                  />
-                </Form.Group>
-              </Form>
-            )}
-          </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowReviewModal(false)}>
-              Cancel
-            </Button>
-            <Button 
-              variant={action === 'APPROVE' ? 'success' : 'danger'} 
-              onClick={handleSubmitReview}
-              disabled={submittingReview}
-            >
-              {submittingReview ? 'Processing...' : (action === 'APPROVE' ? 'Confirm Approval' : 'Confirm Rejection')}
-            </Button>
-          </Modal.Footer>
-        </Modal>
+      {showReviewModal && selectedRequest && (
+        <div className="employer-modal-backdrop">
+          <div className="employer-modal compact">
+            <header className="employer-modal-header">
+              <div>
+                <span>
+                  {action === 'APPROVE'
+                    ? 'Approve employer request'
+                    : 'Reject employer request'}
+                </span>
+                <h2>{selectedRequest.name}</h2>
+              </div>
 
-      </div>
+              <button type="button" onClick={() => setShowReviewModal(false)}>
+                <X size={18} />
+              </button>
+            </header>
+
+            <div className="review-body">
+              {action === 'APPROVE' ? (
+                <div className="approval-copy">
+                  <CheckCircle size={28} />
+                  <p>
+                    Approving this request will create an employer account and
+                    send an invite to{' '}
+                    <strong>{selectedRequest.official_email}</strong>.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <label>
+                    Rejection reason code
+                    <select
+                      value={rejectionReasonCode}
+                      onChange={(event) =>
+                        setRejectionReasonCode(event.target.value)
+                      }
+                    >
+                      <option value="DOMAIN_MISMATCH">Domain mismatch</option>
+                      <option value="INVALID_DATA">Invalid data</option>
+                      <option value="DUPLICATE">Duplicate organization</option>
+                      <option value="OTHER">Other</option>
+                    </select>
+                  </label>
+
+                  <label>
+                    Detailed reason
+                    <textarea
+                      rows={4}
+                      value={rejectionReason}
+                      onChange={(event) =>
+                        setRejectionReason(event.target.value)
+                      }
+                      placeholder="Explain why this request is being rejected..."
+                    />
+                  </label>
+                </>
+              )}
+            </div>
+
+            <footer className="employer-modal-footer">
+              <button
+                type="button"
+                className="employer-btn ghost"
+                onClick={() => setShowReviewModal(false)}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                className={
+                  action === 'APPROVE'
+                    ? 'employer-btn success'
+                    : 'employer-btn danger'
+                }
+                onClick={handleSubmitReview}
+                disabled={submittingReview}
+              >
+                {submittingReview
+                  ? 'Processing'
+                  : action === 'APPROVE'
+                    ? 'Confirm approval'
+                    : 'Confirm rejection'}
+              </button>
+            </footer>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        .employer-ops-page {
+          color: #111827;
+        }
+
+        .employer-ops-header {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 24px;
+          margin-bottom: 22px;
+        }
+
+        .employer-kicker,
+        .employer-panel-kicker {
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          color: #64748b;
+          font-size: .72rem;
+          font-weight: 850;
+          letter-spacing: .09em;
+          text-transform: uppercase;
+          margin-bottom: 8px;
+        }
+
+        .employer-kicker svg {
+          color: #047857;
+        }
+
+        .employer-ops-header h1 {
+          color: #0f172a;
+          font-size: clamp(1.85rem, 3vw, 2.6rem);
+          line-height: 1.05;
+          font-weight: 900;
+          letter-spacing: -.055em;
+          margin: 0 0 8px;
+        }
+
+        .employer-ops-header p {
+          color: #64748b;
+          max-width: 780px;
+          line-height: 1.65;
+          margin: 0;
+        }
+
+        .employer-header-actions {
+          display: flex;
+          gap: 10px;
+          flex-shrink: 0;
+        }
+
+        .employer-btn {
+          min-height: 42px;
+          border-radius: 12px;
+          padding: 0 14px;
+          border: 1px solid transparent;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          font-weight: 850;
+          cursor: pointer;
+          text-decoration: none;
+        }
+
+        .employer-btn.secondary {
+          background: #ffffff;
+          border-color: #dbe3ea;
+          color: #334155;
+        }
+
+        .employer-btn.ghost {
+          background: #ffffff;
+          border-color: #e5e7eb;
+          color: #475569;
+        }
+
+        .employer-btn.success {
+          background: #047857;
+          color: #ffffff;
+        }
+
+        .employer-btn.danger {
+          background: #dc2626;
+          color: #ffffff;
+        }
+
+        .employer-btn:disabled {
+          opacity: .55;
+          cursor: not-allowed;
+        }
+
+        .employer-error {
+          margin-bottom: 18px;
+          border: 1px solid #fecaca;
+          background: #fef2f2;
+          color: #991b1b;
+          border-radius: 14px;
+          padding: 12px 14px;
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+        }
+
+        .employer-error strong {
+          display: block;
+          font-weight: 900;
+          margin-bottom: 2px;
+        }
+
+        .employer-error span {
+          display: block;
+          font-size: .9rem;
+        }
+
+        .employer-error button {
+          margin-left: auto;
+          border: 0;
+          background: transparent;
+          color: inherit;
+          cursor: pointer;
+        }
+
+        .employer-signal-grid {
+          display: grid;
+          grid-template-columns: repeat(6, minmax(0, 1fr));
+          gap: 12px;
+          margin-bottom: 18px;
+        }
+
+        .employer-signal-grid article,
+        .employer-panel {
+          background: #ffffff;
+          border: 1px solid #e5e7eb;
+          box-shadow: 0 10px 26px rgba(15,23,42,.04);
+        }
+
+        .employer-signal-grid article {
+          border-radius: 18px;
+          padding: 16px;
+        }
+
+        .signal-icon {
+          width: 38px;
+          height: 38px;
+          border-radius: 13px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 14px;
+        }
+
+        .signal-icon.neutral { color: #334155; background: #f1f5f9; }
+        .signal-icon.success { color: #047857; background: #ecfdf5; }
+        .signal-icon.warning { color: #b45309; background: #fffbeb; }
+        .signal-icon.danger { color: #b91c1c; background: #fef2f2; }
+        .signal-icon.indigo { color: #4338ca; background: #eef2ff; }
+        .signal-icon.blue { color: #0369a1; background: #e0f2fe; }
+
+        .employer-signal-grid strong {
+          display: block;
+          color: #0f172a;
+          font-size: 1.7rem;
+          font-weight: 900;
+          line-height: 1;
+          letter-spacing: -.05em;
+          margin-bottom: 6px;
+        }
+
+        .employer-signal-grid span {
+          color: #64748b;
+          font-size: .78rem;
+          font-weight: 700;
+          line-height: 1.35;
+        }
+
+        .employer-panel {
+          border-radius: 20px;
+          overflow: hidden;
+        }
+
+        .employer-panel-header {
+          padding: 20px;
+          border-bottom: 1px solid #eef2f7;
+          display: flex;
+          justify-content: space-between;
+          gap: 16px;
+        }
+
+        .employer-panel-header h2 {
+          color: #0f172a;
+          font-size: 1.22rem;
+          font-weight: 900;
+          margin: 0 0 5px;
+        }
+
+        .employer-panel-header p {
+          color: #64748b;
+          margin: 0;
+          font-size: .9rem;
+          line-height: 1.55;
+        }
+
+        .employer-tabs {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+          flex-shrink: 0;
+        }
+
+        .employer-tabs button {
+          border: 1px solid #e5e7eb;
+          background: #ffffff;
+          color: #64748b;
+          border-radius: 999px;
+          padding: 8px 12px;
+          font-size: .82rem;
+          font-weight: 850;
+          cursor: pointer;
+        }
+
+        .employer-tabs button.active {
+          background: #0f172a;
+          color: #ffffff;
+          border-color: #0f172a;
+        }
+
+        .employer-tabs span {
+          margin-left: 6px;
+          opacity: .75;
+        }
+
+        .employer-filter-bar {
+          padding: 16px 20px;
+          display: grid;
+          grid-template-columns: minmax(260px, 1fr) 220px;
+          gap: 10px;
+          border-bottom: 1px solid #eef2f7;
+        }
+
+        .employer-search {
+          min-height: 44px;
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          padding: 0 12px;
+          border: 1px solid #dbe3ea;
+          border-radius: 12px;
+          background: #ffffff;
+          color: #94a3b8;
+        }
+
+        .employer-search input {
+          width: 100%;
+          border: 0;
+          outline: none;
+          color: #111827;
+          font-weight: 650;
+          font-size: .9rem;
+        }
+
+        .employer-filter-bar select {
+          min-height: 44px;
+          border: 1px solid #dbe3ea;
+          border-radius: 12px;
+          background: #ffffff;
+          color: #334155;
+          padding: 0 12px;
+          font-weight: 750;
+          outline: none;
+        }
+
+        .employer-table-wrap {
+          overflow-x: auto;
+        }
+
+        .employer-table {
+          width: 100%;
+          min-width: 1060px;
+          border-collapse: collapse;
+        }
+
+        .employer-table th {
+          background: #f8fafc;
+          color: #64748b;
+          font-size: .72rem;
+          font-weight: 900;
+          letter-spacing: .06em;
+          text-transform: uppercase;
+          padding: 12px 16px;
+          border-bottom: 1px solid #eef2f7;
+        }
+
+        .employer-table td {
+          padding: 14px 16px;
+          border-bottom: 1px solid #eef2f7;
+          vertical-align: middle;
+        }
+
+        .employer-identity {
+          min-width: 260px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .employer-avatar {
+          width: 42px;
+          height: 42px;
+          border-radius: 14px;
+          background: #f1f5f9;
+          color: #334155;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+
+        .employer-identity strong {
+          display: block;
+          color: #0f172a;
+          font-size: .9rem;
+          font-weight: 900;
+        }
+
+        .employer-identity span,
+        .employer-contact span {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          color: #64748b;
+          font-size: .78rem;
+          line-height: 1.5;
+        }
+
+        .tracking-code,
+        .employer-status,
+        .employer-type,
+        .employer-date {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          border-radius: 999px;
+          padding: 6px 9px;
+          font-size: .74rem;
+          font-weight: 850;
+          white-space: nowrap;
+        }
+
+        .tracking-code {
+          border: 1px solid #dbe3ea;
+          background: #f8fafc;
+          color: #334155;
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        }
+
+        .status-success { background: #ecfdf5; color: #047857; }
+        .status-warning { background: #fffbeb; color: #b45309; }
+        .status-danger { background: #fef2f2; color: #b91c1c; }
+        .status-muted { background: #f8fafc; color: #475569; }
+
+        .employer-type,
+        .employer-date {
+          background: #f8fafc;
+          color: #475569;
+        }
+
+        .capacity-pill {
+          display: inline-flex;
+          flex-direction: column;
+          border: 1px solid #e5e7eb;
+          background: #f8fafc;
+          border-radius: 12px;
+          padding: 7px 10px;
+        }
+
+        .capacity-pill strong {
+          color: #0f172a;
+          line-height: 1;
+          font-weight: 900;
+        }
+
+        .capacity-pill span {
+          color: #64748b;
+          font-size: .68rem;
+          text-transform: uppercase;
+          font-weight: 800;
+        }
+
+        .employer-row-actions {
+          display: flex;
+          align-items: center;
+          gap: 7px;
+        }
+
+        .employer-row-actions button {
+          min-height: 34px;
+          border-radius: 10px;
+          border: 1px solid #dbe3ea;
+          background: #ffffff;
+          color: #334155;
+          padding: 0 10px;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: .78rem;
+          font-weight: 850;
+          cursor: pointer;
+        }
+
+        .employer-row-actions button.success {
+          color: #047857;
+          border-color: #bbf7d0;
+        }
+
+        .employer-row-actions button.danger {
+          color: #b91c1c;
+          border-color: #fecaca;
+        }
+
+        .employer-empty {
+          padding: 56px 20px;
+          text-align: center;
+          color: #64748b;
+        }
+
+        .employer-empty svg {
+          margin-bottom: 12px;
+          color: #94a3b8;
+        }
+
+        .employer-empty h3 {
+          color: #0f172a;
+          font-size: 1.05rem;
+          font-weight: 900;
+          margin: 0 0 6px;
+        }
+
+        .employer-empty p {
+          margin: 0;
+        }
+
+        .employer-modal-backdrop {
+          position: fixed;
+          inset: 0;
+          z-index: 2000;
+          background: rgba(15,23,42,.48);
+          backdrop-filter: blur(4px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+        }
+
+        .employer-modal {
+          width: min(880px, 100%);
+          max-height: calc(100vh - 40px);
+          overflow-y: auto;
+          background: #ffffff;
+          border-radius: 22px;
+          box-shadow: 0 24px 80px rgba(15,23,42,.24);
+        }
+
+        .employer-modal.compact {
+          width: min(560px, 100%);
+        }
+
+        .employer-modal-header {
+          padding: 18px 20px;
+          border-bottom: 1px solid #eef2f7;
+          display: flex;
+          justify-content: space-between;
+          gap: 16px;
+        }
+
+        .employer-modal-header span {
+          display: block;
+          color: #64748b;
+          font-size: .72rem;
+          font-weight: 850;
+          letter-spacing: .09em;
+          text-transform: uppercase;
+          margin-bottom: 5px;
+        }
+
+        .employer-modal-header h2 {
+          color: #0f172a;
+          font-size: 1.35rem;
+          font-weight: 900;
+          margin: 0;
+          letter-spacing: -.03em;
+        }
+
+        .employer-modal-header button {
+          width: 36px;
+          height: 36px;
+          border-radius: 10px;
+          border: 1px solid #e5e7eb;
+          background: #ffffff;
+          color: #334155;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+        }
+
+        .employer-modal-body {
+          padding: 20px;
+          display: grid;
+          grid-template-columns: 260px 1fr;
+          gap: 20px;
+        }
+
+        .employer-record-summary {
+          background: #f8fafc;
+          border: 1px solid #e5e7eb;
+          border-radius: 18px;
+          padding: 18px;
+          text-align: center;
+        }
+
+        .employer-record-icon {
+          width: 76px;
+          height: 76px;
+          margin: 0 auto 14px;
+          border-radius: 22px;
+          background: #f1f5f9;
+          color: #334155;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .employer-record-summary h3 {
+          color: #0f172a;
+          font-size: 1rem;
+          font-weight: 900;
+          margin: 0 0 4px;
+        }
+
+        .employer-record-summary p {
+          color: #64748b;
+          font-size: .82rem;
+          margin: 0 0 12px;
+          word-break: break-word;
+        }
+
+        .record-tracking {
+          margin-top: 16px;
+          border: 1px solid #e5e7eb;
+          background: #ffffff;
+          border-radius: 14px;
+          padding: 12px;
+        }
+
+        .record-tracking span {
+          display: block;
+          color: #64748b;
+          font-size: .68rem;
+          font-weight: 900;
+          text-transform: uppercase;
+          letter-spacing: .06em;
+          margin-bottom: 4px;
+        }
+
+        .record-tracking strong {
+          color: #0f172a;
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+          font-size: .82rem;
+        }
+
+        .employer-record-details {
+          display: grid;
+          gap: 14px;
+        }
+
+        .record-block {
+          border: 1px solid #e5e7eb;
+          border-radius: 16px;
+          padding: 16px;
+        }
+
+        .record-block h4 {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          color: #0f172a;
+          font-size: .88rem;
+          font-weight: 900;
+          margin: 0 0 14px;
+        }
+
+        .record-block dl {
+          margin: 0;
+          display: grid;
+          gap: 12px;
+        }
+
+        .record-block dl > div {
+          display: grid;
+          grid-template-columns: 145px 1fr;
+          gap: 14px;
+        }
+
+        .record-block dt {
+          color: #64748b;
+          font-size: .78rem;
+          font-weight: 800;
+        }
+
+        .record-block dd {
+          margin: 0;
+          color: #111827;
+          font-size: .88rem;
+          font-weight: 750;
+          word-break: break-word;
+        }
+
+        .record-stat-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 10px;
+        }
+
+        .record-stat-grid div {
+          border-radius: 14px;
+          background: #f8fafc;
+          border: 1px solid #e5e7eb;
+          padding: 12px;
+        }
+
+        .record-stat-grid strong {
+          display: block;
+          color: #0f172a;
+          font-size: 1.25rem;
+          font-weight: 900;
+        }
+
+        .record-stat-grid span {
+          color: #64748b;
+          font-size: .72rem;
+          font-weight: 800;
+          text-transform: uppercase;
+        }
+
+        .review-body {
+          padding: 20px;
+          display: grid;
+          gap: 14px;
+        }
+
+        .approval-copy {
+          display: flex;
+          gap: 14px;
+          align-items: flex-start;
+          border-radius: 16px;
+          background: #ecfdf5;
+          border: 1px solid #bbf7d0;
+          color: #047857;
+          padding: 16px;
+        }
+
+        .approval-copy p {
+          margin: 0;
+          color: #064e3b;
+          line-height: 1.6;
+        }
+
+        .review-body label {
+          color: #0f172a;
+          font-size: .82rem;
+          font-weight: 850;
+          display: grid;
+          gap: 7px;
+        }
+
+        .review-body select,
+        .review-body textarea {
+          width: 100%;
+          border: 1px solid #dbe3ea;
+          border-radius: 12px;
+          padding: 11px 12px;
+          font: inherit;
+          outline: none;
+        }
+
+        .review-body textarea {
+          resize: vertical;
+        }
+
+        .employer-modal-footer {
+          padding: 16px 20px;
+          border-top: 1px solid #eef2f7;
+          display: flex;
+          justify-content: flex-end;
+          gap: 10px;
+        }
+
+        @media (max-width: 1180px) {
+          .employer-signal-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+          }
+        }
+
+        @media (max-width: 760px) {
+          .employer-ops-header,
+          .employer-panel-header {
+            flex-direction: column;
+          }
+
+          .employer-header-actions,
+          .employer-tabs {
+            width: 100%;
+            flex-direction: column;
+          }
+
+          .employer-btn,
+          .employer-tabs button {
+            width: 100%;
+          }
+
+          .employer-signal-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .employer-filter-bar {
+            grid-template-columns: 1fr;
+          }
+
+          .employer-modal-body {
+            grid-template-columns: 1fr;
+          }
+
+          .record-block dl > div {
+            grid-template-columns: 1fr;
+            gap: 4px;
+          }
+
+          .record-stat-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .employer-modal-footer {
+            flex-direction: column;
+          }
+        }
+
+        @media (max-width: 520px) {
+          .employer-signal-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
     </AdminLayout>
   );
 };

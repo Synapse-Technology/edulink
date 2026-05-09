@@ -1,5 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Bot, MessageCircle, RotateCcw, Send, ShieldCheck, X } from 'lucide-react';
+import {
+  Bot,
+  MessageCircle,
+  RotateCcw,
+  Send,
+  ShieldCheck,
+  X,
+} from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 
@@ -39,7 +46,7 @@ const knowledgeBase: KnowledgeEntry[] = [
     title: 'What EduLink Does',
     keywords: ['what is edulink', 'overview', 'about', 'purpose', 'platform', 'mission'],
     response:
-      'EduLink streamlines the internship and attachment process by connecting verified students, institutions, employers, and supervisors in one workflow. It helps students find trusted placements, institutions monitor academic progress, employers access verified talent, and all parties keep evidence through logbooks, reviews, reports, and certificates.',
+      'EduLink KE helps students, institutions, employers, and supervisors manage internship and attachment workflows in one place. It supports verified opportunities, applications, digital logbooks, supervision, incidents, reports, and completion records.',
     links: [
       { label: 'About EduLink', href: '/about' },
       { label: 'Why EduLink', href: '/why-us' },
@@ -50,7 +57,7 @@ const knowledgeBase: KnowledgeEntry[] = [
     title: 'Student Flow',
     keywords: ['student', 'students', 'apply', 'application', 'internship search', 'logbook', 'certificate', 'cv'],
     response:
-      'Students use EduLink to build a profile, claim institution affiliation, browse verified opportunities, apply, track application status, submit weekly logbook evidence, report incidents, receive feedback, and earn verified completion artifacts when an internship is completed and certified.',
+      'Students can build a profile, claim institution affiliation, browse verified opportunities, apply, track application status, submit logbook evidence, report incidents, and receive verified completion records after approval.',
     links: [
       { label: 'Browse Opportunities', href: '/opportunities' },
       { label: 'Student Login', href: '/login' },
@@ -61,10 +68,10 @@ const knowledgeBase: KnowledgeEntry[] = [
     title: 'Employer Flow',
     keywords: ['employer', 'company', 'startup', 'talent pool', 'hire', 'candidate', 'supervisor'],
     response:
-      'Employers use EduLink to request onboarding, publish internship opportunities, review applicants, manage interns, assign supervisors, review evidence, resolve incidents, and build a verified talent pipeline from institutions. This helps startups, companies, and public-sector partners reduce manual screening and find internship-ready students.',
+      'Employers can request onboarding, publish internship opportunities, review applicants, manage interns, assign supervisors, review logbooks, resolve incidents, and build a verified junior talent pipeline.',
     links: [
       { label: 'Employer Portal', href: '/employer/login' },
-      { label: 'Register Organization', href: '/employer/onboarding' },
+      { label: 'Employer Onboarding', href: '/employer/onboarding' },
     ],
   },
   {
@@ -72,26 +79,26 @@ const knowledgeBase: KnowledgeEntry[] = [
     title: 'Institution Flow',
     keywords: ['institution', 'university', 'college', 'department', 'cohort', 'verify student', 'attachment'],
     response:
-      'Institutions use EduLink to verify student affiliation, maintain departments and cohorts, monitor internship applications, oversee active placements, review logbooks and incidents, and generate placement reports. The goal is to make attachment supervision traceable instead of spreadsheet-driven.',
+      'Institutions can verify students, manage departments and cohorts, monitor placements, assign assessors, review logbooks, track incidents, and generate placement reports. This helps reduce spreadsheet-driven attachment supervision.',
     links: [
       { label: 'Institution Portal', href: '/institution/login' },
-      { label: 'Request Institution Access', href: '/institution/request' },
+      { label: 'Request Access', href: '/institution/request' },
     ],
   },
   {
     id: 'trust',
     title: 'Trust And Verification',
-    keywords: ['trust', 'verification', 'verified', 'credibility', 'certificate', 'on chain', 'ledger', 'audit'],
+    keywords: ['trust', 'verification', 'verified', 'credibility', 'certificate', 'ledger', 'audit'],
     response:
-      'EduLink is built around trust signals: verified student affiliation, verified employer and institution profiles, reviewed logbook evidence, incident records, audit logs, and digital completion artifacts. These records help employers and institutions make decisions from verified activity instead of self-claimed experience alone.',
-    links: [{ label: 'Verify Artifact', href: '/verify/demo' }],
+      'EduLink uses trust signals such as verified student affiliation, verified employer and institution profiles, reviewed logbook evidence, incident records, audit logs, and digital completion artifacts. The goal is to make internship records more credible than self-claimed experience.',
+    links: [{ label: 'Trust Policy', href: '/trust-policy' }],
   },
   {
     id: 'success-stories',
     title: 'Success Stories',
     keywords: ['success stories', 'story', 'career growth', 'placement', 'graduate'],
     response:
-      'Success stories show outcomes from completed internships. They are intended to demonstrate career transition: a student starts with a verified placement, completes supervised work, receives feedback, and can present credible evidence of readiness to future employers.',
+      'Success stories show verified student internship and attachment outcomes. They highlight how students move from placement to supervised work, feedback, and credible experience.',
     links: [{ label: 'Success Stories', href: '/success-stories' }],
   },
   {
@@ -99,7 +106,7 @@ const knowledgeBase: KnowledgeEntry[] = [
     title: 'Support',
     keywords: ['support', 'help', 'ticket', 'contact', 'issue', 'problem'],
     response:
-      'For account, placement, or technical issues, users can submit a support request and track ticket progress. Edi can explain EduLink flows, but formal support requests should go through the support center so the team can follow up properly.',
+      'For account, placement, or technical issues, submit a support ticket so the EduLink team can follow up properly. Edi can explain workflows, but formal issues should go through the support center.',
     links: [
       { label: 'Support Center', href: '/support' },
       { label: 'Contact', href: '/contact' },
@@ -110,12 +117,11 @@ const knowledgeBase: KnowledgeEntry[] = [
     title: 'Demo Walkthrough',
     keywords: ['demo', 'walkthrough', 'test account', 'login credential', 'credentials', 'presentation'],
     response:
-      'For a live walkthrough, use the Demo access panel on each login page. It can fill the relevant student, employer, institution, or admin account without Edi exposing sensitive operational details inside chat.',
+      'Demo access is available from the student, employer, and institution login pages. Use the demo panel there to fill safe test accounts without exposing operational details inside chat.',
     links: [
       { label: 'Student Demo', href: '/login' },
       { label: 'Employer Demo', href: '/employer/login' },
       { label: 'Institution Demo', href: '/institution/login' },
-      { label: 'Admin Demo', href: '/admin/login' },
     ],
   },
   {
@@ -123,7 +129,7 @@ const knowledgeBase: KnowledgeEntry[] = [
     title: 'Who EduLink Serves',
     keywords: ['government', 'startup', 'employers', 'who is it for', 'users', 'stakeholders'],
     response:
-      'EduLink serves students seeking career transition, institutions managing attachment quality, employers and startups seeking verified junior talent, supervisors reviewing progress, and government or ecosystem partners that need clearer placement data and employability signals.',
+      'EduLink serves students seeking career transition, institutions managing attachment quality, employers seeking verified junior talent, supervisors reviewing progress, and ecosystem partners that need clearer placement data.',
   },
 ];
 
@@ -131,7 +137,7 @@ const starterPrompts = [
   'What does EduLink do?',
   'How does the student flow work?',
   'How does EduLink help employers?',
-  'What makes the talent pool verified?',
+  'What makes records verified?',
 ];
 
 const routePrompts: Array<{ test: (path: string) => boolean; prompts: string[] }> = [
@@ -157,11 +163,12 @@ const routePrompts: Array<{ test: (path: string) => boolean; prompts: string[] }
   },
   {
     test: path => path.startsWith('/dashboard/student'),
-    prompts: ['How does the logbook work?', 'How do certificates become trusted?'],
+    prompts: ['How does the logbook work?', 'How do completion records become trusted?'],
   },
 ];
 
-const normalize = (value: string) => value.toLowerCase().replace(/\s+/g, ' ').trim();
+const normalize = (value: string) =>
+  value.toLowerCase().replace(/\s+/g, ' ').trim();
 
 const isBlocked = (query: string) => {
   const normalized = normalize(query);
@@ -170,12 +177,20 @@ const isBlocked = (query: string) => {
 
 const scoreEntry = (query: string, entry: KnowledgeEntry) => {
   const normalized = normalize(query);
+
   return entry.keywords.reduce((score, keyword) => {
     const normalizedKeyword = normalize(keyword);
-    if (normalized.includes(normalizedKeyword)) return score + normalizedKeyword.length + 8;
-    return normalizedKeyword
-      .split(' ')
-      .filter(part => part.length > 2 && normalized.includes(part)).length + score;
+
+    if (normalized.includes(normalizedKeyword)) {
+      return score + normalizedKeyword.length + 8;
+    }
+
+    return (
+      score +
+      normalizedKeyword
+        .split(' ')
+        .filter(part => part.length > 2 && normalized.includes(part)).length
+    );
   }, 0);
 };
 
@@ -186,7 +201,7 @@ const getEdiResponse = (query: string): KnowledgeEntry => {
       title: 'Security Boundary',
       keywords: [],
       response:
-        'I cannot share passwords, secrets, backend internals, exploit guidance, or production configuration. I can explain EduLink workflows, public features, demo navigation, and the value proposition safely.',
+        'I cannot share passwords, secrets, backend internals, exploit guidance, production configuration, or source-code details. I can safely explain EduLink workflows, public features, demo navigation, and support options.',
       links: [{ label: 'Support Center', href: '/support' }],
     };
   }
@@ -196,7 +211,7 @@ const getEdiResponse = (query: string): KnowledgeEntry => {
       const score = scoreEntry(query, entry);
       return score > currentScore ? [entry, score] : [currentEntry, currentScore];
     },
-    [knowledgeBase[0], 0]
+    [knowledgeBase[0], 0],
   );
 
   if (bestScore < 2) {
@@ -205,7 +220,7 @@ const getEdiResponse = (query: string): KnowledgeEntry => {
       title: 'EduLink Scope',
       keywords: [],
       response:
-        'I am focused on EduLink. Ask me about internships, attachment workflows, verified talent, students, institutions, employers, supervisors, success stories, support, or the demo walkthrough.',
+        'I may not have enough context for that. I can help with EduLink workflows, internships, attachments, verified talent, students, institutions, employers, supervisors, success stories, support, and demo navigation.',
       links: [
         { label: 'Opportunities', href: '/opportunities' },
         { label: 'Support', href: '/support' },
@@ -226,10 +241,12 @@ const getGreeting = ({
   isAuthenticated: boolean;
 }) => {
   const greeting = firstName ? `Hi ${firstName}, I am Edi.` : 'Hi, I am Edi.';
+
   const roleHint =
     isAuthenticated && role
-      ? ` I can help you understand EduLink from your ${role.replace('_', ' ')} view.`
+      ? ` I can explain EduLink from your ${role.replace('_', ' ')} view.`
       : ' I can explain how EduLink works for students, institutions, employers, and demo visitors.';
+
   return `${greeting}${roleHint}`;
 };
 
@@ -241,19 +258,27 @@ const getPromptsForPath = (path: string) => {
 const EdiChatbot: React.FC = () => {
   const location = useLocation();
   const { user, admin, isAuthenticated } = useAuthStore();
+
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [hasUnreadIntro, setHasUnreadIntro] = useState(false);
   const [activeLinks, setActiveLinks] = useState<KnowledgeEntry['links']>([]);
+
   const typingTimerRef = useRef<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const initialMessage = useMemo(() => {
     const firstName = user?.firstName || admin?.firstName;
     const role = user?.role || admin?.role;
-    return getGreeting({ firstName, role, isAuthenticated });
+
+    return getGreeting({
+      firstName,
+      role,
+      isAuthenticated,
+    });
   }, [admin?.firstName, admin?.role, isAuthenticated, user?.firstName, user?.role]);
+
   const activePrompts = getPromptsForPath(location.pathname);
 
   const [messages, setMessages] = useState<EdiMessage[]>([
@@ -264,7 +289,10 @@ const EdiChatbot: React.FC = () => {
     },
   ]);
 
-  const hiddenOnRoute = location.pathname.startsWith('/verify/');
+  const hiddenOnRoute =
+    location.pathname.startsWith('/verify/') ||
+    location.pathname.startsWith('/admin/login') ||
+    location.pathname.startsWith('/dashboard/admin');
 
   useEffect(() => {
     setMessages(prev => {
@@ -275,20 +303,23 @@ const EdiChatbot: React.FC = () => {
 
   useEffect(() => {
     if (hiddenOnRoute) return;
-    if (window.sessionStorage.getItem('edi_auto_opened') === 'true') return;
+    if (window.sessionStorage.getItem('edi_intro_nudged') === 'true') return;
 
     const timer = window.setTimeout(() => {
-      window.sessionStorage.setItem('edi_auto_opened', 'true');
-      setIsOpen(true);
-      setHasUnreadIntro(false);
-    }, 1200);
+      window.sessionStorage.setItem('edi_intro_nudged', 'true');
+      setHasUnreadIntro(true);
+    }, 1600);
 
     return () => window.clearTimeout(timer);
   }, [hiddenOnRoute]);
 
   useEffect(() => {
     if (!isOpen) return;
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+
+    messagesEndRef.current?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'end',
+    });
   }, [isOpen, isTyping, messages]);
 
   useEffect(() => {
@@ -297,33 +328,68 @@ const EdiChatbot: React.FC = () => {
 
   useEffect(() => {
     return () => {
-      if (typingTimerRef.current) window.clearTimeout(typingTimerRef.current);
+      if (typingTimerRef.current) {
+        window.clearTimeout(typingTimerRef.current);
+      }
     };
   }, []);
 
   if (hiddenOnRoute) return null;
 
+  const resetConversation = () => {
+    if (typingTimerRef.current) window.clearTimeout(typingTimerRef.current);
+
+    setMessages([
+      {
+        id: Date.now(),
+        sender: 'edi',
+        text: initialMessage,
+      },
+    ]);
+
+    setActiveLinks([]);
+    setInput('');
+    setIsTyping(false);
+  };
+
   const sendMessage = (text: string) => {
     const trimmed = text.trim();
+
     if (!trimmed || isTyping) return;
 
     const answer = getEdiResponse(trimmed);
+
     setMessages(prev => [
       ...prev,
-      { id: Date.now(), sender: 'user', text: trimmed },
+      {
+        id: Date.now(),
+        sender: 'user',
+        text: trimmed,
+      },
     ]);
+
     setActiveLinks([]);
     setIsTyping(true);
     setInput('');
 
-    const responseDelay = Math.min(1400, Math.max(650, answer.response.length * 8));
+    const responseDelay = Math.min(
+      1200,
+      Math.max(520, answer.response.length * 6),
+    );
+
     typingTimerRef.current = window.setTimeout(() => {
       setMessages(prev => [
         ...prev,
-        { id: Date.now() + 1, sender: 'edi', text: answer.response },
+        {
+          id: Date.now() + 1,
+          sender: 'edi',
+          text: answer.response,
+        },
       ]);
+
       setActiveLinks(answer.links ?? []);
       setIsTyping(false);
+
       if (!isOpen) setHasUnreadIntro(true);
     }, responseDelay);
   };
@@ -337,34 +403,32 @@ const EdiChatbot: React.FC = () => {
     <>
       {isOpen && (
         <aside
-          className="edi-chatbot-panel shadow-lg"
+          className="edi-chatbot-panel"
           aria-label="Edi EduLink assistant"
         >
           <header className="edi-chatbot-header">
             <div className="edi-avatar">
               <Bot size={20} />
             </div>
-            <div>
+
+            <div className="edi-heading">
               <div className="edi-title">
-                Edi <span className="edi-live-dot" aria-hidden="true" />
+                Edi
+                <span className="edi-live-dot" aria-hidden="true" />
               </div>
-              <div className="edi-subtitle">Live EduLink assistant</div>
+              <div className="edi-subtitle">EduLink guidance assistant</div>
             </div>
+
             <button
               type="button"
-              className="edi-icon-button ms-auto"
-              onClick={() => {
-                if (typingTimerRef.current) window.clearTimeout(typingTimerRef.current);
-                setMessages([{ id: Date.now(), sender: 'edi', text: initialMessage }]);
-                setActiveLinks([]);
-                setInput('');
-                setIsTyping(false);
-              }}
+              className="edi-icon-button edi-reset"
+              onClick={resetConversation}
               aria-label="Reset Edi conversation"
               title="Reset conversation"
             >
               <RotateCcw size={16} />
             </button>
+
             <button
               type="button"
               className="edi-icon-button"
@@ -377,32 +441,47 @@ const EdiChatbot: React.FC = () => {
 
           <div className="edi-safety-note">
             <ShieldCheck size={15} />
-            <span>Answers are limited to EduLink product and demo guidance.</span>
+            <span>
+              Edi gives product guidance only and cannot access private account data.
+            </span>
           </div>
 
           <div className="edi-messages" role="log" aria-live="polite">
             {messages.map(message => (
               <div
                 key={message.id}
-                className={`edi-message ${message.sender === 'edi' ? 'edi-message-bot' : 'edi-message-user'}`}
+                className={`edi-message ${
+                  message.sender === 'edi'
+                    ? 'edi-message-bot'
+                    : 'edi-message-user'
+                }`}
               >
                 {message.text}
               </div>
             ))}
+
             {isTyping && (
-              <div className="edi-message edi-message-bot edi-typing" aria-label="Edi is typing">
+              <div
+                className="edi-message edi-message-bot edi-typing"
+                aria-label="Edi is typing"
+              >
                 <span />
                 <span />
                 <span />
               </div>
             )}
+
             <div ref={messagesEndRef} />
           </div>
 
           {activeLinks && activeLinks.length > 0 && (
             <div className="edi-links">
               {activeLinks.map(link => (
-                <Link key={link.href} to={link.href} onClick={() => setIsOpen(false)}>
+                <Link
+                  key={link.href}
+                  to={link.href}
+                  onClick={() => setIsOpen(false)}
+                >
                   {link.label}
                 </Link>
               ))}
@@ -411,7 +490,12 @@ const EdiChatbot: React.FC = () => {
 
           <div className="edi-prompts">
             {activePrompts.map(prompt => (
-              <button key={prompt} type="button" onClick={() => sendMessage(prompt)} disabled={isTyping}>
+              <button
+                key={prompt}
+                type="button"
+                onClick={() => sendMessage(prompt)}
+                disabled={isTyping}
+              >
                 {prompt}
               </button>
             ))}
@@ -425,7 +509,12 @@ const EdiChatbot: React.FC = () => {
               aria-label="Ask Edi about EduLink"
               disabled={isTyping}
             />
-            <button type="submit" aria-label="Send message" disabled={isTyping || !input.trim()}>
+
+            <button
+              type="submit"
+              aria-label="Send message"
+              disabled={isTyping || !input.trim()}
+            >
               <Send size={16} />
             </button>
           </form>
@@ -434,13 +523,15 @@ const EdiChatbot: React.FC = () => {
 
       <button
         type="button"
-        className="edi-launcher shadow"
+        className="edi-launcher"
         onClick={() => setIsOpen(prev => !prev)}
         aria-label={isOpen ? 'Close Edi assistant' : 'Open Edi assistant'}
       >
         {isOpen ? <X size={22} /> : <MessageCircle size={23} />}
         <span>Edi</span>
-        {!isOpen && hasUnreadIntro && <span className="edi-unread-dot" aria-hidden="true" />}
+        {!isOpen && hasUnreadIntro && (
+          <span className="edi-unread-dot" aria-hidden="true" />
+        )}
       </button>
 
       <style>{`
@@ -467,22 +558,22 @@ const EdiChatbot: React.FC = () => {
           z-index: 1050;
           border: 0;
           border-radius: 999px;
-          background: #0f766e;
+          background: #069b8e;
           color: #fff;
-          min-width: 84px;
-          height: 48px;
+          min-width: 82px;
+          height: 46px;
           display: inline-flex;
           align-items: center;
           justify-content: center;
           gap: 8px;
-          font-weight: 700;
-          letter-spacing: 0;
+          font-weight: 800;
+          box-shadow: 0 14px 34px rgba(6, 155, 142, 0.25);
           transition: transform 0.18s ease, background 0.18s ease;
         }
 
         .edi-launcher:hover {
           transform: translateY(-2px);
-          background: #0d5f58;
+          background: #057e73;
         }
 
         .edi-unread-dot {
@@ -505,11 +596,12 @@ const EdiChatbot: React.FC = () => {
           max-height: min(680px, calc(100vh - 112px));
           background: #ffffff;
           border: 1px solid #dbe5e3;
-          border-radius: 14px;
+          border-radius: 18px;
           overflow: hidden;
           display: flex;
           flex-direction: column;
           animation: ediFloatIn 0.22s ease-out;
+          box-shadow: 0 24px 70px rgba(17, 24, 39, 0.2);
         }
 
         .edi-chatbot-header {
@@ -517,25 +609,30 @@ const EdiChatbot: React.FC = () => {
           align-items: center;
           gap: 10px;
           padding: 14px 16px;
-          background: #0f2f2c;
+          background: #071a18;
           color: #fff;
         }
 
         .edi-avatar {
           width: 38px;
           height: 38px;
-          border-radius: 12px;
-          background: rgba(20, 184, 166, 0.2);
-          color: #99f6e4;
+          border-radius: 13px;
+          background: rgba(11, 191, 163, 0.14);
+          color: #0bbfa3;
           display: inline-flex;
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
         }
 
+        .edi-heading {
+          min-width: 0;
+          flex: 1;
+        }
+
         .edi-title {
           font-size: 15px;
-          font-weight: 800;
+          font-weight: 900;
           line-height: 1.1;
           display: inline-flex;
           align-items: center;
@@ -562,30 +659,45 @@ const EdiChatbot: React.FC = () => {
 
         .edi-subtitle {
           font-size: 12px;
-          color: rgba(255, 255, 255, 0.72);
+          color: rgba(255, 255, 255, 0.66);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .edi-icon-button {
           width: 34px;
           height: 34px;
           border-radius: 10px;
-          border: 1px solid rgba(255, 255, 255, 0.18);
+          border: 1px solid rgba(255, 255, 255, 0.14);
           background: rgba(255, 255, 255, 0.08);
           color: #fff;
           display: inline-flex;
           align-items: center;
           justify-content: center;
+          flex-shrink: 0;
+          cursor: pointer;
+        }
+
+        .edi-icon-button:hover {
+          background: rgba(255, 255, 255, 0.14);
         }
 
         .edi-safety-note {
           display: flex;
-          align-items: center;
+          align-items: flex-start;
           gap: 8px;
           padding: 10px 14px;
-          background: #ecfdf5;
+          background: #f0fdf9;
           color: #047857;
           font-size: 12px;
+          line-height: 1.45;
           border-bottom: 1px solid #d1fae5;
+        }
+
+        .edi-safety-note svg {
+          flex-shrink: 0;
+          margin-top: 1px;
         }
 
         .edi-messages {
@@ -602,7 +714,7 @@ const EdiChatbot: React.FC = () => {
           border-radius: 14px;
           padding: 10px 12px;
           font-size: 13px;
-          line-height: 1.48;
+          line-height: 1.5;
           white-space: pre-wrap;
         }
 
@@ -611,6 +723,13 @@ const EdiChatbot: React.FC = () => {
           background: #f1f5f9;
           color: #1f2937;
           border-bottom-left-radius: 4px;
+        }
+
+        .edi-message-user {
+          align-self: flex-end;
+          background: #069b8e;
+          color: #fff;
+          border-bottom-right-radius: 4px;
         }
 
         .edi-typing {
@@ -624,7 +743,7 @@ const EdiChatbot: React.FC = () => {
           width: 7px;
           height: 7px;
           border-radius: 999px;
-          background: #0f766e;
+          background: #069b8e;
           animation: ediTyping 1s infinite;
         }
 
@@ -634,13 +753,6 @@ const EdiChatbot: React.FC = () => {
 
         .edi-typing span:nth-child(3) {
           animation-delay: 0.3s;
-        }
-
-        .edi-message-user {
-          align-self: flex-end;
-          background: #0f766e;
-          color: #fff;
-          border-bottom-right-radius: 4px;
         }
 
         .edi-links {
@@ -654,12 +766,18 @@ const EdiChatbot: React.FC = () => {
         .edi-prompts button {
           border: 1px solid #cbd5e1;
           background: #ffffff;
-          color: #0f766e;
+          color: #069b8e;
           border-radius: 999px;
           padding: 6px 10px;
           font-size: 12px;
-          font-weight: 700;
+          font-weight: 800;
           text-decoration: none;
+        }
+
+        .edi-links a:hover,
+        .edi-prompts button:hover:not(:disabled) {
+          border-color: rgba(6, 155, 142, 0.4);
+          background: rgba(6, 155, 142, 0.06);
         }
 
         .edi-prompts {
@@ -672,6 +790,7 @@ const EdiChatbot: React.FC = () => {
         .edi-prompts button {
           white-space: nowrap;
           flex: 0 0 auto;
+          cursor: pointer;
         }
 
         .edi-prompts button:disabled {
@@ -698,8 +817,8 @@ const EdiChatbot: React.FC = () => {
         }
 
         .edi-input-row input:focus {
-          border-color: #0f766e;
-          box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.14);
+          border-color: #069b8e;
+          box-shadow: 0 0 0 3px rgba(6, 155, 142, 0.14);
         }
 
         .edi-input-row button {
@@ -707,12 +826,17 @@ const EdiChatbot: React.FC = () => {
           height: 40px;
           border-radius: 999px;
           border: 0;
-          background: #0f766e;
+          background: #069b8e;
           color: #fff;
           display: inline-flex;
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
+          cursor: pointer;
+        }
+
+        .edi-input-row button:hover:not(:disabled) {
+          background: #057e73;
         }
 
         .edi-input-row button:disabled,
@@ -725,11 +849,20 @@ const EdiChatbot: React.FC = () => {
           .edi-launcher {
             right: 14px;
             bottom: 14px;
+            min-width: 48px;
+            width: 48px;
+            height: 48px;
+          }
+
+          .edi-launcher span:not(.edi-unread-dot) {
+            display: none;
           }
 
           .edi-chatbot-panel {
             right: 14px;
             bottom: 74px;
+            width: calc(100vw - 28px);
+            max-height: calc(100vh - 96px);
           }
         }
       `}</style>

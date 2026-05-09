@@ -63,10 +63,11 @@ export const getUserFacingErrorMessage = (
   errorCode?: string
 ): string => {
   const raw = typeof message === 'string' ? message.trim() : '';
+  const normalizedRaw = raw.toLowerCase();
   const codeMessage = errorCode ? CODE_FALLBACKS[errorCode] : undefined;
   const statusMessage = status ? STATUS_FALLBACKS[status] : undefined;
 
-  if (!raw) {
+  if (!raw || normalizedRaw === 'none' || normalizedRaw === 'null' || normalizedRaw === 'undefined') {
     return codeMessage || statusMessage || 'Something went wrong. Please try again.';
   }
 

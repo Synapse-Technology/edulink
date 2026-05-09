@@ -167,7 +167,7 @@ class TestDRFExceptionConversion(TestCase):
 
     def test_drf_validation_error_converted(self):
         """DRF ValidationError exception converted to EduLink format"""
-        exc = DRFValidationError({"email": ["Email is required"]})
+        exc = DRFValidationError({"email": ["Email is required"], "username": ["Already taken"]})
         
         request = self.factory.get('/')
         response_obj = edulink_exception_handler(exc, {"request": request})
@@ -175,6 +175,10 @@ class TestDRFExceptionConversion(TestCase):
         self.assertEqual(response_obj.status_code, 400)
         self.assertEqual(response_obj.data["status_code"], 400)
         self.assertEqual(response_obj.data["error_code"], "VALIDATION_ERROR")
+        self.assertNotEqual(response_obj.data["message"], "None")
+        self.assertIn("field_errors", response_obj.data)
+        self.assertEqual(response_obj.data["field_errors"]["email"], ["Email is required"]) 
+        self.assertEqual(response_obj.data["field_errors"]["username"], ["Already taken"])
 
 
 class TestResponseStructure(TestCase):

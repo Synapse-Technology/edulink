@@ -11,56 +11,70 @@ interface NavigationItem {
   current: boolean;
 }
 
-const AdminNavigation: React.FC<AdminNavigationProps> = ({ className = '' }) => {
+const AdminNavigation: React.FC<AdminNavigationProps> = ({
+  className = '',
+}) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+
   const location = useLocation();
 
   const navigation: NavigationItem[] = [
-    { name: 'Institutional Portal', href: '/institutions/request', current: location.pathname.startsWith('/institutions/request') },
-    { name: 'Employer Portal', href: '/employer/onboarding', current: location.pathname.startsWith('/employer/onboarding') },
+    {
+      name: 'Institutions',
+      href: '/institutions/request',
+      current: location.pathname.startsWith('/institutions'),
+    },
+    {
+      name: 'Employers',
+      href: '/employer/onboarding',
+      current: location.pathname.startsWith('/employer'),
+    },
   ];
-
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
-  };
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
+      setIsScrolled(window.scrollY > 16);
     };
 
     window.addEventListener('scroll', handleScroll);
+
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Close mobile menu when location changes
   useEffect(() => {
     setIsMobileMenuOpen(false);
-    // This effect runs when location changes to close the mobile menu
-    // The linter warning is expected behavior for this use case
-     
   }, [location.pathname]);
 
   return (
-    <nav className={`admin-navigation ${className} ${isScrolled ? 'scrolled' : ''}`}>
+    <nav
+      className={`admin-navigation ${
+        isScrolled ? 'scrolled' : ''
+      } ${className}`}
+    >
       <div className="admin-nav-container">
-        {/* Logo Section */}
+        {/* Brand */}
         <div className="admin-nav-brand">
           <Link to="/" className="admin-logo">
-            <span className="admin-logo-text">EduLink</span>
-            <span className="admin-logo-badge">Admin</span>
+            <div className="admin-logo-stack">
+              <span className="admin-logo-text">EduLink</span>
+              <span className="admin-logo-subtext">
+                Institution & Employer Access
+              </span>
+            </div>
           </Link>
         </div>
 
-        {/* Desktop Navigation */}
+        {/* Desktop Nav */}
         <div className="admin-nav-menu">
           <ul className="admin-nav-list">
             {navigation.map((item) => (
-              <li key={item.name} className="admin-nav-item">
+              <li key={item.name}>
                 <Link
                   to={item.href}
-                  className={`admin-nav-link ${item.current ? 'active' : ''}`}
+                  className={`admin-nav-link ${
+                    item.current ? 'active' : ''
+                  }`}
                 >
                   {item.name}
                 </Link>
@@ -69,194 +83,193 @@ const AdminNavigation: React.FC<AdminNavigationProps> = ({ className = '' }) => 
           </ul>
         </div>
 
-        {/* User Actions */}
+        {/* Right */}
         <div className="admin-nav-actions">
-          {/* Mobile Menu Toggle */}
+          <Link to="/admin/login" className="system-admin-link">
+            System Admin
+          </Link>
+
           <button
             className="admin-mobile-toggle"
-            onClick={toggleMobileMenu}
+            onClick={() => setIsMobileMenuOpen((prev) => !prev)}
             aria-label="Toggle navigation"
             aria-expanded={isMobileMenuOpen}
           >
-            <span className={`hamburger-line ${isMobileMenuOpen ? 'open' : ''}`}></span>
-            <span className={`hamburger-line ${isMobileMenuOpen ? 'open' : ''}`}></span>
-            <span className={`hamburger-line ${isMobileMenuOpen ? 'open' : ''}`}></span>
+            <span className={`hamburger-line ${isMobileMenuOpen ? 'open' : ''}`} />
+            <span className={`hamburger-line ${isMobileMenuOpen ? 'open' : ''}`} />
+            <span className={`hamburger-line ${isMobileMenuOpen ? 'open' : ''}`} />
           </button>
         </div>
       </div>
 
-      {/* Mobile Navigation */}
+      {/* Mobile */}
       <div className={`admin-mobile-menu ${isMobileMenuOpen ? 'open' : ''}`}>
         <div className="admin-mobile-menu-content">
           <ul className="admin-mobile-nav-list">
             {navigation.map((item) => (
-              <li key={item.name} className="admin-mobile-nav-item">
+              <li key={item.name}>
                 <Link
                   to={item.href}
-                  className={`admin-mobile-nav-link ${item.current ? 'active' : ''}`}
-                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`admin-mobile-nav-link ${
+                    item.current ? 'active' : ''
+                  }`}
                 >
                   {item.name}
                 </Link>
               </li>
             ))}
           </ul>
+
+          <div className="admin-mobile-divider" />
+
+          <Link
+            to="/admin/login"
+            className="admin-mobile-system-link"
+          >
+            System Admin Access
+          </Link>
         </div>
       </div>
 
       <style>{`
         .admin-navigation {
           position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          background: rgba(255, 255, 255, 0.95);
-          backdrop-filter: blur(10px);
-          border-bottom: 1px solid rgba(229, 231, 235, 0.5);
+          inset: 0 0 auto 0;
           z-index: 1000;
-          transition: all 0.3s ease;
+          background: rgba(255,255,255,.92);
+          backdrop-filter: blur(12px);
+          border-bottom: 1px solid rgba(229,231,235,.72);
+          transition: all .24s ease;
         }
 
         .admin-navigation.scrolled {
-          background: rgba(255, 255, 255, 0.98);
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+          background: rgba(255,255,255,.98);
+          box-shadow: 0 10px 34px rgba(15,23,42,.05);
         }
 
         .admin-nav-container {
           max-width: 1200px;
           margin: 0 auto;
           padding: 0 1rem;
+          height: 4.4rem;
           display: flex;
           align-items: center;
           justify-content: space-between;
-          height: 4rem;
-        }
-
-        .admin-nav-brand {
-          display: flex;
-          align-items: center;
+          gap: 1rem;
         }
 
         .admin-logo {
-          display: flex;
-          align-items: center;
           text-decoration: none;
-          gap: 0.5rem;
+        }
+
+        .admin-logo-stack {
+          display: flex;
+          flex-direction: column;
+          line-height: 1.05;
         }
 
         .admin-logo-text {
-          font-size: 1.5rem;
-          font-weight: 700;
+          font-size: 1.4rem;
+          font-weight: 850;
+          letter-spacing: -.04em;
           color: #111827;
-          letter-spacing: -0.025em;
         }
 
-        .admin-logo-badge {
-          font-size: 0.75rem;
-          font-weight: 600;
-          color: #059669;
-          background: #d1fae5;
-          padding: 0.25rem 0.5rem;
-          border-radius: 0.375rem;
+        .admin-logo-subtext {
+          margin-top: 4px;
+          font-size: .68rem;
+          font-weight: 700;
           text-transform: uppercase;
-          letter-spacing: 0.05em;
+          letter-spacing: .08em;
+          color: #6b7280;
         }
 
         .admin-nav-menu {
           display: none;
+          margin-left: auto;
         }
 
         .admin-nav-list {
           display: flex;
+          align-items: center;
+          gap: 1.4rem;
           list-style: none;
           margin: 0;
           padding: 0;
-          gap: 0.5rem;
         }
 
         .admin-nav-link {
-          display: block;
-          padding: 0.5rem 1rem;
-          font-size: 0.875rem;
-          font-weight: 500;
+          position: relative;
+          padding: .5rem 0;
+          font-size: .92rem;
+          font-weight: 700;
           color: #6b7280;
           text-decoration: none;
-          border-radius: 0.375rem;
-          transition: all 0.2s ease;
+          transition: color .2s ease;
         }
 
         .admin-nav-link:hover {
           color: #111827;
-          background: #f3f4f6;
         }
 
         .admin-nav-link.active {
-          color: #059669;
-          background: #d1fae5;
+          color: #111827;
+        }
+
+        .admin-nav-link.active::before {
+          content: '';
+          position: absolute;
+          left: -12px;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 3px;
+          height: 18px;
+          border-radius: 999px;
+          background: #0f766e;
         }
 
         .admin-nav-actions {
           display: flex;
           align-items: center;
-          gap: 0.75rem;
+          gap: 1rem;
         }
 
-        .admin-nav-secondary-btn {
+        .system-admin-link {
           display: none;
-          padding: 0.5rem 1rem;
-          font-size: 0.875rem;
-          font-weight: 500;
-          color: #374151;
+          font-size: .8rem;
+          font-weight: 700;
+          color: #6b7280;
           text-decoration: none;
-          border-radius: 0.375rem;
-          transition: all 0.2s ease;
+          transition: color .2s ease;
         }
 
-        .admin-nav-secondary-btn:hover {
+        .system-admin-link:hover {
           color: #111827;
-          background: #f3f4f6;
-        }
-
-        .admin-nav-primary-btn {
-          display: none;
-          padding: 0.5rem 1rem;
-          font-size: 0.875rem;
-          font-weight: 500;
-          color: white;
-          background: #059669;
-          text-decoration: none;
-          border-radius: 0.375rem;
-          transition: all 0.2s ease;
-        }
-
-        .admin-nav-primary-btn:hover {
-          background: #047857;
         }
 
         .admin-mobile-toggle {
+          width: 2.3rem;
+          height: 2.3rem;
+          border: 0;
+          background: transparent;
           display: flex;
           flex-direction: column;
           justify-content: center;
-          align-items: center;
-          width: 2rem;
-          height: 2rem;
-          background: none;
-          border: none;
-          cursor: pointer;
+          gap: .28rem;
           padding: 0;
-          gap: 0.25rem;
+          cursor: pointer;
         }
 
         .hamburger-line {
-          width: 1.25rem;
-          height: 0.125rem;
+          width: 1.3rem;
+          height: 2px;
           background: #374151;
-          transition: all 0.3s ease;
-          border-radius: 0.125rem;
+          border-radius: 999px;
+          transition: all .25s ease;
         }
 
         .hamburger-line.open:nth-child(1) {
-          transform: rotate(45deg) translate(0.25rem, 0.25rem);
+          transform: rotate(45deg) translate(4px, 4px);
         }
 
         .hamburger-line.open:nth-child(2) {
@@ -264,21 +277,21 @@ const AdminNavigation: React.FC<AdminNavigationProps> = ({ className = '' }) => 
         }
 
         .hamburger-line.open:nth-child(3) {
-          transform: rotate(-45deg) translate(0.25rem, -0.25rem);
+          transform: rotate(-45deg) translate(4px, -4px);
         }
 
         .admin-mobile-menu {
           position: fixed;
-          top: 4rem;
+          top: 4.4rem;
           left: 0;
           right: 0;
-          background: white;
-          border-top: 1px solid #e5e7eb;
-          transform: translateY(-100%);
+          background: rgba(255,255,255,.98);
+          backdrop-filter: blur(10px);
+          border-top: 1px solid #eef2f7;
+          transform: translateY(-12px);
           opacity: 0;
           visibility: hidden;
-          transition: all 0.3s ease;
-          z-index: 999;
+          transition: all .24s ease;
         }
 
         .admin-mobile-menu.open {
@@ -295,84 +308,42 @@ const AdminNavigation: React.FC<AdminNavigationProps> = ({ className = '' }) => 
           list-style: none;
           margin: 0;
           padding: 0;
-          margin-bottom: 1rem;
-        }
-
-        .admin-mobile-nav-item {
-          margin-bottom: 0.5rem;
         }
 
         .admin-mobile-nav-link {
           display: block;
-          padding: 0.75rem 1rem;
-          font-size: 0.875rem;
-          font-weight: 500;
+          padding: .85rem 0;
+          font-size: .95rem;
+          font-weight: 700;
           color: #374151;
           text-decoration: none;
-          border-radius: 0.375rem;
-          transition: all 0.2s ease;
-        }
-
-        .admin-mobile-nav-link:hover {
-          color: #111827;
-          background: #f3f4f6;
+          border-bottom: 1px solid #f1f5f9;
         }
 
         .admin-mobile-nav-link.active {
-          color: #059669;
-          background: #d1fae5;
+          color: #0f766e;
         }
 
-        .admin-mobile-actions {
-          display: flex;
-          flex-direction: column;
-          gap: 0.5rem;
+        .admin-mobile-divider {
+          height: 1px;
+          background: #e5e7eb;
+          margin: 1rem 0;
         }
 
-        .admin-mobile-secondary-btn {
-          padding: 0.75rem 1rem;
-          font-size: 0.875rem;
-          font-weight: 500;
-          color: #374151;
+        .admin-mobile-system-link {
+          display: block;
+          font-size: .85rem;
+          font-weight: 700;
+          color: #6b7280;
           text-decoration: none;
-          border: 1px solid #d1d5db;
-          border-radius: 0.375rem;
-          text-align: center;
-          transition: all 0.2s ease;
-        }
-
-        .admin-mobile-secondary-btn:hover {
-          color: #111827;
-          background: #f3f4f6;
-        }
-
-        .admin-mobile-primary-btn {
-          padding: 0.75rem 1rem;
-          font-size: 0.875rem;
-          font-weight: 500;
-          color: white;
-          background: #059669;
-          text-decoration: none;
-          border-radius: 0.375rem;
-          text-align: center;
-          transition: all 0.2s ease;
-        }
-
-        .admin-mobile-primary-btn:hover {
-          background: #047857;
         }
 
         @media (min-width: 768px) {
           .admin-nav-menu {
             display: block;
-            margin-left: auto;
           }
 
-          .admin-nav-secondary-btn {
-            display: inline-block;
-          }
-
-          .admin-nav-primary-btn {
+          .system-admin-link {
             display: inline-block;
           }
 
@@ -385,14 +356,15 @@ const AdminNavigation: React.FC<AdminNavigationProps> = ({ className = '' }) => 
           .admin-nav-container {
             padding: 0 2rem;
           }
+        }
 
-          .admin-nav-list {
-            gap: 1rem;
+        @media (max-width: 560px) {
+          .admin-logo-text {
+            font-size: 1.2rem;
           }
 
-          .admin-nav-link {
-            padding: 0.5rem 1.25rem;
-            font-size: 0.9375rem;
+          .admin-logo-subtext {
+            font-size: .62rem;
           }
         }
       `}</style>

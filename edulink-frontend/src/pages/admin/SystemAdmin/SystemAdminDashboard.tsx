@@ -1,24 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  Users, 
-  Building, 
-  Shield, 
-  Activity, 
-  AlertTriangle, 
-  CheckCircle,
-  TrendingUp,
-  Clock,
-  UserPlus,
-  ChevronRight,
-  Server,
-  Key,
-  Eye,
-  RefreshCw,
+import {
+  Activity,
+  AlertTriangle,
+  BarChart3,
   Briefcase,
-  LifeBuoy
+  Building,
+  CheckCircle,
+  ChevronRight,
+  Clock,
+  Eye,
+  Key,
+  LifeBuoy,
+  RefreshCw,
+  Shield,
+  TrendingUp,
+  UserPlus,
+  Users,
 } from 'lucide-react';
-import { adminAuthService, type AdminDashboardStats } from '../../../services/auth/adminAuthService';
+
+import {
+  adminAuthService,
+  type AdminDashboardStats,
+} from '../../../services/auth/adminAuthService';
 import { useAdminAuth } from '../../../contexts/AdminAuthContext';
 import AdminLayout from '../../../components/admin/AdminLayout';
 import AdminDashboardSkeleton from '../../../components/admin/skeletons/AdminDashboardSkeleton';
@@ -28,33 +32,45 @@ import { sanitizeAdminError } from '../../../utils/adminErrorSanitizer';
 
 const SystemAdminDashboard: React.FC = () => {
   const { admin } = useAdminAuth();
+
   const [stats, setStats] = useState<AdminDashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string>('');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [error, setError] = useState('');
+
+  const isSuperAdmin = admin?.role === 'SUPER_ADMIN';
+  const isAuditor = admin?.role === 'AUDITOR';
+  const isModerator = admin?.role === 'MODERATOR';
 
   useEffect(() => {
     fetchDashboardData();
-    // Simulate real-time updates every 5 minutes
+
     const interval = setInterval(fetchDashboardData, 300000);
+
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchDashboardData = async () => {
     if (!isLoading) setIsRefreshing(true);
+
     try {
       const response = await adminAuthService.getDashboardStats();
+
       setStats(response);
       setError('');
     } catch (err) {
       const sanitized = sanitizeAdminError(err);
-      console.error("Dashboard error:", sanitized.title);
+
+      console.error('Dashboard error:', sanitized.title);
       showToast.error(sanitized.userMessage);
+
       if ((err as any)?.status === 401 || (err as any)?.response?.status === 401) {
-          setError('Session expired. Please log in again.');
-          setTimeout(() => {
-            window.location.href = '/admin/login';
-          }, 3000);
+        setError('Session expired. Please log in again.');
+
+        setTimeout(() => {
+          window.location.href = '/admin/login';
+        }, 3000);
       } else {
         setError(sanitized.userMessage);
       }
@@ -64,50 +80,133 @@ const SystemAdminDashboard: React.FC = () => {
     }
   };
 
-  const getHealthBadgeClass = (status: string) => {
-    switch (status) {
-      case 'healthy':
-        return 'bg-success bg-opacity-10 text-success border border-success border-opacity-25';
-      case 'warning':
-        return 'bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25';
-      case 'error':
-        return 'bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25';
-      default:
-        return 'bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25';
+  const systemStatus = stats?.systemHealth?.status || 'healthy';
+  const systemMessage = stats?.systemHealth?.message || 'Platform operational';
+
+  const health = {
+    healthy: {
+      label: 'Operational',
+      className: 'ops-health-good',
+      icon: <CheckCircle size={17} />,
+    },
+    warning: {
+      label: 'Attention needed',
+      className: 'ops-health-warning',
+      icon: <AlertTriangle size={17} />,
+    },
+    error: {
+      label: 'Incident active',
+      className: 'ops-health-danger',
+      icon: <AlertTriangle size={17} />,
+    },
+  }[systemStatus as 'healthy' | 'warning' | 'error'] || {
+    label: 'Unknown',
+    className: 'ops-health-muted',
+    icon: <Activity size={17} />,
+  };
+
+  const operationalMetrics = [
+    {
+      label: 'Total users',
+      value: stats?.totalUsers || 0,
+      icon: <Users size={21} />,
+      to: '/admin/users',
+      action: 'View users',
+      tone: 'blue',
+      show: true,
+    },
+    {
+      label: 'Institutions',
+      value: stats?.totalInstitutions || 0,
+      icon: <Building size={21} />,
+      to: '/admin/institutions',
+      action: 'Manage institutions',
+      tone: 'green',
+      show: true,
+    },
+    {
+      label: 'Pending institution requests',
+      value: stats?.pendingInstitutions || 0,
+      icon: <Clock size={21} />,
+      to: '/admin/institutions',
+      action: 'Review queue',
+      tone: 'amber',
+      show: !isAuditor,
+    },
+    {
+      label: 'Student interest signals',
+      value: stats?.totalStudentInterests || 0,
+      icon: <TrendingUp size={21} />,
+      to: '/admin/analytics/institutions',
+      action: 'View demand',
+      tone: 'indigo',
+      show: true,
+    },
+  ].filter((metric) => metric.show);
+
+  const operationalAlerts = useMemo(() => {
+    const alerts = [];
+
+    if ((stats?.pendingInstitutions || 0) > 0) {
+      alerts.push({
+        title: 'Institution requests awaiting review',
+        description: `${stats?.pendingInstitutions || 0} institution request${
+          (stats?.pendingInstitutions || 0) === 1 ? '' : 's'
+        } need admin action.`,
+        tone: 'warning',
+        to: '/admin/institutions',
+      });
     }
-  };
 
-  const getHealthIcon = (status: string) => {
-    switch (status) {
-      case 'healthy':
-        return <CheckCircle size={16} className="me-2" />;
-      case 'warning':
-        return <AlertTriangle size={16} className="me-2" />;
-      case 'error':
-        return <AlertTriangle size={16} className="me-2" />;
-      default:
-        return <Activity size={16} className="me-2" />;
+    if ((stats?.pendingInvites || 0) > 0 && isSuperAdmin) {
+      alerts.push({
+        title: 'Staff invites pending',
+        description: `${stats?.pendingInvites || 0} staff invitation${
+          (stats?.pendingInvites || 0) === 1 ? '' : 's'
+        } still pending.`,
+        tone: 'info',
+        to: '/admin/staff/invites',
+      });
     }
-  };
 
-  const renderTrendBadge = (trend?: number) => {
-    if (trend === undefined) return null;
-    const isPositive = trend >= 0;
-    const colorClass = isPositive ? 'success' : 'danger';
-    return (
-      <span className={`badge bg-${colorClass} bg-opacity-10 text-${colorClass}`}>
-        {isPositive ? '+' : ''}{trend}%
-      </span>
-    );
-  };
+    if (systemStatus !== 'healthy') {
+      alerts.push({
+        title: 'Platform health needs attention',
+        description: systemMessage,
+        tone: systemStatus === 'error' ? 'danger' : 'warning',
+        to: '/admin/health',
+      });
+    }
 
-  const getSeverityColor = (severity?: string) => {
+    if (alerts.length === 0) {
+      alerts.push({
+        title: 'No critical operational alerts',
+        description: 'Platform queues and health signals look stable from the latest dashboard snapshot.',
+        tone: 'success',
+        to: '/admin/logs',
+      });
+    }
+
+    return alerts;
+  }, [
+    isSuperAdmin,
+    stats?.pendingInstitutions,
+    stats?.pendingInvites,
+    systemMessage,
+    systemStatus,
+  ]);
+
+  const getSeverityClass = (severity?: string) => {
     switch (severity) {
-      case 'error': return 'danger';
-      case 'warning': return 'warning';
-      case 'info': return 'primary';
-      case 'success': return 'success';
-      default: return 'primary';
+      case 'error':
+        return 'danger';
+      case 'warning':
+        return 'warning';
+      case 'success':
+        return 'success';
+      case 'info':
+      default:
+        return 'info';
     }
   };
 
@@ -122,13 +221,11 @@ const SystemAdminDashboard: React.FC = () => {
   if (error) {
     return (
       <AdminLayout>
-        <div className="alert alert-danger shadow-sm border-0">
-          <div className="d-flex align-items-center">
-            <AlertTriangle size={24} className="flex-shrink-0 me-3" />
-            <div>
-              <h5 className="alert-heading mb-1">Dashboard Error</h5>
-              <p className="mb-0">{error}</p>
-            </div>
+        <div className="ops-error-state">
+          <AlertTriangle size={26} />
+          <div>
+            <h2>Dashboard Error</h2>
+            <p>{error}</p>
           </div>
         </div>
       </AdminLayout>
@@ -137,492 +234,928 @@ const SystemAdminDashboard: React.FC = () => {
 
   return (
     <AdminLayout>
-      <SEO 
-        title="Admin Dashboard"
-        description="Platform administration and monitoring for EduLink KE. Manage users, institutions, and system health."
+      <SEO
+        title="Platform Operations Center"
+        description="EduLink KE platform operations, monitoring, support, trust, institutions, employers, and administrative oversight."
       />
-      {/* Dashboard Header */}
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <div>
-          <h1 className="h3 fw-bold mb-1">Administration Dashboard</h1>
-          <p className="text-muted mb-0">Platform management and monitoring</p>
-        </div>
-        <div className="d-flex">
-          <button 
-            className="btn btn-outline-primary me-2" 
-            onClick={fetchDashboardData}
-            disabled={isRefreshing}
-          >
-            <RefreshCw size={16} className={`me-2 ${isRefreshing ? 'spin-animation' : ''}`} />
-            {isRefreshing ? 'Refreshing...' : 'Refresh'}
-          </button>
-          <div className={`badge ${getHealthBadgeClass(stats?.systemHealth?.status || 'healthy')} d-flex align-items-center`}>
-            {getHealthIcon(stats?.systemHealth?.status || 'healthy')}
-            {stats?.systemHealth?.message || 'System Operational'}
+
+      <div className="ops-dashboard">
+        <header className="ops-header">
+          <div>
+            <span className="ops-kicker">System administration</span>
+            <h1>Platform Operations Center</h1>
+            <p>
+              Operational visibility across institutions, employers, users,
+              support, trust, audit activity, and infrastructure health.
+            </p>
           </div>
-        </div>
-      </div>
 
-      {/* Stats Cards */}
-      <div className="row g-4 mb-4">
-        <div className="col-md-6 col-lg-3">
-          <div className="card border-0 shadow-sm h-100">
-            <div className="card-body">
-              <div className="d-flex align-items-center justify-content-between mb-3">
-                <div className="rounded-circle bg-primary bg-opacity-10 p-3">
-                  <Users size={24} className="text-primary" />
-                </div>
-                {renderTrendBadge(stats?.totalUsersTrend)}
-              </div>
-              <h3 className="card-title fw-bold">{stats?.totalUsers?.toLocaleString() || '0'}</h3>
-              <p className="card-text text-muted">Total Users</p>
-              <div className="progress" style={{height: '4px'}}>
-                <div className="progress-bar bg-primary" style={{width: '75%'}}></div>
-              </div>
-            </div>
-            <div className="card-footer bg-transparent border-0">
-              <Link to="/admin/users" className="text-decoration-none small">
-                View Details <ChevronRight size={14} className="ms-1" />
-              </Link>
-            </div>
-          </div>
-        </div>
+          <div className="ops-header-actions">
+            <button
+              type="button"
+              className="ops-refresh-btn"
+              onClick={fetchDashboardData}
+              disabled={isRefreshing}
+            >
+              <RefreshCw
+                size={16}
+                className={isRefreshing ? 'spin-animation' : ''}
+              />
+              {isRefreshing ? 'Refreshing' : 'Refresh'}
+            </button>
 
-        <div className="col-md-6 col-lg-3">
-          <div className="card border-0 shadow-sm h-100">
-            <div className="card-body">
-              <div className="d-flex align-items-center justify-content-between mb-3">
-                <div className="rounded-circle bg-success bg-opacity-10 p-3">
-                  <Building size={24} className="text-success" />
-                </div>
-                {renderTrendBadge(stats?.totalInstitutionsTrend)}
-              </div>
-              <h3 className="card-title fw-bold">{stats?.totalInstitutions?.toLocaleString() || '0'}</h3>
-              <p className="card-text text-muted">Institutions</p>
-              <div className="progress" style={{height: '4px'}}>
-                <div className="progress-bar bg-success" style={{width: '45%'}}></div>
-              </div>
-            </div>
-            <div className="card-footer bg-transparent border-0">
-              <Link to="/admin/institutions" className="text-decoration-none small">
-                Manage Institutions <ChevronRight size={14} className="ms-1" />
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        {admin?.role === 'SUPER_ADMIN' && (
-          <>
-            <div className="col-md-6 col-lg-3">
-              <div className="card border-0 shadow-sm h-100">
-                <div className="card-body">
-                  <div className="d-flex align-items-center justify-content-between mb-3">
-                    <div className="rounded-circle bg-warning bg-opacity-10 p-3">
-                      <Shield size={24} className="text-warning" />
-                    </div>
-                    <span className="badge bg-warning bg-opacity-10 text-warning">Active</span>
-                  </div>
-                  <h3 className="card-title fw-bold">{stats?.totalPlatformStaff?.toLocaleString() || '0'}</h3>
-                  <p className="card-text text-muted">Platform Staff</p>
-                  <div className="progress" style={{height: '4px'}}>
-                    <div className="progress-bar bg-warning" style={{width: '60%'}}></div>
-                  </div>
-                </div>
-                <div className="card-footer bg-transparent border-0">
-                  <Link to="/admin/staff" className="text-decoration-none small">
-                    Manage Staff <ChevronRight size={14} className="ms-1" />
-                  </Link>
-                </div>
-              </div>
-            </div>
-
-            <div className="col-md-6 col-lg-3">
-              <div className="card border-0 shadow-sm h-100">
-                <div className="card-body">
-                  <div className="d-flex align-items-center justify-content-between mb-3">
-                    <div className="rounded-circle bg-info bg-opacity-10 p-3">
-                      <UserPlus size={24} className="text-info" />
-                    </div>
-                    <span className="badge bg-info bg-opacity-10 text-info">Pending</span>
-                  </div>
-                  <h3 className="card-title fw-bold">{stats?.pendingInvites?.toLocaleString() || '0'}</h3>
-                  <p className="card-text text-muted">Pending Invites</p>
-                  <div className="progress" style={{height: '4px'}}>
-                    <div className="progress-bar bg-info" style={{width: '30%'}}></div>
-                  </div>
-                </div>
-                <div className="card-footer bg-transparent border-0">
-                  <Link to="/admin/staff/invites" className="text-decoration-none small">
-                    Review Invites <ChevronRight size={14} className="ms-1" />
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* Management Sections */}
-      <div className="row g-4 mb-4">
-        {/* Recent System Actions (Audit Trail) */}
-        <div className="col-lg-8">
-          <div className="card border-0 shadow-sm h-100">
-            <div className="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
-              <h5 className="card-title mb-0 d-flex align-items-center fw-bold">
-                <Shield size={20} className="me-2 text-primary" />
-                Recent System Actions
-              </h5>
-              <Link to="/admin/logs" className="btn btn-sm btn-light">View All Logs</Link>
-            </div>
-            <div className="card-body px-0 pt-2">
-              <div className="table-responsive">
-                <table className="table table-hover align-middle mb-0">
-                  <thead className="bg-light bg-opacity-50">
-                    <tr>
-                      <th className="px-4 border-0 small text-muted text-uppercase">Event</th>
-                      <th className="px-4 border-0 small text-muted text-uppercase">Entity</th>
-                      <th className="px-4 border-0 small text-muted text-uppercase">Timestamp</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {stats?.recentActions && stats.recentActions.length > 0 ? (
-                      stats.recentActions.map((action) => (
-                        <tr key={action.id}>
-                          <td className="px-4 border-0">
-                            <div className="d-flex align-items-center">
-                              <div className={`rounded-circle bg-${getSeverityColor(action.severity)} bg-opacity-10 p-2 me-3`}>
-                                <Activity size={14} className={`text-${getSeverityColor(action.severity)}`} />
-                              </div>
-                              <div>
-                                <div className="fw-semibold small">
-                                  {(action.event_type || 'Unknown Event').replace(/_/g, ' ')}
-                                </div>
-                                <div className="text-muted" style={{ fontSize: '11px' }}>
-                                  {action.details || `ID: ${action.entity_id?.substring(0, 8) || 'N/A'}...`}
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-4 border-0">
-                            <span className="badge bg-light text-dark fw-normal border text-capitalize">
-                              {(action.entity_type || 'System').replace(/_/g, ' ')}
-                            </span>
-                          </td>
-                          <td className="px-4 border-0 text-nowrap">
-                            <div className="small text-muted d-flex align-items-center">
-                              <Clock size={12} className="me-1" />
-                              {new Date(action.timestamp).toLocaleString()}
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={3} className="text-center py-5 text-muted">
-                          No recent actions recorded
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+            <div className={`ops-health-badge ${health.className}`}>
+              {health.icon}
+              <div>
+                <span>Platform status</span>
+                <strong>{health.label}</strong>
               </div>
             </div>
           </div>
-        </div>
+        </header>
 
-        {/* Quick Insights */}
-        <div className="col-lg-4">
-          <div className="card border-0 shadow-sm mb-4">
-            <div className="card-header bg-white border-0 pt-4 px-4">
-              <h5 className="card-title mb-0 fw-bold">Platform Growth</h5>
-            </div>
-            <div className="card-body px-4 pt-2">
-              <div className="mb-3">
-                <div className="d-flex justify-content-between align-items-center mb-1">
-                  <span className="text-muted small">Onboarding Requests</span>
-                  <span className="fw-bold text-warning">{stats?.pendingInstitutions || 0}</span>
-                </div>
-                <div className="progress" style={{ height: '6px' }}>
-                  <div 
-                    className="progress-bar bg-warning" 
-                    style={{ width: `${Math.min(100, (stats?.pendingInstitutions || 0) > 0 ? ((stats?.pendingInstitutions || 0) / Math.max((stats?.totalInstitutions || 0) + (stats?.pendingInstitutions || 0), 1)) * 100 : 0)}%` }}
-                  ></div>
-                </div>
-                <small className="text-muted" style={{ fontSize: '10px' }}>Formal requests from representatives</small>
-              </div>
-              <div className="mb-3">
-                <div className="d-flex justify-content-between align-items-center mb-1">
-                  <span className="text-muted small">Student Interest</span>
-                  <span className="fw-bold text-info">{stats?.totalStudentInterests || 0}</span>
-                </div>
-                <div className="progress" style={{ height: '6px' }}>
-                  <div 
-                    className="progress-bar bg-info" 
-                    style={{ width: `${Math.min(100, (stats?.totalStudentInterests || 0) > 0 ? ((stats?.totalStudentInterests || 0) / Math.max((stats?.totalStudents || 0) + (stats?.totalStudentInterests || 0), 1)) * 100 : 0)}%` }}
-                  ></div>
-                </div>
-                <small className="text-muted" style={{ fontSize: '10px' }}>Students wanting their institution to join</small>
-              </div>
-              <div className="mb-3">
-                <div className="d-flex justify-content-between align-items-center mb-1">
-                  <span className="text-muted small">Student Adoption</span>
-                  <span className="fw-bold text-primary">{stats?.totalStudents || 0}</span>
-                </div>
-                <div className="progress" style={{ height: '6px' }}>
-                  <div 
-                    className="progress-bar bg-primary" 
-                    style={{ width: `${Math.min(100, ((stats?.totalStudents || 0) / Math.max(stats?.totalUsers || 1, 1)) * 100)}%` }}
-                  ></div>
-                </div>
-                <small className="text-muted" style={{ fontSize: '10px' }}>Registered students on platform</small>
-              </div>
-              <Link to="/admin/analytics/institutions" className="btn btn-outline-primary btn-sm w-100 mt-2">
-                <TrendingUp size={14} className="me-2" />
-                Growth Analytics
-              </Link>
-            </div>
-          </div>
-
-          <div className="card border-0 shadow-sm">
-            <div className="card-header bg-white border-0 pt-4 px-4">
-              <h5 className="card-title mb-0 fw-bold">System Load</h5>
-            </div>
-            <div className="card-body px-4 pt-2">
-              <div className="d-flex align-items-center justify-content-between mb-3">
-                <div className="d-flex align-items-center">
-                  <div className="rounded-circle bg-success bg-opacity-10 p-2 me-2">
-                    <Server size={14} className="text-success" />
-                  </div>
-                  <span className="small">API Latency</span>
-                </div>
-                <span className="badge bg-success bg-opacity-10 text-success">24ms</span>
-              </div>
-              <div className="d-flex align-items-center justify-content-between">
-                <div className="d-flex align-items-center">
-                  <div className="rounded-circle bg-primary bg-opacity-10 p-2 me-2">
-                    <Activity size={14} className="text-primary" />
-                  </div>
-                  <span className="small">Success Rate</span>
-                </div>
-                <span className="badge bg-primary bg-opacity-10 text-primary">99.9%</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Management Sections */}
-      <div className="row g-4">
-        {/* Quick Actions */}
-        <div className="col-lg-8">
-          <div className="row g-4">
-            {admin?.role === 'SUPER_ADMIN' && (
-              <div className="col-md-6">
-                <div className="card border-0 shadow-sm h-100">
-                  <div className="card-header bg-white border-0 pt-3">
-                    <h5 className="card-title mb-0 d-flex align-items-center">
-                      <Shield size={18} className="me-2 text-primary" />
-                      Staff Management
-                    </h5>
-                  </div>
-                  <div className="card-body">
-                    <div className="list-group list-group-flush">
-                      <Link to="/admin/staff/invite" className="list-group-item list-group-item-action d-flex align-items-center border-0 py-3">
-                        <div className="rounded-circle bg-primary bg-opacity-10 p-2 me-3">
-                          <UserPlus size={16} className="text-primary" />
-                        </div>
-                        <div className="flex-grow-1">
-                          <div className="fw-semibold">Invite Staff Member</div>
-                          <small className="text-muted">Send new staff invitations</small>
-                        </div>
-                        <ChevronRight size={16} className="text-muted" />
-                      </Link>
-                      <Link to="/admin/staff" className="list-group-item list-group-item-action d-flex align-items-center border-0 py-3">
-                        <div className="rounded-circle bg-success bg-opacity-10 p-2 me-3">
-                          <Key size={16} className="text-success" />
-                        </div>
-                        <div className="flex-grow-1">
-                          <div className="fw-semibold">Manage Roles & Permissions</div>
-                          <small className="text-muted">Configure access controls</small>
-                        </div>
-                        <ChevronRight size={16} className="text-muted" />
-                      </Link>
-                      <Link to="/admin/staff" className="list-group-item list-group-item-action d-flex align-items-center border-0 py-3">
-                        <div className="rounded-circle bg-warning bg-opacity-10 p-2 me-3">
-                          <Activity size={16} className="text-warning" />
-                        </div>
-                        <div className="flex-grow-1">
-                          <div className="fw-semibold">Staff Activity Logs</div>
-                          <small className="text-muted">Monitor staff actions</small>
-                        </div>
-                        <ChevronRight size={16} className="text-muted" />
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {admin?.role !== 'AUDITOR' && (
-              <div className="col-md-6">
-                <div className="card border-0 shadow-sm h-100">
-                  <div className="card-header bg-white border-0 pt-3">
-                    <h5 className="card-title mb-0 d-flex align-items-center">
-                      <Building size={18} className="me-2 text-success" />
-                      Institution Management
-                    </h5>
-                  </div>
-                  <div className="card-body">
-                    <div className="list-group list-group-flush">
-                      <Link to="/admin/institutions" className="list-group-item list-group-item-action d-flex align-items-center border-0 py-3">
-                        <div className="rounded-circle bg-warning bg-opacity-10 p-2 me-3">
-                          <Clock size={16} className="text-warning" />
-                        </div>
-                        <div className="flex-grow-1">
-                          <div className="fw-semibold">Pending Requests</div>
-                          <small className="text-muted">{stats?.pendingInstitutions || 0} requests awaiting review</small>
-                        </div>
-                        <ChevronRight size={16} className="text-muted" />
-                      </Link>
-                      <Link to="/admin/institutions" className="list-group-item list-group-item-action d-flex align-items-center border-0 py-3">
-                        <div className="rounded-circle bg-info bg-opacity-10 p-2 me-3">
-                          <TrendingUp size={16} className="text-info" />
-                        </div>
-                        <div className="flex-grow-1">
-                          <div className="fw-semibold">Institution Analytics</div>
-                          <small className="text-muted">Performance metrics and reports</small>
-                        </div>
-                        <ChevronRight size={16} className="text-muted" />
-                      </Link>
-                      <Link to="/admin/institutions" className="list-group-item list-group-item-action d-flex align-items-center border-0 py-3">
-                        <div className="rounded-circle bg-danger bg-opacity-10 p-2 me-3">
-                          <AlertTriangle size={16} className="text-danger" />
-                        </div>
-                        <div className="flex-grow-1">
-                          <div className="fw-semibold">Verification Queue</div>
-                          <small className="text-muted">Review institution verifications</small>
-                        </div>
-                        <ChevronRight size={16} className="text-muted" />
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {admin?.role !== 'AUDITOR' && (
-            <div className="col-md-6">
-                <div className="card border-0 shadow-sm h-100">
-                  <div className="card-header bg-white border-0 pt-3">
-                    <h5 className="card-title mb-0 d-flex align-items-center">
-                      <Briefcase size={18} className="me-2 text-info" />
-                      Employer Management
-                    </h5>
-                  </div>
-                  <div className="card-body">
-                    <div className="list-group list-group-flush">
-                      <Link to="/admin/employers/requests" className="list-group-item list-group-item-action d-flex align-items-center border-0 py-3">
-                        <div className="rounded-circle bg-info bg-opacity-10 p-2 me-3">
-                          <UserPlus size={16} className="text-info" />
-                        </div>
-                        <div className="flex-grow-1">
-                          <div className="fw-semibold">Employer Requests</div>
-                          <small className="text-muted">Review and approve applications</small>
-                        </div>
-                        <ChevronRight size={16} className="text-muted" />
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {admin?.role !== 'AUDITOR' && (
-              <div className="col-md-6">
-                <div className="card border-0 shadow-sm h-100">
-                  <div className="card-header bg-white border-0 pt-3">
-                    <h5 className="card-title mb-0 d-flex align-items-center">
-                      <LifeBuoy size={18} className="me-2 text-danger" />
-                      Support & Care
-                    </h5>
-                  </div>
-                  <div className="card-body">
-                    <div className="list-group list-group-flush">
-                      <Link to="/admin/support" className="list-group-item list-group-item-action d-flex align-items-center border-0 py-3">
-                        <div className="rounded-circle bg-danger bg-opacity-10 p-2 me-3">
-                          <LifeBuoy size={16} className="text-danger" />
-                        </div>
-                        <div className="flex-grow-1">
-                          <div className="fw-semibold">Manage Support Tickets</div>
-                          <small className="text-muted">Handle user requests and resolution</small>
-                        </div>
-                        <ChevronRight size={16} className="text-muted" />
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* System Status */}
-        {admin?.role !== 'MODERATOR' && (
-          <div className="col-lg-4">
-            <div className="card border-0 shadow-sm h-100">
-              <div className="card-header bg-white border-0 pt-3">
-                <h5 className="card-title mb-0 d-flex align-items-center">
-                  <Server size={18} className="me-2 text-secondary" />
-                  System Status
-                </h5>
-              </div>
-              <div className="card-body">
-                <div className="list-group list-group-flush">
-                  <div className="list-group-item border-0 py-2">
-                    <div className="d-flex justify-content-between align-items-center">
-                      <span className="text-muted">API Status</span>
-                      <span className="badge bg-success">Operational</span>
-                    </div>
-                  </div>
-                  <div className="list-group-item border-0 py-2">
-                    <div className="d-flex justify-content-between align-items-center">
-                      <span className="text-muted">Database</span>
-                      <span className="badge bg-success">Healthy</span>
-                    </div>
-                  </div>
-                  <div className="list-group-item border-0 py-2">
-                    <div className="d-flex justify-content-between align-items-center">
-                      <span className="text-muted">Cache Service</span>
-                      <span className="badge bg-success">Active</span>
-                    </div>
-                  </div>
-                  <div className="list-group-item border-0 py-2">
-                    <div className="d-flex justify-content-between align-items-center">
-                      <span className="text-muted">Storage</span>
-                      <span className="badge bg-success">78% Free</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-4">
-                  <div className="d-flex justify-content-between align-items-center mb-2">
-                    <span className="text-muted">System Load</span>
-                    <span className="fw-semibold">42%</span>
-                  </div>
-                  <div className="progress" style={{height: '6px'}}>
-                    <div className="progress-bar bg-success" style={{width: '42%'}}></div>
-                  </div>
-                </div>
-              </div>
-              <div className="card-footer bg-transparent border-0">
-                <Link to="/admin/health" className="btn btn-outline-primary btn-sm w-100">
-                  <Eye size={14} className="me-2" />
-                  View Detailed Metrics
+        <section className="ops-metrics-grid">
+          {operationalMetrics.map((metric) => (
+            <article className={`ops-metric-card ${metric.tone}`} key={metric.label}>
+              <div className="ops-metric-top">
+                <div className="ops-metric-icon">{metric.icon}</div>
+                <Link to={metric.to}>
+                  {metric.action}
+                  <ChevronRight size={14} />
                 </Link>
               </div>
-            </div>
+
+              <strong>{metric.value.toLocaleString()}</strong>
+              <span>{metric.label}</span>
+            </article>
+          ))}
+        </section>
+
+        <section className="ops-main-grid">
+          <div className="ops-left-column">
+            <section className="ops-panel">
+              <div className="ops-panel-header">
+                <div>
+                  <span className="ops-panel-kicker">Action required</span>
+                  <h2>Operational alerts</h2>
+                </div>
+
+                <Link to="/admin/logs" className="ops-small-link">
+                  Audit logs
+                  <ChevronRight size={14} />
+                </Link>
+              </div>
+
+              <div className="ops-alert-list">
+                {operationalAlerts.map((alert) => (
+                  <Link
+                    to={alert.to}
+                    className={`ops-alert-item ${alert.tone}`}
+                    key={alert.title}
+                  >
+                    <div className="ops-alert-dot" />
+                    <div>
+                      <strong>{alert.title}</strong>
+                      <span>{alert.description}</span>
+                    </div>
+                    <ChevronRight size={16} />
+                  </Link>
+                ))}
+              </div>
+            </section>
+
+            <section className="ops-panel">
+              <div className="ops-panel-header">
+                <div>
+                  <span className="ops-panel-kicker">Audit visibility</span>
+                  <h2>Recent system actions</h2>
+                </div>
+
+                <Link to="/admin/logs" className="ops-small-link">
+                  View all
+                  <ChevronRight size={14} />
+                </Link>
+              </div>
+
+              <div className="ops-log-list">
+                {stats?.recentActions && stats.recentActions.length > 0 ? (
+                  stats.recentActions.slice(0, 6).map((action) => {
+                    const severity = getSeverityClass(action.severity);
+
+                    return (
+                      <div className="ops-log-row" key={action.id}>
+                        <div className={`ops-log-icon ${severity}`}>
+                          <Activity size={15} />
+                        </div>
+
+                        <div className="ops-log-main">
+                          <strong>
+                            {(action.event_type || 'Unknown Event').replace(/_/g, ' ')}
+                          </strong>
+                          <span>
+                            {action.details ||
+                              `Entity ID: ${action.entity_id?.substring(0, 8) || 'N/A'}...`}
+                          </span>
+                        </div>
+
+                        <div className="ops-log-meta">
+                          <span>
+                            {(action.entity_type || 'System').replace(/_/g, ' ')}
+                          </span>
+                          <time dateTime={action.timestamp}>
+                            {new Date(action.timestamp).toLocaleString()}
+                          </time>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="ops-empty-state">
+                    No recent system actions recorded.
+                  </div>
+                )}
+              </div>
+            </section>
           </div>
-        )}
+
+          <aside className="ops-right-column">
+            <section className="ops-panel">
+              <div className="ops-panel-header">
+                <div>
+                  <span className="ops-panel-kicker">Growth signals</span>
+                  <h2>Platform intake</h2>
+                </div>
+              </div>
+
+              <div className="ops-signal-list">
+                <div>
+                  <span>Institution onboarding requests</span>
+                  <strong>{stats?.pendingInstitutions || 0}</strong>
+                </div>
+
+                <div>
+                  <span>Student interest signals</span>
+                  <strong>{stats?.totalStudentInterests || 0}</strong>
+                </div>
+
+                <div>
+                  <span>Registered students</span>
+                  <strong>{stats?.totalStudents || 0}</strong>
+                </div>
+              </div>
+
+              <Link to="/admin/analytics/institutions" className="ops-full-btn">
+                <BarChart3 size={15} />
+                View growth analytics
+              </Link>
+            </section>
+
+            {!isModerator && (
+              <section className="ops-panel">
+                <div className="ops-panel-header">
+                  <div>
+                    <span className="ops-panel-kicker">Infrastructure</span>
+                    <h2>System health</h2>
+                  </div>
+                </div>
+
+                <div className="ops-health-list">
+                  <div>
+                    <span>API status</span>
+                    <strong>Operational</strong>
+                  </div>
+                  <div>
+                    <span>Database</span>
+                    <strong>Healthy</strong>
+                  </div>
+                  <div>
+                    <span>Cache service</span>
+                    <strong>Active</strong>
+                  </div>
+                  <div>
+                    <span>Latest health message</span>
+                    <strong>{systemMessage}</strong>
+                  </div>
+                </div>
+
+                <Link to="/admin/health" className="ops-full-btn muted">
+                  <Eye size={15} />
+                  View detailed metrics
+                </Link>
+              </section>
+            )}
+          </aside>
+        </section>
+
+        <section className="ops-management-grid">
+          {isSuperAdmin && (
+            <article className="ops-management-card">
+              <div className="ops-management-icon">
+                <Shield size={19} />
+              </div>
+
+              <div>
+                <h3>Staff management</h3>
+                <p>Invite staff, manage roles, review access, and monitor internal actions.</p>
+              </div>
+
+              <div className="ops-action-links">
+                <Link to="/admin/staff/invite">
+                  <UserPlus size={15} />
+                  Invite staff
+                </Link>
+                <Link to="/admin/staff">
+                  <Key size={15} />
+                  Roles & permissions
+                </Link>
+                <Link to="/admin/staff">
+                  <Activity size={15} />
+                  Staff activity
+                </Link>
+              </div>
+            </article>
+          )}
+
+          {!isAuditor && (
+            <article className="ops-management-card">
+              <div className="ops-management-icon green">
+                <Building size={19} />
+              </div>
+
+              <div>
+                <h3>Institution management</h3>
+                <p>Review onboarding requests, verification queues, institution records, and reports.</p>
+              </div>
+
+              <div className="ops-action-links">
+                <Link to="/admin/institutions">
+                  <Clock size={15} />
+                  Pending requests
+                </Link>
+                <Link to="/admin/institutions">
+                  <TrendingUp size={15} />
+                  Institution analytics
+                </Link>
+                <Link to="/admin/institutions">
+                  <AlertTriangle size={15} />
+                  Verification queue
+                </Link>
+              </div>
+            </article>
+          )}
+
+          {!isAuditor && (
+            <article className="ops-management-card">
+              <div className="ops-management-icon blue">
+                <Briefcase size={19} />
+              </div>
+
+              <div>
+                <h3>Employer management</h3>
+                <p>Review employer onboarding requests and approve credible partner organizations.</p>
+              </div>
+
+              <div className="ops-action-links">
+                <Link to="/admin/employers/requests">
+                  <UserPlus size={15} />
+                  Employer requests
+                </Link>
+              </div>
+            </article>
+          )}
+
+          {!isAuditor && (
+            <article className="ops-management-card">
+              <div className="ops-management-icon red">
+                <LifeBuoy size={19} />
+              </div>
+
+              <div>
+                <h3>Support & care</h3>
+                <p>Handle support tickets, user issues, account access problems, and workflow blockers.</p>
+              </div>
+
+              <div className="ops-action-links">
+                <Link to="/admin/support">
+                  <LifeBuoy size={15} />
+                  Manage support tickets
+                </Link>
+              </div>
+            </article>
+          )}
+        </section>
       </div>
+
+      <style>{`
+        .ops-dashboard {
+          color: #111827;
+        }
+
+        .ops-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 24px;
+          margin-bottom: 24px;
+        }
+
+        .ops-kicker,
+        .ops-panel-kicker {
+          display: inline-flex;
+          color: #64748b;
+          font-size: .72rem;
+          font-weight: 850;
+          letter-spacing: .09em;
+          text-transform: uppercase;
+          margin-bottom: 8px;
+        }
+
+        .ops-header h1 {
+          font-size: clamp(1.85rem, 3vw, 2.6rem);
+          line-height: 1.05;
+          font-weight: 900;
+          letter-spacing: -.055em;
+          margin: 0 0 8px;
+          color: #0f172a;
+        }
+
+        .ops-header p {
+          max-width: 720px;
+          color: #64748b;
+          line-height: 1.65;
+          margin: 0;
+        }
+
+        .ops-header-actions {
+          display: flex;
+          align-items: stretch;
+          gap: 10px;
+          flex-shrink: 0;
+        }
+
+        .ops-refresh-btn {
+          min-height: 48px;
+          border: 1px solid #dbe3ea;
+          background: #ffffff;
+          color: #334155;
+          border-radius: 12px;
+          padding: 0 14px;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          font-weight: 800;
+          cursor: pointer;
+        }
+
+        .ops-refresh-btn:disabled {
+          opacity: .6;
+          cursor: wait;
+        }
+
+        .spin-animation {
+          animation: opsSpin .8s linear infinite;
+        }
+
+        @keyframes opsSpin {
+          to { transform: rotate(360deg); }
+        }
+
+        .ops-health-badge {
+          min-height: 48px;
+          border-radius: 12px;
+          padding: 8px 13px;
+          display: inline-flex;
+          align-items: center;
+          gap: 9px;
+          border: 1px solid;
+          min-width: 190px;
+        }
+
+        .ops-health-badge span {
+          display: block;
+          font-size: .7rem;
+          text-transform: uppercase;
+          letter-spacing: .06em;
+          font-weight: 850;
+          opacity: .78;
+        }
+
+        .ops-health-badge strong {
+          display: block;
+          font-size: .88rem;
+          font-weight: 900;
+        }
+
+        .ops-health-good {
+          background: #ecfdf5;
+          color: #047857;
+          border-color: #bbf7d0;
+        }
+
+        .ops-health-warning {
+          background: #fffbeb;
+          color: #b45309;
+          border-color: #fde68a;
+        }
+
+        .ops-health-danger {
+          background: #fef2f2;
+          color: #b91c1c;
+          border-color: #fecaca;
+        }
+
+        .ops-health-muted {
+          background: #f8fafc;
+          color: #475569;
+          border-color: #e2e8f0;
+        }
+
+        .ops-metrics-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 14px;
+          margin-bottom: 18px;
+        }
+
+        .ops-metric-card,
+        .ops-panel,
+        .ops-management-card {
+          background: #ffffff;
+          border: 1px solid #e5e7eb;
+          border-radius: 18px;
+          box-shadow: 0 10px 26px rgba(15,23,42,.04);
+        }
+
+        .ops-metric-card {
+          padding: 18px;
+        }
+
+        .ops-metric-top {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 20px;
+        }
+
+        .ops-metric-icon {
+          width: 42px;
+          height: 42px;
+          border-radius: 14px;
+          background: #f1f5f9;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #475569;
+        }
+
+        .ops-metric-card.green .ops-metric-icon {
+          color: #047857;
+          background: #ecfdf5;
+        }
+
+        .ops-metric-card.amber .ops-metric-icon {
+          color: #b45309;
+          background: #fffbeb;
+        }
+
+        .ops-metric-card.indigo .ops-metric-icon {
+          color: #4338ca;
+          background: #eef2ff;
+        }
+
+        .ops-metric-top a {
+          color: #64748b;
+          font-size: .76rem;
+          font-weight: 800;
+          display: inline-flex;
+          align-items: center;
+          gap: 3px;
+          text-decoration: none;
+        }
+
+        .ops-metric-card > strong {
+          display: block;
+          color: #0f172a;
+          font-size: 2rem;
+          font-weight: 900;
+          letter-spacing: -.05em;
+          line-height: 1;
+          margin-bottom: 6px;
+        }
+
+        .ops-metric-card > span {
+          color: #64748b;
+          font-size: .86rem;
+          font-weight: 650;
+        }
+
+        .ops-main-grid {
+          display: grid;
+          grid-template-columns: minmax(0, 1.55fr) minmax(320px, .85fr);
+          gap: 18px;
+          margin-bottom: 18px;
+        }
+
+        .ops-left-column,
+        .ops-right-column {
+          display: flex;
+          flex-direction: column;
+          gap: 18px;
+        }
+
+        .ops-panel {
+          padding: 18px;
+        }
+
+        .ops-panel-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 12px;
+          margin-bottom: 16px;
+        }
+
+        .ops-panel-header h2 {
+          color: #0f172a;
+          font-size: 1.08rem;
+          font-weight: 900;
+          margin: 0;
+          letter-spacing: -.02em;
+        }
+
+        .ops-small-link {
+          color: #64748b;
+          font-size: .8rem;
+          font-weight: 800;
+          text-decoration: none;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          white-space: nowrap;
+        }
+
+        .ops-alert-list,
+        .ops-log-list,
+        .ops-signal-list,
+        .ops-health-list,
+        .ops-action-links {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .ops-alert-item {
+          display: grid;
+          grid-template-columns: auto 1fr auto;
+          gap: 12px;
+          align-items: center;
+          padding: 13px;
+          border-radius: 14px;
+          border: 1px solid #e5e7eb;
+          color: #111827;
+          text-decoration: none;
+        }
+
+        .ops-alert-dot {
+          width: 9px;
+          height: 9px;
+          border-radius: 999px;
+          background: #64748b;
+        }
+
+        .ops-alert-item.warning {
+          background: #fffbeb;
+          border-color: #fde68a;
+        }
+
+        .ops-alert-item.warning .ops-alert-dot {
+          background: #f59e0b;
+        }
+
+        .ops-alert-item.info {
+          background: #eff6ff;
+          border-color: #bfdbfe;
+        }
+
+        .ops-alert-item.info .ops-alert-dot {
+          background: #2563eb;
+        }
+
+        .ops-alert-item.danger {
+          background: #fef2f2;
+          border-color: #fecaca;
+        }
+
+        .ops-alert-item.danger .ops-alert-dot {
+          background: #dc2626;
+        }
+
+        .ops-alert-item.success {
+          background: #ecfdf5;
+          border-color: #bbf7d0;
+        }
+
+        .ops-alert-item.success .ops-alert-dot {
+          background: #16a34a;
+        }
+
+        .ops-alert-item strong {
+          display: block;
+          font-size: .9rem;
+          font-weight: 900;
+          margin-bottom: 2px;
+        }
+
+        .ops-alert-item span {
+          display: block;
+          color: #64748b;
+          font-size: .8rem;
+          line-height: 1.5;
+        }
+
+        .ops-log-row {
+          display: grid;
+          grid-template-columns: auto minmax(0, 1fr) auto;
+          gap: 12px;
+          align-items: center;
+          padding: 12px 0;
+          border-top: 1px solid #eef2f7;
+        }
+
+        .ops-log-row:first-child {
+          border-top: 0;
+          padding-top: 0;
+        }
+
+        .ops-log-icon {
+          width: 34px;
+          height: 34px;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #eff6ff;
+          color: #2563eb;
+        }
+
+        .ops-log-icon.warning {
+          background: #fffbeb;
+          color: #b45309;
+        }
+
+        .ops-log-icon.danger {
+          background: #fef2f2;
+          color: #b91c1c;
+        }
+
+        .ops-log-icon.success {
+          background: #ecfdf5;
+          color: #047857;
+        }
+
+        .ops-log-main {
+          min-width: 0;
+        }
+
+        .ops-log-main strong {
+          display: block;
+          color: #111827;
+          font-size: .86rem;
+          font-weight: 850;
+          text-transform: capitalize;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .ops-log-main span {
+          color: #64748b;
+          font-size: .76rem;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          display: block;
+        }
+
+        .ops-log-meta {
+          text-align: right;
+          min-width: 150px;
+        }
+
+        .ops-log-meta span {
+          display: inline-flex;
+          color: #475569;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 999px;
+          padding: 3px 8px;
+          font-size: .7rem;
+          font-weight: 800;
+          text-transform: capitalize;
+          margin-bottom: 5px;
+        }
+
+        .ops-log-meta time {
+          display: block;
+          color: #94a3b8;
+          font-size: .72rem;
+        }
+
+        .ops-empty-state {
+          color: #64748b;
+          text-align: center;
+          padding: 34px 10px;
+          font-weight: 650;
+        }
+
+        .ops-signal-list div,
+        .ops-health-list div {
+          display: flex;
+          justify-content: space-between;
+          gap: 14px;
+          border-bottom: 1px solid #eef2f7;
+          padding-bottom: 10px;
+        }
+
+        .ops-signal-list div:last-child,
+        .ops-health-list div:last-child {
+          border-bottom: 0;
+          padding-bottom: 0;
+        }
+
+        .ops-signal-list span,
+        .ops-health-list span {
+          color: #64748b;
+          font-size: .84rem;
+        }
+
+        .ops-signal-list strong,
+        .ops-health-list strong {
+          color: #0f172a;
+          font-weight: 900;
+          text-align: right;
+        }
+
+        .ops-full-btn {
+          margin-top: 16px;
+          width: 100%;
+          min-height: 42px;
+          border-radius: 12px;
+          background: #0f172a;
+          color: #ffffff;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          font-weight: 850;
+          text-decoration: none;
+        }
+
+        .ops-full-btn.muted {
+          background: #ffffff;
+          color: #334155;
+          border: 1px solid #e2e8f0;
+        }
+
+        .ops-management-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 18px;
+        }
+
+        .ops-management-card {
+          padding: 18px;
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 14px;
+        }
+
+        .ops-management-icon {
+          width: 42px;
+          height: 42px;
+          border-radius: 14px;
+          background: #eff6ff;
+          color: #2563eb;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .ops-management-icon.green {
+          background: #ecfdf5;
+          color: #047857;
+        }
+
+        .ops-management-icon.blue {
+          background: #e0f2fe;
+          color: #0369a1;
+        }
+
+        .ops-management-icon.red {
+          background: #fef2f2;
+          color: #b91c1c;
+        }
+
+        .ops-management-card h3 {
+          color: #0f172a;
+          font-size: 1rem;
+          font-weight: 900;
+          margin: 0 0 6px;
+        }
+
+        .ops-management-card p {
+          color: #64748b;
+          font-size: .86rem;
+          line-height: 1.6;
+          margin: 0 0 14px;
+        }
+
+        .ops-action-links {
+          grid-column: 1 / -1;
+        }
+
+        .ops-action-links a {
+          min-height: 42px;
+          padding: 0 12px;
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+          color: #334155;
+          text-decoration: none;
+          font-weight: 800;
+          display: inline-flex;
+          align-items: center;
+          gap: 9px;
+        }
+
+        .ops-action-links a:hover,
+        .ops-small-link:hover,
+        .ops-metric-top a:hover {
+          color: #047857;
+        }
+
+        .ops-error-state {
+          background: #fef2f2;
+          border: 1px solid #fecaca;
+          color: #991b1b;
+          border-radius: 16px;
+          padding: 18px;
+          display: flex;
+          align-items: flex-start;
+          gap: 14px;
+        }
+
+        .ops-error-state h2 {
+          font-size: 1.1rem;
+          font-weight: 900;
+          margin: 0 0 4px;
+        }
+
+        .ops-error-state p {
+          margin: 0;
+        }
+
+        @media (max-width: 1180px) {
+          .ops-metrics-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .ops-main-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        @media (max-width: 760px) {
+          .ops-header {
+            flex-direction: column;
+          }
+
+          .ops-header-actions {
+            width: 100%;
+            flex-direction: column;
+          }
+
+          .ops-refresh-btn,
+          .ops-health-badge {
+            width: 100%;
+          }
+
+          .ops-metrics-grid,
+          .ops-management-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .ops-log-row {
+            grid-template-columns: auto 1fr;
+          }
+
+          .ops-log-meta {
+            grid-column: 2;
+            text-align: left;
+            min-width: 0;
+          }
+        }
+      `}</style>
     </AdminLayout>
   );
 };

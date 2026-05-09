@@ -13,24 +13,24 @@ const Footer: React.FC<FooterProps> = ({ className = '' }) => {
 
   const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!email.trim()) return;
 
     setShowLoading(true);
     setMessage('');
-    
+
     try {
-      // Simulate API call with loading state
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise(resolve => setTimeout(resolve, 1200));
+
       setIsSuccess(true);
-      setMessage('Your subscription request has been sent. Thank you!');
+      setMessage('Thank you. You have joined the EduLink KE updates list.');
       setEmail('');
-      setShowLoading(false);
     } catch {
       setIsSuccess(false);
-      setMessage('There was an error processing your subscription.');
-      setShowLoading(false);
+      setMessage('Unable to process your subscription. Please try again.');
     } finally {
-      // Auto-clear message after 5 seconds
+      setShowLoading(false);
+
       setTimeout(() => {
         setMessage('');
         setIsSuccess(false);
@@ -39,80 +39,132 @@ const Footer: React.FC<FooterProps> = ({ className = '' }) => {
   };
 
   return (
-    <footer id="footer" className={`footer position-relative footer-brand ${className}`}>
+    <footer id="footer" className={`footer footer-brand ${className}`}>
       <div className="container footer-top">
-        <div className="row gy-4">
-          {/* About Section */}
-          <div className="col-lg-4 col-md-6 footer-about">
-            <Link to="/" className="logo d-flex align-items-center">
-              <span className="sitename">EduLink KE</span>
+        <div className="footer-grid">
+          {/* Brand */}
+          <div className="footer-about">
+            <Link to="/" className="footer-logo">
+              EduLink KE
             </Link>
-            <div className="footer-contact pt-3">
+
+            <p className="footer-summary">
+              Verified attachments, internships, digital logbooks, and career
+              transition workflows for students, employers, and institutions.
+            </p>
+
+            <div className="footer-contact">
               <p>JKUAT, Juja</p>
-              <p>Nairobi, Kenya</p>
-              <p className="mt-3"><strong>Phone:</strong> <span>+254 712 345 678</span></p>
-              <p><strong>Email:</strong> <span>info@edulink.co.ke</span></p>
+              <p>Kenya</p>
+              <p className="mt-3">
+                <strong>Email:</strong>{' '}
+                <a href="mailto:info@sinapstechnology.tech">
+                  info@sinapstechnology.tech
+                </a>
+              </p>
             </div>
-            <div className="social-links d-flex mt-4">
-              <a href="https://twitter.com/edulinkke" target="_blank" rel="noopener noreferrer" aria-label="Twitter">
+
+            <div className="social-links">
+              <a
+                href="https://twitter.com/edulinkke"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Twitter / X"
+              >
                 <i className="bi bi-twitter-x"></i>
               </a>
-              <a href="https://facebook.com/edulinkke" target="_blank" rel="noopener noreferrer" aria-label="Facebook">
+
+              <a
+                href="https://facebook.com/edulinkke"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Facebook"
+              >
                 <i className="bi bi-facebook"></i>
               </a>
-              <a href="https://instagram.com/edulinkke" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+
+              <a
+                href="https://instagram.com/edulinkke"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Instagram"
+              >
                 <i className="bi bi-instagram"></i>
               </a>
-              <a href="https://linkedin.com/company/synapsetechnology/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+
+              <a
+                href="https://linkedin.com/company/synapsetechnology/"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="LinkedIn"
+              >
                 <i className="bi bi-linkedin"></i>
               </a>
             </div>
           </div>
 
-          {/* Useful Links */}
-          <div className="col-lg-2 col-md-3 footer-links">
+          {/* Platform */}
+          <div className="footer-links">
+            <h4>Platform</h4>
+            <ul>
+              <li><Link to="/opportunities">Find Opportunities</Link></li>
+              <li><Link to="/login">Student Portal</Link></li>
+              <li><Link to="/employer/login">Employer Portal</Link></li>
+              <li><Link to="/institution/login">Institution Portal</Link></li>
+              <li><Link to="/success-stories">Student Outcomes</Link></li>
+            </ul>
+          </div>
+
+          {/* Partners */}
+          <div className="footer-links">
+            <h4>Partners</h4>
+            <ul>
+              <li><Link to="/institutions/request">Institution Onboarding</Link></li>
+              <li><Link to="/employer/onboarding">Employer Onboarding</Link></li>
+              <li><Link to="/edulink-beta">Beta & Pilot Partners</Link></li>
+              <li><Link to="/trust-policy">Trust & Pilot Policy</Link></li>
+            </ul>
+          </div>
+
+          {/* Support */}
+          <div className="footer-links">
             <h4>Support</h4>
             <ul>
               <li><Link to="/support">Support Center</Link></li>
               <li><Link to="/support/history">Track Tickets</Link></li>
               <li><Link to="/faq">FAQs</Link></li>
-              <li><Link to="/trust-policy">Trust & Pilot Policy</Link></li>
               <li><Link to="/privacy">Privacy Policy</Link></li>
               <li><Link to="/terms">Terms of Service</Link></li>
             </ul>
           </div>
 
-          {/* Our Services */}
-          <div className="col-lg-2 col-md-3 footer-links">
-            <h4>Our Services</h4>
-            <ul>
-              <li><Link to="/opportunities">Find Opportunities</Link></li>
-              <li><Link to="/success-stories">Student Outcomes</Link></li>
-              <li><Link to="/institutions/request">Institution Onboarding</Link></li>
-              <li><Link to="/employer/onboarding">Employer Onboarding</Link></li>
-              <li><Link to="/login">Student Portal</Link></li>
-            </ul>
-          </div>
-
           {/* Newsletter */}
-          <div className="col-lg-4 col-md-12 footer-newsletter">
-            <h4>Our Newsletter</h4>
-            <p>Stay updated on verified internships, new features, and student career events.</p>
-            <form onSubmit={handleNewsletterSubmit} className="">
+          <div className="footer-newsletter">
+            <h4>Join Our Newsletter</h4>
+
+            <p>
+              Get updates on verified internships, pilot opportunities, product
+              improvements, and student career events.
+            </p>
+
+            <form onSubmit={handleNewsletterSubmit}>
               <div className="newsletter-form">
-                <input 
-                  type="email" 
-                  name="email" 
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="Enter your email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  disabled={showLoading}
                   required
                 />
-                <input 
-                  type="submit" 
-                  value="Subscribe" 
-                />
+
+                <button type="submit" disabled={showLoading || !email.trim()}>
+                  {showLoading ? 'Joining…' : 'Subscribe'}
+                </button>
               </div>
-              {showLoading && <div className="loading">Loading</div>}
+
+              {showLoading && <div className="loading">Processing subscription…</div>}
               {!isSuccess && message && <div className="error-message">{message}</div>}
               {isSuccess && <div className="sent-message">{message}</div>}
             </form>
@@ -120,364 +172,316 @@ const Footer: React.FC<FooterProps> = ({ className = '' }) => {
         </div>
       </div>
 
-      <div className="container copyright text-center mt-4">
-        <p>© <span>Copyright</span> <strong className="px-1 sitename">EduLink KE</strong> <span>All Rights Reserved</span></p>
+      <div className="container footer-bottom">
+        <p>
+          © {new Date().getFullYear()}{' '}
+          <strong>EduLink KE</strong>. All Rights Reserved.
+        </p>
+
         <div className="credits">
-          Designed &amp; Developed by <a href="https://sinapstechnology.co.ke" target="_blank" rel="noopener noreferrer">Sinaps Technology</a>
+          Built under{' '}
+          <a
+            href="https://sinapstechnology.tech"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Sinaps Technology
+          </a>
         </div>
       </div>
 
       <style>{`
-        /* Let Bootstrap handle the grid layout - remove conflicting flex properties */
-        .footer-brand .row {
-          /* Bootstrap handles this automatically */
-        }
-        
         .footer-brand {
-          background: #112019;
-          color: #c0c0c0;
-          padding: 60px 0 30px 0;
+          background:
+            radial-gradient(circle at top left, rgba(6,155,142,.12), transparent 30%),
+            #0b1f1c;
+          color: rgba(255,255,255,.66);
+          padding: 70px 0 28px;
           font-size: 14px;
-          position: relative;
         }
 
-        .footer-brand .footer-top {
-          padding-top: 50px;
+        .footer-brand .container {
+          max-width: 1180px;
+          width: 100%;
+          margin: 0 auto;
+          padding: 0 20px;
         }
 
-        .footer-brand .footer-about .logo {
-          margin-bottom: 0;
+        .footer-grid {
+          display: grid;
+          grid-template-columns: 1.3fr .85fr .95fr .85fr 1.25fr;
+          gap: 34px;
+          align-items: flex-start;
+        }
+
+        .footer-logo {
+          display: inline-flex;
+          color: #ffffff;
+          text-decoration: none;
+          font-size: 1.55rem;
+          font-weight: 800;
+          letter-spacing: -.04em;
+          margin-bottom: 15px;
+        }
+
+        .footer-summary {
+          max-width: 310px;
+          line-height: 1.75;
+          color: rgba(255,255,255,.52);
+          margin: 0 0 20px;
+        }
+
+        .footer-contact p {
+          margin: 0 0 6px;
+          color: rgba(255,255,255,.58);
+        }
+
+        .footer-contact strong {
+          color: rgba(255,255,255,.86);
+        }
+
+        .footer-contact a {
+          color: rgba(255,255,255,.65);
           text-decoration: none;
         }
 
-        .footer-brand .footer-about .logo span {
-          font-size: 26px;
-          font-weight: 700;
-          letter-spacing: 1px;
-          font-family: var(--heading-font, 'Raleway', sans-serif);
-          color: #ffffff;
+        .footer-contact a:hover {
+          color: #0bbfa3;
         }
 
-        .footer-brand .footer-contact p {
-          color: #c0c0c0;
-          margin-bottom: 5px;
-        }
-
-        .footer-brand .footer-contact strong {
-          color: #ffffff;
-        }
-
-        .footer-brand .social-links a {
+        .social-links {
           display: flex;
+          gap: 9px;
+          margin-top: 22px;
+          flex-wrap: wrap;
+        }
+
+        .social-links a {
+          width: 38px;
+          height: 38px;
+          border-radius: 10px;
+          background: rgba(255,255,255,.06);
+          border: 1px solid rgba(255,255,255,.08);
+          display: inline-flex;
           align-items: center;
           justify-content: center;
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
-          background: rgba(255, 255, 255, 0.1);
-          font-size: 16px;
-          color: #ffffff;
-          margin-right: 8px;
-          transition: 0.3s;
+          color: rgba(255,255,255,.78);
+          font-size: 15px;
           text-decoration: none;
+          transition: background .16s ease, color .16s ease, transform .16s ease;
         }
 
-        .footer-brand .social-links a:hover {
-          background: #28a745;
-          color: #ffffff;
+        .social-links a:hover {
+          background: rgba(11,191,163,.15);
+          color: #0bbfa3;
           transform: translateY(-2px);
         }
 
-        .footer-brand h4 {
-          font-size: 16px;
-          font-weight: 600;
-          position: relative;
-          padding-bottom: 12px;
+        .footer-links h4,
+        .footer-newsletter h4 {
           color: #ffffff;
+          font-size: .82rem;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: .06em;
+          margin: 0 0 16px;
         }
 
-        .footer-brand .footer-links {
-          margin-bottom: 30px;
-        }
-
-        .footer-brand .footer-links ul {
+        .footer-links ul {
           list-style: none;
           padding: 0;
           margin: 0;
-        }
-
-        .footer-brand .footer-links ul li {
-          padding: 6px 0;
           display: flex;
-          align-items: center;
+          flex-direction: column;
+          gap: 10px;
         }
 
-        .footer-brand .footer-links ul li:first-child {
-          padding-top: 0;
-        }
-
-        .footer-brand .footer-links ul a {
-          color: #c0c0c0;
-          display: inline-block;
-          line-height: 1;
-          transition: 0.3s;
+        .footer-links a {
+          color: rgba(255,255,255,.55);
           text-decoration: none;
+          line-height: 1.45;
+          transition: color .16s ease;
         }
 
-        .footer-brand .footer-links ul a:hover {
-          color: rgb(10, 189, 174);
-          text-decoration: none;
+        .footer-links a:hover {
+          color: #0bbfa3;
         }
 
-        .footer-brand .footer-newsletter .newsletter-form {
-          margin-top: 30px;
-          margin-bottom: 15px;
+        .footer-newsletter {
+          padding: 20px;
+          border-radius: 18px;
+          background: rgba(255,255,255,.055);
+          border: 1px solid rgba(255,255,255,.08);
+        }
+
+        .footer-newsletter p {
+          color: rgba(255,255,255,.55);
+          line-height: 1.65;
+          margin: 0 0 18px;
+        }
+
+        .newsletter-form {
           display: flex;
-          align-items: center;
+          align-items: stretch;
+          gap: 8px;
         }
 
-        .footer-brand .footer-newsletter .newsletter-form input[type=email] {
-          background: transparent;
-          border: solid 1px rgba(255, 255, 255, 0.2);
-          color: #ffffff;
-          padding: 10px;
+        .newsletter-form input[type=email] {
+          min-width: 0;
           flex: 1;
-          margin-right: 10px;
-        }
-
-        .footer-brand .footer-newsletter .newsletter-form input[type=email]:focus {
-          outline: none;
-          border-color: rgb(10, 189, 174);
-        }
-
-        .footer-brand .footer-newsletter .newsletter-form input[type=submit] {
-          background: rgb(6, 165, 144);
-          padding: 10px 20px;
-          border: 0;
+          height: 42px;
+          border-radius: 10px;
+          border: 1px solid rgba(255,255,255,.14);
+          background: rgba(255,255,255,.06);
           color: #ffffff;
-          cursor: pointer;
-          transition: 0.3s;
+          padding: 0 12px;
+          outline: none;
+          font-size: .88rem;
         }
 
-        .footer-brand .footer-newsletter .newsletter-form input[type=submit]:hover {
-          background: rgba(6, 165, 144, 0.8);
+        .newsletter-form input[type=email]::placeholder {
+          color: rgba(255,255,255,.36);
         }
 
-        .footer-brand .footer-newsletter .newsletter-form input[type=submit]:disabled {
-          opacity: 0.6;
+        .newsletter-form input[type=email]:focus {
+          border-color: rgba(11,191,163,.7);
+          box-shadow: 0 0 0 3px rgba(11,191,163,.14);
+        }
+
+        .newsletter-form input[type=email]:disabled {
+          opacity: .65;
           cursor: not-allowed;
         }
 
-        /* Message divs styling to match original */
-        .footer-brand .footer-newsletter .loading,
-        .footer-brand .footer-newsletter .error-message,
-        .footer-brand .footer-newsletter .sent-message {
-          font-size: 14px;
-          margin-top: 10px;
-        }
-        
-        /* Ensure newsletter section aligns properly */
-        .footer-brand .footer-newsletter {
-          padding-left: 15px;
-          padding-right: 15px;
-        }
-        
-        .footer-brand .footer-newsletter h4 {
-          margin-bottom: 15px;
-        }
-        
-        .footer-brand .footer-newsletter p {
-          margin-bottom: 20px;
-        }
-        
-        .footer-brand .footer-newsletter .loading {
-          color: #c0c0c0;
-        }
-        
-        .footer-brand .footer-newsletter .error-message {
-          color: #ff6b6b;
-        }
-        
-        .footer-brand .footer-newsletter .sent-message {
-          color: #51cf66;
-        }
-
-        .footer-brand .footer-newsletter .newsletter-form input[type=email]:disabled {
-          opacity: 0.7;
-          cursor: not-allowed;
-        }
-
-        /* Ensure proper spacing between sections */
-        .footer-brand .footer-about,
-        .footer-brand .footer-links,
-        .footer-brand .footer-newsletter {
-          padding-bottom: 1rem;
-        }
-        
-        /* Ensure consistent vertical alignment */
-        .footer-brand .row {
-          align-items: flex-start;
-        }
-        
-        /* Container styling to match original layout */
-        .footer-brand .container {
-          max-width: 1140px;
-          margin: 0 auto;
+        .newsletter-form button {
+          height: 42px;
+          border: 0;
+          border-radius: 10px;
+          background: #069b8e;
+          color: #ffffff;
           padding: 0 15px;
-          width: 100%;
-        }
-        
-        .footer-brand .footer-top {
-          padding-top: 50px;
-          padding-left: 15px;
-          padding-right: 15px;
-        }
-        
-        /* Ensure proper row spacing */
-        .footer-brand .row {
-          margin-left: -15px;
-          margin-right: -15px;
-        }
-        
-        /* Ensure proper column spacing */
-        .footer-brand .col-lg-4,
-        .footer-brand .col-lg-2,
-        .footer-brand .col-md-6,
-        .footer-brand .col-md-3,
-        .footer-brand .col-md-12 {
-          padding-left: 15px;
-          padding-right: 15px;
-        }
-        
-        /* Fix logo section alignment to match other sections */
-        .footer-brand .footer-about {
-          padding-left: 15px;
-          padding-right: 15px;
-        }
-        
-        .footer-brand .footer-about .logo {
-          margin-left: 0;
-          padding-left: 0;
-          text-decoration: none;
-        }
-        
-        /* Ensure consistent baseline alignment across all sections */
-        .footer-brand .footer-about,
-        .footer-brand .footer-links,
-        .footer-brand .footer-newsletter {
-          margin-top: 0;
-          padding-top: 0;
-        }
-        
-        /* Ensure proper alignment of all footer sections */
-        .footer-brand .footer-about,
-        .footer-brand .footer-links,
-        .footer-brand .footer-newsletter {
-          box-sizing: border-box;
+          font-weight: 800;
+          font-size: .84rem;
+          cursor: pointer;
+          transition: background .16s ease, transform .12s ease;
+          white-space: nowrap;
         }
 
-        .footer-brand .loading,
-        .footer-brand .error-message,
-        .footer-brand .sent-message {
-          font-size: 14px;
+        .newsletter-form button:hover:not(:disabled) {
+          background: #057e73;
+          transform: translateY(-1px);
+        }
+
+        .newsletter-form button:disabled {
+          opacity: .58;
+          cursor: not-allowed;
+        }
+
+        .loading,
+        .error-message,
+        .sent-message {
           margin-top: 10px;
+          font-size: .8rem;
+          line-height: 1.5;
         }
 
-        .footer-brand .loading {
-          color: #c0c0c0;
-          display: block;
+        .loading {
+          color: rgba(255,255,255,.48);
         }
 
-        .footer-brand .error-message {
-          color: #ff6b6b;
+        .error-message {
+          color: #ffb4b4;
         }
 
-        .footer-brand .sent-message {
-          color: #51cf66;
+        .sent-message {
+          color: #86efac;
         }
 
-        .footer-brand .copyright {
-          padding-top: 30px;
-          padding-bottom: 25px;
-          border-top: 1px solid rgba(255, 255, 255, 0.1);
-          background-color: rgba(255, 255, 255, 0.05);
-          margin-top: 30px;
+        .footer-bottom {
+          margin-top: 46px;
+          padding-top: 22px !important;
+          border-top: 1px solid rgba(255,255,255,.08);
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 16px;
+          color: rgba(255,255,255,.42);
+          font-size: .82rem;
         }
 
-        .footer-brand .copyright p {
-          margin-bottom: 0;
-          color: #c0c0c0;
+        .footer-bottom p {
+          margin: 0;
         }
 
-        .footer-brand .credits {
-          margin-top: 6px;
-          font-size: 13px;
-          color: #999999;
+        .footer-bottom strong {
+          color: rgba(255,255,255,.76);
         }
 
-        .footer-brand .credits a {
-          color: #999999;
+        .credits {
+          color: rgba(255,255,255,.42);
+        }
+
+        .credits a {
+          color: rgba(255,255,255,.56);
           text-decoration: none;
-          transition: 0.3s;
+          font-weight: 800;
         }
 
-        .footer-brand .credits a:hover {
-          color: #28a745;
+        .credits a:hover {
+          color: #0bbfa3;
         }
 
-        /* Responsive Design */
+        @media (max-width: 1100px) {
+          .footer-grid {
+            grid-template-columns: 1.4fr 1fr 1fr;
+          }
+
+          .footer-newsletter {
+            grid-column: span 2;
+          }
+        }
+
         @media (max-width: 768px) {
-          .footer-brand .col-md-6 {
-            flex: 0 0 50%;
-            max-width: 50%;
-          }
-          
-          .footer-brand .col-md-3 {
-            flex: 0 0 50%;
-            max-width: 50%;
-          }
-          
-          .footer-brand .col-md-12 {
-            flex: 0 0 100%;
-            max-width: 100%;
-          }
-          
           .footer-brand {
-            padding: 40px 0 20px 0;
+            padding: 54px 0 24px;
           }
-          
-          .footer-brand .footer-top {
-            padding-top: 30px;
+
+          .footer-grid {
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
           }
-          
-          .footer-brand .footer-about,
-          .footer-brand .footer-links,
-          .footer-brand .footer-newsletter {
-            margin-bottom: 2rem;
+
+          .footer-about,
+          .footer-newsletter {
+            grid-column: 1 / -1;
+          }
+
+          .footer-summary {
+            max-width: 520px;
           }
         }
 
-        @media (max-width: 576px) {
-          .footer-brand .col-lg-4,
-          .footer-brand .col-lg-2,
-          .footer-brand .col-md-6,
-          .footer-brand .col-md-3,
-          .footer-brand .col-md-12 {
-            flex: 0 0 100%;
-            max-width: 100%;
+        @media (max-width: 560px) {
+          .footer-grid {
+            grid-template-columns: 1fr;
           }
-          
-          .footer-brand .footer-newsletter .newsletter-form {
+
+          .footer-about,
+          .footer-newsletter {
+            grid-column: auto;
+          }
+
+          .newsletter-form {
             flex-direction: column;
           }
-          
-          .footer-brand .footer-newsletter .newsletter-form input[type=email] {
-            margin-right: 0;
-            margin-bottom: 10px;
-          }
-          
-          .footer-brand .footer-newsletter .newsletter-form input[type=submit] {
+
+          .newsletter-form button {
             width: 100%;
+          }
+
+          .footer-bottom {
+            flex-direction: column;
+            align-items: flex-start;
           }
         }
       `}</style>

@@ -1,27 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { 
-  Building, 
-  Search, 
-  Filter, 
-  Clock, 
-  CheckCircle, 
-  XCircle, 
-  Mail, 
-  FileText,
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  Activity,
+  AlertCircle,
+  Building,
+  Calendar,
+  CheckCircle,
+  Clock,
   Download,
   Eye,
-  Check,
-  X,
-  AlertCircle,
-  Calendar,
+  FileText,
+  Mail,
   MapPin,
   Phone,
+  RefreshCw,
+  Search,
+  Shield,
   User,
-  Globe,
-  Info,
-  Activity
+  X,
+  XCircle,
 } from 'lucide-react';
+
 import { adminAuthService } from '../../../services';
 import AdminLayout from '../../../components/admin/AdminLayout';
 import InstitutionManagementSkeleton from '../../../components/admin/skeletons/InstitutionManagementSkeleton';
@@ -68,40 +66,27 @@ interface InstitutionRequest {
   updated_at: string;
 }
 
-interface PendingRequest {
-  id: string;
-  institution_name: string;
-  website_url: string;
-  requested_domains: string[];
-  representative_name: string;
-  representative_email: string;
-  representative_role: string;
-  representative_phone: string;
-  supporting_document?: string;
-  department: string;
-  notes: string;
-  status: string;
-  tracking_code: string;
-  reviewed_by?: string;
-  reviewed_at?: string;
-  rejection_reason?: string;
-  created_at: string;
-  updated_at: string;
-}
+type ActiveTab = 'institutions' | 'pending';
 
 const InstitutionManagement: React.FC = () => {
   const [institutions, setInstitutions] = useState<Institution[]>([]);
-  const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
+  const [pendingRequests, setPendingRequests] = useState<InstitutionRequest[]>([]);
+
+  const [activeTab, setActiveTab] = useState<ActiveTab>('institutions');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [activeTab, setActiveTab] = useState<'institutions' | 'pending'>('institutions');
+
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
-  const [error, setError] = useState<string>('');
-  const [selectedInstitution, setSelectedInstitution] = useState<Institution | null>(null);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const [selectedPendingRequest, setSelectedPendingRequest] = useState<InstitutionRequest | null>(null);
+  const [error, setError] = useState('');
+
+  const [selectedInstitution, setSelectedInstitution] =
+    useState<Institution | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+
+  const [selectedPendingRequest, setSelectedPendingRequest] =
+    useState<InstitutionRequest | null>(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectionReasonCode, setRejectionReasonCode] = useState('');
@@ -114,21 +99,26 @@ const InstitutionManagement: React.FC = () => {
   const fetchInstitutionData = async () => {
     try {
       setIsLoading(true);
-      
+
       const [institutionsData, pendingRequestsData] = await Promise.all([
         adminAuthService.getInstitutions(),
-        adminAuthService.getPendingInstitutionRequests()
+        adminAuthService.getPendingInstitutionRequests(),
       ]);
-      
-      // Handle potential pagination wrapper
-      const institutionsList = Array.isArray(institutionsData) ? institutionsData : (institutionsData.results || []);
-      const pendingList = Array.isArray(pendingRequestsData) ? pendingRequestsData : (pendingRequestsData.results || []);
-      
+
+      const institutionsList = Array.isArray(institutionsData)
+        ? institutionsData
+        : institutionsData.results || [];
+
+      const pendingList = Array.isArray(pendingRequestsData)
+        ? pendingRequestsData
+        : pendingRequestsData.results || [];
+
       setInstitutions(institutionsList);
       setPendingRequests(pendingList);
+      setError('');
     } catch (err) {
       const sanitized = sanitizeAdminError(err);
-      setError(sanitized.userMessage || 'Failed to load institution data');
+      setError(sanitized.userMessage || 'Failed to load institution data.');
     } finally {
       setIsLoading(false);
     }
@@ -137,147 +127,196 @@ const InstitutionManagement: React.FC = () => {
   const handleApproveRequest = async (requestId: string) => {
     try {
       setIsProcessing(requestId);
+
       await adminAuthService.approveInstitutionRequest(requestId);
-      
-      // Update local state to remove request
-      setPendingRequests(prevRequests => 
-        prevRequests.filter(request => request.id !== requestId)
+
+      setPendingRequests((prev) =>
+        prev.filter((request) => request.id !== requestId),
       );
-      
-      // If modal is open, close it
+
       setShowReviewModal(false);
-      
-      // Refresh institution data to show the new institution
-      fetchInstitutionData();
-      
+      setSelectedPendingRequest(null);
+
+      await fetchInstitutionData();
     } catch (err) {
       const sanitized = sanitizeAdminError(err);
-      setError(sanitized.userMessage || 'Failed to approve request');
+      setError(sanitized.userMessage || 'Failed to approve request.');
     } finally {
       setIsProcessing(null);
     }
   };
 
-  const handleShowReviewModal = (request: InstitutionRequest) => {
-    setSelectedPendingRequest(request);
-    setShowReviewModal(true);
-  };
-
-  const handleShowRejectModal = (request: InstitutionRequest) => {
-    setSelectedPendingRequest(request);
-    setShowRejectModal(true);
-  };
-
-  const handleConfirmReject = async () => {
-    if (!selectedPendingRequest || !rejectionReasonCode) return;
-    
+  const handleRejectRequest = async (
+    requestId: string,
+    reasonCode: string,
+    reason: string,
+  ) => {
     try {
-      setIsProcessing(selectedPendingRequest.id);
-      await handleRejectRequest(selectedPendingRequest.id, rejectionReasonCode, rejectionReason);
-      setShowRejectModal(false);
-      setRejectionReasonCode('');
-      setRejectionReason('');
-      setSelectedPendingRequest(null);
-    } catch (err) {
-      // Error is already handled and state set in handleRejectRequest
-      // We catch it here to prevent the modal from closing
-    } finally {
-      setIsProcessing(null);
-    }
-  };
+      await adminAuthService.rejectInstitutionRequest(
+        requestId,
+        reasonCode,
+        reason,
+      );
 
-  const handleRejectRequest = async (requestId: string, reasonCode: string, reason: string) => {
-    try {
-      await adminAuthService.rejectInstitutionRequest(requestId, reasonCode, reason);
-      
-      // Remove from local state
-      setPendingRequests(prevRequests => 
-        prevRequests.filter(request => request.id !== requestId)
+      setPendingRequests((prev) =>
+        prev.filter((request) => request.id !== requestId),
       );
     } catch (err: any) {
-      let errorMessage = 'Failed to reject request';
-      
-      if (err.response && err.response.data) {
+      let errorMessage = 'Failed to reject request.';
+
+      if (err.response?.data) {
         const data = err.response.data;
-        
-        // Handle non_field_errors
-        if (data.non_field_errors && Array.isArray(data.non_field_errors)) {
+
+        if (Array.isArray(data.non_field_errors)) {
           errorMessage = data.non_field_errors.join(' ');
-        } 
-        // Handle specific field errors
-        else if (data.rejection_reason) {
-          errorMessage = Array.isArray(data.rejection_reason) 
-            ? data.rejection_reason.join(' ') 
+        } else if (data.rejection_reason) {
+          errorMessage = Array.isArray(data.rejection_reason)
+            ? data.rejection_reason.join(' ')
             : data.rejection_reason;
-        }
-        // Handle duplicate key errors (PostgreSQL specific)
-        else if (data.error && data.error.includes('duplicate key value')) {
+        } else if (data.error?.includes('duplicate key value')) {
           errorMessage = 'This institution or domain is already registered.';
-        }
-        // Handle generic error message
-        else if (data.message || data.error) {
+        } else if (data.message || data.error) {
           errorMessage = data.message || data.error;
         }
       } else {
         const sanitized = sanitizeAdminError(err);
         errorMessage = sanitized.userMessage || errorMessage;
       }
-      
+
       setError(errorMessage);
-      throw err; // Re-throw to prevent modal closing in handleConfirmReject
+      throw err;
+    }
+  };
+
+  const handleConfirmReject = async () => {
+    if (!selectedPendingRequest || !rejectionReasonCode || !rejectionReason.trim()) {
+      return;
+    }
+
+    try {
+      setIsProcessing(selectedPendingRequest.id);
+
+      await handleRejectRequest(
+        selectedPendingRequest.id,
+        rejectionReasonCode,
+        rejectionReason,
+      );
+
+      setShowRejectModal(false);
+      setShowReviewModal(false);
+      setRejectionReasonCode('');
+      setRejectionReason('');
+      setSelectedPendingRequest(null);
+    } finally {
+      setIsProcessing(null);
     }
   };
 
   const handleExportData = async () => {
     setIsExporting(true);
+
     try {
       const blob = await adminAuthService.exportInstitutions();
-      
+
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
+
       link.href = url;
-      link.setAttribute('download', `institutions_${new Date().toISOString().split('T')[0]}.csv`);
+      link.setAttribute(
+        'download',
+        `institutions_${new Date().toISOString().split('T')[0]}.csv`,
+      );
+
       document.body.appendChild(link);
       link.click();
       link.remove();
+
       window.URL.revokeObjectURL(url);
     } catch (err) {
       const sanitized = sanitizeAdminError(err);
-      setError(sanitized.userMessage || 'Failed to export data');
+      setError(sanitized.userMessage || 'Failed to export data.');
     } finally {
       setIsExporting(false);
     }
   };
 
-  const getStatusBadge = (isVerified: boolean, isActive: boolean) => {
-    if (!isActive) return <span className="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25">Inactive</span>;
-    if (isVerified) return <span className="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">Verified</span>;
-    return <span className="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25">Pending</span>;
-  };
-
-  const filteredInstitutions = institutions.filter(institution => {
-    const matchesSearch = (institution.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-                         (institution.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-                         (institution.address?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-                         (institution.tracking_code?.toLowerCase() || '').includes(searchTerm.toLowerCase());
-    
-    if (filterStatus === 'all') return matchesSearch;
-    if (filterStatus === 'verified') return matchesSearch && institution.is_verified && institution.is_active;
-    if (filterStatus === 'pending') return matchesSearch && !institution.is_verified && institution.is_active;
-    if (filterStatus === 'inactive') return matchesSearch && !institution.is_active;
-    return matchesSearch;
-  });
-
-  const getStatusCounts = () => {
-    return {
+  const statusCounts = useMemo(
+    () => ({
       total: institutions.length,
-      verified: institutions.filter(i => i.is_verified && i.is_active).length,
-      pending: pendingRequests.length + institutions.filter(i => !i.is_verified && i.is_active).length,
-      inactive: institutions.filter(i => !i.is_active).length
+      verified: institutions.filter((item) => item.is_verified && item.is_active)
+        .length,
+      pending:
+        pendingRequests.length +
+        institutions.filter((item) => !item.is_verified && item.is_active).length,
+      inactive: institutions.filter((item) => !item.is_active).length,
+      students: institutions.reduce((sum, item) => sum + item.student_count, 0),
+      internships: institutions.reduce(
+        (sum, item) => sum + item.internship_count,
+        0,
+      ),
+    }),
+    [institutions, pendingRequests.length],
+  );
+
+  const filteredInstitutions = useMemo(() => {
+    const normalizedSearch = searchTerm.toLowerCase().trim();
+
+    return institutions.filter((institution) => {
+      const matchesSearch =
+        !normalizedSearch ||
+        institution.name?.toLowerCase().includes(normalizedSearch) ||
+        institution.email?.toLowerCase().includes(normalizedSearch) ||
+        institution.address?.toLowerCase().includes(normalizedSearch) ||
+        institution.tracking_code?.toLowerCase().includes(normalizedSearch);
+
+      if (!matchesSearch) return false;
+
+      if (filterStatus === 'verified') {
+        return institution.is_verified && institution.is_active;
+      }
+
+      if (filterStatus === 'pending') {
+        return !institution.is_verified && institution.is_active;
+      }
+
+      if (filterStatus === 'inactive') {
+        return !institution.is_active;
+      }
+
+      return true;
+    });
+  }, [filterStatus, institutions, searchTerm]);
+
+  const getInstitutionStatus = (institution: Institution) => {
+    if (!institution.is_active) {
+      return {
+        label: 'Inactive',
+        className: 'status-danger',
+      };
+    }
+
+    if (institution.is_verified) {
+      return {
+        label: 'Verified',
+        className: 'status-success',
+      };
+    }
+
+    return {
+      label: 'Pending',
+      className: 'status-warning',
     };
   };
 
-  const statusCounts = getStatusCounts();
+  const openReviewModal = (request: InstitutionRequest) => {
+    setSelectedPendingRequest(request);
+    setShowReviewModal(true);
+  };
+
+  const openRejectModal = (request: InstitutionRequest) => {
+    setSelectedPendingRequest(request);
+    setShowRejectModal(true);
+  };
 
   if (isLoading) {
     return (
@@ -289,746 +328,1564 @@ const InstitutionManagement: React.FC = () => {
 
   return (
     <AdminLayout>
-      <div className="container-fluid mt-4">
-        {/* Page Header */}
-        <div className="d-flex justify-content-between align-items-center mb-4">
+      <div className="institution-page">
+        <header className="institution-header">
           <div>
-            <h1 className="h3 fw-bold mb-1">Institution Management</h1>
-            <p className="text-muted mb-0">Manage institutions and verification requests</p>
+            <span className="institution-kicker">
+              <Shield size={14} />
+              Institution operations
+            </span>
+
+            <h1>Institution Verification Center</h1>
+
+            <p>
+              Review institution access requests, verify domains, inspect
+              institution records, and monitor institutional participation across
+              students, employers, and placements.
+            </p>
           </div>
-          <div className="d-flex">
-            <button 
-              className="btn btn-outline-primary me-2"
+
+          <div className="institution-actions">
+            <button
+              type="button"
+              className="institution-btn secondary"
+              onClick={fetchInstitutionData}
+            >
+              <RefreshCw size={16} />
+              Refresh
+            </button>
+
+            <button
+              type="button"
+              className="institution-btn ghost"
               onClick={handleExportData}
               disabled={isExporting}
             >
-              <Download size={16} className="me-2" />
-              {isExporting ? 'Exporting...' : 'Export Data'}
+              <Download size={16} />
+              {isExporting ? 'Exporting' : 'Export'}
             </button>
-            <Link to="/admin/dashboard" className="btn btn-outline-secondary">
-              ← Back to Dashboard
-            </Link>
           </div>
-        </div>
+        </header>
 
-        {/* Stats Cards */}
-        <div className="row g-4 mb-4">
-          <div className="col-lg-3 col-md-6 col-sm-6 col-12">
-            <div className="card border-0 shadow-sm h-100">
-              <div className="card-body p-3">
-                <div className="d-flex align-items-center">
-                  <div className="rounded-circle bg-primary bg-opacity-10 p-3 me-3">
-                    <Building size={20} className="text-primary" />
-                  </div>
-                  <div>
-                    <h4 className="fw-bold mb-0">{statusCounts.total}</h4>
-                    <p className="text-muted mb-0 small">Total Institutions</p>
-                  </div>
-                </div>
-              </div>
+        {error && (
+          <div className="institution-error" role="alert">
+            <AlertCircle size={18} />
+            <span>{error}</span>
+            <button type="button" onClick={() => setError('')}>
+              <X size={15} />
+            </button>
+          </div>
+        )}
+
+        <section className="institution-signal-grid">
+          <article>
+            <div className="signal-icon neutral">
+              <Building size={20} />
+            </div>
+            <strong>{statusCounts.total}</strong>
+            <span>Total institutions</span>
+          </article>
+
+          <article>
+            <div className="signal-icon success">
+              <CheckCircle size={20} />
+            </div>
+            <strong>{statusCounts.verified}</strong>
+            <span>Verified institutions</span>
+          </article>
+
+          <article>
+            <div className="signal-icon warning">
+              <Clock size={20} />
+            </div>
+            <strong>{statusCounts.pending}</strong>
+            <span>Pending verification</span>
+          </article>
+
+          <article>
+            <div className="signal-icon danger">
+              <XCircle size={20} />
+            </div>
+            <strong>{statusCounts.inactive}</strong>
+            <span>Inactive institutions</span>
+          </article>
+
+          <article>
+            <div className="signal-icon indigo">
+              <User size={20} />
+            </div>
+            <strong>{statusCounts.students}</strong>
+            <span>Linked students</span>
+          </article>
+
+          <article>
+            <div className="signal-icon blue">
+              <Activity size={20} />
+            </div>
+            <strong>{statusCounts.internships}</strong>
+            <span>Tracked internships</span>
+          </article>
+        </section>
+
+        <section className="institution-panel">
+          <div className="institution-panel-header">
+            <div>
+              <span className="institution-panel-kicker">
+                Access and verification
+              </span>
+
+              <h2>Institution registry</h2>
+
+              <p>
+                Manage verified institutions and review pending onboarding
+                requests.
+              </p>
+            </div>
+
+            <div className="institution-tabs">
+              <button
+                type="button"
+                className={activeTab === 'institutions' ? 'active' : ''}
+                onClick={() => setActiveTab('institutions')}
+              >
+                Institutions
+                <span>{institutions.length}</span>
+              </button>
+
+              <button
+                type="button"
+                className={activeTab === 'pending' ? 'active' : ''}
+                onClick={() => setActiveTab('pending')}
+              >
+                Pending requests
+                <span>{pendingRequests.length}</span>
+              </button>
             </div>
           </div>
-          
-          <div className="col-lg-3 col-md-6 col-sm-6 col-12">
-            <div className="card border-0 shadow-sm h-100">
-              <div className="card-body p-3">
-                <div className="d-flex align-items-center">
-                  <div className="rounded-circle bg-success bg-opacity-10 p-3 me-3">
-                    <Check size={20} className="text-success" />
-                  </div>
-                  <div>
-                    <h4 className="fw-bold mb-0">{statusCounts.verified}</h4>
-                    <p className="text-muted mb-0 small">Verified</p>
-                  </div>
-                </div>
-              </div>
+
+          <div className="institution-filter-bar">
+            <div className="institution-search">
+              <Search size={16} />
+              <input
+                type="text"
+                placeholder="Search institution, email, address, tracking code..."
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+              />
             </div>
+
+            <select
+              value={filterStatus}
+              onChange={(event) => setFilterStatus(event.target.value)}
+              disabled={activeTab === 'pending'}
+            >
+              <option value="all">All statuses</option>
+              <option value="verified">Verified only</option>
+              <option value="pending">Pending only</option>
+              <option value="inactive">Inactive only</option>
+            </select>
           </div>
-          
-          <div className="col-lg-3 col-md-6 col-sm-6 col-12">
-            <div className="card border-0 shadow-sm h-100">
-              <div className="card-body p-3">
-                <div className="d-flex align-items-center">
-                  <div className="rounded-circle bg-warning bg-opacity-10 p-3 me-3">
-                    <Clock size={20} className="text-warning" />
-                  </div>
-                  <div>
-                    <h4 className="fw-bold mb-0">{statusCounts.pending}</h4>
-                    <p className="text-muted mb-0 small">Pending Verification</p>
-                  </div>
+
+          {activeTab === 'institutions' ? (
+            <div className="institution-table-wrap">
+              {filteredInstitutions.length === 0 ? (
+                <div className="institution-empty">
+                  <Building size={42} />
+                  <h3>No institutions found</h3>
+                  <p>Try adjusting your search or status filter.</p>
                 </div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="col-lg-3 col-md-6 col-sm-6 col-12">
-            <div className="card border-0 shadow-sm h-100">
-              <div className="card-body p-3">
-                <div className="d-flex align-items-center">
-                  <div className="rounded-circle bg-danger bg-opacity-10 p-3 me-3">
-                    <X size={20} className="text-danger" />
-                  </div>
-                  <div>
-                    <h4 className="fw-bold mb-0">{statusCounts.inactive}</h4>
-                    <p className="text-muted mb-0 small">Inactive</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+              ) : (
+                <table className="institution-table">
+                  <thead>
+                    <tr>
+                      <th>Institution</th>
+                      <th>Tracking</th>
+                      <th>Contact</th>
+                      <th>Operational scope</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
 
-        {/* Main Content */}
-        <div className="row">
-          <div className="col-12">
-            <div className="card border-0 shadow-sm">
-              <div className="card-header bg-white border-0 pt-3">
-                <div className="d-flex justify-content-between align-items-center">
-                  <div>
-                    <h4 className="card-title mb-1">Institution Management</h4>
-                    <p className="text-muted mb-0 small">Manage educational institutions and affiliation requests</p>
-                  </div>
-                  <div className="d-flex">
-                    <span className="badge bg-primary bg-opacity-10 text-primary me-2">
-                      {pendingRequests.length} Pending Requests
-                    </span>
-                  </div>
-                </div>
+                  <tbody>
+                    {filteredInstitutions.map((institution) => {
+                      const status = getInstitutionStatus(institution);
 
-                {/* Tabs */}
-                <ul className="nav nav-tabs mt-3 border-bottom-0" role="tablist">
-                  <li className="nav-item" role="presentation">
-                    <button
-                      className={`nav-link ${activeTab === 'institutions' ? 'active' : ''}`}
-                      onClick={() => setActiveTab('institutions')}
-                    >
-                      <Building size={16} className="me-2" />
-                      Institutions ({institutions.length})
-                    </button>
-                  </li>
-                  <li className="nav-item" role="presentation">
-                    <button
-                      className={`nav-link ${activeTab === 'pending' ? 'active' : ''}`}
-                      onClick={() => setActiveTab('pending')}
-                    >
-                      <Clock size={16} className="me-2" />
-                      Pending Requests ({pendingRequests.length})
-                    </button>
-                  </li>
-                </ul>
-              </div>
+                      return (
+                        <tr key={institution.id}>
+                          <td>
+                            <div className="institution-identity">
+                              <div className="institution-avatar">
+                                <Building size={18} />
+                              </div>
 
-              <div className="card-body">
-                {/* Error Alert */}
-                {error && (
-                  <div className="alert alert-danger alert-dismissible fade show mb-4" role="alert">
-                    <AlertCircle size={18} className="me-2" />
-                    {error}
-                    <button type="button" className="btn-close" onClick={() => setError('')}></button>
-                  </div>
-                )}
-
-                {/* Search and Filter Bar */}
-                <div className="row g-3 mb-4">
-                  <div className="col-md-6">
-                    <div className="input-group">
-                      <span className="input-group-text bg-white">
-                        <Search size={16} />
-                      </span>
-                      <input
-                        type="text"
-                        className="form-control"
-                        placeholder="Search by name, email, or address..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div className="col-md-3">
-                    <select
-                      className="form-select"
-                      value={filterStatus}
-                      onChange={(e) => setFilterStatus(e.target.value)}
-                    >
-                      <option value="all">All Status</option>
-                      <option value="verified">Verified Only</option>
-                      <option value="pending">Pending Verification</option>
-                      <option value="inactive">Inactive Only</option>
-                    </select>
-                  </div>
-                  <div className="col-md-3">
-                    <button className="btn btn-outline-secondary w-100" onClick={fetchInstitutionData}>
-                      <Filter size={16} className="me-2" />
-                      Refresh Data
-                    </button>
-                  </div>
-                </div>
-
-                {/* Content Tabs */}
-                <div className="tab-content">
-                  {/* Institutions Tab */}
-                  {activeTab === 'institutions' && (
-                    <div className="tab-pane fade show active">
-                      {filteredInstitutions.length === 0 ? (
-                        <div className="text-center py-5">
-                          <Building size={48} className="text-muted mb-3" />
-                          <h5 className="text-muted">No institutions found</h5>
-                          <p className="text-muted">Try adjusting your search or filter</p>
-                        </div>
-                      ) : (
-                        <div className="table-responsive" style={{ maxHeight: '600px', overflowY: 'auto' }}>
-                          <table className="table table-hover align-middle mb-0">
-                            <thead className="sticky-top bg-white" style={{ zIndex: 1 }}>
-                              <tr>
-                                <th className="py-3">Institution</th>
-                                <th className="py-3">Tracking Code</th>
-                                <th className="py-3">Contact</th>
-                                <th className="py-3">Statistics</th>
-                                <th className="py-3">Status</th>
-                                <th className="py-3 text-end">Actions</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {filteredInstitutions.map((institution) => (
-                                <tr key={institution.id}>
-                                  <td>
-                                    <div className="d-flex align-items-center">
-                                      <div className="flex-shrink-0">
-                                        <div className="rounded-3 bg-primary bg-opacity-10 p-2 me-3">
-                                          <Building size={18} className="text-primary" />
-                                        </div>
-                                      </div>
-                                      <div className="flex-grow-1">
-                                        <div className="fw-bold text-dark mb-0">{institution.name}</div>
-                                        <small className="text-muted d-flex align-items-center">
-                                          <MapPin size={12} className="me-1" />
-                                          <span className="text-truncate" style={{maxWidth: '200px'}}>{institution.address}</span>
-                                        </small>
-                                      </div>
-                                    </div>
-                                  </td>
-                                  <td>
-                                    <span className="badge bg-light text-primary font-monospace border px-2 py-1">
-                                      {institution.tracking_code || '-'}
-                                    </span>
-                                  </td>
-                                  <td>
-                                    <div className="small">
-                                      <div className="d-flex align-items-center mb-1">
-                                        <Mail size={12} className="me-2 text-muted" />
-                                        <span className="text-dark">{institution.contact_email || institution.email}</span>
-                                      </div>
-                                      <div className="d-flex align-items-center">
-                                        <Phone size={12} className="me-2 text-muted" />
-                                        <span className="text-dark">{institution.contact_phone || institution.phone}</span>
-                                      </div>
-                                    </div>
-                                  </td>
-                                  <td>
-                                    <div className="d-flex gap-3">
-                                      <div className="text-center bg-light rounded-2 px-2 py-1" style={{minWidth: '60px'}}>
-                                        <div className="fw-bold text-primary small">{institution.student_count}</div>
-                                        <div className="text-muted" style={{fontSize: '10px', textTransform: 'uppercase'}}>Students</div>
-                                      </div>
-                                      <div className="text-center bg-light rounded-2 px-2 py-1" style={{minWidth: '60px'}}>
-                                        <div className="fw-bold text-success small">{institution.internship_count}</div>
-                                        <div className="text-muted" style={{fontSize: '10px', textTransform: 'uppercase'}}>Internships</div>
-                                      </div>
-                                      <div className="text-center bg-light rounded-2 px-2 py-1" style={{minWidth: '60px'}}>
-                                        <div className="fw-bold text-warning small">{institution.employer_count}</div>
-                                        <div className="text-muted" style={{fontSize: '10px', textTransform: 'uppercase'}}>Employers</div>
-                                      </div>
-                                    </div>
-                                  </td>
-                                  <td>
-                                    {getStatusBadge(institution.is_verified, institution.is_active)}
-                                  </td>
-                                  <td className="text-end">
-                                    <div className="dropdown">
-                                      <button 
-                                        className="btn btn-light btn-sm rounded-circle border-0"
-                                        type="button"
-                                        data-bs-toggle="dropdown"
-                                        aria-expanded="false"
-                                      >
-                                        <Info size={16} className="text-muted" />
-                                      </button>
-                                      <div className="dropdown-menu dropdown-menu-end shadow-sm border-0">
-                                        <button 
-                                          className="dropdown-item py-2"
-                                          onClick={() => {
-                                            setSelectedInstitution(institution);
-                                            setShowDetailsModal(true);
-                                          }}
-                                        >
-                                          <Eye size={14} className="me-2 text-primary" />
-                                          View Full Profile
-                                        </button>
-                                        <div className="dropdown-divider"></div>
-                                        <button className="dropdown-item py-2 text-danger">
-                                          <X size={14} className="me-2" />
-                                          Restrict Access
-                                        </button>
-                                      </div>
-                                    </div>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Pending Requests Tab */}
-                  {activeTab === 'pending' && (
-                    <div className="tab-pane fade show active">
-                      {pendingRequests.length === 0 ? (
-                        <div className="text-center py-5">
-                          <CheckCircle size={48} className="text-success mb-3" />
-                          <h5 className="text-success">All requests processed</h5>
-                          <p className="text-muted">No pending affiliation requests</p>
-                        </div>
-                      ) : (
-                        <div className="row g-4">
-                          {pendingRequests.map((request) => (
-                            <div key={request.id} className="col-md-6">
-                              <div className="card border">
-                                <div className="card-body">
-                                  <div className="d-flex align-items-start mb-3">
-                                    <div className="rounded-circle bg-warning bg-opacity-10 p-2 me-3">
-                                      <Building size={20} className="text-warning" />
-                                    </div>
-                                    <div className="flex-grow-1">
-                                      <h6 className="card-title mb-1">{request.institution_name}</h6>
-                                      <div className="d-flex align-items-center text-muted small mb-2">
-                                        <User size={12} className="me-1" />
-                                        {request.representative_name}
-                                      </div>
-                                    </div>
-                                  </div>
-                                  
-                                  <div className="small text-muted mb-3">
-                                    <div className="d-flex align-items-center mb-1">
-                                      <Mail size={12} className="me-2" />
-                                      {request.representative_email}
-                                    </div>
-                                    <div className="d-flex align-items-center">
-                                      <Calendar size={12} className="me-2" />
-                                      Requested: {new Date(request.created_at).toLocaleDateString()}
-                                    </div>
-                                  </div>
-
-                                  <div className="d-flex justify-content-between">
-                                    <button
-                                      onClick={() => handleApproveRequest(request.id)}
-                                      className="btn btn-success btn-sm"
-                                      disabled={isProcessing === request.id}
-                                    >
-                                      {isProcessing === request.id ? (
-                                        <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-                                      ) : (
-                                        <CheckCircle size={14} className="me-1" />
-                                      )}
-                                      {isProcessing === request.id ? 'Approving...' : 'Approve'}
-                                    </button>
-                                    <button
-                                      onClick={() => handleShowRejectModal(request)}
-                                      className="btn btn-outline-danger btn-sm"
-                                      disabled={isProcessing === request.id}
-                                    >
-                                      {isProcessing === request.id ? (
-                                        <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-                                      ) : (
-                                        <XCircle size={14} className="me-1" />
-                                      )}
-                                      {isProcessing === request.id ? 'Rejecting...' : 'Reject'}
-                                    </button>
-                                    <button 
-                                      onClick={() => handleShowReviewModal(request)}
-                                      className="btn btn-outline-secondary btn-sm"
-                                      disabled={isProcessing === request.id}
-                                    >
-                                      <Eye size={14} className="me-1" />
-                                      Review
-                                    </button>
-                                  </div>
-                                </div>
+                              <div>
+                                <strong>{institution.name}</strong>
+                                <span>
+                                  <MapPin size={12} />
+                                  {institution.contact_address ||
+                                    institution.address ||
+                                    'No address provided'}
+                                </span>
                               </div>
                             </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
+                          </td>
+
+                          <td>
+                            <span className="tracking-code">
+                              {institution.tracking_code || '—'}
+                            </span>
+                          </td>
+
+                          <td>
+                            <div className="institution-contact">
+                              <span>
+                                <Mail size={12} />
+                                {institution.contact_email || institution.email}
+                              </span>
+
+                              <span>
+                                <Phone size={12} />
+                                {institution.contact_phone ||
+                                  institution.phone ||
+                                  'No phone'}
+                              </span>
+                            </div>
+                          </td>
+
+                          <td>
+                            <div className="scope-grid">
+                              <span>
+                                <strong>{institution.student_count}</strong>
+                                Students
+                              </span>
+
+                              <span>
+                                <strong>{institution.internship_count}</strong>
+                                Internships
+                              </span>
+
+                              <span>
+                                <strong>{institution.employer_count}</strong>
+                                Employers
+                              </span>
+                            </div>
+                          </td>
+
+                          <td>
+                            <span className={`institution-status ${status.className}`}>
+                              {status.label}
+                            </span>
+                          </td>
+
+                          <td>
+                            <div className="institution-row-actions">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedInstitution(institution);
+                                  setShowDetailsModal(true);
+                                }}
+                              >
+                                <Eye size={14} />
+                                View
+                              </button>
+
+                              <button type="button" className="danger">
+                                <XCircle size={14} />
+                                Restrict
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
             </div>
-          </div>
-        </div>
+          ) : (
+            <div className="request-grid">
+              {pendingRequests.length === 0 ? (
+                <div className="institution-empty">
+                  <CheckCircle size={42} />
+                  <h3>All requests processed</h3>
+                  <p>No pending institution access requests.</p>
+                </div>
+              ) : (
+                pendingRequests.map((request) => (
+                  <article className="request-card" key={request.id}>
+                    <div className="request-card-top">
+                      <div>
+                        <span className="request-tag">Pending review</span>
+                        <h3>{request.institution_name}</h3>
+                      </div>
+
+                      <span className="tracking-code">
+                        {request.tracking_code}
+                      </span>
+                    </div>
+
+                    <div className="request-meta">
+                      <span>
+                        <User size={13} />
+                        {request.representative_name}
+                      </span>
+
+                      <span>
+                        <Mail size={13} />
+                        {request.representative_email}
+                      </span>
+
+                      <span>
+                        <Calendar size={13} />
+                        {new Date(request.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+
+                    <div className="request-domains">
+                      {request.requested_domains?.slice(0, 3).map((domain) => (
+                        <span key={domain}>{domain}</span>
+                      ))}
+                    </div>
+
+                    <div className="request-actions">
+                      <button
+                        type="button"
+                        className="success"
+                        disabled={isProcessing === request.id}
+                        onClick={() => handleApproveRequest(request.id)}
+                      >
+                        <CheckCircle size={14} />
+                        {isProcessing === request.id ? 'Approving' : 'Approve'}
+                      </button>
+
+                      <button
+                        type="button"
+                        className="danger"
+                        disabled={isProcessing === request.id}
+                        onClick={() => openRejectModal(request)}
+                      >
+                        <XCircle size={14} />
+                        Reject
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={isProcessing === request.id}
+                        onClick={() => openReviewModal(request)}
+                      >
+                        <Eye size={14} />
+                        Review
+                      </button>
+                    </div>
+                  </article>
+                ))
+              )}
+            </div>
+          )}
+        </section>
       </div>
 
-      {/* Institution Details Modal */}
       {showDetailsModal && selectedInstitution && (
-        <div className="modal fade show" style={{display: 'block', backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)'}}>
-          <div className="modal-dialog modal-lg modal-dialog-centered">
-            <div className="modal-content border-0 shadow-lg">
-              <div className="modal-header bg-primary text-white py-3">
-                <div className="d-flex align-items-center">
-                  <div className="bg-white bg-opacity-20 p-2 rounded-3 me-3">
-                    <Building size={20} className="text-white" />
-                  </div>
-                  <h5 className="modal-title fw-bold mb-0">Institution Profile</h5>
-                </div>
-                <button 
-                  type="button" 
-                  className="btn-close btn-close-white"
-                  onClick={() => setShowDetailsModal(false)}
-                ></button>
+        <div className="institution-modal-backdrop">
+          <div className="institution-modal">
+            <header className="institution-modal-header">
+              <div>
+                <span>Institution profile</span>
+                <h2>{selectedInstitution.name}</h2>
               </div>
-              <div className="modal-body p-4">
-                <div className="row g-4">
-                  {/* Sidebar Info */}
-                  <div className="col-md-4">
-                    <div className="card border-0 bg-light h-100">
-                      <div className="card-body text-center py-4">
-                        <div className="position-relative d-inline-block mb-3">
-                          <div className="rounded-circle bg-primary bg-opacity-10 p-4 shadow-sm">
-                            <Building size={48} className="text-primary" />
-                          </div>
-                          {selectedInstitution.is_verified ? (
-                            <span className="position-absolute bottom-0 end-0 bg-success border border-white border-2 rounded-circle p-2" title="Verified"></span>
-                          ) : (
-                            <span className="position-absolute bottom-0 end-0 bg-warning border border-white border-2 rounded-circle p-2" title="Pending"></span>
-                          )}
-                        </div>
-                        <h5 className="fw-bold mb-1">{selectedInstitution.name}</h5>
-                        <div className="mt-3 d-flex flex-column gap-2">
-                          {getStatusBadge(selectedInstitution.is_verified, selectedInstitution.is_active)}
-                        </div>
-                        
-                        {selectedInstitution.tracking_code && (
-                          <div className="mt-4 p-3 bg-white rounded-3 border border-dashed">
-                            <small className="text-muted d-block mb-1 text-uppercase fw-bold letter-spacing-1" style={{fontSize: '10px'}}>Tracking Code</small>
-                            <span className="font-monospace fw-bold text-primary">
-                              {selectedInstitution.tracking_code}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
 
-                  {/* Main Details */}
-                  <div className="col-md-8">
-                    <div className="mb-4">
-                      <h6 className="text-uppercase text-muted fw-bold small mb-3 letter-spacing-1 d-flex align-items-center">
-                        <Info size={14} className="me-2 text-primary" />
-                        Contact Information
-                      </h6>
-                      <div className="bg-white rounded-3 border p-3">
-                        <div className="row g-3">
-                          <div className="col-sm-6">
-                            <label className="text-muted small d-block mb-1">Email Address</label>
-                            <div className="d-flex align-items-center">
-                              <Mail size={14} className="me-2 text-muted" />
-                              <span className="fw-semibold text-break">{selectedInstitution.contact_email || selectedInstitution.email}</span>
-                            </div>
-                          </div>
-                          <div className="col-sm-6">
-                            <label className="text-muted small d-block mb-1">Phone Number</label>
-                            <div className="d-flex align-items-center">
-                              <Phone size={14} className="me-2 text-muted" />
-                              <span className="fw-semibold">{selectedInstitution.contact_phone || selectedInstitution.phone}</span>
-                            </div>
-                          </div>
-                          {(selectedInstitution.contact_website || selectedInstitution.website) && (
-                            <div className="col-sm-6">
-                              <label className="text-muted small d-block mb-1">Official Website</label>
-                              <div className="d-flex align-items-center">
-                                <Globe size={14} className="me-2 text-muted" />
-                                <a href={selectedInstitution.contact_website || selectedInstitution.website} target="_blank" rel="noopener noreferrer" className="fw-semibold text-decoration-none text-truncate">
-                                  {selectedInstitution.contact_website || selectedInstitution.website}
-                                </a>
-                              </div>
-                            </div>
-                          )}
-                          <div className="col-sm-6">
-                            <label className="text-muted small d-block mb-1">Physical Address</label>
-                            <div className="d-flex align-items-center">
-                              <MapPin size={14} className="me-2 text-muted" />
-                              <span className="fw-semibold text-truncate">{selectedInstitution.contact_address || selectedInstitution.address}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <h6 className="text-uppercase text-muted fw-bold small mb-3 letter-spacing-1 d-flex align-items-center">
-                        <Activity size={14} className="me-2 text-primary" />
-                        Platform Statistics
-                      </h6>
-                      <div className="row g-2 g-sm-3">
-                        <div className="col-12 col-sm-4">
-                          <div className="card border-0 bg-primary bg-opacity-10 text-center h-100 py-2">
-                            <div className="card-body p-2">
-                              <div className="h4 fw-bold text-primary mb-0">{selectedInstitution.student_count}</div>
-                              <small className="text-primary opacity-75 fw-semibold" style={{fontSize: '10px', textTransform: 'uppercase'}}>Students</small>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="col-12 col-sm-4">
-                          <div className="card border-0 bg-success bg-opacity-10 text-center h-100 py-2">
-                            <div className="card-body p-2">
-                              <div className="h4 fw-bold text-success mb-0">{selectedInstitution.internship_count}</div>
-                              <small className="text-success opacity-75 fw-semibold" style={{fontSize: '10px', textTransform: 'uppercase'}}>Internships</small>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="col-12 col-sm-4">
-                          <div className="card border-0 bg-warning bg-opacity-10 text-center h-100 py-2">
-                            <div className="card-body p-2">
-                              <div className="h4 fw-bold text-warning mb-0">{selectedInstitution.employer_count}</div>
-                              <small className="text-warning opacity-75 fw-semibold" style={{fontSize: '10px', textTransform: 'uppercase'}}>Employers</small>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+              <button type="button" onClick={() => setShowDetailsModal(false)}>
+                <X size={18} />
+              </button>
+            </header>
+
+            <div className="institution-modal-body">
+              <aside className="institution-record-summary">
+                <div className="institution-record-icon">
+                  <Building size={34} />
                 </div>
-              </div>
-              <div className="modal-footer bg-light border-top-0 p-3">
-                <button 
-                  type="button" 
-                  className="btn btn-outline-secondary px-4"
-                  onClick={() => setShowDetailsModal(false)}
+
+                <h3>{selectedInstitution.name}</h3>
+
+                <span
+                  className={`institution-status ${
+                    getInstitutionStatus(selectedInstitution).className
+                  }`}
                 >
-                  Close Window
-                </button>
-                <button className="btn btn-primary px-4">
-                  Manage Affiliations
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+                  {getInstitutionStatus(selectedInstitution).label}
+                </span>
 
-      {/* Review Modal */}
-      {showReviewModal && selectedPendingRequest && (
-        <div className="modal fade show" style={{display: 'block', backgroundColor: 'rgba(0,0,0,0.5)'}}>
-          <div className="modal-dialog modal-lg modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Review Institution Request</h5>
-                <button 
-                  type="button" 
-                  className="btn-close"
-                  onClick={() => setShowReviewModal(false)}
-                ></button>
-              </div>
-              <div className="modal-body">
-                <div className="row">
-                  <div className="col-md-6">
-                    <h6 className="text-primary mb-3">Institution Information</h6>
-                    <div className="mb-3">
-                      <label className="form-label text-muted small">Institution Name</label>
-                      <p className="mb-1">{selectedPendingRequest.institution_name}</p>
-                    </div>
-                    <div className="mb-3">
-                      <label className="form-label text-muted small">Website</label>
-                      <p className="mb-1">
-                        <a href={selectedPendingRequest.website_url} target="_blank" rel="noopener noreferrer">
-                          {selectedPendingRequest.website_url}
-                        </a>
-                      </p>
-                    </div>
-                    <div className="mb-3">
-                      <label className="form-label text-muted small">Requested Domains</label>
-                      <div className="d-flex flex-wrap gap-1">
-                        {selectedPendingRequest.requested_domains.map((domain, index) => (
-                          <span key={index} className="badge bg-light text-dark">{domain}</span>
-                        ))}
-                      </div>
-                    </div>
-                    {selectedPendingRequest.notes && (
-                      <div className="mb-3">
-                        <label className="form-label text-muted small">Notes</label>
-                        <p className="mb-1">{selectedPendingRequest.notes}</p>
-                      </div>
-                    )}
-                  </div>
-                  <div className="col-md-6">
-                    <h6 className="text-primary mb-3">Representative Information</h6>
-                    <div className="mb-3">
-                      <label className="form-label text-muted small">Name</label>
-                      <p className="mb-1">{selectedPendingRequest.representative_name}</p>
-                    </div>
-                    <div className="mb-3">
-                      <label className="form-label text-muted small">Email</label>
-                      <p className="mb-1">{selectedPendingRequest.representative_email}</p>
-                    </div>
-                    <div className="mb-3">
-                      <label className="form-label text-muted small">Role</label>
-                      <p className="mb-1">{selectedPendingRequest.representative_role}</p>
-                    </div>
-                    {selectedPendingRequest.representative_phone && (
-                      <div className="mb-3">
-                        <label className="form-label text-muted small">Phone</label>
-                        <p className="mb-1">{selectedPendingRequest.representative_phone}</p>
-                      </div>
-                    )}
-                    {selectedPendingRequest.department && (
-                      <div className="mb-3">
-                        <label className="form-label text-muted small">Department</label>
-                        <p className="mb-1">{selectedPendingRequest.department}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                {selectedPendingRequest.supporting_document && (
-                  <div className="row mt-3">
-                    <div className="col-12">
-                      <h6 className="text-primary mb-3">Supporting Documents</h6>
-                      <div className="d-flex align-items-center">
-                        <FileText size={16} className="me-2 text-muted" />
-                        <a href={selectedPendingRequest.supporting_document} target="_blank" rel="noopener noreferrer" className="text-decoration-none">
-                          View Supporting Document
-                        </a>
-                      </div>
-                    </div>
+                {selectedInstitution.tracking_code && (
+                  <div className="record-tracking">
+                    <span>Tracking code</span>
+                    <strong>{selectedInstitution.tracking_code}</strong>
                   </div>
                 )}
-                <div className="row mt-3">
-                  <div className="col-12">
-                    <div className="d-flex align-items-center justify-content-between bg-light p-3 rounded">
-                      <div>
-                        <small className="text-muted">Tracking Code</small>
-                        <div className="fw-semibold">{selectedPendingRequest.tracking_code}</div>
-                      </div>
-                      <div>
-                        <small className="text-muted">Requested</small>
-                        <div className="fw-semibold">{new Date(selectedPendingRequest.created_at).toLocaleDateString()}</div>
-                      </div>
+              </aside>
+
+              <section className="institution-record-details">
+                <div className="record-block">
+                  <h4>
+                    <Mail size={14} />
+                    Contact information
+                  </h4>
+
+                  <dl>
+                    <div>
+                      <dt>Email</dt>
+                      <dd>
+                        {selectedInstitution.contact_email ||
+                          selectedInstitution.email}
+                      </dd>
+                    </div>
+
+                    <div>
+                      <dt>Phone</dt>
+                      <dd>
+                        {selectedInstitution.contact_phone ||
+                          selectedInstitution.phone ||
+                          'N/A'}
+                      </dd>
+                    </div>
+
+                    <div>
+                      <dt>Website</dt>
+                      <dd>
+                        {selectedInstitution.contact_website ||
+                        selectedInstitution.website ? (
+                          <a
+                            href={
+                              selectedInstitution.contact_website ||
+                              selectedInstitution.website
+                            }
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            {selectedInstitution.contact_website ||
+                              selectedInstitution.website}
+                          </a>
+                        ) : (
+                          'N/A'
+                        )}
+                      </dd>
+                    </div>
+
+                    <div>
+                      <dt>Address</dt>
+                      <dd>
+                        {selectedInstitution.contact_address ||
+                          selectedInstitution.address ||
+                          'N/A'}
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+
+                <div className="record-block">
+                  <h4>
+                    <Activity size={14} />
+                    Platform statistics
+                  </h4>
+
+                  <div className="record-stat-grid">
+                    <div>
+                      <strong>{selectedInstitution.student_count}</strong>
+                      <span>Students</span>
+                    </div>
+
+                    <div>
+                      <strong>{selectedInstitution.internship_count}</strong>
+                      <span>Internships</span>
+                    </div>
+
+                    <div>
+                      <strong>{selectedInstitution.employer_count}</strong>
+                      <span>Employers</span>
                     </div>
                   </div>
                 </div>
-              </div>
-              <div className="modal-footer">
-                <button 
-                  type="button" 
-                  className="btn btn-secondary"
-                  onClick={() => setShowReviewModal(false)}
-                  disabled={isProcessing === selectedPendingRequest.id}
-                >
-                  Close
-                </button>
-                <button 
-                  onClick={() => handleShowRejectModal(selectedPendingRequest)}
-                  className="btn btn-outline-danger"
-                  disabled={isProcessing === selectedPendingRequest.id}
-                >
-                  {isProcessing === selectedPendingRequest.id ? (
-                    <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-                  ) : (
-                    <XCircle size={14} className="me-1" />
-                  )}
-                  {isProcessing === selectedPendingRequest.id ? 'Rejecting...' : 'Reject Request'}
-                </button>
-                <button 
-                  onClick={() => handleApproveRequest(selectedPendingRequest.id)}
-                  className="btn btn-success"
-                  disabled={isProcessing === selectedPendingRequest.id}
-                >
-                  {isProcessing === selectedPendingRequest.id ? (
-                    <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-                  ) : (
-                    <CheckCircle size={14} className="me-1" />
-                  )}
-                  {isProcessing === selectedPendingRequest.id ? 'Approving...' : 'Approve Request'}
-                </button>
-              </div>
+              </section>
             </div>
+
+            <footer className="institution-modal-footer">
+              <button
+                type="button"
+                className="institution-btn ghost"
+                onClick={() => setShowDetailsModal(false)}
+              >
+                Close
+              </button>
+
+              <button type="button" className="institution-btn secondary">
+                Manage affiliations
+              </button>
+            </footer>
           </div>
         </div>
       )}
 
-      {/* Reject Modal */}
-      {showRejectModal && selectedPendingRequest && (
-        <div className="modal fade show" style={{display: 'block', backgroundColor: 'rgba(0,0,0,0.5)'}}>
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Reject Institution Request</h5>
-                <button 
-                  type="button" 
-                  className="btn-close"
-                  onClick={() => setShowRejectModal(false)}
-                ></button>
+      {showReviewModal && selectedPendingRequest && (
+        <div className="institution-modal-backdrop">
+          <div className="institution-modal large">
+            <header className="institution-modal-header">
+              <div>
+                <span>Access request review</span>
+                <h2>{selectedPendingRequest.institution_name}</h2>
               </div>
-              <div className="modal-body">
-                <div className="mb-3">
-                  <label className="form-label">Institution</label>
-                  <p className="form-control-plaintext fw-semibold">{selectedPendingRequest.institution_name}</p>
-                </div>
-                <div className="mb-3">
-                  <label className="form-label">Rejection Reason Code <span className="text-danger">*</span></label>
-                  <select 
-                    className="form-select" 
-                    value={rejectionReasonCode}
-                    onChange={(e) => setRejectionReasonCode(e.target.value)}
+
+              <button type="button" onClick={() => setShowReviewModal(false)}>
+                <X size={18} />
+              </button>
+            </header>
+
+            <div className="institution-modal-body review-grid">
+              <section className="record-block">
+                <h4>
+                  <Building size={14} />
+                  Institution information
+                </h4>
+
+                <dl>
+                  <div>
+                    <dt>Name</dt>
+                    <dd>{selectedPendingRequest.institution_name}</dd>
+                  </div>
+
+                  <div>
+                    <dt>Website</dt>
+                    <dd>
+                      <a
+                        href={selectedPendingRequest.website_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {selectedPendingRequest.website_url}
+                      </a>
+                    </dd>
+                  </div>
+
+                  <div>
+                    <dt>Domains</dt>
+                    <dd>
+                      <div className="domain-list">
+                        {selectedPendingRequest.requested_domains.map(
+                          (domain) => (
+                            <span key={domain}>{domain}</span>
+                          ),
+                        )}
+                      </div>
+                    </dd>
+                  </div>
+
+                  <div>
+                    <dt>Notes</dt>
+                    <dd>{selectedPendingRequest.notes || 'No notes provided.'}</dd>
+                  </div>
+                </dl>
+              </section>
+
+              <section className="record-block">
+                <h4>
+                  <User size={14} />
+                  Representative information
+                </h4>
+
+                <dl>
+                  <div>
+                    <dt>Name</dt>
+                    <dd>{selectedPendingRequest.representative_name}</dd>
+                  </div>
+
+                  <div>
+                    <dt>Email</dt>
+                    <dd>{selectedPendingRequest.representative_email}</dd>
+                  </div>
+
+                  <div>
+                    <dt>Role</dt>
+                    <dd>{selectedPendingRequest.representative_role}</dd>
+                  </div>
+
+                  <div>
+                    <dt>Phone</dt>
+                    <dd>{selectedPendingRequest.representative_phone || 'N/A'}</dd>
+                  </div>
+
+                  <div>
+                    <dt>Department</dt>
+                    <dd>{selectedPendingRequest.department || 'N/A'}</dd>
+                  </div>
+                </dl>
+              </section>
+
+              {selectedPendingRequest.supporting_document && (
+                <section className="record-block full">
+                  <h4>
+                    <FileText size={14} />
+                    Supporting document
+                  </h4>
+
+                  <a
+                    href={selectedPendingRequest.supporting_document}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="document-link"
                   >
-                    <option value="">Select a reason...</option>
-                    <option value="invalid_domain">Invalid or unverifiable email domain</option>
-                    <option value="insufficient_documentation">Insufficient supporting documentation</option>
-                    <option value="unverifiable_institution">Cannot verify institution legitimacy</option>
-                    <option value="duplicate_request">Duplicate of existing request or institution</option>
-                    <option value="spam_suspicious">Suspicious activity or spam indicators</option>
-                    <option value="other">Other reason (see detailed explanation)</option>
-                  </select>
-                </div>
-                <div className="mb-3">
-                  <label className="form-label">Detailed Explanation <span className="text-danger">*</span></label>
-                  <textarea 
-                    className="form-control" 
-                    rows={3}
-                    value={rejectionReason}
-                    onChange={(e) => setRejectionReason(e.target.value)}
-                    placeholder="Provide additional details about the rejection..."
-                    required
-                  />
-                  {!rejectionReason && <div className="form-text text-danger">Please provide a reason for rejection.</div>}
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button 
-                  type="button" 
-                  className="btn btn-secondary"
-                  onClick={() => setShowRejectModal(false)}
-                >
-                  Cancel
-                </button>
-                <button 
-                  onClick={handleConfirmReject}
-                  className="btn btn-danger"
-                  disabled={!rejectionReasonCode || !rejectionReason.trim() || isProcessing === selectedPendingRequest.id}
-                >
-                  {isProcessing === selectedPendingRequest.id ? (
-                    <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-                  ) : (
-                    <XCircle size={14} className="me-1" />
-                  )}
-                  {isProcessing === selectedPendingRequest.id ? 'Rejecting...' : 'Confirm Rejection'}
-                </button>
-              </div>
+                    View supporting document
+                  </a>
+                </section>
+              )}
             </div>
+
+            <footer className="institution-modal-footer">
+              <button
+                type="button"
+                className="institution-btn ghost"
+                onClick={() => setShowReviewModal(false)}
+                disabled={isProcessing === selectedPendingRequest.id}
+              >
+                Close
+              </button>
+
+              <button
+                type="button"
+                className="institution-btn danger"
+                onClick={() => openRejectModal(selectedPendingRequest)}
+                disabled={isProcessing === selectedPendingRequest.id}
+              >
+                <XCircle size={15} />
+                Reject request
+              </button>
+
+              <button
+                type="button"
+                className="institution-btn success"
+                onClick={() => handleApproveRequest(selectedPendingRequest.id)}
+                disabled={isProcessing === selectedPendingRequest.id}
+              >
+                <CheckCircle size={15} />
+                {isProcessing === selectedPendingRequest.id
+                  ? 'Approving'
+                  : 'Approve request'}
+              </button>
+            </footer>
           </div>
         </div>
       )}
 
+      {showRejectModal && selectedPendingRequest && (
+        <div className="institution-modal-backdrop">
+          <div className="institution-modal compact">
+            <header className="institution-modal-header">
+              <div>
+                <span>Reject institution request</span>
+                <h2>{selectedPendingRequest.institution_name}</h2>
+              </div>
+
+              <button type="button" onClick={() => setShowRejectModal(false)}>
+                <X size={18} />
+              </button>
+            </header>
+
+            <div className="reject-body">
+              <label>
+                Rejection reason code
+                <select
+                  value={rejectionReasonCode}
+                  onChange={(event) =>
+                    setRejectionReasonCode(event.target.value)
+                  }
+                >
+                  <option value="">Select a reason...</option>
+                  <option value="invalid_domain">
+                    Invalid or unverifiable email domain
+                  </option>
+                  <option value="insufficient_documentation">
+                    Insufficient supporting documentation
+                  </option>
+                  <option value="unverifiable_institution">
+                    Cannot verify institution legitimacy
+                  </option>
+                  <option value="duplicate_request">
+                    Duplicate request or institution
+                  </option>
+                  <option value="spam_suspicious">
+                    Suspicious activity or spam indicators
+                  </option>
+                  <option value="other">Other reason</option>
+                </select>
+              </label>
+
+              <label>
+                Detailed explanation
+                <textarea
+                  rows={4}
+                  value={rejectionReason}
+                  onChange={(event) => setRejectionReason(event.target.value)}
+                  placeholder="Explain why this request is being rejected..."
+                />
+              </label>
+            </div>
+
+            <footer className="institution-modal-footer">
+              <button
+                type="button"
+                className="institution-btn ghost"
+                onClick={() => setShowRejectModal(false)}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                className="institution-btn danger"
+                onClick={handleConfirmReject}
+                disabled={
+                  !rejectionReasonCode ||
+                  !rejectionReason.trim() ||
+                  isProcessing === selectedPendingRequest.id
+                }
+              >
+                <XCircle size={15} />
+                {isProcessing === selectedPendingRequest.id
+                  ? 'Rejecting'
+                  : 'Confirm rejection'}
+              </button>
+            </footer>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        .institution-page {
+          color: #111827;
+        }
+
+        .institution-header {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 24px;
+          margin-bottom: 22px;
+        }
+
+        .institution-kicker,
+        .institution-panel-kicker {
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          color: #64748b;
+          font-size: .72rem;
+          font-weight: 850;
+          letter-spacing: .09em;
+          text-transform: uppercase;
+          margin-bottom: 8px;
+        }
+
+        .institution-kicker svg {
+          color: #047857;
+        }
+
+        .institution-header h1 {
+          color: #0f172a;
+          font-size: clamp(1.85rem, 3vw, 2.6rem);
+          line-height: 1.05;
+          font-weight: 900;
+          letter-spacing: -.055em;
+          margin: 0 0 8px;
+        }
+
+        .institution-header p {
+          color: #64748b;
+          max-width: 780px;
+          line-height: 1.65;
+          margin: 0;
+        }
+
+        .institution-actions {
+          display: flex;
+          gap: 10px;
+          flex-shrink: 0;
+        }
+
+        .institution-btn {
+          min-height: 42px;
+          border-radius: 12px;
+          padding: 0 14px;
+          border: 1px solid transparent;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          font-weight: 850;
+          cursor: pointer;
+          text-decoration: none;
+        }
+
+        .institution-btn.secondary {
+          background: #ffffff;
+          border-color: #dbe3ea;
+          color: #334155;
+        }
+
+        .institution-btn.ghost {
+          background: #ffffff;
+          border-color: #e5e7eb;
+          color: #475569;
+        }
+
+        .institution-btn.success {
+          background: #047857;
+          color: #ffffff;
+        }
+
+        .institution-btn.danger {
+          background: #dc2626;
+          color: #ffffff;
+        }
+
+        .institution-btn:disabled {
+          opacity: .55;
+          cursor: not-allowed;
+        }
+
+        .institution-error {
+          margin-bottom: 18px;
+          border: 1px solid #fecaca;
+          background: #fef2f2;
+          color: #991b1b;
+          border-radius: 14px;
+          padding: 12px 14px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .institution-error button {
+          margin-left: auto;
+          border: 0;
+          background: transparent;
+          color: inherit;
+          cursor: pointer;
+        }
+
+        .institution-signal-grid {
+          display: grid;
+          grid-template-columns: repeat(6, minmax(0, 1fr));
+          gap: 12px;
+          margin-bottom: 18px;
+        }
+
+        .institution-signal-grid article,
+        .institution-panel {
+          background: #ffffff;
+          border: 1px solid #e5e7eb;
+          box-shadow: 0 10px 26px rgba(15,23,42,.04);
+        }
+
+        .institution-signal-grid article {
+          border-radius: 18px;
+          padding: 16px;
+        }
+
+        .signal-icon {
+          width: 38px;
+          height: 38px;
+          border-radius: 13px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 14px;
+        }
+
+        .signal-icon.neutral { color: #334155; background: #f1f5f9; }
+        .signal-icon.success { color: #047857; background: #ecfdf5; }
+        .signal-icon.warning { color: #b45309; background: #fffbeb; }
+        .signal-icon.danger { color: #b91c1c; background: #fef2f2; }
+        .signal-icon.indigo { color: #4338ca; background: #eef2ff; }
+        .signal-icon.blue { color: #0369a1; background: #e0f2fe; }
+
+        .institution-signal-grid strong {
+          display: block;
+          color: #0f172a;
+          font-size: 1.7rem;
+          font-weight: 900;
+          line-height: 1;
+          letter-spacing: -.05em;
+          margin-bottom: 6px;
+        }
+
+        .institution-signal-grid span {
+          color: #64748b;
+          font-size: .78rem;
+          font-weight: 700;
+          line-height: 1.35;
+        }
+
+        .institution-panel {
+          border-radius: 20px;
+          overflow: hidden;
+        }
+
+        .institution-panel-header {
+          padding: 20px;
+          border-bottom: 1px solid #eef2f7;
+          display: flex;
+          justify-content: space-between;
+          gap: 16px;
+        }
+
+        .institution-panel-header h2 {
+          color: #0f172a;
+          font-size: 1.22rem;
+          font-weight: 900;
+          margin: 0 0 5px;
+        }
+
+        .institution-panel-header p {
+          color: #64748b;
+          margin: 0;
+          font-size: .9rem;
+          line-height: 1.55;
+        }
+
+        .institution-tabs {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+          flex-shrink: 0;
+        }
+
+        .institution-tabs button {
+          border: 1px solid #e5e7eb;
+          background: #ffffff;
+          color: #64748b;
+          border-radius: 999px;
+          padding: 8px 12px;
+          font-size: .82rem;
+          font-weight: 850;
+          cursor: pointer;
+        }
+
+        .institution-tabs button.active {
+          background: #0f172a;
+          color: #ffffff;
+          border-color: #0f172a;
+        }
+
+        .institution-tabs span {
+          margin-left: 6px;
+          opacity: .75;
+        }
+
+        .institution-filter-bar {
+          padding: 16px 20px;
+          display: grid;
+          grid-template-columns: minmax(260px, 1fr) 220px;
+          gap: 10px;
+          border-bottom: 1px solid #eef2f7;
+        }
+
+        .institution-search {
+          min-height: 44px;
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          padding: 0 12px;
+          border: 1px solid #dbe3ea;
+          border-radius: 12px;
+          background: #ffffff;
+          color: #94a3b8;
+        }
+
+        .institution-search input {
+          width: 100%;
+          border: 0;
+          outline: none;
+          color: #111827;
+          font-weight: 650;
+          font-size: .9rem;
+        }
+
+        .institution-filter-bar select {
+          min-height: 44px;
+          border: 1px solid #dbe3ea;
+          border-radius: 12px;
+          background: #ffffff;
+          color: #334155;
+          padding: 0 12px;
+          font-weight: 750;
+          outline: none;
+        }
+
+        .institution-table-wrap {
+          overflow-x: auto;
+        }
+
+        .institution-table {
+          width: 100%;
+          min-width: 1120px;
+          border-collapse: collapse;
+        }
+
+        .institution-table th {
+          background: #f8fafc;
+          color: #64748b;
+          font-size: .72rem;
+          font-weight: 900;
+          letter-spacing: .06em;
+          text-transform: uppercase;
+          padding: 12px 16px;
+          border-bottom: 1px solid #eef2f7;
+        }
+
+        .institution-table td {
+          padding: 14px 16px;
+          border-bottom: 1px solid #eef2f7;
+          vertical-align: middle;
+        }
+
+        .institution-identity {
+          min-width: 260px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .institution-avatar {
+          width: 42px;
+          height: 42px;
+          border-radius: 14px;
+          background: #f1f5f9;
+          color: #334155;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+
+        .institution-identity strong {
+          color: #0f172a;
+          display: block;
+          font-size: .9rem;
+          font-weight: 900;
+        }
+
+        .institution-identity span,
+        .institution-contact span {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          color: #64748b;
+          font-size: .78rem;
+          line-height: 1.5;
+        }
+
+        .tracking-code {
+          display: inline-flex;
+          border: 1px solid #dbe3ea;
+          background: #f8fafc;
+          color: #334155;
+          border-radius: 999px;
+          padding: 6px 9px;
+          font-size: .75rem;
+          font-weight: 850;
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+          white-space: nowrap;
+        }
+
+        .institution-contact {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .scope-grid {
+          display: flex;
+          gap: 8px;
+        }
+
+        .scope-grid span {
+          min-width: 74px;
+          border: 1px solid #e5e7eb;
+          background: #f8fafc;
+          border-radius: 12px;
+          padding: 7px 8px;
+          color: #64748b;
+          font-size: .68rem;
+          font-weight: 800;
+          text-transform: uppercase;
+        }
+
+        .scope-grid strong {
+          display: block;
+          color: #0f172a;
+          font-size: .98rem;
+          font-weight: 900;
+        }
+
+        .institution-status {
+          display: inline-flex;
+          border-radius: 999px;
+          padding: 6px 9px;
+          font-size: .74rem;
+          font-weight: 850;
+          white-space: nowrap;
+        }
+
+        .status-success { background: #ecfdf5; color: #047857; }
+        .status-warning { background: #fffbeb; color: #b45309; }
+        .status-danger { background: #fef2f2; color: #b91c1c; }
+
+        .institution-row-actions,
+        .request-actions {
+          display: flex;
+          align-items: center;
+          gap: 7px;
+        }
+
+        .institution-row-actions button,
+        .request-actions button {
+          min-height: 34px;
+          border-radius: 10px;
+          border: 1px solid #dbe3ea;
+          background: #ffffff;
+          color: #334155;
+          padding: 0 10px;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: .78rem;
+          font-weight: 850;
+          cursor: pointer;
+        }
+
+        .institution-row-actions button.danger,
+        .request-actions button.danger {
+          color: #b91c1c;
+          border-color: #fecaca;
+        }
+
+        .request-actions button.success {
+          color: #047857;
+          border-color: #bbf7d0;
+        }
+
+        .institution-empty {
+          padding: 56px 20px;
+          text-align: center;
+          color: #64748b;
+          grid-column: 1 / -1;
+        }
+
+        .institution-empty svg {
+          margin-bottom: 12px;
+          color: #94a3b8;
+        }
+
+        .institution-empty h3 {
+          color: #0f172a;
+          font-size: 1.05rem;
+          font-weight: 900;
+          margin: 0 0 6px;
+        }
+
+        .institution-empty p {
+          margin: 0;
+        }
+
+        .request-grid {
+          padding: 20px;
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 14px;
+        }
+
+        .request-card {
+          border: 1px solid #e5e7eb;
+          border-radius: 18px;
+          padding: 16px;
+          background: #ffffff;
+        }
+
+        .request-card-top {
+          display: flex;
+          justify-content: space-between;
+          gap: 12px;
+          margin-bottom: 14px;
+        }
+
+        .request-tag {
+          display: inline-flex;
+          color: #b45309;
+          background: #fffbeb;
+          border-radius: 999px;
+          padding: 5px 8px;
+          font-size: .68rem;
+          font-weight: 900;
+          text-transform: uppercase;
+          letter-spacing: .06em;
+          margin-bottom: 8px;
+        }
+
+        .request-card h3 {
+          margin: 0;
+          color: #0f172a;
+          font-size: 1rem;
+          font-weight: 900;
+        }
+
+        .request-meta {
+          display: grid;
+          gap: 7px;
+          margin-bottom: 12px;
+        }
+
+        .request-meta span {
+          color: #64748b;
+          font-size: .82rem;
+          display: flex;
+          align-items: center;
+          gap: 7px;
+        }
+
+        .request-domains {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 7px;
+          margin-bottom: 14px;
+        }
+
+        .request-domains span,
+        .domain-list span {
+          border-radius: 999px;
+          background: #f8fafc;
+          border: 1px solid #e5e7eb;
+          color: #334155;
+          padding: 5px 8px;
+          font-size: .72rem;
+          font-weight: 800;
+        }
+
+        .institution-modal-backdrop {
+          position: fixed;
+          inset: 0;
+          z-index: 2000;
+          background: rgba(15,23,42,.48);
+          backdrop-filter: blur(4px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+        }
+
+        .institution-modal {
+          width: min(880px, 100%);
+          max-height: calc(100vh - 40px);
+          overflow-y: auto;
+          background: #ffffff;
+          border-radius: 22px;
+          box-shadow: 0 24px 80px rgba(15,23,42,.24);
+        }
+
+        .institution-modal.compact {
+          width: min(560px, 100%);
+        }
+
+        .institution-modal.large {
+          width: min(940px, 100%);
+        }
+
+        .institution-modal-header {
+          padding: 18px 20px;
+          border-bottom: 1px solid #eef2f7;
+          display: flex;
+          justify-content: space-between;
+          gap: 16px;
+        }
+
+        .institution-modal-header span {
+          display: block;
+          color: #64748b;
+          font-size: .72rem;
+          font-weight: 850;
+          letter-spacing: .09em;
+          text-transform: uppercase;
+          margin-bottom: 5px;
+        }
+
+        .institution-modal-header h2 {
+          color: #0f172a;
+          font-size: 1.35rem;
+          font-weight: 900;
+          margin: 0;
+          letter-spacing: -.03em;
+        }
+
+        .institution-modal-header button {
+          width: 36px;
+          height: 36px;
+          border-radius: 10px;
+          border: 1px solid #e5e7eb;
+          background: #ffffff;
+          color: #334155;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+        }
+
+        .institution-modal-body {
+          padding: 20px;
+          display: grid;
+          grid-template-columns: 260px 1fr;
+          gap: 20px;
+        }
+
+        .institution-modal-body.review-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .record-block.full {
+          grid-column: 1 / -1;
+        }
+
+        .institution-record-summary {
+          background: #f8fafc;
+          border: 1px solid #e5e7eb;
+          border-radius: 18px;
+          padding: 18px;
+          text-align: center;
+        }
+
+        .institution-record-icon {
+          width: 76px;
+          height: 76px;
+          margin: 0 auto 14px;
+          border-radius: 22px;
+          background: #f1f5f9;
+          color: #334155;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .institution-record-summary h3 {
+          color: #0f172a;
+          font-size: 1rem;
+          font-weight: 900;
+          margin: 0 0 12px;
+        }
+
+        .record-tracking {
+          margin-top: 16px;
+          border: 1px solid #e5e7eb;
+          background: #ffffff;
+          border-radius: 14px;
+          padding: 12px;
+        }
+
+        .record-tracking span {
+          display: block;
+          color: #64748b;
+          font-size: .68rem;
+          font-weight: 900;
+          text-transform: uppercase;
+          letter-spacing: .06em;
+          margin-bottom: 4px;
+        }
+
+        .record-tracking strong {
+          color: #0f172a;
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+          font-size: .82rem;
+        }
+
+        .institution-record-details {
+          display: grid;
+          gap: 14px;
+        }
+
+        .record-block {
+          border: 1px solid #e5e7eb;
+          border-radius: 16px;
+          padding: 16px;
+        }
+
+        .record-block h4 {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          color: #0f172a;
+          font-size: .88rem;
+          font-weight: 900;
+          margin: 0 0 14px;
+        }
+
+        .record-block dl {
+          margin: 0;
+          display: grid;
+          gap: 12px;
+        }
+
+        .record-block dl > div {
+          display: grid;
+          grid-template-columns: 140px 1fr;
+          gap: 14px;
+        }
+
+        .record-block dt {
+          color: #64748b;
+          font-size: .78rem;
+          font-weight: 800;
+        }
+
+        .record-block dd {
+          margin: 0;
+          color: #111827;
+          font-size: .88rem;
+          font-weight: 750;
+          word-break: break-word;
+        }
+
+        .record-block a,
+        .document-link {
+          color: #047857;
+          font-weight: 850;
+          text-decoration: none;
+        }
+
+        .record-stat-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 10px;
+        }
+
+        .record-stat-grid div {
+          border-radius: 14px;
+          background: #f8fafc;
+          border: 1px solid #e5e7eb;
+          padding: 12px;
+        }
+
+        .record-stat-grid strong {
+          display: block;
+          color: #0f172a;
+          font-size: 1.4rem;
+          font-weight: 900;
+        }
+
+        .record-stat-grid span {
+          color: #64748b;
+          font-size: .74rem;
+          font-weight: 800;
+          text-transform: uppercase;
+        }
+
+        .domain-list {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 7px;
+        }
+
+        .reject-body {
+          padding: 20px;
+          display: grid;
+          gap: 14px;
+        }
+
+        .reject-body label {
+          color: #0f172a;
+          font-size: .82rem;
+          font-weight: 850;
+          display: grid;
+          gap: 7px;
+        }
+
+        .reject-body select,
+        .reject-body textarea {
+          width: 100%;
+          border: 1px solid #dbe3ea;
+          border-radius: 12px;
+          padding: 11px 12px;
+          font: inherit;
+          outline: none;
+        }
+
+        .reject-body textarea {
+          resize: vertical;
+        }
+
+        .institution-modal-footer {
+          padding: 16px 20px;
+          border-top: 1px solid #eef2f7;
+          display: flex;
+          justify-content: flex-end;
+          gap: 10px;
+        }
+
+        @media (max-width: 1180px) {
+          .institution-signal-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+          }
+
+          .request-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        @media (max-width: 760px) {
+          .institution-header,
+          .institution-panel-header {
+            flex-direction: column;
+          }
+
+          .institution-actions,
+          .institution-tabs {
+            width: 100%;
+            flex-direction: column;
+          }
+
+          .institution-btn,
+          .institution-tabs button {
+            width: 100%;
+          }
+
+          .institution-signal-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .institution-filter-bar {
+            grid-template-columns: 1fr;
+          }
+
+          .institution-modal-body,
+          .institution-modal-body.review-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .record-block dl > div {
+            grid-template-columns: 1fr;
+            gap: 4px;
+          }
+
+          .record-stat-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .institution-modal-footer {
+            flex-direction: column;
+          }
+        }
+
+        @media (max-width: 520px) {
+          .institution-signal-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
     </AdminLayout>
   );
 };

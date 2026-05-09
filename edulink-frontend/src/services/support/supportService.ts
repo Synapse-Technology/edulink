@@ -60,7 +60,19 @@ export interface FeedbackData {
 
 export const supportService = {
   getTickets: async () => {
-    return await apiClient.get<SupportTicket[]>('/api/support/tickets/');
+    type SupportTicketsResponse =
+      | SupportTicket[]
+      | { results?: SupportTicket[]; data?: SupportTicket[] };
+
+    const response = await apiClient.get<SupportTicketsResponse>(
+      '/api/support/tickets/',
+    );
+
+    if (Array.isArray(response)) {
+      return response;
+    }
+
+    return response.results || response.data || [];
   },
 
   getTicketByCode: async (trackingCode: string) => {

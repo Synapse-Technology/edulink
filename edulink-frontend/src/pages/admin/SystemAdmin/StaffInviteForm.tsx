@@ -1,6 +1,19 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { UserPlus, Mail, Shield, AlertCircle, CheckCircle, ArrowLeft, Key, Lock, UserCheck, Eye, Crown } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import {
+  AlertCircle,
+  ArrowLeft,
+  CheckCircle,
+  Crown,
+  Eye,
+  Lock,
+  Mail,
+  Shield,
+  UserCheck,
+  UserPlus,
+  X,
+} from 'lucide-react';
+
 import { adminAuthService } from '../../../services/auth/adminAuthService';
 import AdminLayout from '../../../components/admin/AdminLayout';
 import { sanitizeAdminError } from '../../../utils/adminErrorSanitizer';
@@ -11,487 +24,1101 @@ interface InviteFormData {
   message?: string;
 }
 
+const roleConfigs = {
+  SUPER_ADMIN: {
+    title: 'Super Administrator',
+    icon: Crown,
+    tone: 'danger',
+    risk: 'Critical',
+    description: 'Complete platform and staff-control access.',
+    permissions: [
+      'Full platform administration',
+      'Staff and role management',
+      'System configuration',
+      'Institution and user controls',
+      'Audit and evidence access',
+      'Operational override authority',
+    ],
+  },
+  PLATFORM_ADMIN: {
+    title: 'Platform Administrator',
+    icon: Shield,
+    tone: 'blue',
+    risk: 'High',
+    description: 'Broad operational administration access.',
+    permissions: [
+      'User and institution management',
+      'Employer and support workflows',
+      'Content moderation',
+      'Reports and analytics',
+      'Operational configuration',
+    ],
+  },
+  MODERATOR: {
+    title: 'Moderator',
+    icon: UserCheck,
+    tone: 'green',
+    risk: 'Medium',
+    description: 'Support, review, and moderation access.',
+    permissions: [
+      'Content moderation',
+      'Support queue handling',
+      'User account review',
+      'Report review',
+    ],
+  },
+  AUDITOR: {
+    title: 'Auditor',
+    icon: Eye,
+    tone: 'amber',
+    risk: 'Low',
+    description: 'Read-only oversight and audit review.',
+    permissions: [
+      'Read-only audit logs',
+      'Analytics and reports',
+      'Evidence review',
+      'No modification access',
+    ],
+  },
+};
+
 const StaffInviteForm: React.FC = () => {
   const navigate = useNavigate();
+
   const [formData, setFormData] = useState<InviteFormData>({
     email: '',
     role: 'MODERATOR',
-    message: ''
+    message: '',
   });
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string>('');
-  const [success, setSuccess] = useState(false);
-  const [activeRole, setActiveRole] = useState<'SUPER_ADMIN' | 'PLATFORM_ADMIN' | 'MODERATOR' | 'AUDITOR'>('MODERATOR');
-  const [isHovered, setIsHovered] = useState(false);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    if (error) setError('');
-    if (name === 'role') {
-      setActiveRole(value as any);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+
+  const activeConfig = roleConfigs[formData.role];
+  const ActiveIcon = activeConfig.icon;
+
+  const riskWidth = useMemo(() => {
+    switch (formData.role) {
+      case 'SUPER_ADMIN':
+        return '100%';
+      case 'PLATFORM_ADMIN':
+        return '78%';
+      case 'MODERATOR':
+        return '55%';
+      case 'AUDITOR':
+        return '34%';
+      default:
+        return '40%';
     }
+  }, [formData.role]);
+
+  const handleInputChange = (
+    event: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
+  ) => {
+    const { name, value } = event.target;
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+
+    if (error) setError('');
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleRoleSelect = (role: InviteFormData['role']) => {
+    setFormData((prev) => ({
+      ...prev,
+      role,
+    }));
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setError('');
-    
-    if (!formData.email) {
-      setError('Email address is required');
+
+    if (!formData.email.trim()) {
+      setError('Email address is required.');
       return;
     }
 
     setIsLoading(true);
 
     try {
-      await adminAuthService.inviteStaff(formData);
+      await adminAuthService.inviteStaff({
+        ...formData,
+        email: formData.email.trim(),
+      });
 
       setSuccess(true);
+
       setTimeout(() => {
         navigate('/admin/staff');
       }, 3000);
     } catch (err: any) {
       const sanitized = sanitizeAdminError(err);
-      setError(sanitized.userMessage || 'Failed to send invitation');
+      setError(sanitized.userMessage || 'Failed to send invitation.');
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const roleConfigs = {
-    SUPER_ADMIN: {
-      title: 'Super Administrator',
-      icon: Crown,
-      color: 'danger',
-      description: 'Complete system access and control',
-      permissions: [
-        'Full platform administration',
-        'User and institution management',
-        'System configuration',
-        'Staff role management',
-        'Database administration',
-        'API management'
-      ]
-    },
-    PLATFORM_ADMIN: {
-      title: 'Platform Administrator',
-      icon: Shield,
-      color: 'primary',
-      description: 'Full platform administration access',
-      permissions: [
-        'User and institution management',
-        'Content moderation',
-        'System configuration',
-        'Report management',
-        'Basic analytics access'
-      ]
-    },
-    MODERATOR: {
-      title: 'Moderator',
-      icon: UserCheck,
-      color: 'success',
-      description: 'Content moderation and user management',
-      permissions: [
-        'Content moderation',
-        'User account management',
-        'Report review and action',
-        'Basic user support'
-      ]
-    },
-    AUDITOR: {
-      title: 'Auditor',
-      icon: Eye,
-      color: 'warning',
-      description: 'Read-only access to system logs and analytics',
-      permissions: [
-        'Read-only system logs',
-        'Analytics and reporting',
-        'Audit trail review',
-        'No modification capabilities'
-      ]
     }
   };
 
   if (success) {
     return (
       <AdminLayout>
-        <div className="d-flex align-items-center justify-content-center min-vh-100 py-5">
-          <div className="col-12 col-md-8 col-lg-6 col-xl-5">
-            <div className="card border-0 shadow-lg text-center">
-              <div className="card-body p-5">
-                <div className="rounded-circle bg-success bg-opacity-10 p-4 d-inline-block mb-4">
-                  <CheckCircle size={64} className="text-success" />
-                </div>
-                <h2 className="card-title h3 mb-3">Invitation Sent Successfully!</h2>
-                <div className="alert alert-success bg-success bg-opacity-10 border border-success border-opacity-25 mb-4">
-                  <p className="mb-0 fs-5">
-                    An invitation has been sent to <strong>{formData.email}</strong>
-                  </p>
-                </div>
-                <p className="text-muted mb-5 lead fs-6">
-                  The recipient will receive an email with instructions to join the platform staff.
-                  The invitation will expire in 7 days.
-                </p>
-                <div className="d-grid gap-3">
-                  <button 
-                    className="btn btn-primary btn-lg"
-                    onClick={() => navigate('/admin/staff/invite')}
-                  >
-                    <UserPlus size={20} className="me-2" />
-                    Send Another Invitation
-                  </button>
-                  <button 
-                    className="btn btn-outline-secondary btn-lg"
-                    onClick={() => navigate('/admin/staff')}
-                  >
-                    <ArrowLeft size={20} className="me-2" />
-                    Back to Staff Management
-                  </button>
-                </div>
-              </div>
-              <div className="card-footer bg-transparent border-0 py-3">
-                <p className="text-muted small mb-0">
-                  Redirecting to staff management in 3 seconds...
-                </p>
-              </div>
+        <div className="invite-success-page">
+          <section className="success-card">
+            <div className="success-icon">
+              <CheckCircle size={46} />
             </div>
-          </div>
+
+            <span className="success-kicker">Invitation dispatched</span>
+
+            <h1>Staff invitation sent</h1>
+
+            <p>
+              An access invitation has been sent to{' '}
+              <strong>{formData.email}</strong>. The recipient must accept it
+              before the invitation expires.
+            </p>
+
+            <div className="success-actions">
+              <button
+                type="button"
+                className="invite-btn primary"
+                onClick={() => {
+                  setSuccess(false);
+                  setFormData({
+                    email: '',
+                    role: 'MODERATOR',
+                    message: '',
+                  });
+                }}
+              >
+                <UserPlus size={16} />
+                Send another invite
+              </button>
+
+              <button
+                type="button"
+                className="invite-btn secondary"
+                onClick={() => navigate('/admin/staff')}
+              >
+                Back to staff access
+              </button>
+            </div>
+
+            <small>Redirecting to staff management shortly...</small>
+          </section>
         </div>
+
+        <style>{styles}</style>
       </AdminLayout>
     );
   }
 
   return (
     <AdminLayout>
-      {/* Page Header */}
-      <div className="container-fluid px-0 mb-5">
-        <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+      <div className="invite-page">
+        <div className="invite-breadcrumb">
+          <Link to="/admin/staff">
+            <ArrowLeft size={15} />
+            Staff access
+          </Link>
+
+          <span>/</span>
+          <strong>Invite staff</strong>
+        </div>
+
+        <header className="invite-header">
           <div>
-            <h1 className="h2 fw-bold mb-2">Invite Platform Staff</h1>
-            <p className="text-muted lead fs-6 mb-0">Send invitation to new platform administrators</p>
+            <span className="invite-kicker">
+              <Shield size={14} />
+              Internal access provisioning
+            </span>
+
+            <h1>Invite Platform Staff</h1>
+
+            <p>
+              Provision internal platform access using least-privilege role
+              assignment. Every invitation and acceptance event should remain
+              auditable.
+            </p>
           </div>
-          <div>
-            <button
-              className="btn btn-outline-primary"
-              onClick={() => navigate('/admin/staff')}
-            >
-              <ArrowLeft size={18} className="me-2" />
-              Back to Staff
+
+          <button
+            type="button"
+            className="invite-btn secondary"
+            onClick={() => navigate('/admin/staff')}
+          >
+            <ArrowLeft size={16} />
+            Back to staff
+          </button>
+        </header>
+
+        {error && (
+          <div className="invite-error">
+            <AlertCircle size={18} />
+            <span>{error}</span>
+            <button type="button" onClick={() => setError('')}>
+              <X size={15} />
             </button>
           </div>
-        </div>
-      </div>
+        )}
 
-      <div className="row justify-content-center">
-        {/* Widened container to col-12 for full width usage */}
-        <div className="col-12"> 
-          <div className="card border-0 shadow-sm">
-            <div className="card-header bg-white border-0 p-4 p-md-5 pb-0">
-              <div className="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-3">
-                <div>
-                  <h4 className="card-title h4 mb-2">New Staff Invitation</h4>
-                  <p className="text-muted mb-0">
-                    Send invitation to join platform administration team
-                  </p>
+        <form onSubmit={handleSubmit}>
+          <div className="invite-layout">
+            <main className="invite-main">
+              <section className="invite-panel">
+                <div className="panel-header">
+                  <div>
+                    <span>Recipient</span>
+                    <h2>Invitation target</h2>
+                  </div>
                 </div>
-                <div className="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill">
-                  <Shield size={16} className="me-2" />
-                  Secure Invitation
-                </div>
-              </div>
 
-              {/* Error Alert */}
-              {error && (
-                <div className="alert alert-danger alert-dismissible fade show mt-4" role="alert">
-                  <div className="d-flex align-items-center">
-                    <AlertCircle size={24} className="me-3 flex-shrink-0" />
-                    <div>{error}</div>
-                  </div>
-                  <button type="button" className="btn-close" onClick={() => setError('')}></button>
-                </div>
-              )}
-            </div>
+                <div className="field-grid">
+                  <label className="field full">
+                    <span>
+                      <Mail size={15} />
+                      Email address
+                    </span>
 
-            <div className="card-body p-4 p-md-5">
-              <form onSubmit={handleSubmit}>
-                <div className="row g-5">
-                  {/* Email Input */}
-                  <div className="col-12">
-                    <label className="form-label fw-bold fs-5 mb-3">
-                      <Mail size={20} className="me-2 text-primary" />
-                      Email Address
-                    </label>
-                    <div className="input-group input-group-lg">
-                      <span className="input-group-text bg-white border-end-0">
-                        <Mail size={20} className="text-muted" />
-                      </span>
-                      <input
-                        type="email"
-                        name="email"
-                        className="form-control border-start-0 ps-0"
-                        placeholder="staff.email@organization.com"
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        required
-                        style={{ boxShadow: 'none' }}
-                      />
-                    </div>
-                    <div className="form-text mt-2 ms-1">
-                      The invitation link will be sent to this email address
-                    </div>
-                  </div>
+                    <input
+                      type="email"
+                      name="email"
+                      placeholder="staff.email@organization.com"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      required
+                    />
 
-                  {/* Role Selection */}
-                  <div className="col-12">
-                    <label className="form-label fw-bold fs-5 mb-4">
-                      <Key size={20} className="me-2 text-primary" />
-                      Role Assignment
-                    </label>
-                    <div className="row g-4">
-                      {Object.entries(roleConfigs).map(([key, config]) => {
-                        const Icon = config.icon;
-                        const isActive = formData.role === key;
-                        return (
-                          <div key={key} className="col-12 col-md-6 col-lg-3">
-                            <div 
-                              className={`card cursor-pointer h-100 transition-all ${
-                                isActive 
-                                  ? 'border-primary shadow bg-primary bg-opacity-10' 
-                                  : 'border-light hover-shadow'
-                              }`}
-                              onClick={() => {
-                                setFormData(prev => ({ ...prev, role: key as any }));
-                                setActiveRole(key as any);
-                              }}
-                              style={{ 
-                                cursor: 'pointer',
-                                transition: 'all 0.2s ease-in-out',
-                                transform: isActive ? 'translateY(-2px)' : 'none'
-                              }}
-                            >
-                              <div className="card-body text-center p-4">
-                                <div className={`rounded-circle bg-${config.color} bg-opacity-10 p-3 d-inline-block mb-3`}>
-                                  <Icon size={28} className={`text-${config.color}`} />
-                                </div>
-                                <h6 className="fw-bold mb-2">{config.title}</h6>
-                                <p className="text-muted small mb-0">{config.description}</p>
-                                {isActive && (
-                                  <div className="mt-3">
-                                    <span className="badge bg-primary rounded-pill px-3">Selected</span>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
+                    <small>
+                      The invitation link will be sent to this address.
+                    </small>
+                  </label>
 
-                  {/* Permissions Preview */}
-                  <div className="col-12">
-                    <div className="card border bg-light bg-opacity-25">
-                      <div className="card-header bg-transparent border-bottom-0 pt-4 px-4">
-                        <div className="d-flex align-items-center">
-                          <Lock size={20} className="me-2 text-primary" />
-                          <h5 className="mb-0 fw-bold">Role Permissions Preview</h5>
-                        </div>
-                      </div>
-                      <div className="card-body p-4">
-                        <div className="row g-4">
-                          <div className="col-12 col-lg-8">
-                            <div className="bg-white p-4 rounded border h-100">
-                                <h6 className="mb-4 fw-bold text-dark border-bottom pb-2">
-                                {roleConfigs[activeRole].title} <span className="text-muted fw-normal">- {roleConfigs[activeRole].description}</span>
-                                </h6>
-                                <div className="row g-3">
-                                {roleConfigs[activeRole].permissions.map((permission, index) => (
-                                    <div key={index} className="col-md-6">
-                                    <div className="d-flex align-items-start">
-                                        <div className="rounded-circle bg-success bg-opacity-10 p-1 me-2 mt-1 flex-shrink-0">
-                                        <CheckCircle size={14} className="text-success" />
-                                        </div>
-                                        <span className="text-secondary">{permission}</span>
-                                    </div>
-                                    </div>
-                                ))}
-                                </div>
-                            </div>
-                          </div>
-                          <div className="col-12 col-lg-4">
-                            <div className="card bg-white border h-100">
-                              <div className="card-body p-4">
-                                <h6 className="mb-4 fw-bold">Access Level</h6>
-                                <div className="mb-4">
-                                  <div className="d-flex justify-content-between mb-2">
-                                    <span className="small fw-semibold text-muted">Security Level</span>
-                                    <span className={`small fw-bold text-${roleConfigs[activeRole].color}`}>
-                                        {activeRole === 'SUPER_ADMIN' ? 'Critical' : 
-                                         activeRole === 'PLATFORM_ADMIN' ? 'High' :
-                                         activeRole === 'MODERATOR' ? 'Medium' : 'Low'}
-                                    </span>
-                                  </div>
-                                  <div className="progress" style={{height: '8px'}}>
-                                      <div 
-                                        className={`progress-bar bg-${roleConfigs[activeRole].color}`} 
-                                        style={{
-                                          width: activeRole === 'SUPER_ADMIN' ? '100%' : 
-                                                 activeRole === 'PLATFORM_ADMIN' ? '80%' :
-                                                 activeRole === 'MODERATOR' ? '60%' : '40%'
-                                        }}
-                                      ></div>
-                                    </div>
-                                </div>
-                                <div className="d-flex flex-column gap-3">
-                                  <div className="d-flex justify-content-between align-items-center p-2 rounded bg-light">
-                                    <span className="small text-muted">Read Access</span>
-                                    <span className="badge bg-success bg-opacity-10 text-success rounded-pill">Full</span>
-                                  </div>
-                                  <div className="d-flex justify-content-between align-items-center p-2 rounded bg-light">
-                                    <span className="small text-muted">Write Access</span>
-                                    <span className={`badge bg-${activeRole === 'AUDITOR' ? 'warning' : 'success'} bg-opacity-10 text-${activeRole === 'AUDITOR' ? 'warning' : 'success'} rounded-pill`}>
-                                      {activeRole === 'AUDITOR' ? 'None' : 'Full'}
-                                    </span>
-                                  </div>
-                                  <div className="d-flex justify-content-between align-items-center p-2 rounded bg-light">
-                                    <span className="small text-muted">Admin Access</span>
-                                    <span className={`badge bg-${activeRole === 'AUDITOR' || activeRole === 'MODERATOR' ? 'warning' : 'success'} bg-opacity-10 text-${activeRole === 'AUDITOR' || activeRole === 'MODERATOR' ? 'warning' : 'success'} rounded-pill`}>
-                                      {activeRole === 'AUDITOR' || activeRole === 'MODERATOR' ? 'Limited' : 'Full'}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  <label className="field full">
+                    <span>
+                      <Mail size={15} />
+                      Personal message
+                    </span>
 
-                  {/* Personal Message */}
-                  <div className="col-12">
-                    <label className="form-label fw-bold fs-5 mb-3">
-                      <Mail size={20} className="me-2 text-primary" />
-                      Personal Message (Optional)
-                    </label>
                     <textarea
                       name="message"
-                      className="form-control form-control-lg"
                       rows={5}
-                      placeholder="Add a personal welcome message for the recipient..."
+                      placeholder="Optional welcome or access context..."
                       value={formData.message}
                       onChange={handleInputChange}
                     />
-                    <div className="form-text mt-2">
-                      This message will be included in the invitation email
-                    </div>
-                  </div>
 
-                  {/* Security Guidelines */}
-                  <div className="col-12">
-                    <div className="alert alert-info bg-info bg-opacity-10 border border-info border-opacity-25 rounded-3 p-4">
-                      <div className="d-flex">
-                        <Shield size={24} className="me-4 flex-shrink-0 text-info mt-1" />
-                        <div>
-                          <h6 className="alert-heading fw-bold mb-3">Security Guidelines</h6>
-                          <div className="row g-2">
-                             <div className="col-md-6">
-                                <ul className="mb-0 small ps-3">
-                                    <li className="mb-2">Only invite trusted individuals who need platform access</li>
-                                    <li className="mb-2">Assign the minimum role required for their responsibilities</li>
-                                </ul>
-                             </div>
-                             <div className="col-md-6">
-                                <ul className="mb-0 small ps-3">
-                                    <li className="mb-2">Invitations expire after 7 days for security</li>
-                                    <li>All invitation activities are logged for audit purposes</li>
-                                </ul>
-                             </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                    <small>
+                      Include why this person is being invited and what role
+                      they are expected to perform.
+                    </small>
+                  </label>
+                </div>
+              </section>
 
-                  {/* Form Actions */}
-                  <div className="col-12">
-                    <div className="d-flex justify-content-end pt-4 border-top gap-3">
+              <section className="invite-panel">
+                <div className="panel-header">
+                  <div>
+                    <span>Role assignment</span>
+                    <h2>Select access level</h2>
+                  </div>
+                </div>
+
+                <div className="role-grid">
+                  {Object.entries(roleConfigs).map(([role, config]) => {
+                    const Icon = config.icon;
+                    const isActive = formData.role === role;
+
+                    return (
                       <button
                         type="button"
-                        className="btn btn-outline-secondary btn-lg px-4"
-                        onClick={() => navigate('/admin/staff')}
+                        key={role}
+                        className={`role-card ${config.tone} ${
+                          isActive ? 'active' : ''
+                        }`}
+                        onClick={() =>
+                          handleRoleSelect(role as InviteFormData['role'])
+                        }
                       >
-                        Cancel
-                      </button>
-                      <button
-                        type="submit"
-                        className="btn btn-primary btn-lg px-5"
-                        disabled={isLoading}
-                        onMouseEnter={() => setIsHovered(true)}
-                        onMouseLeave={() => setIsHovered(false)}
-                        style={{ 
-                          minWidth: '200px',
-                          opacity: isLoading ? 0.65 : 1,
-                          backgroundColor: isHovered ? '#0b5ed7' : 'var(--bs-primary)',
-                          borderColor: isHovered ? '#0a58ca' : 'var(--bs-primary)',
-                          color: '#fff',
-                          transition: 'all 0.2s ease-in-out'
-                        }}
-                      >
-                        {isLoading ? (
-                          <div className="d-flex align-items-center justify-content-center">
-                            <span className="spinner-border spinner-border-sm me-2 text-white" role="status"></span>
-                            <span className="text-white">Sending...</span>
+                        <div className="role-card-top">
+                          <div className="role-icon">
+                            <Icon size={20} />
                           </div>
-                        ) : (
-                          <div className="d-flex align-items-center justify-content-center">
-                            <UserPlus size={18} className="me-2" />
-                            <span>Send Invitation</span>
-                          </div>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </form>
-            </div>
 
-            {/* Invitation Details Footer */}
-            <div className="card-footer bg-light bg-opacity-50 border-top p-4">
-              <div className="row g-4 justify-content-center">
-                <div className="col-md-5">
-                  <div className="d-flex align-items-center justify-content-center justify-content-md-start">
-                    <div className="rounded-circle bg-white shadow-sm p-2 me-3">
-                      <Mail size={20} className="text-primary" />
-                    </div>
-                    <div>
-                      <div className="small fw-bold text-dark">Invitation Delivery</div>
-                      <div className="small text-muted">Email sent immediately upon submission</div>
-                    </div>
-                  </div>
+                          {isActive && (
+                            <span className="selected-pill">
+                              Selected
+                            </span>
+                          )}
+                        </div>
+
+                        <h3>{config.title}</h3>
+                        <p>{config.description}</p>
+
+                        <span className="risk-label">
+                          {config.risk} risk access
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
-                <div className="col-md-5">
-                  <div className="d-flex align-items-center justify-content-center justify-content-md-start">
-                    <div className="rounded-circle bg-white shadow-sm p-2 me-3">
-                      <AlertCircle size={20} className="text-warning" />
-                    </div>
-                    <div>
-                      <div className="small fw-bold text-dark">Expiration Period</div>
-                      <div className="small text-muted">Valid for 7 days from invitation date</div>
-                    </div>
+              </section>
+
+              <section className="invite-panel">
+                <div className="panel-header">
+                  <div>
+                    <span>Permission preview</span>
+                    <h2>{activeConfig.title}</h2>
                   </div>
+
+                  <span className={`risk-pill ${activeConfig.tone}`}>
+                    {activeConfig.risk} risk
+                  </span>
                 </div>
-              </div>
-            </div>
+
+                <div className="permission-layout">
+                  <div className="permission-list">
+                    {activeConfig.permissions.map((permission) => (
+                      <div key={permission}>
+                        <CheckCircle size={15} />
+                        <span>{permission}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <aside className="risk-card">
+                    <div className={`risk-icon ${activeConfig.tone}`}>
+                      <ActiveIcon size={24} />
+                    </div>
+
+                    <h3>Access risk profile</h3>
+
+                    <div className="risk-meter">
+                      <span
+                        className={activeConfig.tone}
+                        style={{ width: riskWidth }}
+                      />
+                    </div>
+
+                    <dl>
+                      <div>
+                        <dt>Read access</dt>
+                        <dd>Full</dd>
+                      </div>
+
+                      <div>
+                        <dt>Write access</dt>
+                        <dd>
+                          {formData.role === 'AUDITOR' ? 'None' : 'Enabled'}
+                        </dd>
+                      </div>
+
+                      <div>
+                        <dt>Admin controls</dt>
+                        <dd>
+                          {formData.role === 'SUPER_ADMIN' ||
+                          formData.role === 'PLATFORM_ADMIN'
+                            ? 'Full'
+                            : 'Limited'}
+                        </dd>
+                      </div>
+                    </dl>
+                  </aside>
+                </div>
+              </section>
+
+              <section className="security-note">
+                <Shield size={18} />
+
+                <div>
+                  <strong>Security guideline</strong>
+                  <p>
+                    Invite only trusted staff. Assign the minimum role needed
+                    for their responsibility. Staff invitations expire after 7
+                    days and access provisioning should be reviewed regularly.
+                  </p>
+                </div>
+              </section>
+            </main>
+
+            <aside className="invite-sidebar">
+              <section className="side-card">
+                <span className="side-label">Invitation summary</span>
+
+                <div className={`side-role-icon ${activeConfig.tone}`}>
+                  <ActiveIcon size={26} />
+                </div>
+
+                <h3>{activeConfig.title}</h3>
+
+                <p>{activeConfig.description}</p>
+
+                <dl>
+                  <div>
+                    <dt>Recipient</dt>
+                    <dd>{formData.email || 'Not set'}</dd>
+                  </div>
+
+                  <div>
+                    <dt>Access risk</dt>
+                    <dd>{activeConfig.risk}</dd>
+                  </div>
+
+                  <div>
+                    <dt>Expiration</dt>
+                    <dd>7 days</dd>
+                  </div>
+                </dl>
+              </section>
+
+              <section className="side-card warning">
+                <div className="side-card-title">
+                  <Lock size={16} />
+                  Access warning
+                </div>
+
+                <p>
+                  Super Admin and Platform Admin roles should be rare. They can
+                  affect user trust, institution records, support outcomes, and
+                  audit-sensitive workflows.
+                </p>
+              </section>
+
+              <button
+                type="submit"
+                className="invite-submit"
+                disabled={isLoading}
+              >
+                <UserPlus size={16} />
+                {isLoading ? 'Sending invitation...' : 'Send invitation'}
+              </button>
+            </aside>
           </div>
-        </div>
+        </form>
       </div>
+
+      <style>{styles}</style>
     </AdminLayout>
   );
 };
+
+const styles = `
+  .invite-page {
+    color: #111827;
+  }
+
+  .invite-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 18px;
+    color: #64748b;
+    font-size: .84rem;
+    font-weight: 750;
+  }
+
+  .invite-breadcrumb a {
+    color: #334155;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .invite-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 24px;
+    margin-bottom: 20px;
+  }
+
+  .invite-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: #64748b;
+    font-size: .72rem;
+    font-weight: 850;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .invite-kicker svg {
+    color: #047857;
+  }
+
+  .invite-header h1 {
+    margin: 0 0 8px;
+    color: #0f172a;
+    font-size: clamp(1.85rem, 3vw, 2.6rem);
+    line-height: 1.05;
+    font-weight: 900;
+    letter-spacing: -.055em;
+  }
+
+  .invite-header p {
+    max-width: 760px;
+    color: #64748b;
+    line-height: 1.65;
+    margin: 0;
+  }
+
+  .invite-btn {
+    min-height: 42px;
+    border-radius: 12px;
+    padding: 0 14px;
+    border: 1px solid transparent;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-weight: 850;
+    cursor: pointer;
+    text-decoration: none;
+  }
+
+  .invite-btn.primary {
+    background: #0f172a;
+    color: #ffffff;
+  }
+
+  .invite-btn.secondary {
+    background: #ffffff;
+    border-color: #dbe3ea;
+    color: #334155;
+  }
+
+  .invite-error {
+    margin-bottom: 18px;
+    border: 1px solid #fecaca;
+    background: #fef2f2;
+    color: #991b1b;
+    border-radius: 14px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .invite-error button {
+    margin-left: auto;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+  }
+
+  .invite-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 18px;
+  }
+
+  .invite-main {
+    display: grid;
+    gap: 18px;
+  }
+
+  .invite-panel,
+  .side-card,
+  .security-note,
+  .success-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 10px 26px rgba(15,23,42,.04);
+  }
+
+  .invite-panel,
+  .side-card,
+  .security-note {
+    border-radius: 22px;
+  }
+
+  .panel-header {
+    padding: 18px 20px;
+    border-bottom: 1px solid #eef2f7;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .panel-header span {
+    color: #64748b;
+    font-size: .72rem;
+    font-weight: 850;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .panel-header h2 {
+    color: #0f172a;
+    font-size: 1.15rem;
+    font-weight: 900;
+    margin: 5px 0 0;
+  }
+
+  .field-grid {
+    padding: 20px;
+    display: grid;
+    gap: 18px;
+  }
+
+  .field {
+    display: grid;
+    gap: 8px;
+  }
+
+  .field span {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: #334155;
+    font-size: .84rem;
+    font-weight: 850;
+  }
+
+  .field input,
+  .field textarea {
+    width: 100%;
+    border: 1px solid #dbe3ea;
+    border-radius: 14px;
+    padding: 13px 14px;
+    outline: none;
+    color: #111827;
+    font: inherit;
+  }
+
+  .field textarea {
+    resize: vertical;
+  }
+
+  .field small {
+    color: #94a3b8;
+    font-size: .76rem;
+  }
+
+  .role-grid {
+    padding: 20px;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .role-card {
+    text-align: left;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    border-radius: 18px;
+    padding: 16px;
+    cursor: pointer;
+    transition: .18s ease;
+  }
+
+  .role-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(15,23,42,.06);
+  }
+
+  .role-card.active {
+    border-color: #0f172a;
+    box-shadow: 0 14px 32px rgba(15,23,42,.08);
+  }
+
+  .role-card-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .role-icon,
+  .side-role-icon,
+  .risk-icon {
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .role-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .role-card.danger .role-icon,
+  .risk-icon.danger,
+  .side-role-icon.danger {
+    background: #fef2f2;
+    color: #b91c1c;
+  }
+
+  .role-card.blue .role-icon,
+  .risk-icon.blue,
+  .side-role-icon.blue {
+    background: #eff6ff;
+    color: #2563eb;
+  }
+
+  .role-card.green .role-icon,
+  .risk-icon.green,
+  .side-role-icon.green {
+    background: #ecfdf5;
+    color: #047857;
+  }
+
+  .role-card.amber .role-icon,
+  .risk-icon.amber,
+  .side-role-icon.amber {
+    background: #fffbeb;
+    color: #b45309;
+  }
+
+  .selected-pill,
+  .risk-pill {
+    border-radius: 999px;
+    padding: 6px 9px;
+    font-size: .7rem;
+    font-weight: 900;
+    background: #0f172a;
+    color: #ffffff;
+  }
+
+  .risk-pill.danger { background: #fef2f2; color: #b91c1c; }
+  .risk-pill.blue { background: #eff6ff; color: #2563eb; }
+  .risk-pill.green { background: #ecfdf5; color: #047857; }
+  .risk-pill.amber { background: #fffbeb; color: #b45309; }
+
+  .role-card h3 {
+    color: #0f172a;
+    font-size: .96rem;
+    font-weight: 900;
+    margin: 0 0 8px;
+  }
+
+  .role-card p {
+    color: #64748b;
+    font-size: .82rem;
+    line-height: 1.5;
+    margin: 0 0 12px;
+  }
+
+  .risk-label {
+    color: #334155;
+    font-size: .74rem;
+    font-weight: 850;
+  }
+
+  .permission-layout {
+    padding: 20px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 280px;
+    gap: 18px;
+  }
+
+  .permission-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .permission-list div {
+    border: 1px solid #e5e7eb;
+    background: #f8fafc;
+    border-radius: 14px;
+    padding: 12px;
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    color: #334155;
+    font-size: .84rem;
+    font-weight: 750;
+  }
+
+  .permission-list svg {
+    color: #047857;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .risk-card {
+    border: 1px solid #e5e7eb;
+    background: #f8fafc;
+    border-radius: 18px;
+    padding: 16px;
+  }
+
+  .risk-icon {
+    width: 46px;
+    height: 46px;
+    margin-bottom: 14px;
+  }
+
+  .risk-card h3 {
+    color: #0f172a;
+    font-size: .95rem;
+    font-weight: 900;
+    margin: 0 0 14px;
+  }
+
+  .risk-meter {
+    height: 8px;
+    background: #e5e7eb;
+    border-radius: 999px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+
+  .risk-meter span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+  }
+
+  .risk-meter .danger { background: #dc2626; }
+  .risk-meter .blue { background: #2563eb; }
+  .risk-meter .green { background: #059669; }
+  .risk-meter .amber { background: #f59e0b; }
+
+  .risk-card dl,
+  .side-card dl {
+    margin: 0;
+    display: grid;
+    gap: 10px;
+  }
+
+  .risk-card div,
+  .side-card dl div {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .risk-card dt,
+  .side-card dt {
+    color: #64748b;
+    font-size: .78rem;
+    font-weight: 800;
+  }
+
+  .risk-card dd,
+  .side-card dd {
+    color: #0f172a;
+    font-size: .8rem;
+    font-weight: 900;
+    margin: 0;
+    text-align: right;
+    word-break: break-word;
+  }
+
+  .security-note {
+    padding: 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .security-note svg {
+    color: #047857;
+    flex-shrink: 0;
+  }
+
+  .security-note strong {
+    display: block;
+    color: #0f172a;
+    font-weight: 900;
+    margin-bottom: 4px;
+  }
+
+  .security-note p {
+    color: #64748b;
+    margin: 0;
+    line-height: 1.6;
+    font-size: .88rem;
+  }
+
+  .invite-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .side-card {
+    padding: 18px;
+  }
+
+  .side-label {
+    display: block;
+    color: #64748b;
+    font-size: .72rem;
+    font-weight: 850;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .side-role-icon {
+    width: 54px;
+    height: 54px;
+    margin-bottom: 14px;
+  }
+
+  .side-card h3 {
+    color: #0f172a;
+    font-size: 1rem;
+    font-weight: 900;
+    margin: 0 0 8px;
+  }
+
+  .side-card p {
+    color: #64748b;
+    line-height: 1.6;
+    margin: 0 0 16px;
+    font-size: .88rem;
+  }
+
+  .side-card.warning {
+    background: #fffbeb;
+    border-color: #fde68a;
+  }
+
+  .side-card-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #b45309;
+    font-weight: 900;
+    margin-bottom: 10px;
+  }
+
+  .invite-submit {
+    min-height: 52px;
+    border: 0;
+    border-radius: 16px;
+    background: #0f172a;
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-weight: 900;
+    cursor: pointer;
+  }
+
+  .invite-submit:disabled {
+    opacity: .6;
+    cursor: not-allowed;
+  }
+
+  .invite-success-page {
+    min-height: 70vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .success-card {
+    width: min(560px, 100%);
+    border-radius: 24px;
+    padding: 34px;
+    text-align: center;
+  }
+
+  .success-icon {
+    width: 82px;
+    height: 82px;
+    border-radius: 26px;
+    background: #ecfdf5;
+    color: #047857;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 18px;
+  }
+
+  .success-kicker {
+    display: block;
+    color: #047857;
+    font-size: .72rem;
+    font-weight: 900;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .success-card h1 {
+    color: #0f172a;
+    font-size: 1.8rem;
+    font-weight: 900;
+    margin: 0 0 10px;
+  }
+
+  .success-card p {
+    color: #64748b;
+    line-height: 1.7;
+    margin: 0 0 22px;
+  }
+
+  .success-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 14px;
+  }
+
+  .success-card small {
+    color: #94a3b8;
+  }
+
+  @media (max-width: 1180px) {
+    .invite-layout,
+    .permission-layout {
+      grid-template-columns: 1fr;
+    }
+
+    .invite-sidebar {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .invite-submit {
+      grid-column: 1 / -1;
+    }
+
+    .role-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 760px) {
+    .invite-header,
+    .panel-header,
+    .success-actions {
+      flex-direction: column;
+    }
+
+    .invite-header {
+      display: flex;
+    }
+
+    .invite-btn,
+    .invite-submit {
+      width: 100%;
+    }
+
+    .role-grid,
+    .permission-list,
+    .invite-sidebar {
+      grid-template-columns: 1fr;
+    }
+  }
+`;
 
 export default StaffInviteForm;

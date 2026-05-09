@@ -1,6 +1,25 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertCircle, CheckCircle, Search } from 'lucide-react';
+import {
+  CheckCircle,
+  XCircle,
+  Search,
+  Eye,
+  EyeOff,
+  ArrowRight,
+  ArrowLeft,
+  AlertCircle,
+  GraduationCap,
+  Briefcase,
+  Lock,
+  Mail,
+  X,
+  Sparkles,
+  Building2,
+  FileText,
+  TrendingUp,
+} from 'lucide-react';
+
 import { authService } from '../../services/auth/authService';
 import { institutionService } from '../../services/institution/institutionService';
 import { apiClient } from '../../services/api/client';
@@ -8,289 +27,7 @@ import { ApiError } from '../../services/errors';
 import { useRegisterErrorHandler } from '../../hooks/useAuthErrorHandler';
 import edulinkLogo from '../../assets/images/edulink-logo-v1-select.svg';
 
-// CSS Animations and Keyframes
-const styles = `
-  @keyframes slideInFromTop {
-    from { 
-      opacity: 0; 
-      transform: translateY(-40px) scale(0.9) rotateX(10deg);
-      filter: blur(4px);
-    }
-    to { 
-      opacity: 1; 
-      transform: translateY(0) scale(1) rotateX(0deg);
-      filter: blur(0px);
-    }
-  }
-
-  @keyframes slideOutToTop {
-    from { 
-      opacity: 1; 
-      transform: translateY(0) scale(1) rotateX(0deg);
-      filter: blur(0px);
-    }
-    to { 
-      opacity: 0; 
-      transform: translateY(-40px) scale(0.9) rotateX(-10deg);
-      filter: blur(4px);
-    }
-  }
-
-  @keyframes spin {
-    0% { transform: rotate(0deg) scale(1); }
-    50% { transform: rotate(180deg) scale(1.1); }
-    100% { transform: rotate(360deg) scale(1); }
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 0.7; }
-    50% { opacity: 1; }
-  }
-
-  @keyframes gradientShift {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-  }
-
-  @keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-10px); }
-  }
-
-  @keyframes shimmer {
-    0% { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
-  }
-
-  @keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
-    50% { box-shadow: 0 0 40px rgba(59, 130, 246, 0.6); }
-  }
-
-  .toast-enter {
-    animation: slideInFromTop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-  }
-
-  .toast-exit {
-    animation: slideOutToTop 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  }
-
-  .loading-spinner {
-    animation: spin 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
-  }
-
-  .loading-text {
-    animation: pulse 2s ease-in-out infinite;
-  }
-
-  .loading-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 50%, rgba(15, 23, 42, 0.95) 100%);
-    background-size: 200% 200%;
-    animation: gradientShift 8s ease infinite;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    border-radius: 20px;
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(59, 130, 246, 0.2);
-    box-shadow: 0 0 40px rgba(59, 130, 246, 0.1);
-    z-index: 1000;
-  }
-
-  .loading-content {
-    text-align: center;
-    padding: 40px;
-    background: rgba(15, 23, 42, 0.8);
-    border-radius: 15px;
-    border: 1px solid rgba(59, 130, 246, 0.3);
-    box-shadow: 0 0 30px rgba(59, 130, 246, 0.2);
-    animation: float 3s ease-in-out infinite;
-  }
-
-  .loading-spinner-enhanced {
-    width: 60px;
-    height: 60px;
-    border: 4px solid rgba(59, 130, 246, 0.1);
-    border-top: 4px solid #3b82f6;
-    border-right: 4px solid #60a5fa;
-    border-radius: 50%;
-    animation: spin 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
-    margin: 0 auto 20px;
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
-    position: relative;
-  }
-
-  .loading-spinner-enhanced::before {
-    content: '';
-    position: absolute;
-    top: -8px;
-    left: -8px;
-    right: -8px;
-    bottom: -8px;
-    border-radius: 50%;
-    border: 2px solid transparent;
-    border-top: 2px solid rgba(96, 165, 250, 0.3);
-    animation: spin 2s linear infinite reverse;
-  }
-
-  .loading-title {
-    font-size: 18px;
-    font-weight: 600;
-    color: #f8fafc;
-    margin-bottom: 10px;
-    letter-spacing: 0.5px;
-    text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
-  }
-
-  .loading-subtitle {
-    font-size: 14px;
-    color: #94a3b8;
-    margin-bottom: 20px;
-    line-height: 1.4;
-  }
-
-  .loading-shimmer {
-    height: 6px;
-    background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.6), transparent);
-    background-size: 200% 100%;
-    animation: shimmer 2s infinite;
-    border-radius: 3px;
-    margin: 15px 0;
-  }
-
-  .loading-dots {
-    display: flex;
-    justify-content: center;
-    gap: 8px;
-    margin-top: 15px;
-  }
-
-  .loading-dot {
-    width: 8px;
-    height: 8px;
-    background: linear-gradient(135deg, #3b82f6, #60a5fa);
-    border-radius: 50%;
-    animation: pulse 1.5s infinite;
-  }
-
-  .loading-dot:nth-child(2) {
-    animation-delay: 0.2s;
-  }
-
-  .loading-dot:nth-child(3) {
-    animation-delay: 0.4s;
-  }
-
-  .loading-progress {
-    width: 100%;
-    height: 2px;
-    background: rgba(59, 130, 246, 0.2);
-    border-radius: 1px;
-    overflow: hidden;
-    margin-top: 20px;
-  }
-
-  .loading-progress-bar {
-    height: 100%;
-    background: linear-gradient(90deg, #3b82f6, #60a5fa, #93c5fd);
-    border-radius: 1px;
-    animation: shimmer 3s infinite;
-    width: 60%;
-  }
-
-  /* Responsive Media Queries */
-  @media screen and (max-width: 992px) {
-    .registration-container {
-      flex-direction: column !important;
-      width: 100% !important;
-      max-width: 100% !important;
-      min-height: 100vh !important;
-      border-radius: 0 !important;
-      margin: 0 !important;
-      box-shadow: none !important;
-    }
-    
-    .registration-wrapper {
-      flex-direction: column !important;
-      width: 100% !important;
-      max-width: 100% !important;
-      min-height: 100vh !important;
-      border-radius: 0 !important;
-      margin: 0 !important;
-      box-shadow: none !important;
-    }
-    
-    .branding-side {
-      padding: 40px 25px !important;
-      text-align: center !important;
-      align-items: center !important;
-      flex: 0 1 auto !important;
-    }
-    
-    .form-side {
-      padding: 30px 25px !important;
-      flex: 1 1 auto !important;
-      width: 100% !important;
-      justify-content: flex-start !important;
-    }
-    
-    .form-box {
-      max-width: 100% !important;
-    }
-  }
-
-  @media (max-width: 768px) {
-    .error-toast, .success-toast {
-      margin: 15px 10px !important;
-      padding: 18px 50px 18px 20px !important;
-      font-size: 13px !important;
-      border-radius: 12px !important;
-    }
-    
-    input[type="email"], input[type="password"], input[type="text"] {
-      font-size: 16px !important; /* Prevents zoom on iOS */
-      padding: 14px 16px !important;
-    }
-    
-    .registration-wrapper {
-      max-height: none !important;
-      height: auto !important;
-      min-height: 100vh !important;
-    }
-    
-    .close-btn {
-      right: 15px !important;
-      top: 15px !important;
-      width: 26px !important;
-      height: 26px !important;
-      font-size: 16px !important;
-    }
-    
-    .loading-overlay {
-      border-radius: 15px !important;
-    }
-    
-    .loading-spinner {
-      width: 28px !important;
-      height: 28px !important;
-    }
-    
-    .loading-text {
-      font-size: 13px !important;
-    }
-    
-    .loading-shimmer {
-      height: 4px !important;
-    }
-  }
-`;
+type RegistrationStep = 0 | 1 | 2;
 
 interface RegisterFormData {
   email: string;
@@ -304,10 +41,770 @@ interface RegisterFormData {
   role: 'student' | 'employer' | 'institution';
 }
 
-const Register: React.FC = () => {
+interface InstitutionOption {
+  id: string | number;
+  name: string;
+}
+
+interface ToastState {
+  msg: string;
+  type: 'error' | 'success';
+}
+
+interface PasswordRuleProps {
+  pass: boolean;
+  label: string;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   DESIGN SYSTEM
+   
+   Research basis:
+   ─ Studied Handshake, Forage, RippleMatch, and similar
+     edtech/career platforms to define the genre conventions
+   ─ Pattern: dark branded left panel + white functional right
+   ─ Brand anchor: teal #069b8e throughout, never competing colors
+   ─ Typography: Plus Jakarta Sans — warm, professional, widely
+     used in the edtech category (Forage, Coursera-adjacent)
+   ─ Left panel background: #07dec8 (deep teal-black, not pure
+     black — keeps the teal brand alive in shadows)
+   ─ Single radial glow, top-right — one light source only
+   ─ Feature list > product preview card: cleaner hierarchy,
+     each item anchored by a teal icon tile
+   ─ Right panel: white surface card, teal only on focus/CTA
+─────────────────────────────────────────────────────────────── */
+const css = `
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  /* ── Brand ── */
+  --brand:        #069b8e;
+  --brand-hi:     #0bbfa3;
+  --brand-lo:     #057e73;
+  --brand-bg:     #0a4f4a;
+  --brand-panel:  #08d7c2;
+  --brand-tint:   rgba(6,155,142,.08);
+  --brand-ring:   rgba(6,155,142,.22);
+
+  /* ── Neutrals ── */
+  --ink:          #111827;
+  --ink-2:        #1f2937;
+  --muted:        #6b7280;
+  --faint:        #9ca3af;
+  --placeholder:  #d1d5db;
+  --bg:           #f6faf9;
+  --surface:      #ffffff;
+  --border:       #e5e7eb;
+  --border-2:     #f3f4f6;
+
+  /* ── Semantic ── */
+  --danger:       #dc2626;
+  --danger-bg:    #fef2f2;
+  --danger-bd:    #fecaca;
+  --success-bg:   #f0fdf9;
+  --success-bd:   #99f6e4;
+  --success-tx:   #0f766e;
+
+  /* ── Radii ── */
+  --r-sm:   6px;
+  --r:      10px;
+  --r-lg:   14px;
+  --r-xl:   20px;
+  --r-2xl:  26px;
+
+  --font: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --ease: .16s cubic-bezier(.4,0,.2,1);
+}
+
+/* ══════════════════════════════════════
+   ROOT
+══════════════════════════════════════ */
+.rg {
+  display: grid;
+  grid-template-columns: 440px 1fr;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  font-family: var(--font);
+  color: var(--ink);
+  background: var(--bg);
+}
+
+/* ══════════════════════════════════════
+   LEFT — BRAND PANEL
+   Deep teal-black background.
+   Accent = teal only. No competing hues.
+══════════════════════════════════════ */
+.rg-left {
+  background: var(--brand-bg);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Single radial glow — one light source */
+.rg-glow {
+  position: absolute;
+  width: 580px;
+  height: 580px;
+  top: -160px;
+  right: -200px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(220,255,248,.24) 0%, transparent 58%);
+  pointer-events: none;
+}
+/* Bottom-left ambient */
+.rg-glow-2 {
+  position: absolute;
+  width: 320px;
+  height: 320px;
+  bottom: -80px;
+  left: -60px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(210,255,247,.14) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+/* Subtle grid texture */
+.rg-grid-tex {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.028) 1px, transparent 1px);
+  background-size: 38px 38px;
+  pointer-events: none;
+}
+
+/* All left content sits above overlays */
+.rg-left-inner {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 26px 42px 34px;
+}
+
+/* Logo */
+.rg-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.14);
+  box-shadow: 0 10px 28px rgba(0,0,0,.22);
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.rg-logo-img {
+  height: 38px;
+  width: auto;
+}
+
+/* ── Hero ── */
+.rg-hero { margin-top: 24px; flex-shrink: 0; }
+
+.rg-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: .71rem;
+  font-weight: 700;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+  color: var(--brand-hi);
+  margin-bottom: 20px;
+}
+.rg-eyebrow-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--brand-hi);
+  animation: blink 2.5s ease-in-out infinite;
+}
+@keyframes blink {
+  0%,100% { opacity:1; transform:scale(1); }
+  50%      { opacity:.4; transform:scale(.65); }
+}
+
+.rg-headline {
+  font-size: clamp(1.85rem, 2.5vw, 2.65rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -.5px;
+  color: #fff;
+  margin-bottom: 15px;
+}
+.rg-headline span { color: var(--brand-hi); }
+
+.rg-sub {
+  font-size: .875rem;
+  font-weight: 400;
+  color: rgba(255,255,255,.74);
+  line-height: 1.75;
+  max-width: 305px;
+}
+
+/* ── Feature rows ── */
+.rg-features {
+  margin-top: 38px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.rg-feat {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  padding: 15px 0;
+  border-bottom: 1px solid rgba(255,255,255,.055);
+}
+.rg-feat:last-child { border-bottom: 0; }
+.rg-feat-icon {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  background: rgba(11,191,163,.11);
+  border: 1px solid rgba(11,191,163,.16);
+  color: var(--brand-hi);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.rg-feat-title {
+  font-size: .83rem;
+  font-weight: 700;
+  color: rgba(255,255,255,.92);
+  margin-bottom: 2px;
+  letter-spacing: -.1px;
+}
+.rg-feat-desc {
+  font-size: .74rem;
+  color: rgba(255,255,255,.64);
+  line-height: 1.5;
+}
+
+/* ── Footer ── */
+.rg-left-foot {
+  margin-top: auto;
+  padding-top: 26px;
+  border-top: 1px solid rgba(255,255,255,.055);
+}
+.rg-trust {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.rg-trust-label {
+  font-size: .69rem;
+  color: rgba(255,255,255,.6);
+  font-weight: 500;
+}
+.rg-trust-pill {
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .03em;
+  color: rgba(255,255,255,.9);
+  background: rgba(255,255,255,.15);
+  border: 1px solid rgba(255,255,255,.24);
+  border-radius: 5px;
+  padding: 3px 8px;
+}
+
+/* ══════════════════════════════════════
+   RIGHT — FORM PANEL
+══════════════════════════════════════ */
+.rg-right {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  height: 100vh;
+  background: var(--bg);
+}
+
+.rg-right-inner {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 48px 28px;
+  max-width: 580px;
+  width: 100%;
+  margin: 0 auto;
+  min-height: 100%;
+}
+
+/* Top bar */
+.rg-topbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  font-size: .82rem;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.rg-signin-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--brand);
+  border: 1.5px solid var(--brand-ring);
+  background: var(--brand-tint);
+  padding: 8px 15px;
+  border-radius: var(--r);
+  text-decoration: none;
+  font-weight: 700;
+  font-size: .82rem;
+  transition: background var(--ease), border-color var(--ease);
+}
+.rg-signin-btn:hover {
+  background: rgba(6,155,142,.14);
+  border-color: rgba(6,155,142,.38);
+}
+
+/* ── Stepper ── */
+.rg-stepper {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 12px 18px;
+}
+.rg-step {
+  display: flex; align-items: center;
+  gap: 9px; flex-shrink: 0;
+}
+.rg-step-num {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  font-size: .75rem; font-weight: 700;
+  color: var(--faint);
+  flex-shrink: 0;
+  transition: all var(--ease);
+}
+.rg-step-lbl {
+  font-size: .79rem; font-weight: 600;
+  color: var(--faint);
+  transition: color var(--ease);
+  white-space: nowrap;
+}
+.rg-step-line {
+  flex: 1; height: 2px;
+  background: var(--border-2);
+  margin: 0 8px;
+  border-radius: 99px;
+  min-width: 16px;
+  transition: background var(--ease);
+}
+.rg-step.active .rg-step-num {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+  box-shadow: 0 0 0 4px var(--brand-ring);
+}
+.rg-step.active .rg-step-lbl { color: var(--ink); }
+.rg-step.done .rg-step-num {
+  background: rgba(6,155,142,.1);
+  border-color: var(--brand);
+  color: var(--brand);
+}
+.rg-step.done .rg-step-lbl { color: var(--brand); }
+.rg-step.done + .rg-step-line { background: var(--brand); }
+
+/* ── Form card ── */
+.rg-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-2xl);
+  padding: 26px 26px 22px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Form head */
+.rg-form-head { margin-bottom: 24px; }
+.rg-step-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--brand);
+  background: var(--brand-tint);
+  border: 1px solid rgba(6,155,142,.14);
+  border-radius: 99px;
+  padding: 4px 10px;
+  margin-bottom: 12px;
+}
+.rg-form-title {
+  font-size: 1.65rem; font-weight: 800;
+  letter-spacing: -.5px; line-height: 1.14;
+  color: var(--ink); margin-bottom: 5px;
+}
+.rg-form-sub {
+  color: var(--muted); font-size: .86rem;
+  font-weight: 400; line-height: 1.55;
+}
+
+/* ── Toast ── */
+.rg-toast {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 12px 14px; border-radius: var(--r);
+  margin-bottom: 18px; font-size: .84rem; font-weight: 500;
+  animation: toastIn .18s ease; flex-shrink: 0;
+}
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to   { opacity: 1; transform: none; }
+}
+.rg-toast.err { background: var(--danger-bg); border: 1px solid var(--danger-bd); color: var(--danger); }
+.rg-toast.ok  { background: var(--success-bg); border: 1px solid var(--success-bd); color: var(--success-tx); }
+.rg-toast-x {
+  margin-left: auto; background: none; border: 0;
+  font-size: 16px; cursor: pointer; color: inherit; opacity: .7; line-height: 1;
+}
+
+/* ── Fields ── */
+.rg-grid  { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 22px; }
+.rg-grid1 { grid-template-columns: 1fr; }
+.rg-span2 { grid-column: 1 / -1; }
+.rg-field { display: flex; flex-direction: column; gap: 6px; }
+.rg-label {
+  font-size: .73rem; font-weight: 700;
+  letter-spacing: .05em; text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.rg-wrap { position: relative; }
+.rg-input {
+  width: 100%; height: 46px;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--r);
+  padding: 0 14px;
+  font: 500 .9rem var(--font);
+  color: var(--ink);
+  outline: none; appearance: none;
+  transition: border-color var(--ease), box-shadow var(--ease), background var(--ease);
+}
+.rg-input.il { padding-left: 42px; }
+.rg-input.ir { padding-right: 42px; }
+.rg-input:hover:not(:focus) { border-color: #d1d5db; background: var(--bg); }
+.rg-input:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3.5px var(--brand-ring);
+  background: var(--surface);
+}
+.rg-input::placeholder { color: var(--placeholder); font-weight: 400; }
+
+.rg-il, .rg-ir {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  color: var(--faint); display: flex; pointer-events: none;
+}
+.rg-il { left: 13px; }
+.rg-ir {
+  right: 12px; pointer-events: auto;
+  background: none; border: 0; cursor: pointer;
+  border-radius: 4px; padding: 2px;
+  transition: color var(--ease);
+}
+.rg-ir:hover { color: var(--ink); }
+
+/* Password rules */
+.rg-rules {
+  grid-column: 1 / -1;
+  display: flex; gap: 14px; flex-wrap: wrap;
+  padding: 11px 14px;
+  background: var(--bg);
+  border: 1px solid var(--border-2);
+  border-radius: var(--r);
+  margin-top: -3px;
+}
+.rg-rule {
+  display: flex; align-items: center; gap: 5px;
+  font-size: .76rem; font-weight: 600;
+  color: var(--faint); transition: color var(--ease);
+}
+.rg-rule.pass { color: var(--brand); }
+
+/* Institution */
+.rg-inst-rel { position: relative; }
+.rg-dropdown {
+  position: absolute;
+  top: calc(100% + 5px); left: 0; right: 0;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: 0 12px 32px rgba(0,0,0,.1);
+  max-height: 210px; overflow-y: auto; z-index: 60;
+}
+.rg-dd-btn {
+  width: 100%; padding: 11px 14px;
+  text-align: left; border: 0;
+  border-bottom: 1px solid var(--border-2);
+  background: none; cursor: pointer;
+  font: 500 .86rem var(--font); color: var(--ink);
+  transition: background var(--ease);
+}
+.rg-dd-btn:last-child { border-bottom: 0; }
+.rg-dd-btn:hover { background: var(--bg); }
+
+.rg-inst-linked, .rg-inst-skip-state {
+  display: flex; align-items: center;
+  justify-content: space-between; gap: 12px;
+  border: 1.5px solid rgba(6,155,142,.25);
+  background: rgba(6,155,142,.05);
+  border-radius: var(--r); padding: 13px 15px;
+}
+.rg-inst-info { display: flex; align-items: center; gap: 11px; }
+.rg-inst-icon {
+  width: 38px; height: 38px; border-radius: 10px;
+  background: rgba(6,155,142,.1); color: var(--brand);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.rg-inst-name { font-weight: 700; font-size: .87rem; color: var(--ink); }
+.rg-inst-meta { font-size: .72rem; color: var(--brand); font-weight: 600; margin-top: 1px; }
+.rg-change-btn {
+  border: 0; background: none;
+  color: var(--brand); font-weight: 700; font-size: .8rem;
+  cursor: pointer; flex-shrink: 0;
+}
+.rg-change-btn:hover { color: var(--brand-lo); }
+.rg-skip-note { font-size: .84rem; color: var(--muted); font-weight: 500; }
+.rg-no-result { font-size: .78rem; color: var(--faint); margin-top: 7px; }
+.rg-cant-find {
+  border: 0; background: none;
+  color: var(--brand); font-weight: 600; font-size: .78rem;
+  cursor: pointer; margin-top: 10px; padding: 0;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.rg-cant-find:hover { color: var(--brand-lo); }
+
+/* Nav buttons */
+.rg-nav { display: flex; gap: 10px; margin-top: auto; padding-top: 24px; flex-shrink: 0; }
+
+.rg-back {
+  display: flex; align-items: center; gap: 7px;
+  background: var(--bg); border: 1.5px solid var(--border);
+  border-radius: var(--r); padding: 0 18px; height: 48px;
+  font: 600 .87rem var(--font); color: var(--muted);
+  cursor: pointer;
+  transition: border-color var(--ease), color var(--ease), background var(--ease);
+  flex-shrink: 0;
+}
+.rg-back:hover:not(:disabled) { border-color: #d1d5db; color: var(--ink); background: var(--surface); }
+.rg-back:disabled { opacity: .45; cursor: not-allowed; }
+
+.rg-next {
+  flex: 1; display: flex; align-items: center;
+  justify-content: center; gap: 8px;
+  background: var(--brand); border: 0;
+  border-radius: var(--r); height: 48px;
+  font: 700 .9rem var(--font); color: #fff;
+  cursor: pointer; letter-spacing: .01em;
+  transition: background var(--ease), box-shadow var(--ease), transform .1s;
+  box-shadow: 0 2px 14px rgba(6,155,142,.3);
+}
+.rg-next:hover:not(:disabled) {
+  background: var(--brand-lo);
+  box-shadow: 0 4px 20px rgba(6,155,142,.4);
+}
+.rg-next:active:not(:disabled) { transform: scale(.985); }
+.rg-next:disabled { opacity: .55; cursor: not-allowed; box-shadow: none; }
+
+.rg-spinner {
+  width: 15px; height: 15px;
+  border: 2.5px solid rgba(255,255,255,.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .65s linear infinite; flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.rg-safe {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  color: var(--faint); font-size: .74rem; font-weight: 500;
+  margin-top: 14px; flex-shrink: 0;
+}
+/* Success */
+.rg-success {
+  text-align: center; padding: 48px 16px;
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+}
+.rg-success-ring {
+  width: 80px; height: 80px; border-radius: 50%;
+  background: rgba(6,155,142,.08);
+  border: 1.5px solid rgba(6,155,142,.18);
+  color: var(--brand);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 24px;
+}
+.rg-success-title {
+  font-size: 1.85rem; font-weight: 800;
+  letter-spacing: -.5px; margin-bottom: 10px; color: var(--ink);
+}
+.rg-success-desc {
+  color: var(--muted); line-height: 1.7;
+  max-width: 360px; margin: 0 auto 26px; font-size: .9rem;
+}
+.rg-success-email { color: var(--brand); font-weight: 700; }
+.rg-resend {
+  border: 1.5px solid var(--border); background: var(--surface);
+  border-radius: var(--r); padding: 11px 22px;
+  font: 600 .86rem var(--font); cursor: pointer; color: var(--ink-2);
+  transition: border-color var(--ease), background var(--ease);
+}
+.rg-resend:hover { border-color: #d1d5db; background: var(--bg); }
+.rg-resend:disabled { opacity: .5; cursor: not-allowed; }
+
+/* Modal */
+.rg-overlay {
+  position: fixed; inset: 0;
+  background: rgba(2,31,28,.55);
+  backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px; z-index: 200;
+}
+.rg-modal {
+  width: 100%; max-width: 420px;
+  background: var(--surface);
+  border-radius: var(--r-xl); padding: 28px;
+  border: 1px solid var(--border);
+  box-shadow: 0 24px 64px rgba(0,0,0,.15);
+}
+.rg-modal-top {
+  display: flex; align-items: flex-start;
+  justify-content: space-between; margin-bottom: 8px;
+}
+.rg-modal-title { font-size: 1.1rem; font-weight: 800; letter-spacing: -.3px; color: var(--ink); }
+.rg-modal-close {
+  border: 0; background: none; cursor: pointer;
+  color: var(--faint); display: flex; padding: 2px;
+  border-radius: 5px; transition: color var(--ease);
+}
+.rg-modal-close:hover { color: var(--ink); }
+.rg-modal-desc { color: var(--muted); font-size: .85rem; line-height: 1.65; margin-bottom: 16px; }
+.rg-modal-input {
+  width: 100%; height: 44px;
+  border: 1.5px solid var(--border); border-radius: var(--r);
+  padding: 0 13px; font: 500 .88rem var(--font); color: var(--ink);
+  margin-bottom: 12px; outline: none;
+  transition: border-color var(--ease), box-shadow var(--ease);
+}
+.rg-modal-input:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3.5px var(--brand-ring);
+}
+.rg-modal-input.has-err { border-color: var(--danger); }
+.rg-modal-err { color: var(--danger); font-size: .78rem; margin: -6px 0 10px; }
+.rg-modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.rg-modal-skip {
+  border: 1.5px solid var(--border); background: var(--bg);
+  border-radius: var(--r-sm); padding: 9px 15px;
+  font: 600 .84rem var(--font); cursor: pointer; color: var(--muted);
+  transition: border-color var(--ease);
+}
+.rg-modal-skip:hover { border-color: #d1d5db; }
+.rg-modal-skip:disabled { opacity: .5; cursor: not-allowed; }
+.rg-modal-submit {
+  border: 0; background: var(--brand); color: #fff;
+  border-radius: var(--r-sm); padding: 9px 18px;
+  font: 700 .84rem var(--font); cursor: pointer;
+  transition: background var(--ease);
+  box-shadow: 0 2px 8px rgba(6,155,142,.25);
+}
+.rg-modal-submit:hover:not(:disabled) { background: var(--brand-lo); }
+.rg-modal-submit:disabled { opacity: .5; cursor: not-allowed; }
+.rg-modal-ok { text-align: center; padding: 10px 0 4px; }
+.rg-modal-ok-icon {
+  width: 52px; height: 52px; border-radius: 50%;
+  background: rgba(6,155,142,.1); color: var(--brand);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 14px;
+}
+.rg-modal-ok-title { font-size: 1.05rem; font-weight: 800; margin-bottom: 5px; color: var(--ink); }
+.rg-modal-ok-sub { color: var(--muted); font-size: .85rem; }
+
+/* Responsive */
+@media (max-width: 920px) {
+  .rg { grid-template-columns: 1fr; height: auto; min-height: 100vh; overflow: visible; width: 100%; }
+  .rg-left { display: none; }
+  .rg-right { overflow-y: visible; height: auto; }
+  .rg-right-inner { padding: 20px 16px 30px; max-width: 100%; min-height: 100vh; }
+  .rg-grid  { grid-template-columns: 1fr; }
+  .rg-span2 { grid-column: 1; }
+  .rg-rules { grid-column: 1; }
+  .rg-card  { padding: 22px 16px 20px; border-radius: var(--r-xl); }
+}
+`;
+
+/* ─────────────────────────────────────────────────────────────
+   CONSTANTS
+───────────────────────────────────────────────────────────── */
+const STEPS = ['Account', 'Personal', 'Academic'];
+const STEP_TAGS = ['Step 1 of 3', 'Step 2 of 3', 'Step 3 of 3'];
+
+const FEATURES = [
+  {
+    icon: <Briefcase size={16} />,
+    title: 'Verified employer listings',
+    desc: 'Every opportunity is screened and approved before going live.',
+  },
+  {
+    icon: <FileText size={16} />,
+    title: 'Digital logbooks',
+    desc: 'Log, track, and submit your internship records digitally.',
+  },
+  {
+    icon: <Building2 size={16} />,
+    title: 'Institution-backed placements',
+    desc: 'Your university is part of the verification loop.',
+  },
+  {
+    icon: <TrendingUp size={16} />,
+    title: 'Career progression tracking',
+    desc: 'Build a verifiable record employers can trust.',
+  },
+];
+
+/* ─────────────────────────────────────────────────────────────
+   PwRule
+───────────────────────────────────────────────────────────── */
+function PwRule({ pass, label }: PasswordRuleProps) {
+  return (
+    <span className={`rg-rule${pass ? ' pass' : ''}`}
+      aria-label={`${label}: ${pass ? 'requirement met' : 'not yet met'}`}>
+      {pass ? <CheckCircle size={12} /> : <XCircle size={12} />}
+      {label}
+    </span>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────
+   MAIN COMPONENT
+───────────────────────────────────────────────────────────── */
+const Register = () => {
   const errorHandler = useRegisterErrorHandler();
-  
-  const [currentStep, setCurrentStep] = useState(0);
+
+  const [currentStep, setCurrentStep] = useState<RegistrationStep>(0);
   const [formData, setFormData] = useState<RegisterFormData>({
     email: '',
     password: '',
@@ -317,1398 +814,556 @@ const Register: React.FC = () => {
     phone: '',
     gender: '',
     registrationNumber: '',
-    role: 'student'
+    role: 'student',
   });
+
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [message, setMessage] = useState('');
-  const [messageType, setMessageType] = useState<'error' | 'success' | ''>('');
-  const [showToast, setShowToast] = useState(false);
-  const [toastClosing, setToastClosing] = useState(false);
+  const [toast, setToast] = useState<ToastState | null>(null);
   const [passwordVisible, setPasswordVisible] = useState(false);
-  const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
+  const [confirmVisible, setConfirmVisible] = useState(false);
   const [registrationComplete, setRegistrationComplete] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState('');
   const [isResending, setIsResending] = useState(false);
 
-  const [selectedInstitution, setSelectedInstitution] = useState<any>(null);
-  const [availableInstitutions, setAvailableInstitutions] = useState<any[]>([]);
+  const [selectedInstitution, setSelectedInstitution] = useState<InstitutionOption | null>(null);
+  const [availableInstitutions, setAvailableInstitutions] = useState<InstitutionOption[]>([]);
   const [isSearchingInstitutions, setIsSearchingInstitutions] = useState(false);
-  const [institutionSearchQuery, setInstitutionSearchQuery] = useState('');
-  const [searchTimeout, setSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const [institutionQuery, setInstitutionQuery] = useState('');
   const [institutionSkipped, setInstitutionSkipped] = useState(false);
-  const [showInstitutionInterestModal, setShowInstitutionInterestModal] = useState(false);
-  const [institutionInterestName, setInstitutionInterestName] = useState('');
-  const [isSubmittingInterest, setIsSubmittingInterest] = useState(false);
-  const [interestSubmissionStatus, setInterestSubmissionStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+  const [showModal, setShowModal] = useState(false);
+  const [modalInstName, setModalInstName] = useState('');
+  const [isSubmittingInterest, setIsSubmittingInterest] = useState(false);
+  const [interestStatus, setInterestStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const modalInputRef = useRef<HTMLInputElement | null>(null);
+
+  const pw = formData.password;
+  const passwordRules = {
+    min:    pw.length >= 8,
+    upper:  /[A-Z]/.test(pw),
+    number: /\d/.test(pw),
   };
 
   useEffect(() => {
-    return () => {
-      if (searchTimeout) {
-        clearTimeout(searchTimeout);
-      }
-    };
-  }, [searchTimeout]);
+    return () => { if (searchTimerRef.current) clearTimeout(searchTimerRef.current); };
+  }, []);
 
-  // const handleInstitutionSkip = () => {
-  //   setSelectedInstitution(null);
-  // };
-
-  const handleInstitutionSearch = async (query: string) => {
-    setIsSearchingInstitutions(true);
-    try {
-      const results = await institutionService.getPublicList(query);
-      setAvailableInstitutions(results || []);
-    } catch (error) {
-      console.error('Error fetching institutions:', error);
-    } finally {
-      setIsSearchingInstitutions(false);
-    }
+  const showToast = (msg: string, type: 'error' | 'success' = 'error') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), type === 'success' ? 5000 : 9000);
   };
 
-  const handleInstitutionSearchInput = (query: string) => {
-    setInstitutionSearchQuery(query);
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleInstitutionSearch = (query: string) => {
+    setInstitutionQuery(query);
     setInstitutionSkipped(false);
-    if (selectedInstitution && query !== selectedInstitution.name) {
-      setSelectedInstitution(null);
-    }
-    
-    // Clear existing timeout
-    if (searchTimeout) {
-      clearTimeout(searchTimeout);
-    }
-    
-    // Don't search if query is too short
-    if (query.length < 2) {
-      setAvailableInstitutions([]);
-      return;
-    }
-    
-    // Set new timeout for debounced search
-    const timeout = setTimeout(() => {
-      handleInstitutionSearch(query);
-    }, 500); // 500ms debounce
-    
-    setSearchTimeout(timeout);
+    if (selectedInstitution && query !== selectedInstitution.name) setSelectedInstitution(null);
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    if (query.length < 2) { setAvailableInstitutions([]); return; }
+    searchTimerRef.current = setTimeout(async () => {
+      setIsSearchingInstitutions(true);
+      try {
+        const results = await institutionService.getPublicList(query);
+        setAvailableInstitutions(results || []);
+      } catch { setAvailableInstitutions([]); }
+      finally { setIsSearchingInstitutions(false); }
+    }, 450);
   };
 
-  const handleSkipInstitution = () => {
-    setSelectedInstitution(null);
-    setInstitutionSearchQuery('');
+  const selectInstitution = (inst: InstitutionOption) => {
+    setSelectedInstitution(inst);
+    setInstitutionQuery(inst.name);
     setAvailableInstitutions([]);
-    setInstitutionSkipped(true);
-    setInstitutionInterestName(institutionSearchQuery.trim());
-    setInterestSubmissionStatus('idle');
-    setShowInstitutionInterestModal(true);
+    setInstitutionSkipped(false);
   };
 
-  const handleInstitutionInterestSubmit = async () => {
-    if (!institutionInterestName.trim()) {
-      setShowInstitutionInterestModal(false);
-      return;
-    }
+  const resetInstitution = () => {
+    setSelectedInstitution(null);
+    setInstitutionQuery('');
+    setAvailableInstitutions([]);
+    setInstitutionSkipped(false);
+  };
 
+  const openModal = () => {
+    setModalInstName(institutionQuery.trim());
+    setInterestStatus('idle');
+    setShowModal(true);
+    setTimeout(() => modalInputRef.current?.focus(), 80);
+  };
+  const closeModal = () => { setShowModal(false); setModalInstName(''); setInterestStatus('idle'); };
+  const handleSkipInstitution = () => { setInstitutionSkipped(true); openModal(); };
+
+  const handleInterestSubmit = async () => {
+    if (!modalInstName.trim()) { closeModal(); return; }
     setIsSubmittingInterest(true);
-    setInterestSubmissionStatus('idle');
-
+    setInterestStatus('idle');
     try {
       await institutionService.recordInterest({
-        raw_name: institutionInterestName.trim(),
-        user_email: formData.email.trim(),
+        raw_name:     modalInstName.trim(),
+        user_email:   formData.email.trim(),
         email_domain: formData.email.split('@')[1] || '',
       });
-
-      setInterestSubmissionStatus('success');
-      setInstitutionInterestName('');
-      
-      // Close modal after 2 seconds on success
-      setTimeout(() => {
-        setShowInstitutionInterestModal(false);
-        setInterestSubmissionStatus('idle');
-      }, 2500);
-
-    } catch (error) {
-      console.error('Failed to record institution interest:', error);
-      setInterestSubmissionStatus('error');
-    } finally {
-      setIsSubmittingInterest(false);
-    }
+      setInterestStatus('success');
+      setTimeout(closeModal, 2200);
+    } catch { setInterestStatus('error'); }
+    finally { setIsSubmittingInterest(false); }
   };
 
-  const showToastMessage = (msg: string, type: 'error' | 'success') => {
-    setMessage(msg);
-    setMessageType(type);
-    setShowToast(true);
-    setToastClosing(false);
-    
-    // Auto-hide toast after 6 seconds for success, 10 for error
-    setTimeout(() => {
-      hideToast();
-    }, type === 'success' ? 6000 : 10000);
-  };
-
-  const hideToast = () => {
-    setToastClosing(true);
-    setTimeout(() => {
-      setShowToast(false);
-      setToastClosing(false);
-    }, 400);
-  };
-
-  const togglePasswordVisibility = (field: 'password' | 'confirmPassword') => {
-    if (field === 'password') {
-      setPasswordVisible(!passwordVisible);
-    } else {
-      setConfirmPasswordVisible(!confirmPasswordVisible);
-    }
-  };
-
-
-
-  const validateStep = (step: number): boolean => {
-    // Clear previous errors
-    setMessage('');
-    setMessageType('');
-
+  const validateStep = (step: RegistrationStep) => {
     if (step === 0) {
-      // Step 1: Account Credentials
-      if (!formData.email.trim()) {
-        showToastMessage('Please enter your email address', 'error');
-        return false;
-      }
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-        showToastMessage('Please enter a valid email address', 'error');
-        return false;
-      }
-      if (!formData.password) {
-        showToastMessage('Please enter a password', 'error');
-        return false;
-      }
-      if (formData.password.length < 8) {
-        showToastMessage('Password must be at least 8 characters long', 'error');
-        return false;
-      }
-      if (formData.password !== formData.confirmPassword) {
-        showToastMessage('Passwords do not match', 'error');
-        return false;
-      }
+      if (!formData.email.trim())  { showToast('Email is required'); return false; }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) { showToast('Enter a valid email address'); return false; }
+      if (!formData.password)      { showToast('Password is required'); return false; }
+      if (!passwordRules.min)      { showToast('Password must be at least 8 characters'); return false; }
+      if (!passwordRules.upper)    { showToast('Password must contain at least one uppercase letter'); return false; }
+      if (!passwordRules.number)   { showToast('Password must contain at least one number'); return false; }
+      if (formData.password !== formData.confirmPassword) { showToast('Passwords do not match'); return false; }
     }
-
     if (step === 1) {
-      // Step 2: Personal Details
-      if (!formData.firstName.trim()) {
-        showToastMessage('Please enter your first name', 'error');
-        return false;
-      }
-      if (!formData.lastName.trim()) {
-        showToastMessage('Please enter your last name', 'error');
-        return false;
-      }
-      if (!formData.phone.trim()) {
-        showToastMessage('Please enter your phone number', 'error');
-        return false;
-      }
-      // Basic phone validation for Kenyan numbers
+      if (!formData.firstName.trim()) { showToast('First name is required'); return false; }
+      if (!formData.lastName.trim())  { showToast('Last name is required'); return false; }
+      if (!formData.phone.trim())     { showToast('Phone number is required'); return false; }
       if (!/^(\+254|0)[17]\d{8}$/.test(formData.phone.replace(/\s/g, ''))) {
-        showToastMessage('Please enter a valid Kenyan phone number', 'error');
-        return false;
+        showToast('Enter a valid Kenyan phone number (07XX or +2547XX)'); return false;
       }
-
-      if (!formData.gender) {
-        showToastMessage('Please select your gender', 'error');
-        return false;
-      }
+      if (!formData.gender) { showToast('Please select your gender'); return false; }
     }
-
     if (step === 2) {
-      // Step 3: Academic Information
-      if (!formData.registrationNumber.trim()) {
-        showToastMessage('Registration number is required', 'error');
-        return false;
-      }
-      
-      // Validate registration number format
+      if (!formData.registrationNumber.trim()) { showToast('Registration number is required'); return false; }
       if (!/^[A-Z0-9/ -]{3,50}$/i.test(formData.registrationNumber)) {
-        showToastMessage('Registration number must be 3-50 characters using letters, numbers, spaces, /, or -', 'error');
-        return false;
+        showToast('Registration number must be 3–50 alphanumeric characters'); return false;
       }
-      
       if (!selectedInstitution && !institutionSkipped) {
-        showToastMessage('Select your institution or choose "I cannot find my institution" to continue', 'error');
-        return false;
-      }
-    }
-
-    return true;
-  };
-
-  const nextStep = () => {
-    if (validateStep(currentStep)) {
-      setCurrentStep(currentStep + 1);
-    }
-  };
-
-  const prevStep = () => {
-    setCurrentStep(currentStep - 1);
-  };
-
-  const validateForm = (): boolean => {
-    for (const step of [0, 1, 2]) {
-      if (!validateStep(step)) {
-        setCurrentStep(step);
-        return false;
+        showToast('Select your institution or continue without linking it'); return false;
       }
     }
     return true;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const nextStep = () => { if (validateStep(currentStep)) setCurrentStep(s => (s + 1) as RegistrationStep); };
+  const prevStep = () => setCurrentStep(s => (s - 1) as RegistrationStep);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setMessage('');
-
-    if (!validateForm()) {
-      return;
+    for (const step of [0, 1, 2]) {
+      if (!validateStep(step as RegistrationStep)) { setCurrentStep(step as RegistrationStep); return; }
     }
-
     setIsSubmitting(true);
-
     try {
       const payload = {
-        email: formData.email.trim(),
-        username: formData.email.trim().split('@')[0],
-        password: formData.password,
-        password_confirm: formData.confirmPassword,
-        first_name: formData.firstName.trim(),
-        last_name: formData.lastName.trim(),
-        phone_number: formData.phone.trim(),
-        gender: formData.gender,
-        role: 'student',
+        email:               formData.email.trim(),
+        password:            formData.password,
+        password_confirm:    formData.confirmPassword,
+        first_name:          formData.firstName.trim(),
+        last_name:           formData.lastName.trim(),
+        phone_number:        formData.phone.trim(),
+        gender:              formData.gender,
+        role:                'student',
         registration_number: formData.registrationNumber.trim(),
-        institution_id: selectedInstitution ? selectedInstitution.id : null,
+        institution_id:      selectedInstitution ? selectedInstitution.id : null,
       };
-
       await apiClient.post('/api/auth/users/register/', payload);
-
       setRegistrationComplete(true);
       setRegisteredEmail(formData.email.trim());
-      showToastMessage(
-        'Registration successful. Please check your email to verify your account.',
-        'success',
-      );
-      setCurrentStep(0);
     } catch (error) {
-      // Use new error handler for structured error parsing
       await errorHandler.handleError(error);
-      
-      // Get field-level errors if available
       const fieldErrors = errorHandler.getAllFieldErrors();
       if (fieldErrors.length > 0) {
-        // Show field errors
-        const errorMsg = fieldErrors
-          .map((f: { field: string; errors: string[] }) => `${f.field}: ${f.errors.join(', ')}`)
-          .join('; ');
-        showToastMessage(errorMsg, 'error');
+        showToast(fieldErrors.map((f) => `${f.field}: ${f.errors.join(', ')}`).join('; '));
       } else {
-        // Show general error message
-        const errorMessage = error instanceof ApiError 
-          ? error.message 
-          : 'Registration failed. Please try again.';
-        showToastMessage(errorMessage, 'error');
+        showToast(error instanceof ApiError ? error.message : 'Registration failed. Please try again.');
       }
-    } finally {
-      setIsSubmitting(false);
-    }
+    } finally { setIsSubmitting(false); }
   };
 
-  const handleResendVerification = async () => {
-    if (!registeredEmail) {
-      showToastMessage('Please complete registration first.', 'error');
-      return;
-    }
-
+  const handleResend = async () => {
     setIsResending(true);
-
     try {
       await authService.resendVerificationEmail(registeredEmail);
-      showToastMessage('Verification email resent successfully.', 'success');
+      showToast('Verification email resent.', 'success');
     } catch (error) {
-      let errorMessage = 'Failed to resend verification email.';
-      if (error instanceof ApiError) {
-        errorMessage = error.message;
-      }
-      showToastMessage(errorMessage, 'error');
-    } finally {
-      setIsResending(false);
-    }
+      showToast(error instanceof ApiError ? error.message : 'Failed to resend. Try again.');
+    } finally { setIsResending(false); }
   };
 
+  /* ═══════════════════ RENDER ═══════════════════ */
   return (
     <>
-      <style dangerouslySetInnerHTML={{ __html: styles }} />
-      <div className="min-h-screen flex registration-container" style={{
-      background: 'url(/images/background_2.jpeg) no-repeat center center/cover',
-      minHeight: '100vh',
-      width: '100%',
-      overflowX: 'hidden',
-      padding: '10px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      position: 'relative'
-    }}>
-      {/* Overlay */}
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        background: 'rgba(20, 40, 30, 0.55)',
-        zIndex: 0,
-        pointerEvents: 'none'
-      }} />
+      <style dangerouslySetInnerHTML={{ __html: css }} />
 
-      <main className="registration-wrapper" style={{
-        display: 'flex',
-        width: '100%',
-        maxWidth: '920px',
-        minHeight: '620px',
-        maxHeight: '90vh',
-        backgroundColor: 'rgba(10, 25, 15, 0.55)',
-        borderRadius: '20px',
-        boxShadow: '0 10px 35px rgba(0,0,0,0.3)',
-        overflow: 'auto',
-        backdropFilter: 'blur(18px)',
-        border: '1px solid rgba(255, 255, 255, 0.1)'
-      }}>
-        {/* Branding Side */}
-        <div className="branding-side" style={{
-          flex: '0.9',
-          background: 'linear-gradient(145deg,rgb(17, 204, 173),rgb(6, 165, 165))',
-          color: '#fff',
-          padding: '50px 40px',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center'
-        }}>
-          <Link to="/">
-            <img src={edulinkLogo} alt="EduLink Logo" style={{
-              maxWidth: '150px',
-              marginBottom: '15px'
-            }} />
-          </Link>
-          <h1 style={{
-            fontSize: '2rem',
-            fontWeight: '600',
-            marginBottom: '10px',
-            lineHeight: '1.3'
-          }}>Join Edulink Today</h1>
-          <p style={{
-            fontSize: '1.05rem',
-            lineHeight: '1.6',
-            opacity: '0.85'
-          }}>The bridge to your professional future. Sign up to unlock exclusive internship and job opportunities.</p>
-        </div>
+      <div className="rg">
 
-        {/* Form Side */}
-        <div className="form-side" style={{
-          flex: '1.1',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '20px'
-        }}>
-          <div className="form-box" style={{
-            position: 'relative',
-            backdropFilter: 'none',
-            background: 'transparent',
-            border: 'none',
-            padding: '0',
-            width: '100%',
-            maxWidth: '400px',
-            borderRadius: '0',
-            boxShadow: 'none',
-            color: '#fff',
-            margin: '0',
-            alignItems: 'center',
-            marginBottom: '25px'
-          }}>
-            <h2 style={{
-              color: '#ffffff',
-              marginBottom: '5px',
-              textAlign: 'center',
-              fontSize: '26px',
-              letterSpacing: '0.5px'
-            }}>Account Registration</h2>
-            <p style={{
-              color: '#f1f1f1',
-              marginBottom: '15px',
-              textAlign: 'center',
-              fontSize: '15px'
-            }}>To sign up, please complete all steps</p>
+        {/* ═══════════════ LEFT PANEL ═══════════════ */}
+        <aside className="rg-left" aria-hidden="true">
+          <div className="rg-glow" />
+          <div className="rg-glow-2" />
+          <div className="rg-grid-tex" />
 
-            {registrationComplete && (
-              <div
-                style={{
-                  borderRadius: '16px',
-                  padding: '18px 20px',
-                  marginBottom: '15px',
-                  boxShadow:
-                    '0 12px 40px rgba(17, 204, 173, 0.15), 0 4px 16px rgba(17, 204, 173, 0.1)',
-                  fontSize: '14px',
-                  lineHeight: '1.6',
-                  backdropFilter: 'blur(20px)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  background:
-                    'linear-gradient(135deg, rgba(17, 204, 173, 0.15) 0%, rgba(6, 165, 165, 0.15) 100%)',
-                  color: '#0d9488',
-                }}
-              >
-                <div style={{ marginBottom: '10px' }}>
-                  A verification link has been sent to{' '}
-                  <span style={{ fontWeight: 600 }}>{registeredEmail}</span>. Check your inbox
-                  and follow the link to activate your account.
-                </div>
-                <button
-                  type="button"
-                  onClick={handleResendVerification}
-                  disabled={isResending}
-                  style={{
-                    padding: '8px 14px',
-                    borderRadius: '8px',
-                    border: '1px solid #c8e6c9',
-                    backgroundColor: 'transparent',
-                    color: '#c8e6c9',
-                    cursor: isResending ? 'default' : 'pointer',
-                    fontWeight: 600,
-                    fontSize: '13px',
-                  }}
-                >
-                  {isResending ? 'Resending email...' : 'Resend verification email'}
-                </button>
+          <div className="rg-left-inner">
+
+            <Link to="/" className="rg-logo">
+              <img src={edulinkLogo} alt="EduLink" className="rg-logo-img" />
+            </Link>
+
+            <div className="rg-hero">
+              <div className="rg-eyebrow">
+                <div className="rg-eyebrow-dot" />
+                Kenya's #1 internship platform
               </div>
-            )}
 
-            {/* Enhanced Error/Success Toast */}
-            {showToast && (
-              <div 
-                className={`${messageType === 'error' ? 'error-toast' : 'success-toast'} ${toastClosing ? 'toast-exit' : 'toast-enter'}`}
-                style={{
-                  position: 'relative',
-                  borderRadius: '1.25rem',
-                  padding: '16px 56px 16px 24px',
-                  marginBottom: '20px',
-                  boxShadow: messageType === 'error' 
-                    ? '0 20px 40px rgba(220, 38, 38, 0.15), 0 0 0 1px rgba(220, 38, 38, 0.2)' 
-                    : '0 20px 40px rgba(13, 148, 136, 0.15), 0 0 0 1px rgba(13, 148, 136, 0.2)',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  lineHeight: '1.5',
-                  display: 'flex',
-                  alignItems: 'center',
-                  minHeight: '56px',
-                  zIndex: 1000,
-                  backdropFilter: 'blur(16px)',
-                  background: messageType === 'error'
-                    ? 'rgba(28, 15, 15, 0.95)'
-                    : 'rgba(15, 28, 22, 0.95)',
-                  color: messageType === 'error' ? '#ffb3b3' : '#bbf7d0',
-                  border: messageType === 'error' ? '1.5px solid #dc2626' : '1.5px solid #0d9488',
-                }}
-                role="alert"
-                aria-live="polite"
-              >
-                <div style={{
-                  marginRight: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '24px',
-                  height: '24px',
-                  borderRadius: '50%',
-                  backgroundColor: messageType === 'error' ? 'rgba(220, 38, 38, 0.2)' : 'rgba(13, 148, 136, 0.2)',
-                  color: messageType === 'error' ? '#dc2626' : '#0d9488',
-                  flexShrink: 0
-                }}>
-                  {messageType === 'error' ? (
-                    <AlertCircle size={16} />
-                  ) : (
-                    <CheckCircle size={16} />
-                  )}
-                </div>
-                <div style={{ lineHeight: '1.5' }}>{message}</div>
-                <button 
-                  onClick={hideToast}
-                  className="close-btn"
-                  style={{
-                    position: 'absolute',
-                    right: '12px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '10px',
-                    background: 'transparent',
-                    color: 'inherit',
-                    border: 'none',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '20px',
-                    opacity: '0.6',
-                    transition: 'all 0.2s ease',
-                    flexShrink: 0
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-                  onMouseLeave={(e) => e.currentTarget.style.opacity = '0.6'}
-                  aria-label="Close notification"
-                  type="button"
-                >
-                  ×
-                </button>
+              <h1 className="rg-headline">
+                Launch your career<br />
+                with <span>confidence.</span>
+              </h1>
+
+              <p className="rg-sub">
+                Verified placements, digital logbooks, and institution-backed
+                opportunities — built for Kenyan students.
+              </p>
+
+              <div className="rg-features">
+                {FEATURES.map((f, i) => (
+                  <div className="rg-feat" key={i}>
+                    <div className="rg-feat-icon">{f.icon}</div>
+                    <div>
+                      <div className="rg-feat-title">{f.title}</div>
+                      <div className="rg-feat-desc">{f.desc}</div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            )}
-
-            {!registrationComplete && (
-              <>
-            {/* Step Indicator */}
-            <div className="step-indicator" style={{
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              marginBottom: '25px'
-            }}>
-              {[0, 1, 2].map((step) => (
-                <span
-                  key={step}
-                  className={`step-dot ${currentStep === step ? 'active' : ''}`}
-                  style={{
-                    width: '12px',
-                    height: '12px',
-                    borderRadius: '50%',
-                    backgroundColor: currentStep === step ? 'rgb(11, 184, 161)' : 'rgba(255, 255, 255, 0.3)',
-                    margin: '0 10px',
-                    transition: 'all 0.3s ease',
-                    transform: currentStep === step ? 'scale(1.3)' : 'scale(1)',
-                    boxShadow: currentStep === step ? '0 0 10px rgb(11, 184, 161)' : 'none'
-                  }}
-                  aria-current={currentStep === step ? 'step' : undefined}
-                />
-              ))}
             </div>
 
-            <form onSubmit={handleSubmit} id="registerForm" role="form" aria-label="Student registration form" noValidate>
-              {/* Step 1: Account Credentials */}
-              <fieldset className="form-step" style={{
-                display: currentStep === 0 ? 'flex' : 'none',
-                flexDirection: 'column',
-                gap: '10px',
-                border: 'none',
-                padding: '0',
-                margin: '0'
-              }}>
-                <legend className="sr-only">Account Credentials</legend>
-                
-                <div>
-                  <label htmlFor="email" className="sr-only">Email Address</label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    placeholder="Email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-
-                    required
-                    autoComplete="email"
-                    style={{
-                      width: '100%',
-                      padding: '12px 14px',
-                      border: 'none',
-                      borderRadius: '10px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.82)',
-                      color: '#222',
-                      fontSize: '15px',
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-                      transition: 'box-shadow 0.2s',
-                      marginBottom: '0'
-                    }}
-                  />
-                  <div style={{ fontSize: '12px', color: '#c8e6c9', marginBottom: '8px', marginTop: '4px', lineHeight: '1.4', opacity: '0.9' }}>
-                    We'll use this email for account verification and important updates.
-                  </div>
-                  
-
-                  
-
-                  
-                  {selectedInstitution && (
-                    <div style={{
-                      marginTop: '8px',
-                      padding: '8px 12px',
-                      backgroundColor: 'rgba(17, 204, 173, 0.15)',
-                      borderRadius: '6px',
-                      border: '1px solid rgba(17, 204, 173, 0.3)',
-                      fontSize: '12px',
-                      color: '#c8e6c9'
-                    }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                        <CheckCircle size={14} />
-                        Institution: {selectedInstitution.name}
-                      </span>
-                    </div>
-                  )}
-                  
-
-                   
-
-                </div>
-
-                <div style={{ position: 'relative' }}>
-                  <label htmlFor="password" className="sr-only">Password</label>
-                  <input
-                    type={passwordVisible ? 'text' : 'password'}
-                    id="password"
-                    name="password"
-                    placeholder="Password"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    required
-                    autoComplete="new-password"
-                    minLength={8}
-                    style={{
-                      width: '100%',
-                      padding: '12px 40px 12px 14px',
-                      border: 'none',
-                      borderRadius: '10px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.82)',
-                      color: '#222',
-                      fontSize: '15px',
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-                      transition: 'box-shadow 0.2s',
-                      marginBottom: '0'
-                    }}
-                  />
-                  <span
-                    onClick={() => togglePasswordVisibility('password')}
-                    style={{
-                      position: 'absolute',
-                      right: '12px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      cursor: 'pointer',
-                      color: '#333',
-                      opacity: '0.7',
-                      fontSize: '18px'
-                    }}
-                  >
-                    <i className={passwordVisible ? 'bi bi-eye-slash-fill' : 'bi bi-eye-fill'}></i>
-                  </span>
-                </div>
-                <div style={{ fontSize: '12px', color: '#c8e6c9', marginBottom: '8px', marginTop: '4px', lineHeight: '1.4', opacity: '0.9' }}>
-                  Password must be at least 8 characters long.
-                </div>
-
-                <div style={{ position: 'relative' }}>
-                  <label htmlFor="confirmPassword" className="sr-only">Confirm Password</label>
-                  <input
-                    type={confirmPasswordVisible ? 'text' : 'password'}
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    placeholder="Confirm Password"
-                    value={formData.confirmPassword}
-                    onChange={handleInputChange}
-                    required
-                    autoComplete="new-password"
-                    style={{
-                      width: '100%',
-                      padding: '12px 40px 12px 14px',
-                      border: 'none',
-                      borderRadius: '10px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.82)',
-                      color: '#222',
-                      fontSize: '15px',
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-                      transition: 'box-shadow 0.2s',
-                      marginBottom: '0'
-                    }}
-                  />
-                  <span
-                    onClick={() => togglePasswordVisibility('confirmPassword')}
-                    style={{
-                      position: 'absolute',
-                      right: '12px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      cursor: 'pointer',
-                      color: '#333',
-                      opacity: '0.7',
-                      fontSize: '18px'
-                    }}
-                  >
-                    <i className={confirmPasswordVisible ? 'bi bi-eye-slash-fill' : 'bi bi-eye-fill'}></i>
-                  </span>
-                </div>
-                <div style={{ fontSize: '12px', color: '#c8e6c9', marginBottom: '8px', marginTop: '4px', lineHeight: '1.4', opacity: '0.9' }}>
-                  Re-enter your password to confirm.
-                </div>
-              </fieldset>
-
-              {/* Step 2: Personal Details */}
-              <fieldset className="form-step" style={{
-                display: currentStep === 1 ? 'flex' : 'none',
-                flexDirection: 'column',
-                gap: '10px',
-                border: 'none',
-                padding: '0',
-                margin: '0'
-              }}>
-                <legend className="sr-only">Personal Details</legend>
-                
-                <div>
-                  <label htmlFor="firstName" className="sr-only">First Name</label>
-                  <input
-                    type="text"
-                    id="firstName"
-                    name="firstName"
-                    placeholder="First Name"
-                    value={formData.firstName}
-                    onChange={handleInputChange}
-                    required
-                    autoComplete="given-name"
-                    style={{
-                      width: '100%',
-                      padding: '12px 14px',
-                      border: 'none',
-                      borderRadius: '10px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.82)',
-                      color: '#222',
-                      fontSize: '15px',
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-                      transition: 'box-shadow 0.2s',
-                      marginBottom: '0'
-                    }}
-                  />
-                  <div style={{ fontSize: '12px', color: '#c8e6c9', marginBottom: '8px', marginTop: '4px', lineHeight: '1.4', opacity: '0.9' }}>
-                    Enter your legal first name as it appears on official documents.
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="lastName" className="sr-only">Last Name</label>
-                  <input
-                    type="text"
-                    id="lastName"
-                    name="lastName"
-                    placeholder="Last Name"
-                    value={formData.lastName}
-                    onChange={handleInputChange}
-                    required
-                    autoComplete="family-name"
-                    style={{
-                      width: '100%',
-                      padding: '12px 14px',
-                      border: 'none',
-                      borderRadius: '10px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.82)',
-                      color: '#222',
-                      fontSize: '15px',
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-                      transition: 'box-shadow 0.2s',
-                      marginBottom: '0'
-                    }}
-                  />
-                  <div style={{ fontSize: '12px', color: '#c8e6c9', marginBottom: '8px', marginTop: '4px', lineHeight: '1.4', opacity: '0.9' }}>
-                    Enter your legal last name as it appears on official documents.
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="phone" className="sr-only">Phone Number</label>
-                  <input
-                    type="tel"
-                    id="phone"
-                    name="phone"
-                    placeholder="Phone Number"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    required
-                    autoComplete="tel"
-                    style={{
-                      width: '100%',
-                      padding: '12px 14px',
-                      border: 'none',
-                      borderRadius: '10px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.82)',
-                      color: '#222',
-                      fontSize: '15px',
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-                      transition: 'box-shadow 0.2s',
-                      marginBottom: '0'
-                    }}
-                  />
-                  <div style={{ fontSize: '12px', color: '#c8e6c9', marginBottom: '8px', marginTop: '4px', lineHeight: '1.4', opacity: '0.9' }}>
-                    Format: +254XXXXXXXXX or 07XXXXXXXX (Kenyan numbers only).
-                  </div>
-                </div>
-
-
-
-                <div>
-                  <label htmlFor="gender" className="sr-only">Gender</label>
-                  <select
-                    id="gender"
-                    name="gender"
-                    value={formData.gender}
-                    onChange={handleInputChange}
-                    required
-                    style={{
-                      width: '100%',
-                      padding: '12px 14px',
-                      border: 'none',
-                      borderRadius: '10px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.82)',
-                      color: '#222',
-                      fontSize: '15px',
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-                      transition: 'box-shadow 0.2s',
-                      marginBottom: '8px'
-                    }}
-                  >
-                    <option value="" disabled>Select Gender</option>
-                    <option value="M">Male</option>
-                    <option value="F">Female</option>
-                    <option value="O">Other</option>
-                  </select>
-                  <div style={{ fontSize: '12px', color: '#c8e6c9', marginBottom: '8px', marginTop: '4px', lineHeight: '1.4', opacity: '0.9' }}>
-                    Select your gender identity.
-                  </div>
-                </div>
-              </fieldset>
-
-              {/* Step 3: Academic Information */}
-              <fieldset className="form-step" style={{
-                display: currentStep === 2 ? 'flex' : 'none',
-                flexDirection: 'column',
-                gap: '10px',
-                border: 'none',
-                padding: '0',
-                margin: '0'
-              }}>
-                <legend className="sr-only">Academic Information</legend>
-                
-                <div style={{ marginBottom: '15px', padding: '10px', backgroundColor: 'rgba(200, 230, 201, 0.1)', borderRadius: '8px', border: '1px solid rgba(200, 230, 201, 0.3)' }}>
-                  <div style={{ color: '#c8e6c9', fontSize: '13px', lineHeight: '1.4' }}>
-                    <strong>Institution Verification:</strong> Select your institution now. Institutional emails can be auto-verified when the domain matches; personal emails may require a student document after registration.
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="registrationNumber" className="sr-only">Registration Number</label>
-                  <input
-                    type="text"
-                    id="registrationNumber"
-                    name="registrationNumber"
-                    placeholder="Registration Number"
-                    value={formData.registrationNumber}
-                    onChange={handleInputChange}
-                    required
-                    style={{
-                      width: '100%',
-                      padding: '12px 14px',
-                      border: 'none',
-                      borderRadius: '10px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.82)',
-                      color: '#222',
-                      fontSize: '15px',
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-                      transition: 'box-shadow 0.2s',
-                      marginBottom: '0'
-                    }}
-                  />
-                  <div style={{ fontSize: '12px', color: '#c8e6c9', marginBottom: '8px', marginTop: '4px', lineHeight: '1.4', opacity: '0.9' }}>
-                    Your university registration number.
-                  </div>
-                </div>
-
-                {/* Institution Search with Auto-complete */}
-                <div>
-                  <label htmlFor="institutionSearch" className="sr-only">Search Institution</label>
-                  <div style={{ position: 'relative' }}>
-                    <input
-                      type="text"
-                      id="institutionSearch"
-                      placeholder="Search for your institution..."
-                      value={institutionSearchQuery}
-                      onChange={(e) => handleInstitutionSearchInput(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '12px 14px 12px 40px',
-                        border: 'none',
-                        borderRadius: '10px',
-                        backgroundColor: 'rgba(255, 255, 255, 0.82)',
-                        color: '#222',
-                        fontSize: '15px',
-                        boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-                        transition: 'box-shadow 0.2s'
-                      }}
-                    />
-                    <Search 
-                      size={18} 
-                      style={{
-                        position: 'absolute',
-                        left: '14px',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        color: '#666'
-                      }}
-                    />
-                  </div>
-                  
-                  {/* Search Results */}
-                  {isSearchingInstitutions && (
-                    <div style={{ 
-                      marginTop: '8px',
-                      padding: '12px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                      borderRadius: '8px',
-                      border: '1px solid rgba(255, 255, 255, 0.2)',
-                      textAlign: 'center'
-                    }}>
-                      <div className="loading-spinner" style={{
-                        width: '20px',
-                        height: '20px',
-                        border: '2px solid #c8e6c9',
-                        borderTop: '2px solid transparent',
-                        borderRadius: '50%',
-                        animation: 'spin 1s linear infinite',
-                        margin: '0 auto 8px'
-                      }}></div>
-                      <div style={{ fontSize: '13px', color: '#c8e6c9' }}>Searching institutions...</div>
-                    </div>
-                  )}
-                  
-                  {availableInstitutions.length > 0 && !isSearchingInstitutions && (
-                    <div style={{
-                      marginTop: '8px',
-                      padding: '12px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                      borderRadius: '8px',
-                      border: '1px solid rgba(255, 255, 255, 0.2)'
-                    }}>
-                      <div style={{ fontSize: '13px', color: '#c8e6c9', marginBottom: '8px' }}>
-                        Select your institution:
-                      </div>
-                      <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                        {availableInstitutions.map((institution) => (
-                          <div
-                            key={institution.id}
-                            onClick={() => {
-                              setSelectedInstitution(institution);
-                              setInstitutionSkipped(false);
-                              setAvailableInstitutions([]);
-                              setInstitutionSearchQuery(institution.name);
-                            }}
-                            style={{
-                              padding: '8px 12px',
-                              marginBottom: '4px',
-                              backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                              borderRadius: '6px',
-                              cursor: 'pointer',
-                              fontSize: '13px',
-                              color: '#222',
-                              transition: 'background-color 0.2s'
-                            }}
-                            onMouseOver={(e) => {
-                              e.currentTarget.style.backgroundColor = 'rgba(200, 230, 201, 0.3)';
-                            }}
-                            onMouseOut={(e) => {
-                              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
-                            }}
-                          >
-                            {institution.name}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* No Results Found Message */}
-                  {institutionSearchQuery.length >= 2 && availableInstitutions.length === 0 && !isSearchingInstitutions && !selectedInstitution && (
-                    <div style={{ 
-                      marginTop: '8px',
-                      padding: '12px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                      borderRadius: '8px',
-                      border: '1px solid rgba(255, 255, 255, 0.2)',
-                      textAlign: 'center'
-                    }}>
-                      <div style={{ fontSize: '13px', color: '#ffcdd2', fontWeight: '500' }}>
-                        No institutions found matching "{institutionSearchQuery}"
-                      </div>
-                      <div style={{ fontSize: '11px', color: '#c8e6c9', marginTop: '4px', opacity: 0.8 }}>
-                        Try a different name or use the skip option below to record your interest.
-                      </div>
-                    </div>
-                  )}
-                  
-                  {selectedInstitution && (
-                    <div style={{
-                      marginTop: '8px',
-                      padding: '8px 12px',
-                      backgroundColor: 'rgba(17, 204, 173, 0.15)',
-                      borderRadius: '6px',
-                      border: '1px solid rgba(17, 204, 173, 0.3)',
-                      fontSize: '12px',
-                      color: '#c8e6c9',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '4px'
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                          <CheckCircle size={14} />
-                          {selectedInstitution.name}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedInstitution(null);
-                            setInstitutionSkipped(false);
-                            setInstitutionSearchQuery('');
-                            setAvailableInstitutions([]);
-                          }}
-                          style={{
-                            background: 'transparent',
-                            border: '1px solid rgba(17, 204, 173, 0.5)',
-                            color: '#c8e6c9',
-                            padding: '4px 8px',
-                            borderRadius: '4px',
-                            fontSize: '11px',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Change
-                        </button>
-                      </div>
-                      <div style={{ fontSize: '11px', opacity: 0.8, marginTop: '2px' }}>
-                        EduLink will try to auto-verify institutional emails. Personal emails may need a verification document after registration.
-                      </div>
-                    </div>
-                  )}
-
-                  {institutionSkipped && !selectedInstitution && (
-                    <div style={{
-                      marginTop: '8px',
-                      padding: '8px 12px',
-                      backgroundColor: 'rgba(255, 193, 7, 0.16)',
-                      borderRadius: '6px',
-                      border: '1px solid rgba(255, 193, 7, 0.45)',
-                      fontSize: '12px',
-                      color: '#fff3cd',
-                      lineHeight: '1.4'
-                    }}>
-                      You can create your account now and request institution verification from your dashboard.
-                    </div>
-                  )}
-                  
-                  <div style={{ fontSize: '12px', color: '#c8e6c9', marginTop: '4px', lineHeight: '1.4', opacity: '0.9' }}>
-                    Type to search for your institution. Start typing to see available options.
-                  </div>
-                  
-                  {/* Skip for now option */}
-                  <div style={{ marginTop: '12px' }}>
-                    <button
-                      type="button"
-                      onClick={handleSkipInstitution}
-                      style={{
-                        background: 'transparent',
-                        border: '1px solid rgba(17, 204, 173, 0.3)',
-                        color: '#c8e6c9',
-                        padding: '8px 16px',
-                        borderRadius: '6px',
-                        fontSize: '12px',
-                        cursor: 'pointer',
-                        fontWeight: '500',
-                        opacity: '0.8',
-                        transition: 'opacity 0.2s',
-                      }}
-                      onMouseOver={(e) => e.currentTarget.style.opacity = '1'}
-                      onMouseOut={(e) => e.currentTarget.style.opacity = '0.8'}
-                    >
-                      I cannot find my institution
-                    </button>
-                  </div>
-                </div>
-
-
-
-
-              </fieldset>
-
-              {/* Navigation Buttons */}
-              <div className="form-navigation" style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                gap: '12px',
-                marginTop: '10px'
-              }}>
-                <button
-                  type="button"
-                  id="prevBtn"
-                  onClick={prevStep}
-                  style={{
-                    display: currentStep > 0 ? 'inline-block' : 'none',
-                    padding: '10px 20px',
-                    borderRadius: '8px',
-                    border: '1px solid #c8e6c9',
-                    backgroundColor: 'transparent',
-                    color: '#c8e6c9',
-                    cursor: isSubmitting ? 'default' : 'pointer',
-                    fontWeight: '600'
-                  }}
-                  disabled={isSubmitting}
-                >
-                  Previous
-                </button>
-                <button
-                  type="button"
-                  id="nextBtn"
-                  onClick={nextStep}
-                  style={{
-                    display: currentStep < 2 ? 'inline-block' : 'none',
-                    padding: '10px 20px',
-                    borderRadius: '8px',
-                    background: 'linear-gradient(90deg,rgb(56, 142, 135) 0%,rgb(69, 197, 159) 100%)',
-                    color: 'white',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontWeight: '600'
-                  }}
-                >
-                  Next
-                </button>
-                <button
-                  type="submit"
-                  style={{
-                    display: currentStep === 2 ? 'inline-block' : 'none',
-                    flex: '1 1 auto',
-                    padding: '13px',
-                    background: 'linear-gradient(90deg,rgb(10, 187, 163) 0%,rgb(7, 168, 141) 100%)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '10px',
-                    fontSize: '17px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    marginTop: '8px',
-                    boxShadow: '0 2px 8px rgba(56, 142, 60, 0.10)',
-                    transition: 'background 0.2s, box-shadow 0.2s',
-                    opacity: isSubmitting ? '0.7' : '1'
-                  }}
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? 'Creating Account...' : 'Create Account'}
-                </button>
+            <div className="rg-left-foot">
+              <div className="rg-trust">
+                <span className="rg-trust-label">Trusted by students from</span>
+                {['JKUAT', 'KU', 'UoN', 'MMUST', 'Strathmore', 'KCA'].map(n => (
+                  <span key={n} className="rg-trust-pill">{n}</span>
+                ))}
               </div>
-            </form>
+            </div>
 
-            {isSubmitting && (
-              <div className="loading-overlay" role="status" aria-live="polite">
-                <div className="loading-content">
-                  <div className="loading-spinner-enhanced"></div>
-                  <div className="loading-title">Creating Your Account</div>
-                  <div className="loading-subtitle">Please wait while we set up your profile...</div>
-                  <div className="loading-shimmer"></div>
-                  <div className="loading-dots">
-                    <div className="loading-dot"></div>
-                    <div className="loading-dot"></div>
-                    <div className="loading-dot"></div>
-                  </div>
-                  <div className="loading-progress">
-                    <div className="loading-progress-bar"></div>
-                  </div>
-                </div>
-              </div>
-            )}
+          </div>
+        </aside>
 
-              </>
-            )}
+        {/* ═══════════════ RIGHT PANEL ═══════════════ */}
+        <main className="rg-right">
+          <div className="rg-right-inner">
 
-            <div style={{
-              clear: 'both',
-              textAlign: 'center',
-              marginTop: '18px',
-              fontSize: '14px',
-              color: '#f2f2f2'
-            }}>
-              Already have an account?{' '}
-              <Link to="/login" style={{
-                color: '#c8e6c9',
-                textDecoration: 'none',
-                fontWeight: 'bold'
-              }}>
-                Sign in here
+            <div className="rg-topbar">
+              <span>Already have an account?</span>
+              <Link to="/login" className="rg-signin-btn">
+                Sign in <ArrowRight size={13} />
               </Link>
             </div>
-          </div>
-        </div>
-      </main>
 
-      {/* Enhanced Loading State */}
-      
+            {!registrationComplete && (
+              <nav className="rg-stepper" aria-label="Registration steps">
+                {STEPS.map((label, i) => (
+                  <React.Fragment key={label}>
+                    <div
+                      className={`rg-step${currentStep === i ? ' active' : ''}${i < currentStep ? ' done' : ''}`}
+                      aria-current={currentStep === i ? 'step' : undefined}
+                    >
+                      <div className="rg-step-num" aria-hidden="true">
+                        {i < currentStep ? <CheckCircle size={13} /> : i + 1}
+                      </div>
+                      <span className="rg-step-lbl">{label}</span>
+                    </div>
+                    {i < STEPS.length - 1 && <div className="rg-step-line" aria-hidden="true" />}
+                  </React.Fragment>
+                ))}
+              </nav>
+            )}
 
-      {/* Animations and responsive styles moved to CSS file */}
-      
-      {/* Institution Interest Modal */}
-      {showInstitutionInterestModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.7)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          backdropFilter: 'blur(4px)'
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '16px',
-            padding: '32px',
-            maxWidth: '440px',
-            width: '90%',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-            textAlign: 'center'
-          }}>
-            {interestSubmissionStatus === 'success' ? (
-              <div className="animate-in fade-in zoom-in duration-300">
-                <div style={{
-                  width: '64px',
-                  height: '64px',
-                  backgroundColor: '#ecfdf5',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  margin: '0 auto 20px',
-                  color: '#10b981'
-                }}>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <div className="rg-card">
+
+              {/* SUCCESS STATE */}
+              {registrationComplete ? (
+                <div className="rg-success">
+                  <div className="rg-success-ring">
+                    <CheckCircle size={30} />
+                  </div>
+                  <h2 className="rg-success-title">Check your inbox</h2>
+                  <p className="rg-success-desc">
+                    We sent a verification link to{' '}
+                    <span className="rg-success-email">{registeredEmail}</span>.
+                    Click it to activate your account.
+                  </p>
+                  <button className="rg-resend" onClick={handleResend} disabled={isResending}>
+                    {isResending ? 'Resending…' : 'Resend email'}
+                  </button>
                 </div>
-                <h3 style={{ marginBottom: '12px', color: '#111827', fontSize: '20px', fontWeight: '600' }}>Thank you!</h3>
-                <p style={{ color: '#4b5563', fontSize: '15px', lineHeight: '1.5' }}>
-                  We've recorded your interest. Our team will look into adding your institution to Edulink.
-                </p>
+
+              ) : (
+                <>
+                  {/* Form header */}
+                  <div className="rg-form-head">
+                    <div className="rg-step-tag">
+                      <Sparkles size={10} />
+                      {STEP_TAGS[currentStep]}
+                    </div>
+                    <h2 className="rg-form-title">
+                      {currentStep === 0 && 'Create your account'}
+                      {currentStep === 1 && 'Personal details'}
+                      {currentStep === 2 && 'Academic details'}
+                    </h2>
+                    <p className="rg-form-sub">
+                      {currentStep === 0 && 'Set up your credentials to get started.'}
+                      {currentStep === 1 && 'Help us personalise your experience.'}
+                      {currentStep === 2 && 'Link your student record to your institution.'}
+                    </p>
+                  </div>
+
+                  {/* Toast */}
+                  {toast && (
+                    <div className={`rg-toast ${toast.type}`} role="alert" aria-live="assertive">
+                      {toast.type === 'error' ? <AlertCircle size={15} /> : <CheckCircle size={15} />}
+                      <span>{toast.msg}</span>
+                      <button className="rg-toast-x" onClick={() => setToast(null)} aria-label="Dismiss">×</button>
+                    </div>
+                  )}
+
+                  <form onSubmit={handleSubmit} noValidate>
+
+                    {/* STEP 0 — ACCOUNT */}
+                    {currentStep === 0 && (
+                      <div className="rg-grid">
+                        <div className="rg-field rg-span2">
+                          <label className="rg-label" htmlFor="email">Email address</label>
+                          <div className="rg-wrap">
+                            <span className="rg-il" aria-hidden="true"><Mail size={16} /></span>
+                            <input className="rg-input il" id="email" name="email" type="email"
+                              placeholder="you@university.ac.ke"
+                              value={formData.email} onChange={handleInputChange}
+                              autoComplete="email" required />
+                          </div>
+                        </div>
+
+                        <div className="rg-field">
+                          <label className="rg-label" htmlFor="password">Password</label>
+                          <div className="rg-wrap">
+                            <span className="rg-il" aria-hidden="true"><Lock size={15} /></span>
+                            <input className="rg-input il ir" id="password" name="password"
+                              type={passwordVisible ? 'text' : 'password'}
+                              placeholder="Min. 8 characters"
+                              value={formData.password} onChange={handleInputChange}
+                              autoComplete="new-password" required />
+                            <button type="button" className="rg-ir"
+                              onClick={() => setPasswordVisible(v => !v)}
+                              aria-label={passwordVisible ? 'Hide password' : 'Show password'}>
+                              {passwordVisible ? <EyeOff size={15} /> : <Eye size={15} />}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="rg-field">
+                          <label className="rg-label" htmlFor="confirmPassword">Confirm password</label>
+                          <div className="rg-wrap">
+                            <span className="rg-il" aria-hidden="true"><Lock size={15} /></span>
+                            <input className="rg-input il ir" id="confirmPassword" name="confirmPassword"
+                              type={confirmVisible ? 'text' : 'password'}
+                              placeholder="Repeat password"
+                              value={formData.confirmPassword} onChange={handleInputChange}
+                              autoComplete="new-password" required />
+                            <button type="button" className="rg-ir"
+                              onClick={() => setConfirmVisible(v => !v)}
+                              aria-label={confirmVisible ? 'Hide' : 'Show'}>
+                              {confirmVisible ? <EyeOff size={15} /> : <Eye size={15} />}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="rg-rules" role="status" aria-live="polite">
+                          <PwRule pass={passwordRules.min}    label="8+ characters" />
+                          <PwRule pass={passwordRules.upper}  label="One uppercase" />
+                          <PwRule pass={passwordRules.number} label="One number" />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* STEP 1 — PERSONAL */}
+                    {currentStep === 1 && (
+                      <div className="rg-grid">
+                        <div className="rg-field">
+                          <label className="rg-label" htmlFor="firstName">First name</label>
+                          <input className="rg-input" id="firstName" name="firstName" type="text"
+                            placeholder="e.g. Amara"
+                            value={formData.firstName} onChange={handleInputChange}
+                            autoComplete="given-name" required />
+                        </div>
+                        <div className="rg-field">
+                          <label className="rg-label" htmlFor="lastName">Last name</label>
+                          <input className="rg-input" id="lastName" name="lastName" type="text"
+                            placeholder="e.g. Odhiambo"
+                            value={formData.lastName} onChange={handleInputChange}
+                            autoComplete="family-name" required />
+                        </div>
+                        <div className="rg-field">
+                          <label className="rg-label" htmlFor="phone">Phone number</label>
+                          <input className="rg-input" id="phone" name="phone" type="tel"
+                            placeholder="07XX XXX XXX"
+                            value={formData.phone} onChange={handleInputChange}
+                            autoComplete="tel" required />
+                        </div>
+                        <div className="rg-field">
+                          <label className="rg-label" htmlFor="gender">Gender</label>
+                          <select className="rg-input" id="gender" name="gender"
+                            value={formData.gender} onChange={handleInputChange} required>
+                            <option value="" disabled>Select gender</option>
+                            <option value="M">Male</option>
+                            <option value="F">Female</option>
+                            <option value="O">Other</option>
+                          </select>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* STEP 2 — ACADEMIC */}
+                    {currentStep === 2 && (
+                      <div className="rg-grid rg-grid1">
+                        <div className="rg-field">
+                          <label className="rg-label" htmlFor="registrationNumber">Registration number</label>
+                          <input className="rg-input" id="registrationNumber" name="registrationNumber" type="text"
+                            placeholder="e.g. SCT-214-0012/2022"
+                            value={formData.registrationNumber} onChange={handleInputChange} required />
+                        </div>
+
+                        <div className="rg-field">
+                          <label className="rg-label" htmlFor="instSearch">Institution</label>
+
+                          {selectedInstitution ? (
+                            <div className="rg-inst-linked">
+                              <div className="rg-inst-info">
+                                <div className="rg-inst-icon"><GraduationCap size={17} /></div>
+                                <div>
+                                  <div className="rg-inst-name">{selectedInstitution.name}</div>
+                                  <div className="rg-inst-meta">✓ Linked successfully</div>
+                                </div>
+                              </div>
+                              <button type="button" className="rg-change-btn" onClick={resetInstitution}>Change</button>
+                            </div>
+
+                          ) : institutionSkipped ? (
+                            <div className="rg-inst-skip-state">
+                              <span className="rg-skip-note">You can verify your institution later.</span>
+                              <button type="button" className="rg-change-btn" onClick={resetInstitution}>Search again</button>
+                            </div>
+
+                          ) : (
+                            <div className="rg-inst-rel">
+                              <div className="rg-wrap">
+                                <span className="rg-il" aria-hidden="true"><Search size={15} /></span>
+                                <input className="rg-input il" id="instSearch" type="text"
+                                  placeholder="Search your university or college"
+                                  value={institutionQuery}
+                                  onChange={e => handleInstitutionSearch(e.target.value)}
+                                  autoComplete="off"
+                                  aria-autocomplete="list"
+                                  aria-expanded={availableInstitutions.length > 0}
+                                  aria-controls="inst-listbox" />
+                              </div>
+
+                              {availableInstitutions.length > 0 && !isSearchingInstitutions && (
+                                <div className="rg-dropdown" id="inst-listbox" role="listbox">
+                                  {availableInstitutions.map(inst => (
+                                    <button key={inst.id} type="button" className="rg-dd-btn"
+                                      role="option" aria-selected="false"
+                                      onClick={() => selectInstitution(inst)}>
+                                      {inst.name}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+
+                              {institutionQuery.length >= 2 && availableInstitutions.length === 0 && !isSearchingInstitutions && (
+                                <p className="rg-no-result">No results for "{institutionQuery}"</p>
+                              )}
+
+                              <button type="button" className="rg-cant-find" onClick={handleSkipInstitution}>
+                                Can't find my institution →
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Navigation */}
+                    <div className="rg-nav">
+                      {currentStep > 0 && (
+                        <button type="button" className="rg-back" onClick={prevStep} disabled={isSubmitting}>
+                          <ArrowLeft size={14} /> Back
+                        </button>
+                      )}
+                      {currentStep < 2 ? (
+                        <button type="button" className="rg-next" onClick={nextStep}>
+                          Continue <ArrowRight size={15} />
+                        </button>
+                      ) : (
+                        <button type="submit" className="rg-next" disabled={isSubmitting}>
+                          {isSubmitting
+                            ? <><div className="rg-spinner" /> Creating account…</>
+                            : <>Create account <ArrowRight size={15} /></>}
+                        </button>
+                      )}
+                    </div>
+
+                  </form>
+
+                </>
+              )}
+            </div>
+          </div>
+        </main>
+      </div>
+
+      {/* MODAL */}
+      {showModal && (
+        <div className="rg-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-heading"
+          onClick={e => { if (e.target === e.currentTarget) closeModal(); }}>
+          <div className="rg-modal">
+            {interestStatus === 'success' ? (
+              <div className="rg-modal-ok">
+                <div className="rg-modal-ok-icon"><CheckCircle size={24} /></div>
+                <p className="rg-modal-ok-title">Got it — thank you!</p>
+                <p className="rg-modal-ok-sub">We'll prioritise adding your institution soon.</p>
               </div>
             ) : (
               <>
-                <h3 style={{ marginBottom: '16px', color: '#111827', fontSize: '20px', fontWeight: '600', textAlign: 'left' }}>Help us expand!</h3>
-                <p style={{ marginBottom: '20px', color: '#4b5563', fontSize: '15px', lineHeight: '1.5', textAlign: 'left' }}>
-                  We couldn't find your institution. Would you like to tell us which institution you're from so we can add it to our platform?
-                </p>
-                
-                <div style={{ position: 'relative', marginBottom: '24px' }}>
-                  <input
-                    type="text"
-                    placeholder="Enter your institution name"
-                    value={institutionInterestName}
-                    onChange={(e) => {
-                      setInstitutionInterestName(e.target.value);
-                      if (interestSubmissionStatus === 'error') setInterestSubmissionStatus('idle');
-                    }}
-                    disabled={isSubmittingInterest}
-                    style={{
-                      width: '100%',
-                      padding: '14px 16px',
-                      border: interestSubmissionStatus === 'error' ? '2px solid #ef4444' : '1px solid #d1d5db',
-                      borderRadius: '10px',
-                      fontSize: '15px',
-                      transition: 'all 0.2s ease',
-                      outline: 'none',
-                      backgroundColor: isSubmittingInterest ? '#f9fafb' : 'white'
-                    }}
-                    onFocus={(e) => {
-                      if (interestSubmissionStatus !== 'error') e.currentTarget.style.borderColor = '#10b981';
-                    }}
-                    onBlur={(e) => {
-                      if (interestSubmissionStatus !== 'error') e.currentTarget.style.borderColor = '#d1d5db';
-                    }}
-                  />
-                  {interestSubmissionStatus === 'error' && (
-                    <p style={{ color: '#ef4444', fontSize: '12px', marginTop: '6px', textAlign: 'left', fontWeight: '500' }}>
-                      Something went wrong. Please try again.
-                    </p>
-                  )}
-                </div>
-
-                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowInstitutionInterestModal(false);
-                      setInstitutionInterestName('');
-                      setInterestSubmissionStatus('idle');
-                    }}
-                    disabled={isSubmittingInterest}
-                    style={{
-                      padding: '10px 20px',
-                      borderRadius: '10px',
-                      backgroundColor: 'white',
-                      color: '#374151',
-                      cursor: 'pointer',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      border: '1px solid #d1d5db',
-                      transition: 'all 0.2s'
-                  }}
-                >
-                    Continue without it
+                <div className="rg-modal-top">
+                  <h3 className="rg-modal-title" id="modal-heading">Suggest your institution</h3>
+                  <button type="button" className="rg-modal-close" onClick={closeModal} aria-label="Close dialog">
+                    <X size={17} />
                   </button>
-                  <button
-                    type="button"
-                    onClick={handleInstitutionInterestSubmit}
-                    disabled={isSubmittingInterest || !institutionInterestName.trim()}
-                    style={{
-                      padding: '10px 24px',
-                      borderRadius: '10px',
-                      backgroundColor: '#10b981',
-                      color: 'white',
-                      cursor: (isSubmittingInterest || !institutionInterestName.trim()) ? 'not-allowed' : 'pointer',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      border: 'none',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      transition: 'all 0.2s',
-                      opacity: (isSubmittingInterest || !institutionInterestName.trim()) ? 0.7 : 1
-                    }}
-                  >
-                    {isSubmittingInterest ? (
-                      <>
-                        <div style={{
-                          width: '16px',
-                          height: '16px',
-                          border: '2px solid rgba(255,255,255,0.3)',
-                          borderTop: '2px solid white',
-                          borderRadius: '50%',
-                          animation: 'spin 0.8s linear infinite'
-                        }}></div>
-                        Submitting...
-                      </>
-                    ) : 'Submit Interest'}
+                </div>
+                <p className="rg-modal-desc">
+                  Tell us your institution's name and we'll prioritise adding it.
+                  You can still complete registration now.
+                </p>
+                <input ref={modalInputRef}
+                  className={`rg-modal-input${interestStatus === 'error' ? ' has-err' : ''}`}
+                  type="text" placeholder="Institution name"
+                  value={modalInstName}
+                  onChange={e => { setModalInstName(e.target.value); if (interestStatus === 'error') setInterestStatus('idle'); }}
+                  disabled={isSubmittingInterest}
+                  aria-label="Institution name" />
+                {interestStatus === 'error' && (
+                  <p className="rg-modal-err">Something went wrong — please try again.</p>
+                )}
+                <div className="rg-modal-actions">
+                  <button type="button" className="rg-modal-skip" onClick={closeModal} disabled={isSubmittingInterest}>Skip</button>
+                  <button type="button" className="rg-modal-submit"
+                    onClick={handleInterestSubmit}
+                    disabled={isSubmittingInterest || !modalInstName.trim()}>
+                    {isSubmittingInterest ? 'Submitting…' : 'Submit'}
                   </button>
                 </div>
               </>
@@ -1716,8 +1371,8 @@ const Register: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
-  </>);
+    </>
+  );
 };
 
 export default Register;

@@ -7,10 +7,12 @@ import secrets
 import uuid
 import logging
 from datetime import timedelta
+from typing import Any
 from django.utils import timezone
 from django.db import transaction
 from django.contrib.auth import get_user_model
 
+from edulink.apps.accounts.services import generate_unique_username
 from edulink.apps.ledger.services import record_event
 from edulink.apps.notifications.services import send_staff_invite_notification
 from edulink.apps.shared.error_handling import (
@@ -27,7 +29,7 @@ logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
-def create_genesis_super_admin(*, email: str, password: str) -> User:
+def create_genesis_super_admin(*, email: str, password: str) -> Any:
     """
     Create or update the first super admin (genesis creation).
     Used once at system birth, out-of-band.
@@ -51,7 +53,7 @@ def create_genesis_super_admin(*, email: str, password: str) -> User:
         user.is_staff = True
     else:
         user = User.objects.create_superuser(
-            username=email,
+            username=generate_unique_username(),
             email=email,
             password=password
         )
@@ -89,7 +91,7 @@ def create_genesis_super_admin(*, email: str, password: str) -> User:
 
 
 @transaction.atomic
-def create_staff_invite(*, email: str, role: str, created_by: User, note: str = "") -> StaffInvite:
+def create_staff_invite(*, email: str, role: str, created_by: Any, note: str = "") -> StaffInvite:
     """
     Create a staff invite for controlled onboarding.
     Only super admins can create invites.
@@ -234,9 +236,8 @@ def accept_staff_invite(*, token: str, password: str, first_name: str = "", last
         user.save()
     else:
         # Create new user
-        username = invite.email  # Use email as username
         user = User.objects.create_user(
-            username=username,
+            username=generate_unique_username(),
             email=invite.email,
             password=password,
             first_name=first_name,
@@ -277,7 +278,7 @@ def accept_staff_invite(*, token: str, password: str, first_name: str = "", last
 
 
 @transaction.atomic
-def revoke_staff_authority(*, staff_user: User, revoked_by: User, reason: str = "") -> PlatformStaffProfile:
+def revoke_staff_authority(*, staff_user: Any, revoked_by: Any, reason: str = "") -> PlatformStaffProfile:
     """
     Revoke a staff member's platform authority.
     Only super admins can revoke authority.
@@ -343,7 +344,7 @@ def revoke_staff_authority(*, staff_user: User, revoked_by: User, reason: str = 
 
 
 @transaction.atomic
-def verify_institution(*, institution_id: uuid.UUID, verified_by: User, reason: str = "") -> None:
+def verify_institution(*, institution_id: uuid.UUID, verified_by: Any, reason: str = "") -> None:
     """
     Verify an institution by platform admin.
     Uses the institutions app's service layer to maintain proper boundaries.
@@ -397,7 +398,7 @@ def verify_institution(*, institution_id: uuid.UUID, verified_by: User, reason: 
 
 
 @transaction.atomic
-def suspend_user(*, user_id: uuid.UUID, suspended_by: User, reason: str = "") -> None:
+def suspend_user(*, user_id: uuid.UUID, suspended_by: Any, reason: str = "") -> None:
     """
     Suspend a user.
     Platform admins can suspend users.
@@ -459,7 +460,7 @@ def suspend_user(*, user_id: uuid.UUID, suspended_by: User, reason: str = "") ->
 
 
 @transaction.atomic
-def reactivate_user(*, user_id: uuid.UUID, reactivated_by: User, reason: str = "") -> None:
+def reactivate_user(*, user_id: uuid.UUID, reactivated_by: Any, reason: str = "") -> None:
     """
     Reactivate a suspended user.
     Platform admins can reactivate users.
@@ -513,7 +514,7 @@ def reactivate_user(*, user_id: uuid.UUID, reactivated_by: User, reason: str = "
 
 
 @transaction.atomic
-def send_institution_interest_outreach(*, interest_id: str, actor: User) -> bool:
+def send_institution_interest_outreach(*, interest_id: str, actor: Any) -> bool:
     """
     Send automated outreach email for an institution interest record.
     Follows Rule 3: Business actions live in services.

@@ -8,6 +8,7 @@ import { usePusher } from '../hooks/usePusher';
 import { useAuth } from '../contexts/AuthContext';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { format } from 'date-fns';
+import type { SupportTicket } from '../services/support/supportService';
 
 const TicketHistory: React.FC = () => {
   const { user } = useAuth();
@@ -17,7 +18,7 @@ const TicketHistory: React.FC = () => {
   useErrorHandler({});
 
   // Fetch tickets with TanStack Query
-  const { data: tickets, isLoading: loading, isError } = useQuery({
+  const { data: tickets, isLoading: loading, isError } = useQuery<SupportTicket[]>({
     queryKey: ['tickets'],
     queryFn: () => supportService.getTickets(),
     staleTime: 1000 * 60 * 5, // 5 minutes
@@ -103,7 +104,7 @@ const TicketHistory: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="border-top-0">
-                {tickets?.map((ticket) => (
+                {tickets?.map((ticket: SupportTicket) => (
                   <tr key={ticket.id} className="transition-all hover-bg-light">
                     <td className="ps-4">
                       <div className="d-flex align-items-center">

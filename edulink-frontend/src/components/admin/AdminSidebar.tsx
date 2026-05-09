@@ -1,142 +1,490 @@
 import React from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Users, 
-  Building2, 
-  ShieldCheck, 
-  BarChart2, 
-  Activity, 
-  Settings, 
-  X,
-  FileText,
-  Database,
+import {
+  Activity,
+  BarChart3,
   Briefcase,
+  Building2,
+  ChevronRight,
+  FileText,
   History,
+  LayoutDashboard,
   LifeBuoy,
-  Mail
+  Settings,
+  ShieldCheck,
+  Users,
+  X,
 } from 'lucide-react';
 
 interface AdminSidebarProps {
-  activeSection?: string; // Legacy prop, kept for compatibility
-  onSectionChange?: (section: string) => void; // Legacy prop
+  activeSection?: string;
+  onSectionChange?: (section: string) => void;
   isOpen?: boolean;
   onClose?: () => void;
   isMobile?: boolean;
 }
 
-const AdminSidebar: React.FC<AdminSidebarProps> = ({ 
-  isOpen = true, 
+const AdminSidebar: React.FC<AdminSidebarProps> = ({
+  isOpen = true,
   onClose,
-  isMobile = false
+  isMobile = false,
 }) => {
-  const sidebarClasses = `admin-sidebar bg-dark text-white d-flex flex-column h-100 transition-all ${
-    isMobile ? 'position-fixed top-0 start-0 w-75 shadow-lg' : 'position-fixed top-0 start-0'
-  }`;
-
-  const style = {
-    width: '260px',
-    zIndex: 1050,
-    transform: isMobile && !isOpen ? 'translateX(-100%)' : 'translateX(0)',
-    transition: 'transform 0.3s ease-in-out',
-    borderRight: '1px solid rgba(255,255,255,0.1)'
+  const sidebarStyle = {
+    width: '280px',
+    zIndex: 1045,
+    transform:
+      isMobile && !isOpen
+        ? 'translateX(-100%)'
+        : 'translateX(0)',
+    transition: 'transform .28s ease',
   };
 
-  const NavItem = ({ to, icon: Icon, label, end = false }: { to: string, icon: any, label: string, end?: boolean }) => (
-    <NavLink 
-      to={to} 
+  const NavItem = ({
+    to,
+    icon: Icon,
+    label,
+    badge,
+    end = false,
+  }: {
+    to: string;
+    icon: any;
+    label: string;
+    badge?: string | number;
+    end?: boolean;
+  }) => (
+    <NavLink
+      to={to}
       end={end}
-      className={({ isActive }) => 
-        `nav-link d-flex align-items-center px-3 py-2.5 mb-1 rounded transition-colors ${
-          isActive 
-            ? 'bg-primary text-white shadow-sm' 
-            : 'text-white-50 hover-text-white hover-bg-white-10'
-        }`
+      onClick={() => isMobile && onClose?.()}
+      className={({ isActive }) =>
+        `ops-sidebar-link ${isActive ? 'active' : ''}`
       }
-      onClick={() => isMobile && onClose && onClose()}
-      style={{ fontSize: '0.95rem' }}
     >
-      <Icon size={18} className="me-3" />
-      <span>{label}</span>
+      <div className="ops-sidebar-link-left">
+        <span className="ops-sidebar-icon">
+          <Icon size={17} />
+        </span>
+
+        <span className="ops-sidebar-label">
+          {label}
+        </span>
+      </div>
+
+      {badge ? (
+        <span className="ops-sidebar-badge">
+          {badge}
+        </span>
+      ) : (
+        <ChevronRight size={14} className="ops-sidebar-arrow" />
+      )}
     </NavLink>
   );
 
   return (
-    <aside className={sidebarClasses} style={style}>
-      {/* Sidebar Header */}
-      <div className="d-flex align-items-center justify-content-between p-3 border-bottom border-secondary">
-        <Link to="/dashboard/admin" className="text-decoration-none text-white d-flex align-items-center gap-2">
-          <div className="bg-primary rounded p-1">
-            <ShieldCheck size={24} className="text-white" />
+    <>
+      {/* Mobile Backdrop */}
+      {isMobile && isOpen && (
+        <div
+          className="ops-sidebar-backdrop"
+          onClick={onClose}
+        />
+      )}
+
+      <aside
+        className={`ops-sidebar ${
+          isMobile ? 'mobile' : ''
+        }`}
+        style={sidebarStyle}
+      >
+        {/* Header */}
+        <div className="ops-sidebar-header">
+          <Link
+            to="/dashboard/admin"
+            className="ops-sidebar-brand"
+          >
+            <div className="ops-sidebar-brand-icon">
+              <ShieldCheck size={18} />
+            </div>
+
+            <div className="ops-sidebar-brand-text">
+              <strong>EduLink</strong>
+              <span>Platform Operations</span>
+            </div>
+          </Link>
+
+          {isMobile && (
+            <button
+              type="button"
+              className="ops-sidebar-close"
+              onClick={onClose}
+            >
+              <X size={20} />
+            </button>
+          )}
+        </div>
+
+        {/* Navigation */}
+        <div className="ops-sidebar-scroll">
+          <div className="ops-sidebar-group">
+            <span className="ops-sidebar-group-title">
+              Overview
+            </span>
+
+            <NavItem
+              to="/dashboard/admin"
+              icon={LayoutDashboard}
+              label="Operations Center"
+              end
+            />
           </div>
-          <div>
-            <h6 className="mb-0 fw-bold">EduLink</h6>
-            <small className="text-white-50" style={{fontSize: '0.7rem'}}>Administration</small>
+
+          <div className="ops-sidebar-group">
+            <span className="ops-sidebar-group-title">
+              Platform
+            </span>
+
+            <NavItem
+              to="/admin/users"
+              icon={Users}
+              label="Users"
+            />
+
+            <NavItem
+              to="/admin/institutions"
+              icon={Building2}
+              label="Institutions"
+            />
+
+            <NavItem
+              to="/admin/employers/requests"
+              icon={Briefcase}
+              label="Employers"
+            />
           </div>
-        </Link>
-        {isMobile && (
-          <button className="btn btn-link text-white-50 p-0" onClick={onClose}>
-            <X size={24} />
-          </button>
-        )}
-      </div>
 
-      {/* Navigation */}
-      <div className="flex-grow-1 overflow-auto p-3 custom-scrollbar">
-        <small className="text-uppercase text-white-50 fw-bold mb-2 d-block px-3" style={{fontSize: '0.75rem'}}>
-          Main Menu
-        </small>
-        <nav className="nav flex-column mb-4">
-          <NavItem to="/dashboard/admin" icon={LayoutDashboard} label="Dashboard" end />
-          <NavItem to="/admin/users" icon={Users} label="User Management" />
-          <NavItem to="/admin/institutions" icon={Building2} label="Institutions" />
-          <NavItem to="/admin/employers/requests" icon={Briefcase} label="Employer Management" />
-          <NavItem to="/admin/opportunities/external" icon={Briefcase} label="External Opportunities" />
-          <NavItem to="/admin/staff" icon={ShieldCheck} label="Platform Staff" />
-          <NavItem to="/admin/support" icon={LifeBuoy} label="Support & Care" />
-          <NavItem to="/admin/contact" icon={Mail} label="Contact Inquiries" />
-        </nav>
+          <div className="ops-sidebar-group">
+            <span className="ops-sidebar-group-title">
+              Operations
+            </span>
 
-        <small className="text-uppercase text-white-50 fw-bold mb-2 d-block px-3" style={{fontSize: '0.75rem'}}>
-          Monitoring
-        </small>
-        <nav className="nav flex-column mb-4">
-          <NavItem to="/admin/analytics" icon={BarChart2} label="Analytics" />
-          <NavItem to="/admin/logs" icon={History} label="Audit Logs" />
-          <NavItem to="/admin/health" icon={Activity} label="System Health" />
-          <NavItem to="/admin/reports" icon={FileText} label="Reports" />
-        </nav>
+            <NavItem
+              to="/admin/support"
+              icon={LifeBuoy}
+              label="Support & Care"
+            />
 
-        <small className="text-uppercase text-white-50 fw-bold mb-2 d-block px-3" style={{fontSize: '0.75rem'}}>
-          Settings
-        </small>
-        <nav className="nav flex-column">
-          <NavItem to="/admin/settings" icon={Settings} label="Configuration" />
-          <NavItem to="/admin/health" icon={Database} label="Backups" />
-        </nav>
-      </div>
-
-      {/* Footer */}
-      <div className="p-3 border-top border-secondary bg-darker">
-        <div className="d-flex align-items-center p-2 rounded bg-white bg-opacity-10">
-          <div className="flex-shrink-0">
-            <div className="rounded-circle bg-success p-1" style={{width: '8px', height: '8px'}}></div>
+            <NavItem
+              to="/admin/staff"
+              icon={ShieldCheck}
+              label="Platform Staff"
+            />
           </div>
-          <div className="flex-grow-1 ms-2">
-            <small className="text-white d-block" style={{fontSize: '0.75rem'}}>System Status</small>
-            <small className="text-success fw-bold" style={{fontSize: '0.7rem'}}>Operational</small>
+
+          <div className="ops-sidebar-group">
+            <span className="ops-sidebar-group-title">
+              System
+            </span>
+
+            <NavItem
+              to="/admin/analytics"
+              icon={BarChart3}
+              label="Analytics"
+            />
+
+            <NavItem
+              to="/admin/logs"
+              icon={History}
+              label="Audit Logs"
+            />
+
+            <NavItem
+              to="/admin/health"
+              icon={Activity}
+              label="System Health"
+            />
+
+            <NavItem
+              to="/admin/reports"
+              icon={FileText}
+              label="Reports"
+            />
+
+            <NavItem
+              to="/admin/settings"
+              icon={Settings}
+              label="Platform Settings"
+            />
           </div>
         </div>
-      </div>
 
-      {/* CSS for hover effect */}
-      <style>{`
-        .hover-bg-white-10:hover { background-color: rgba(255, 255, 255, 0.1); color: white !important; }
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 4px; }
-      `}</style>
-    </aside>
+        {/* Footer */}
+        <div className="ops-sidebar-footer">
+          <div className="ops-sidebar-status">
+            <div className="ops-status-dot" />
+
+            <div>
+              <span>Platform status</span>
+              <strong>Operational</strong>
+            </div>
+          </div>
+        </div>
+
+        <style>{`
+          .ops-sidebar-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(15,23,42,.42);
+            z-index: 1040;
+            backdrop-filter: blur(2px);
+          }
+
+          .ops-sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            background: #0f172a;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid rgba(255,255,255,.06);
+          }
+
+          .ops-sidebar.mobile {
+            box-shadow: 0 24px 64px rgba(0,0,0,.28);
+          }
+
+          .ops-sidebar-header {
+            height: 72px;
+            padding: 0 18px;
+            border-bottom: 1px solid rgba(255,255,255,.06);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+          }
+
+          .ops-sidebar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+          }
+
+          .ops-sidebar-brand-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 14px;
+            background: linear-gradient(
+              135deg,
+              #059669,
+              #047857
+            );
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            flex-shrink: 0;
+          }
+
+          .ops-sidebar-brand-text {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.05;
+          }
+
+          .ops-sidebar-brand-text strong {
+            color: #ffffff;
+            font-size: .95rem;
+            font-weight: 900;
+            letter-spacing: -.03em;
+          }
+
+          .ops-sidebar-brand-text span {
+            color: #94a3b8;
+            font-size: .7rem;
+            font-weight: 700;
+            margin-top: 4px;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+          }
+
+          .ops-sidebar-close {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            border: 0;
+            background: rgba(255,255,255,.06);
+            color: #cbd5e1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          .ops-sidebar-scroll {
+            flex: 1;
+            overflow-y: auto;
+            padding: 18px 14px;
+          }
+
+          .ops-sidebar-scroll::-webkit-scrollbar {
+            width: 5px;
+          }
+
+          .ops-sidebar-scroll::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,.08);
+            border-radius: 999px;
+          }
+
+          .ops-sidebar-group {
+            margin-bottom: 26px;
+          }
+
+          .ops-sidebar-group-title {
+            display: block;
+            padding: 0 12px;
+            margin-bottom: 10px;
+            color: #64748b;
+            font-size: .68rem;
+            font-weight: 850;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+          }
+
+          .ops-sidebar-link {
+            min-height: 48px;
+            padding: 0 12px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            text-decoration: none;
+            color: #cbd5e1;
+            transition:
+              background .18s ease,
+              color .18s ease,
+              transform .18s ease;
+            margin-bottom: 4px;
+          }
+
+          .ops-sidebar-link:hover {
+            background: rgba(255,255,255,.05);
+            color: #ffffff;
+          }
+
+          .ops-sidebar-link.active {
+            background: linear-gradient(
+              135deg,
+              rgba(5,150,105,.18),
+              rgba(5,150,105,.08)
+            );
+            color: #ffffff;
+            border: 1px solid rgba(16,185,129,.18);
+          }
+
+          .ops-sidebar-link-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
+          }
+
+          .ops-sidebar-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 11px;
+            background: rgba(255,255,255,.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+          }
+
+          .ops-sidebar-link.active .ops-sidebar-icon {
+            background: rgba(16,185,129,.16);
+            color: #34d399;
+          }
+
+          .ops-sidebar-label {
+            font-size: .88rem;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+
+          .ops-sidebar-arrow {
+            opacity: .38;
+            flex-shrink: 0;
+          }
+
+          .ops-sidebar-badge {
+            min-width: 20px;
+            height: 20px;
+            border-radius: 999px;
+            padding: 0 6px;
+            background: #dc2626;
+            color: #ffffff;
+            font-size: .7rem;
+            font-weight: 800;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          .ops-sidebar-footer {
+            padding: 14px;
+            border-top: 1px solid rgba(255,255,255,.06);
+            flex-shrink: 0;
+          }
+
+          .ops-sidebar-status {
+            min-height: 52px;
+            border-radius: 14px;
+            background: rgba(255,255,255,.04);
+            border: 1px solid rgba(255,255,255,.06);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 14px;
+          }
+
+          .ops-status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+            background: #22c55e;
+            box-shadow: 0 0 0 4px rgba(34,197,94,.14);
+            flex-shrink: 0;
+          }
+
+          .ops-sidebar-status span {
+            display: block;
+            color: #94a3b8;
+            font-size: .7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+          }
+
+          .ops-sidebar-status strong {
+            display: block;
+            color: #ffffff;
+            font-size: .86rem;
+            font-weight: 850;
+            margin-top: 2px;
+          }
+
+          @media (max-width: 640px) {
+            .ops-sidebar {
+              width: 86vw !important;
+              max-width: 320px;
+            }
+          }
+        `}</style>
+      </aside>
+    </>
   );
 };
 

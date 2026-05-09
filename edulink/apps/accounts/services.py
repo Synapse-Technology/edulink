@@ -4,14 +4,17 @@ Follows architecture rules: pure business logic, no HTTP handling, triggers even
 """
 
 import logging
+import secrets
+import string
+import uuid
+from datetime import timedelta
+
+from django.conf import settings
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import update_last_login
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils import timezone
-from django.conf import settings
-from datetime import timedelta
-import uuid
 
 from edulink.apps.shared.error_handling import (
     ValidationError,
@@ -35,6 +38,19 @@ from edulink.apps.notifications.services import (
 
 logger = logging.getLogger(__name__)
 
+USERNAME_PREFIX = "EDULINK-USR"
+USERNAME_LENGTH = 6
+USERNAME_ALPHABET = string.ascii_uppercase + string.digits
+
+
+def generate_unique_username() -> str:
+    """Generate a branded, collision-resistant username."""
+    while True:
+        suffix = ''.join(secrets.choice(USERNAME_ALPHABET) for _ in range(USERNAME_LENGTH))
+        username = f"{USERNAME_PREFIX}-{suffix}"
+        if not User.objects.filter(username=username).exists():
+            return username
+
 
 def create_user(*, email: str, password: str, username: str = None, role: str = User.ROLE_STUDENT, **kwargs) -> User:
     """
@@ -51,7 +67,14 @@ def create_user(*, email: str, password: str, username: str = None, role: str = 
         )
     
     if not username:
-        username = email.split('@')[0]  # Use email prefix as default username
+        username = generate_unique_username()
+
+    if User.objects.filter(username=username).exists():
+        raise ValidationError(
+            user_message="Please correct the highlighted fields and try again.",
+            developer_message=f"Username already exists: {username}",
+            context={"validation_errors": {"username": ["A user with that username already exists."]}},
+        )
     
     # Remove fields that don't belong to User model
     kwargs.pop('password_confirm', None)
@@ -203,7 +226,7 @@ def create_activated_user(
         )
         
     user = User.objects.create_user(
-        username=email,
+        username=generate_unique_username(),
         email=email,
         password=password,
         first_name=first_name,
