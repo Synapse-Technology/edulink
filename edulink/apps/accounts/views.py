@@ -124,6 +124,18 @@ class UserViewSet(viewsets.ModelViewSet):
         try:
             user = authenticate_user(**serializer.validated_data)
             
+            # ✉️ EMAIL VERIFICATION GATE: Block login if email not verified
+            if not user.is_email_verified:
+                return Response(
+                    {
+                        'error_code': 'EMAIL_NOT_VERIFIED',
+                        'message': 'Please verify your email before logging in.',
+                        'detail': 'A verification link has been sent to your email. Check your inbox and click the link to verify.',
+                        'resend_endpoint': '/api/notifications/email-verification/resend/'
+                    },
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
             # Generate JWT tokens
             refresh = RefreshToken.for_user(user)
             

@@ -16,6 +16,17 @@ const portalLabel: Record<LoginPortal, string> = {
 };
 
 /**
+ * Check if error is an email verification gate error
+ * Returns true if user needs to verify their email before logging in
+ */
+export const isEmailNotVerifiedError = (error: unknown): boolean => {
+  if (error instanceof ApiError) {
+    return error.status === 403 && error.data?.error_code === 'EMAIL_NOT_VERIFIED';
+  }
+  return false;
+};
+
+/**
  * Get parsed error response with portal-specific messaging
  * Ensures consistent error messages across all login portals (student/employer/institution/admin)
  */
@@ -49,6 +60,11 @@ export const getLoginErrorMessage = (
   const portal = options.portal ?? 'student';
 
   if (error instanceof ApiError) {
+    // Check for email verification gate error
+    if (error.status === 403 && error.data?.error_code === 'EMAIL_NOT_VERIFIED') {
+      return 'Please verify your email before logging in. Check your inbox for a verification link.';
+    }
+
     switch (error.status) {
       case 400:
         return 'Please review your login details and try again.';
