@@ -272,9 +272,13 @@ class ApiClient {
       case 400:
         return new ValidationError(errorMessage, fullErrorData);
       case 401:
-        return new AuthenticationError(errorMessage);
+        return new ApiError(errorMessage, status, fullErrorData);
       case 403:
-        return new AuthenticationError(errorMessage || 'Access forbidden. Insufficient permissions.');
+        return new ApiError(
+          errorMessage || 'Access forbidden. Insufficient permissions.',
+          status,
+          fullErrorData
+        );
       case 404:
         return new ApiError(errorMessage, status, fullErrorData);
       case 422:

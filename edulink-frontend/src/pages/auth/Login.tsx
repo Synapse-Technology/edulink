@@ -15,7 +15,6 @@ import {
   Sparkles,
   FileText,
   TrendingUp,
-  Send,
 } from 'lucide-react';
 
 import { useAuthStore } from '../../stores/authStore';
@@ -537,38 +536,6 @@ const styles = `
   box-shadow: none;
 }
 
-.el-resend {
-  height: 49px;
-  margin-top: 10px;
-  border: 1.5px solid var(--brand);
-  border-radius: var(--r);
-  background: transparent;
-  color: var(--brand);
-  font: 800 .92rem var(--font);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
-  box-shadow: none;
-  transition: background var(--ease), color var(--ease), border-color var(--ease);
-  width: 100%;
-}
-
-.el-resend:hover:not(:disabled) {
-  background: var(--brand-tint);
-  border-color: var(--brand-hi);
-}
-
-.el-resend:active:not(:disabled) {
-  transform: scale(.985);
-}
-
-.el-resend:disabled {
-  opacity: .55;
-  cursor: not-allowed;
-}
-
 .el-spinner {
   width: 15px;
   height: 15px;
@@ -576,11 +543,6 @@ const styles = `
   border-top-color: #fff;
   border-radius: 999px;
   animation: spin .65s linear infinite;
-}
-
-.el-spinner.secondary {
-  border-color: rgba(6,155,142,.3);
-  border-top-color: var(--brand);
 }
 
 @keyframes spin {
@@ -868,8 +830,6 @@ const Login: React.FC<LoginProps> = ({ portalIntent = 'student' }) => {
   const [showToast, setShowToast] = useState(false);
   const [toastClosing, setToastClosing] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
-  const [isEmailNotVerified, setIsEmailNotVerified] = useState(false);
-  const [isResendingEmail, setIsResendingEmail] = useState(false);
 
   const demoCredentials = selectedPortal === 'admin' ? [] : demoByPortal[selectedPortal];
 
@@ -880,7 +840,6 @@ const Login: React.FC<LoginProps> = ({ portalIntent = 'student' }) => {
       password: credential.password,
     }));
     setMessage('');
-    setIsEmailNotVerified(false);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -890,6 +849,9 @@ const Login: React.FC<LoginProps> = ({ portalIntent = 'student' }) => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
     }));
+    if (name === 'email') {
+      setMessage('');
+    }
   };
 
   const hideToast = () => {
@@ -924,46 +886,6 @@ const Login: React.FC<LoginProps> = ({ portalIntent = 'student' }) => {
     }
 
     return true;
-  };
-
-  const handleResendVerificationEmail = async () => {
-    if (!loginForm.email.trim()) {
-      showToastMessage('Please enter your email address', 'error');
-      return;
-    }
-
-    setIsResendingEmail(true);
-
-    try {
-      const response = await fetch('/api/notifications/email-verification/resend/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email: loginForm.email }),
-        credentials: 'include',
-      });
-
-      if (response.ok) {
-        showToastMessage(
-          'Verification email sent successfully! Check your inbox for the verification link.',
-          'success'
-        );
-      } else {
-        const errorData = await response.json();
-        showToastMessage(
-          errorData.message || 'Failed to resend verification email. Please try again.',
-          'error'
-        );
-      }
-    } catch (error) {
-      showToastMessage(
-        'Unable to resend verification email. Please check your internet connection and try again.',
-        'error'
-      );
-    } finally {
-      setIsResendingEmail(false);
-    }
   };
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
@@ -1004,15 +926,12 @@ const Login: React.FC<LoginProps> = ({ portalIntent = 'student' }) => {
         await useAuthStore.getState().logout();
       }
     } catch (error) {
-      const errorMessage = await errorHandler.handleLoginError(error);
-      
-      // Check if this is an email verification error
       if (isEmailNotVerifiedError(error)) {
-        setIsEmailNotVerified(true);
-      } else {
-        setIsEmailNotVerified(false);
+        navigate(`/verify-email?email=${encodeURIComponent(loginForm.email)}`);
+        return;
       }
-      
+
+      const errorMessage = await errorHandler.handleLoginError(error);
       showToastMessage(errorMessage, 'error');
     } finally {
       setIsSubmitting(false);
@@ -1252,27 +1171,6 @@ const Login: React.FC<LoginProps> = ({ portalIntent = 'student' }) => {
                   )}
                 </button>
 
-                {isEmailNotVerified && (
-                  <button
-                    type="button"
-                    className="el-resend"
-                    onClick={handleResendVerificationEmail}
-                    disabled={isResendingEmail}
-                    aria-label="Resend verification email"
-                  >
-                    {isResendingEmail ? (
-                      <>
-                        <span className="el-spinner secondary" />
-                        Sending verification email…
-                      </>
-                    ) : (
-                      <>
-                        <Send size={16} />
-                        Resend verification email
-                      </>
-                    )}
-                  </button>
-                )}
               </form>
 
               <div className="el-safe">

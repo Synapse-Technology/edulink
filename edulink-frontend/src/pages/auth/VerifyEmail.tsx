@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 
 import {
   AlertTriangle,
@@ -13,8 +13,9 @@ import {
 } from 'lucide-react';
 
 import edulinkLogo from '../../assets/images/edulink-logo-v1-select.svg';
+import { authService } from '../../services/auth/authService';
 
-type VerifyStatus = 'verifying' | 'success' | 'error';
+type VerifyStatus = 'pending' | 'verifying' | 'success' | 'error';
 
 const styles = `
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
@@ -394,11 +395,16 @@ const features = [
 
 const VerifyEmail: React.FC = () => {
   const { token } = useParams();
+  const [searchParams] = useSearchParams();
+  const verificationEmail = searchParams.get('email')?.trim() || '';
 
-  const [status, setStatus] = useState<VerifyStatus>('verifying');
+  const [status, setStatus] = useState<VerifyStatus>(token ? 'verifying' : 'pending');
+  const [isResending, setIsResending] = useState(false);
 
   const [message, setMessage] = useState(
-    'Verifying your email address securely...'
+    token
+      ? 'Verifying your email address securely...'
+      : 'Check your inbox for a verification link to activate your EduLink account.'
   );
 
   const verifyCalledToken = useRef<string | null>(null);
@@ -406,8 +412,8 @@ const VerifyEmail: React.FC = () => {
   useEffect(() => {
     const verify = async () => {
       if (!token) {
-        setStatus('error');
-        setMessage('Missing verification token.');
+        setStatus('pending');
+        setMessage('Check your inbox for a verification link to activate your EduLink account.');
         return;
       }
 
@@ -420,33 +426,7 @@ const VerifyEmail: React.FC = () => {
       verifyCalledToken.current = cleanToken;
 
       try {
-        const response = await fetch(
-          '/api/notifications/email-verification/verify/',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ token: cleanToken }),
-          }
-        );
-
-        if (!response.ok) {
-          let errorMessage =
-            'Verification link is invalid or has expired.';
-
-          try {
-            const data = await response.json();
-
-            if (typeof data.error === 'string' && data.error) {
-              errorMessage = data.error;
-            }
-          } catch {}
-
-          setStatus('error');
-          setMessage(errorMessage);
-          return;
-        }
+        await authService.verifyEmailToken(cleanToken);
 
         setStatus('success');
 
@@ -466,7 +446,29 @@ const VerifyEmail: React.FC = () => {
     verify();
   }, [token]);
 
+  const handleResend = async () => {
+    if (!verificationEmail) {
+      setStatus('error');
+      setMessage('Missing email address for resend. Please return to sign in and try again.');
+      return;
+    }
+
+    setIsResending(true);
+
+    try {
+      await authService.resendVerificationEmail(verificationEmail);
+      setStatus('pending');
+      setMessage('Verification email sent. Open your inbox and click the new verification link.');
+    } catch {
+      setStatus('error');
+      setMessage('Unable to resend verification email right now. Please try again shortly.');
+    } finally {
+      setIsResending(false);
+    }
+  };
+
   const isLoading = status === 'verifying';
+  const isPending = status === 'pending';
   const isSuccess = status === 'success';
   const isError = status === 'error';
 
@@ -559,6 +561,7 @@ const VerifyEmail: React.FC = () => {
               </div>
 
               <h1 className="ve-heading">
+                {isPending && 'Verify your email'}
                 {isLoading && 'Verifying your email'}
                 {isSuccess && 'Email verified'}
                 {isError && 'Verification failed'}
@@ -575,6 +578,33 @@ const VerifyEmail: React.FC = () => {
                       Go to sign in
                       <ArrowRight size={16} />
                     </Link>
+                  ) : isPending ? (
+                    <>
+                      {verificationEmail ? (
+                        <button
+                          type="button"
+                          className="ve-btn"
+                          onClick={handleResend}
+                          disabled={isResending}
+                        >
+                          {isResending ? 'Sending email...' : 'Resend verification email'}
+                          <ArrowRight size={16} />
+                        </button>
+                      ) : (
+                        <Link to="/register" className="ve-btn">
+                          Return to registration
+                          <ArrowRight size={16} />
+                        </Link>
+                      )}
+
+                      <Link
+                        to="/login"
+                        className="ve-btn-secondary"
+                      >
+                        <ArrowLeft size={15} />
+                        Back to sign in
+                      </Link>
+                    </>
                   ) : (
                     <>
                       <Link

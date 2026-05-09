@@ -292,6 +292,17 @@ class AuthService {
     }
   }
 
+  async verifyEmailToken(token: string): Promise<void> {
+    try {
+      await this.client.post('/api/notifications/email-verification/verify/', { token });
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error;
+      }
+      throw new AuthenticationError('Failed to verify email token');
+    }
+  }
+
   async requestPasswordReset(email: string): Promise<void> {
     try {
       await this.client.post('/api/notifications/password-reset/request/', { email });

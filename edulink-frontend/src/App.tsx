@@ -208,6 +208,7 @@ function App() {
             {/* Auth routes without layout */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/verify-email/:token/" element={<VerifyEmail />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route
