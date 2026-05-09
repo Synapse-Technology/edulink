@@ -26,7 +26,7 @@ class EmailNotificationServiceTests(TestCase):
         notification = Notification.objects.create(
             recipient_id=uuid.uuid4(),
             type=Notification.TYPE_LOGBOOK_REPORT_GENERATED,
-            channel=Notification.CHANNEL_EMAIL,
+            channel=Notification.CHANNEL_IN_APP,
             status=Notification.STATUS_PENDING,
             title="Your logbook report is ready",
             body="A comprehensive report of your internship logbooks has been compiled.",

@@ -38,7 +38,7 @@ def create_notification(
     type: str,
     title: str,
     body: str,
-    channel: str = Notification.CHANNEL_EMAIL,
+    channel: str = Notification.CHANNEL_IN_APP,
     template_name: str = "",
     related_entity_type: str = "",
     related_entity_id: Optional[str] = None,
@@ -441,7 +441,7 @@ def send_supervisor_assigned_notification(*, supervisor_id: str, student_name: s
             type=Notification.TYPE_SUPERVISOR_ASSIGNED,
             title="New Student Assigned",
             body=f"You have been assigned as supervisor for {student_name}.",
-            channel=Notification.CHANNEL_EMAIL,
+            channel=Notification.CHANNEL_IN_APP,
             related_entity_type="InternshipApplication",
             related_entity_id=application_id,
             actor_id=actor_id
@@ -1028,7 +1028,7 @@ def notify_institution_interested_users(*, institution_name: str, institution_do
                 type="INSTITUTION_ONBOARDED",
                 title=f"{institution_name} is now available",
                 body=f"{institution_name} has been verified and is now available on Edulink.",
-                channel=Notification.CHANNEL_EMAIL,
+                channel=Notification.CHANNEL_IN_APP,
                 related_entity_type="InstitutionInterest",
                 related_entity_id=str(interest.id),
             )
@@ -1161,6 +1161,8 @@ def mark_notification_read(*, notification_id: str) -> bool:
 def get_user_notifications(*, user_id: str, status: Optional[str] = None, limit: int = 50) -> List[Notification]:
     """
     Get notifications for a specific user.
+    Returns only in-app notifications, excluding email notifications.
+    Email notifications are tracked separately and not displayed in the app.
     
     Args:
         user_id: UUID of the user
@@ -1168,9 +1170,12 @@ def get_user_notifications(*, user_id: str, status: Optional[str] = None, limit:
         limit: Maximum number of notifications to return
     
     Returns:
-        List[Notification]: List of notifications
+        List[Notification]: List of in-app notifications
     """
-    queryset = Notification.objects.filter(recipient_id=user_id)
+    queryset = Notification.objects.filter(
+        recipient_id=user_id,
+        channel=Notification.CHANNEL_IN_APP  # Only return in-app notifications
+    )
     
     if status:
         queryset = queryset.filter(status=status)
@@ -1180,16 +1185,18 @@ def get_user_notifications(*, user_id: str, status: Optional[str] = None, limit:
 
 def get_unread_notification_count(*, user_id: str) -> int:
     """
-    Get count of unread notifications for a user.
+    Get count of unread in-app notifications for a user.
+    Email notifications are not included in the unread count.
     
     Args:
         user_id: UUID of the user
     
     Returns:
-        int: Count of unread notifications
+        int: Count of unread in-app notifications
     """
     return Notification.objects.filter(
         recipient_id=user_id,
+        channel=Notification.CHANNEL_IN_APP,  # Only count in-app notifications
         status__in=[Notification.STATUS_SENT, Notification.STATUS_DELIVERED]
     ).count()
 
@@ -1250,7 +1257,7 @@ def send_email_notification(*, recipient_email: str, subject: str, template_name
             type=notification_type,
             title=subject,
             body=body_content,
-            channel=Notification.CHANNEL_EMAIL,
+            channel=Notification.CHANNEL_IN_APP,
             template_name=template_name,
             related_entity_type=context.get("related_entity_type", ""),
             related_entity_id=context.get("related_entity_id"),
@@ -2093,7 +2100,7 @@ def send_document_uploaded_notification(*, user_id: str, document_type: str, fil
             type=Notification.TYPE_DOCUMENT_UPLOADED,
             title="Document Uploaded",
             body=f"Your document {context['document_type']} ({file_name}) has been uploaded successfully.",
-            channel=Notification.CHANNEL_EMAIL,
+            channel=Notification.CHANNEL_IN_APP,
             related_entity_type="Student", # or Document if we had a model
             related_entity_id=None, # We don't have a document ID, so using None or maybe student ID?
             actor_id=user_id
@@ -2205,7 +2212,7 @@ def send_institution_interest_outreach_notification(*, recipient_email: str, ins
                 type=Notification.TYPE_INSTITUTION_INTEREST_OUTREACH,
                 title=f"Interest in {institution_name} recorded",
                 body=f"We've recorded your request for {institution_name} and our team is looking into it.",
-                channel=Notification.CHANNEL_EMAIL,
+                channel=Notification.CHANNEL_IN_APP,
                 actor_id=actor_id
             )
             
@@ -2246,7 +2253,7 @@ def send_certificate_generated_notification(*, student_email: str, student_name:
                 type=Notification.TYPE_CERTIFICATE_GENERATED,
                 title="Certificate Available",
                 body=f"Your certificate for {position} at {employer_name} is ready.",
-                channel=Notification.CHANNEL_EMAIL,
+                channel=Notification.CHANNEL_IN_APP,
                 related_entity_type="Artifact",
                 related_entity_id=artifact_id,
                 actor_id=actor_id
@@ -2288,7 +2295,7 @@ def send_performance_summary_generated_notification(*, student_email: str, stude
                 type=Notification.TYPE_PERFORMANCE_SUMMARY_GENERATED,
                 title="Performance Summary Available",
                 body=f"Your performance summary for {employer_name} is ready.",
-                channel=Notification.CHANNEL_EMAIL,
+                channel=Notification.CHANNEL_IN_APP,
                 related_entity_type="Artifact",
                 related_entity_id=artifact_id,
                 actor_id=actor_id
@@ -2330,7 +2337,7 @@ def send_logbook_report_generated_notification(*, student_email: str, student_na
                 type=Notification.TYPE_LOGBOOK_REPORT_GENERATED,
                 title="Logbook Report Available",
                 body=f"Your logbook report for {employer_name} is ready.",
-                channel=Notification.CHANNEL_EMAIL,
+                channel=Notification.CHANNEL_IN_APP,
                 related_entity_type="Artifact",
                 related_entity_id=artifact_id,
                 actor_id=actor_id
@@ -2397,7 +2404,7 @@ def send_internship_application_submitted_notification(*, application_id: str, s
             type=Notification.TYPE_INTERNSHIP_APPLICATION_SUBMITTED,
             title="Application Submitted",
             body=f"Your application for {opportunity_title} at {employer_name} has been submitted.",
-            channel=Notification.CHANNEL_EMAIL,
+            channel=Notification.CHANNEL_IN_APP,
             related_entity_type="InternshipApplication",
             related_entity_id=application_id,
             actor_id=actor_id
@@ -2446,7 +2453,7 @@ def send_internship_application_status_update_notification(*, application_id: st
             type=notif_type,
             title=f"Application {status.title()}",
             body=f"Your application for {opportunity_title} has been {status.lower()}.",
-            channel=Notification.CHANNEL_EMAIL,
+            channel=Notification.CHANNEL_IN_APP,
             related_entity_type="InternshipApplication",
             related_entity_id=application_id,
             actor_id=actor_id
@@ -2491,7 +2498,7 @@ def send_internship_final_feedback_submitted_notification(*, application_id: str
             type=Notification.TYPE_INTERNSHIP_FINAL_FEEDBACK_SUBMITTED,
             title="Internship Feedback Received",
             body=f"You have received final feedback for your internship at {employer_name}.",
-            channel=Notification.CHANNEL_EMAIL,
+            channel=Notification.CHANNEL_IN_APP,
             related_entity_type="InternshipApplication",
             related_entity_id=application_id,
             actor_id=actor_id
@@ -2535,7 +2542,7 @@ def send_incident_resolved_notification(*, incident_id: str, recipient_id: str, 
             type=Notification.TYPE_INCIDENT_RESOLVED, # Needs to be added to models
             title="Incident Resolved",
             body=f"The incident '{incident_title}' has been resolved.",
-            channel=Notification.CHANNEL_EMAIL,
+            channel=Notification.CHANNEL_IN_APP,
             related_entity_type="Incident",
             related_entity_id=incident_id,
             actor_id=actor_id
@@ -2588,7 +2595,7 @@ def send_trust_tier_changed_notification(*, entity_id: str, entity_type: str, ol
             type=Notification.TYPE_TRUST_TIER_CHANGED,
             title="Trust Tier Updated",
             body=f"Your trust tier has changed to {new_level_label}.",
-            channel=Notification.CHANNEL_EMAIL,
+            channel=Notification.CHANNEL_IN_APP,
             related_entity_type=entity_type,
             related_entity_id=entity_id,
             actor_id=actor_id
@@ -2637,7 +2644,7 @@ def send_evidence_submitted_notification(*, evidence_id: str, supervisor_ids: Li
                     type=Notification.TYPE_LOGBOOK_SUBMITTED,
                     title="New Evidence Submitted",
                     body=f"{student_name} has submitted new evidence: {evidence_title}",
-                    channel=Notification.CHANNEL_EMAIL,
+                    channel=Notification.CHANNEL_IN_APP,
                     related_entity_type="Evidence",
                     related_entity_id=evidence_id,
                     actor_id=actor_id
@@ -2682,7 +2689,7 @@ def send_evidence_reviewed_notification(*, evidence_id: str, student_id: str, ev
             type=Notification.TYPE_LOGBOOK_REVIEWED,
             title="Evidence Reviewed",
             body=f"Your evidence '{evidence_title}' has been reviewed by {reviewer_name}.",
-            channel=Notification.CHANNEL_EMAIL,
+            channel=Notification.CHANNEL_IN_APP,
             related_entity_type="Evidence",
             related_entity_id=evidence_id,
             actor_id=actor_id
@@ -2731,7 +2738,7 @@ def send_incident_reported_notification(*, incident_id: str, recipient_ids: List
                     type=Notification.TYPE_INCIDENT_REPORTED,
                     title="Incident Reported",
                     body=f"A new incident has been reported: {title}",
-                    channel=Notification.CHANNEL_EMAIL,
+                    channel=Notification.CHANNEL_IN_APP,
                     related_entity_type="Incident",
                     related_entity_id=incident_id,
                     actor_id=actor_id
