@@ -20,6 +20,7 @@ REQUIRE_CV_FOR_APPLICATIONS = os.environ.get(
 ALLOWED_HOSTS = [
     "edulink.jhubafrica.com",
     "www.edulink.jhubafrica.com",
+    "api.edulinkcareer.me",
     ".onrender.com",
     ".edulinkcareer.me"
 ]
@@ -27,6 +28,7 @@ ALLOWED_HOSTS = [
 CSRF_TRUSTED_ORIGINS = [
     "https://edulink.jhubafrica.com",
     "https://www.edulink.jhubafrica.com",
+    "https://api.edulinkcareer.me",
     "https://edulink-frontend-mb63.onrender.com",
     "https://edulinkcareer.me",
     "https://www.edulinkcareer.me",
@@ -85,6 +87,7 @@ CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = [
     "https://edulink.jhubafrica.com",
     "https://www.edulink.jhubafrica.com",
+    "https://api.edulinkcareer.me",
     "https://edulink-frontend-mb63.onrender.com",
     "https://edulinkcareer.me",
     "https://www.edulinkcareer.me",
