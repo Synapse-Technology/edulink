@@ -89,6 +89,16 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
               </li>
             ))}
           </ul>
+
+          <div className="mobile-auth-actions">
+            <Link to="/login" className="mobile-btn-signin" onClick={closeMobileMenu}>
+              Sign In
+            </Link>
+
+            <Link to="/register" className="mobile-btn-getstarted" onClick={closeMobileMenu}>
+              Get Started
+            </Link>
+          </div>
         </nav>
 
         <div className="header-actions">
@@ -346,6 +356,10 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
           display: none;
         }
 
+        .mobile-auth-actions {
+          display: none;
+        }
+
         @media (max-width: 1100px) {
           .header-container {
             gap: 16px;
@@ -406,6 +420,39 @@ const Header: React.FC<HeaderProps> = ({ className = '' }) => {
 
           .mobile-nav-toggle {
             display: inline-flex;
+          }
+
+          .mobile-auth-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            padding: 0 8px 8px;
+            border-top: 1px solid rgba(15, 23, 42, 0.08);
+            background: #ffffff;
+          }
+
+          .mobile-btn-signin,
+          .mobile-btn-getstarted {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 42px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 800;
+            text-decoration: none;
+          }
+
+          .mobile-btn-signin {
+            color: #334155;
+            border: 1px solid rgba(15, 23, 42, 0.12);
+            background: #ffffff;
+          }
+
+          .mobile-btn-getstarted {
+            color: #ffffff;
+            background: #069b8e;
+            border: 1px solid #069b8e;
           }
 
           .mobile-backdrop {
