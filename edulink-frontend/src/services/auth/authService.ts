@@ -283,7 +283,7 @@ class AuthService {
 
   async resendVerificationEmail(email: string): Promise<void> {
     try {
-      await this.client.post('/api/auth/resend-verification-email/', { email });
+      await this.client.post('/api/notifications/email-verification/resend/', { email });
     } catch (error) {
       if (error instanceof ApiError) {
         throw error;
@@ -294,7 +294,7 @@ class AuthService {
 
   async requestPasswordReset(email: string): Promise<void> {
     try {
-      await this.client.post('/api/auth/password-reset/request/', { email });
+      await this.client.post('/api/notifications/password-reset/request/', { email });
     } catch (error) {
       if (error instanceof ApiError) {
         throw error;
@@ -305,7 +305,7 @@ class AuthService {
 
   async resetPassword(token: string, newPassword: string, confirmPassword: string): Promise<void> {
     try {
-      await this.client.post('/api/auth/password-reset/confirm/', {
+      await this.client.post('/api/notifications/password-reset/reset/', {
         token,
         new_password: newPassword,
         new_password_confirm: confirmPassword,

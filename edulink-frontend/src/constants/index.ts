@@ -1,13 +1,13 @@
 // API Endpoints
 export const API_ENDPOINTS = {
   AUTH: {
-    LOGIN: '/api/auth/login/',
-    REGISTER: '/api/auth/register/',
+    LOGIN: '/api/auth/users/login/',
+    REGISTER: '/api/auth/users/register/',
     LOGOUT: '/api/auth/logout/',
-    REFRESH: '/api/auth/refresh/',
-    VERIFY_EMAIL: '/api/auth/verify-email/',
-    FORGOT_PASSWORD: '/api/auth/forgot-password/',
-    RESET_PASSWORD: '/api/auth/reset-password/',
+    REFRESH: '/api/auth/token/refresh/',
+    VERIFY_EMAIL: '/api/notifications/email-verification/verify/',
+    FORGOT_PASSWORD: '/api/notifications/password-reset/request/',
+    RESET_PASSWORD: '/api/notifications/password-reset/reset/',
   },
   USERS: {
     PROFILE: '/api/users/profile/',
