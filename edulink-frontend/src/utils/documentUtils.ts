@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { apiClient } from '../services/api/client';
 import { toast } from 'react-hot-toast';
 
@@ -11,6 +12,15 @@ export const normalizeDocumentUrl = (url: string): string => {
 
   // For relative paths, preserve backend-provided location and only normalize slash prefix.
   return url.startsWith('/') ? url : `/${url}`;
+};
+
+const shouldBypassCredentials = (url: string): boolean => {
+  try {
+    const parsedUrl = new URL(url);
+    return parsedUrl.hostname.endsWith('storage.supabase.co');
+  } catch {
+    return false;
+  }
 };
 
 const resolveContentType = (headerValue: unknown): string => {
@@ -34,11 +44,15 @@ export const fetchDocumentBlob = async (url: string): Promise<{ blobUrl: string;
   if (!url) throw new Error('URL is required');
 
   const normalizedUrl = normalizeDocumentUrl(url);
+  const requestConfig = {
+    responseType: 'blob' as const,
+    withCredentials: !shouldBypassCredentials(normalizedUrl),
+  };
 
   try {
-    const response = await apiClient.getClient().get(normalizedUrl, {
-      responseType: 'blob',
-    });
+    const response = shouldBypassCredentials(normalizedUrl)
+      ? await axios.get(normalizedUrl, requestConfig)
+      : await apiClient.getClient().get(normalizedUrl, requestConfig);
 
     const contentType = resolveContentType(response.headers['content-type']);
     const blob = new Blob([response.data], { type: contentType });
@@ -67,6 +81,10 @@ export const fetchAndOpenDocument = async (url: string) => {
   if (!url) return;
 
   const normalizedUrl = normalizeDocumentUrl(url);
+  const requestConfig = {
+    responseType: 'blob' as const,
+    withCredentials: !shouldBypassCredentials(normalizedUrl),
+  };
   const toastId = toast.loading('Opening document...');
 
   try {
@@ -78,9 +96,9 @@ export const fetchAndOpenDocument = async (url: string) => {
     }
 
     // Use normalized URL for fetching
-    const response = await apiClient.getClient().get(normalizedUrl, {
-      responseType: 'blob',
-    });
+    const response = shouldBypassCredentials(normalizedUrl)
+      ? await axios.get(normalizedUrl, requestConfig)
+      : await apiClient.getClient().get(normalizedUrl, requestConfig);
 
     // Create a Blob from the response data
     const blob = new Blob([response.data], { 
