@@ -58,26 +58,15 @@ DATABASES = {
     )
 }
 
-# Email (Mailtrap Live SMTP)
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = "live.smtp.mailtrap.io"
-EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
-EMAIL_USE_TLS = True
-EMAIL_USE_SSL = False
-EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "api").strip() or "api"
-
-# Support either EMAIL_HOST_PASSWORD or MAILTRAP_API_TOKEN on Render.
-EMAIL_HOST_PASSWORD = os.environ.get(
-    "EMAIL_HOST_PASSWORD",
-    os.environ.get("MAILTRAP_API_TOKEN", "")
-).strip()
-if not EMAIL_HOST_PASSWORD:
-    raise ImproperlyConfigured(
-        "EMAIL_HOST_PASSWORD (or MAILTRAP_API_TOKEN) must be set for Mailtrap Live SMTP in production."
-    )
-
+# Email (Mailtrap via AnyMail HTTP API)
+EMAIL_BACKEND = "anymail.backends.mailtrap.EmailBackend"
+ANYMAIL = {
+    "MAILTRAP_API_TOKEN": os.environ.get("MAILTRAP_API_TOKEN", "").strip(),
+}
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "Edulink <no-reply@edulinkcareer.me>")
-EMAIL_CONNECT_TIMEOUT = int(os.environ.get("EMAIL_CONNECT_TIMEOUT", "5"))
+
+if not ANYMAIL["MAILTRAP_API_TOKEN"]:
+    raise ImproperlyConfigured("MAILTRAP_API_TOKEN must be set in production.")
 
 # Logging
 LOGGING["root"]["level"] = "WARNING"
@@ -96,6 +85,7 @@ CORS_ALLOWED_ORIGINS = [
 # Production Apps
 INSTALLED_APPS += [
     "storages",
+    "anymail",
 ]
 
 # Media Storage (Supabase via S3)
