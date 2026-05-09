@@ -1,34 +1,52 @@
 {% extends "notifications/emails/base.html" %}
 
-{% block title %}{{ subject }} - {{ site_name }}{% endblock %}
+{% block title %}Platform Invitation{% endblock %}
+{% block pretitle %}Account Invitation{% endblock %}
+{% block heading %}You’ve been invited to join {{ site_name }}{% endblock %}
 
 {% block content %}
-<h2>{{ title }}</h2>
-
 <p>Hello,</p>
 
-<p>You have been invited to join the <strong>Edulink</strong> platform as a <strong>{{ role_display }}</strong>.</p>
+<p>
+  You have been invited to join {{ site_name }} as a
+  <strong>{{ role_display }}</strong>.
+</p>
 
 <div class="highlight-box">
-    <p>This invitation was sent by <strong>{{ sender_name }}</strong>.</p>
+
+  <div class="info-row" style="border-top: none; padding-top: 0;">
+    <div class="info-label">Invited By</div>
+    <div class="info-value">{{ sender_name }}</div>
+  </div>
+
+  <div class="info-row" style="border-bottom: none;">
+    <div class="info-label">Invitation Expires</div>
+    <div class="info-value">{{ expires_at }}</div>
+  </div>
+
 </div>
 
-<p>To accept this invitation and set up your account, please click the button below:</p>
+<p>
+  To continue, review the invitation and complete your account setup using the link below.
+</p>
 
 <div style="text-align: center;">
-    <a href="{{ action_url }}" class="email-button">
-        Accept Invitation
-    </a>
+  <a href="{{ action_url }}" class="email-button">
+    Accept Invitation
+  </a>
 </div>
 
-<div class="highlight-box">
-    <p><strong>Note:</strong> This invitation link will expire on {{ expires_at }}.</p>
-</div>
+<p style="font-size: 13px; color: #7b898c;">
+  If you were not expecting this invitation, you can safely ignore this email.
+</p>
 
-<p>If you did not expect this invitation, you can safely ignore this email.</p>
+<p>
+  For assistance, contact
+  <a href="mailto:{{ support_email }}">{{ support_email }}</a>.
+</p>
 
-<p>If you have any questions, please contact our support team at <a href="mailto:{{ support_email }}">{{ support_email }}</a>.</p>
-
-<p>Best regards,<br>
-The {{ site_name }} Team</p>
+<p>
+  Best regards,<br>
+  The {{ site_name }} Team
+</p>
 {% endblock %}

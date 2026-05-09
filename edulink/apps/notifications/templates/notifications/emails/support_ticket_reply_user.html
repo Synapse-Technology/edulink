@@ -1,23 +1,60 @@
 {% extends "notifications/emails/base.html" %}
 
-{% block title %}New Message - Support Ticket {{ tracking_code }}{% endblock %}
+{% block title %}New Support Message{% endblock %}
+{% block pretitle %}Support Update{% endblock %}
+{% block heading %}You have a new reply from support{% endblock %}
 
 {% block content %}
-<h2>New Message from Support</h2>
-<p>Dear {{ recipient_name }},</p>
-<p>A member of our support team has replied to your ticket <strong>#{{ tracking_code }}</strong> ({{ ticket_subject }}).</p>
+<p>Hello {{ recipient_name }},</p>
+
+<p>
+  A member of the Edulink support team has replied to your support ticket.
+</p>
 
 <div class="highlight-box">
-    <p><strong>Message from {{ sender_name }}:</strong></p>
-    <p style="margin-top: 12px; font-style: italic; border-left: 2px solid #1ab8aa; padding-left: 12px;">{{ message|linebreaksbr }}</p>
+
+  <div class="info-row" style="border-top: none; padding-top: 0;">
+    <div class="info-label">Ticket Reference</div>
+    <div class="info-value">#{{ tracking_code }}</div>
+  </div>
+
+  <div class="info-row">
+    <div class="info-label">Subject</div>
+    <div class="info-value">{{ ticket_subject }}</div>
+  </div>
+
+  <div class="info-row" style="border-bottom: none;">
+    <div class="info-label">Message from {{ sender_name }}</div>
+
+    <div style="
+      margin-top: 10px;
+      padding: 16px;
+      background: #ffffff;
+      border: 1px solid #dceaea;
+      border-radius: 12px;
+      color: #425255;
+      font-size: 14px;
+      line-height: 1.75;
+    ">
+      {{ message|linebreaksbr }}
+    </div>
+  </div>
+
 </div>
 
 <div style="text-align: center;">
-    <a href="{{ view_url }}" class="email-button">View Ticket & Reply</a>
+  <a href="{{ view_url }}" class="email-button">
+    View Ticket & Reply
+  </a>
 </div>
 
-<p>If the button above doesn't work, you can copy and paste the following link into your browser:</p>
-<p><small>{{ view_url }}</small></p>
+<p style="font-size: 13px; color: #7b898c;">
+  If the button does not work, copy and paste this link into your browser:<br>
+  <span style="word-break: break-all;">{{ view_url }}</span>
+</p>
 
-<p>Best regards,<br>The Edulink Support Team</p>
+<p>
+  Best regards,<br>
+  The {{ site_name }} Support Team
+</p>
 {% endblock %}

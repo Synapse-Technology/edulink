@@ -1,60 +1,144 @@
 {% extends "notifications/emails/base.html" %}
 
-{% block title %}Application Update - Edulink{% endblock %}
+{% block title %}Application Status Update{% endblock %}
+{% block pretitle %}Application Update{% endblock %}
+{% block heading %}Your application status has been updated{% endblock %}
 
 {% block content %}
-<h2>Application Status Update</h2>
-
 <p>Hello {{ applicant_name }},</p>
 
-<p>We have an update regarding your application for the <strong>{{ internship_title }}</strong> position at <strong>{{ company_name }}</strong>.</p>
+<p>
+  There is an update regarding your application for
+  <strong>{{ internship_title }}</strong>
+  at
+  <strong>{{ company_name }}</strong>.
+</p>
 
-<div class="highlight-box" style="background-color: {% if status == 'approved' %}#d1fae5{% elif status == 'rejected' %}#fee2e2{% else %}#fef3c7{% endif %}; border-left-color: {% if status == 'approved' %}#10b981{% elif status == 'rejected' %}#ef4444{% else %}#f59e0b{% endif %};">
-    <p><strong>Your application status has been updated to: {{ status|title }}</strong></p>
-    {% if status_message %}
-    <p style="margin-top: 10px; font-size: 14px;">{{ status_message }}</p>
-    {% endif %}
+<div class="highlight-box">
+
+  <div class="info-row" style="border-top: none; padding-top: 0;">
+    <div class="info-label">Position</div>
+    <div class="info-value">{{ internship_title }}</div>
+  </div>
+
+  <div class="info-row">
+    <div class="info-label">Organization</div>
+    <div class="info-value">{{ company_name }}</div>
+  </div>
+
+  <div class="info-row">
+    <div class="info-label">Application Date</div>
+    <div class="info-value">{{ application_date }}</div>
+  </div>
+
+  <div class="info-row" style="border-bottom: none;">
+    <div class="info-label">Current Status</div>
+
+    <div class="info-value">
+      <span style="
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background:
+          {% if status == 'approved' %}
+            #eef9f7
+          {% elif status == 'rejected' %}
+            #fdecec
+          {% else %}
+            #f3f7f7
+          {% endif %};
+        color:
+          {% if status == 'approved' %}
+            #0f8f83
+          {% elif status == 'rejected' %}
+            #b42318
+          {% else %}
+            #425255
+          {% endif %};
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      ">
+        {{ status|title }}
+      </span>
+    </div>
+  </div>
+
 </div>
 
-{% if status == 'approved' and next_steps %}
-    <p><strong>Next Steps:</strong></p>
-    <div style="background-color: #f3f4f6; padding: 20px; border-radius: 5px; margin: 20px 0;">
-        {{ next_steps|linebreaks }}
+{% if status_message %}
+<div class="highlight-box">
+
+  <div class="info-row" style="border-top: none; padding-top: 0; border-bottom: none;">
+    <div class="info-label">Additional Information</div>
+
+    <div style="
+      margin-top: 10px;
+      color: #4f5f62;
+      font-size: 14px;
+      line-height: 1.75;
+    ">
+      {{ status_message }}
     </div>
-    
-    {% if interview_date %}
-    <p><strong>Interview Scheduled:</strong> {{ interview_date }}</p>
-    {% endif %}
-    
-    <div style="text-align: center; margin: 30px 0;">
-        <a href="{{ dashboard_url }}" class="email-button">View Application</a>
-    </div>
-{% elif status == 'rejected' %}
-    <p>We encourage you to continue applying for other opportunities on our platform. Your skills and experience are valuable, and we're here to help you find the right fit.</p>
-    
-    <div style="text-align: center;">
-        <a href="{{ opportunities_url }}" class="email-button">Browse Opportunities</a>
-    </div>
-{% else %}
-    <p>We'll keep you updated as your application progresses through the review process.</p>
-    
-    <div style="text-align: center; margin: 30px 0;">
-        <a href="{{ dashboard_url }}" class="email-button">View Application Status</a>
-    </div>
+  </div>
+
+</div>
 {% endif %}
 
-<div class="divider"></div>
+{% if next_steps %}
+<div class="highlight-box">
 
-<p><strong>Application Details:</strong></p>
-<ul>
-    <li><strong>Position:</strong> {{ internship_title }}</li>
-    <li><strong>Company:</strong> {{ company_name }}</li>
-    <li><strong>Applied on:</strong> {{ application_date }}</li>
-    <li><strong>Current Status:</strong> {{ status|title }}</li>
-</ul>
+  <div class="info-row" style="border-top: none; padding-top: 0; border-bottom: none;">
+    <div class="info-label">Next Steps</div>
 
-<p>If you have any questions about your application, please don't hesitate to contact us at <a href="mailto:{{ support_email }}">{{ support_email }}</a></p>
+    <div style="
+      margin-top: 10px;
+      color: #4f5f62;
+      font-size: 14px;
+      line-height: 1.75;
+    ">
+      {{ next_steps|linebreaks }}
+    </div>
+  </div>
 
-<p>Best regards,<br>
-<strong>The Edulink Team</strong></p>
+</div>
+{% endif %}
+
+{% if interview_date %}
+<div class="highlight-box">
+
+  <div class="info-row" style="border-top: none; padding-top: 0; border-bottom: none;">
+    <div class="info-label">Interview Schedule</div>
+    <div class="info-value">{{ interview_date }}</div>
+  </div>
+
+</div>
+{% endif %}
+
+<div style="text-align: center;">
+  {% if status == 'rejected' %}
+  <a href="{{ opportunities_url }}" class="email-button">
+    Browse Opportunities
+  </a>
+  {% else %}
+  <a href="{{ dashboard_url }}" class="email-button">
+    View Application
+  </a>
+  {% endif %}
+</div>
+
+<p>
+  Additional updates and application activity can be monitored from your dashboard.
+</p>
+
+<p>
+  For assistance, contact
+  <a href="mailto:{{ support_email }}">{{ support_email }}</a>.
+</p>
+
+<p>
+  Best regards,<br>
+  The {{ site_name }} Team
+</p>
 {% endblock %}

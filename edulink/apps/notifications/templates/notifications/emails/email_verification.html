@@ -1,29 +1,64 @@
 {% extends "notifications/emails/base.html" %}
 
-{% block title %}Verify Your Email Address - {{ site_name }}{% endblock %}
+{% block title %}Verify Your Email Address{% endblock %}
+{% block pretitle %}Account Verification{% endblock %}
+{% block heading %}Verify your email address{% endblock %}
 
 {% block content %}
-<h2>Welcome to {{ site_name }}!</h2>
-
 <p>Hello,</p>
 
-<p>Thank you for signing up for {{ site_name }}. To complete your registration and start using our platform, please verify your email address by clicking the button below:</p>
+<p>
+  Thank you for creating an account on {{ site_name }}.
+</p>
+
+<p>
+  To complete account setup and activate platform access, verify your email address using the secure link below.
+</p>
 
 <div style="text-align: center;">
-    <a href="{{ verification_url }}" class="email-button">
-        Verify Email Address
-    </a>
+  <a href="{{ verification_url }}" class="email-button">
+    Verify Email Address
+  </a>
 </div>
 
 <div class="highlight-box">
-    <p><strong>Having trouble with the button?</strong> Copy and paste this link into your browser:</p>
-    <p style="word-break: break-all; margin-top: 10px;">{{ verification_url }}</p>
+
+  <div class="info-row" style="border-top: none; padding-top: 0;">
+    <div class="info-label">Verification Link Expiration</div>
+    <div class="info-value">24 Hours</div>
+  </div>
+
+  <div class="info-row" style="border-bottom: none;">
+    <div class="info-label">Manual Verification Link</div>
+
+    <div style="
+      margin-top: 10px;
+      padding: 14px;
+      background: #ffffff;
+      border: 1px solid #dceaea;
+      border-radius: 12px;
+      color: #4b5b5e;
+      font-size: 13px;
+      line-height: 1.7;
+      word-break: break-all;
+    ">
+      {{ verification_url }}
+    </div>
+  </div>
+
 </div>
 
-<p>This verification link will expire in 24 hours for security reasons. If the link expires, you can request a new verification email from your account settings.</p>
+<p>
+  If you did not create an account using this email address, no further action is required.
+</p>
 
-<p>If you didn't create an account with {{ site_name }}, please ignore this email or contact our support team at <a href="mailto:{{ support_email }}">{{ support_email }}</a>.</p>
+<p>
+  For assistance, contact
+  <a href="mailto:{{ support_email }}">{{ support_email }}</a>.
+</p>
 
-<p>Best regards,<br>
-The {{ site_name }} Team</p>
+<p>
+  Best regards,<br>
+  The {{ site_name }} Team
+</p>
 {% endblock %}

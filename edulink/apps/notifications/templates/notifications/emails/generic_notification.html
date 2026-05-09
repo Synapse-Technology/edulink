@@ -1,39 +1,62 @@
 {% extends "notifications/emails/base.html" %}
 
-{% block title %}{{ subject }} - {{ site_name }}{% endblock %}
+{% block title %}{{ subject }}{% endblock %}
+{% block pretitle %}Platform Notification{% endblock %}
+{% block heading %}{{ title }}{% endblock %}
 
 {% block content %}
-<h2>{{ title }}</h2>
-
 <p>Hello {{ user_name|default:"" }},</p>
 
 {% if highlight_message %}
 <div class="highlight-box">
-    <p>{{ highlight_message }}</p>
+  <p>{{ highlight_message }}</p>
 </div>
 {% endif %}
 
-{% autoescape off %}
-{{ body }}
-{% endautoescape %}
+<div style="
+  color: #47595d;
+  font-size: 15px;
+  line-height: 1.75;
+">
+  {% autoescape off %}
+  {{ body }}
+  {% endautoescape %}
+</div>
 
 {% if action_url %}
 <div style="text-align: center;">
-    <a href="{{ action_url }}" class="email-button">
-        {{ action_text|default:"View Details" }}
-    </a>
+  <a href="{{ action_url }}" class="email-button">
+    {{ action_text|default:"View Details" }}
+  </a>
 </div>
 {% endif %}
 
 {% if additional_info %}
 <div class="highlight-box">
-    <p><strong>Additional Information:</strong></p>
-    <p>{{ additional_info }}</p>
+
+  <div class="info-row" style="border-top: none; padding-top: 0; border-bottom: none;">
+    <div class="info-label">Additional Information</div>
+
+    <div style="
+      margin-top: 10px;
+      color: #4f5f62;
+      font-size: 14px;
+      line-height: 1.75;
+    ">
+      {{ additional_info }}
+    </div>
+  </div>
+
 </div>
 {% endif %}
 
-<p>If you have any questions about this notification, please contact our support team at <a href="mailto:{{ support_email }}">{{ support_email }}</a>.</p>
+<p>
+  For questions about this notification, contact
+  <a href="mailto:{{ support_email }}">{{ support_email }}</a>.
+</p>
 
-<p>Best regards,<br>
-The {{ site_name }} Team</p>
+<p>
+  Best regards,<br>
+  The {{ site_name }} Team
+</p>
 {% endblock %}

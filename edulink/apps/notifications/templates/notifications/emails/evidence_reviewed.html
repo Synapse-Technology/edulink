@@ -1,28 +1,66 @@
 {% extends "notifications/emails/base.html" %}
 
+{% block title %}Evidence Review Update{% endblock %}
+{% block pretitle %}Evidence Verification{% endblock %}
+{% block heading %}Your evidence submission has been reviewed{% endblock %}
+
 {% block content %}
-<div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-    <h2 style="color: #2c5aa0;">Evidence Reviewed</h2>
-    
-    <p>Dear {{ student_name }},</p>
-    
-    <p>Your evidence <strong>{{ evidence_title }}</strong> has been reviewed by <strong>{{ reviewer_name }}</strong>.</p>
-    
-    <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2c5aa0;">
-        <h3 style="margin-top: 0; color: #2c5aa0;">Status: {{ status|title }}</h3>
+<p>Hello {{ student_name }},</p>
+
+<p>
+  Your submitted evidence record
+  <strong>{{ evidence_title }}</strong>
+  has been reviewed by
+  <strong>{{ reviewer_name }}</strong>.
+</p>
+
+<div class="highlight-box">
+
+  <div class="info-row" style="border-top: none; padding-top: 0;">
+    <div class="info-label">Evidence</div>
+    <div class="info-value">{{ evidence_title }}</div>
+  </div>
+
+  <div class="info-row">
+    <div class="info-label">Reviewed By</div>
+    <div class="info-value">{{ reviewer_name }}</div>
+  </div>
+
+  <div class="info-row" style="border-bottom: none;">
+    <div class="info-label">Current Status</div>
+
+    <div class="info-value">
+      <span style="
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: #f3f7f7;
+        color: #425255;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      ">
+        {{ status|title }}
+      </span>
     </div>
-    
-    <p style="text-align: center; margin: 25px 0;">
-        <a href="{{ dashboard_url }}" 
-           style="background-color: #2c5aa0; color: white; padding: 12px 24px; 
-                  text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
-            View Feedback
-        </a>
-    </p>
-    
-    <p style="margin-top: 30px; font-size: 14px; color: #666;">
-        Best regards,<br>
-        The {{ site_name }} Team
-    </p>
+  </div>
+
 </div>
+
+<p>
+  Additional remarks, verification feedback, and related evidence details
+  can be reviewed from your dashboard.
+</p>
+
+<div style="text-align: center;">
+  <a href="{{ dashboard_url }}" class="email-button">
+    View Feedback
+  </a>
+</div>
+
+<p>
+  Best regards,<br>
+  The {{ site_name }} Team
+</p>
 {% endblock %}

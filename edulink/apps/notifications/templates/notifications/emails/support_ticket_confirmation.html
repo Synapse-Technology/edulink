@@ -1,20 +1,57 @@
 {% extends "notifications/emails/base.html" %}
 
-{% block title %}Support Ticket Received - {{ tracking_code }}{% endblock %}
+{% block title %}Support Request Received{% endblock %}
+{% block pretitle %}Support Confirmation{% endblock %}
+{% block heading %}We’ve received your support request{% endblock %}
 
 {% block content %}
-<h2>Support Ticket Received</h2>
-<p>Dear {{ name }},</p>
-<p>Thank you for contacting Edulink Support. We have received your request and our team will review it shortly.</p>
+<p>Hello {{ name }},</p>
+
+<p>
+  Thank you for contacting {{ site_name }} Support. Your request has been
+  successfully received and is now under review by our team.
+</p>
 
 <div class="highlight-box">
-    <p><strong>Tracking Code:</strong> {{ tracking_code }}</p>
-    <p><strong>Subject:</strong> {{ subject }}</p>
-    <p><strong>Category:</strong> {{ category }}</p>
-    <p><strong>Submitted On:</strong> {{ created_at }}</p>
+
+  <div class="info-row" style="border-top: none; padding-top: 0;">
+    <div class="info-label">Tracking Reference</div>
+    <div class="info-value">#{{ tracking_code }}</div>
+  </div>
+
+  <div class="info-row">
+    <div class="info-label">Subject</div>
+    <div class="info-value">{{ subject }}</div>
+  </div>
+
+  <div class="info-row">
+    <div class="info-label">Category</div>
+    <div class="info-value">{{ category }}</div>
+  </div>
+
+  <div class="info-row" style="border-bottom: none;">
+    <div class="info-label">Submitted</div>
+    <div class="info-value">{{ created_at }}</div>
+  </div>
+
 </div>
 
-<p>You can use the tracking code above to reference your request in any future communications. We typically respond to all inquiries within 24-48 business hours.</p>
+<p>
+  Please keep your tracking reference for future communication regarding this request.
+</p>
 
-<p>Best regards,<br>The Edulink Support Team</p>
+<p>
+  Our team typically responds within 24–48 business hours depending on request volume and complexity.
+</p>
+
+<div style="text-align: center;">
+  <a href="{{ support_url }}" class="secondary-button">
+    Contact Support
+  </a>
+</div>
+
+<p>
+  Best regards,<br>
+  The {{ site_name }} Support Team
+</p>
 {% endblock %}

@@ -1,29 +1,48 @@
 {% extends "notifications/emails/base.html" %}
 
-{% block title %}We Heard Your Interest in {{ institution_name }}{% endblock %}
+{% block title %}Institution Interest Recorded{% endblock %}
+{% block pretitle %}Institution Outreach{% endblock %}
+{% block heading %}Your institution interest request has been received{% endblock %}
 
 {% block content %}
-<h2>Hello!</h2>
+<p>Hello,</p>
 
-<p>We noticed your interest in having <strong>{{ institution_name }}</strong> join the Edulink platform.</p>
+<p>
+  We’ve recorded your interest in having
+  <strong>{{ institution_name }}</strong>
+  onboarded onto {{ site_name }}.
+</p>
 
 <div class="highlight-box">
-    <p>Thank you for helping us expand! We've recorded your request and our outreach team is now looking into onboarding your institution.</p>
+  <p>
+    Our team may review the request as part of ongoing institutional outreach
+    and onboarding efforts where applicable.
+  </p>
 </div>
 
-<p>Having your institution on Edulink will provide you and your fellow students with:</p>
+<p>
+  Institution onboarding on {{ site_name }} can support workflows related to:
+</p>
+
 <ul>
-    <li>Streamlined internship applications</li>
-    <li>Direct verification of your academic records</li>
-    <li>Official logbook tracking and supervisor reviews</li>
-    <li>Access to exclusive opportunities from our employer partners</li>
+  <li>Internship and attachment coordination</li>
+  <li>Placement supervision and verification</li>
+  <li>Digital logbook and assessment workflows</li>
+  <li>Institution-linked student verification processes</li>
 </ul>
 
-<p>We'll notify you as soon as {{ institution_name }} is active on the platform. In the meantime, feel free to explore other features of Edulink.</p>
+<p>
+  If onboarding progresses, additional updates may be communicated to relevant stakeholders and interested students.
+</p>
 
 <div style="text-align: center;">
-    <a href="{{ site_url }}/login" class="email-button">Go to Dashboard</a>
+  <a href="{{ site_url }}/login" class="email-button">
+    Open Dashboard
+  </a>
 </div>
 
-<p>Best regards,<br>The Edulink Team</p>
+<p>
+  Best regards,<br>
+  The {{ site_name }} Team
+</p>
 {% endblock %}

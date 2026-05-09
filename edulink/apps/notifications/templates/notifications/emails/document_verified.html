@@ -1,27 +1,59 @@
 {% extends "notifications/emails/base.html" %}
 
-{% block title %}Document Verified - {{ site_name }}{% endblock %}
+{% block title %}Document Verified{% endblock %}
+{% block pretitle %}Document Verification{% endblock %}
+{% block heading %}Your document has been verified{% endblock %}
 
 {% block content %}
-<h2>Document Verified</h2>
-
 <p>Hello {{ user_name }},</p>
 
-<p>Your uploaded document has been successfully verified.</p>
+<p>
+  A submitted document associated with your {{ site_name }}
+  account has been reviewed and verified successfully.
+</p>
 
 <div class="highlight-box">
-    <p><strong>Document:</strong> {{ document_type }}</p>
-    <p><strong>Status:</strong> Verified</p>
+
+  <div class="info-row" style="border-top: none; padding-top: 0;">
+    <div class="info-label">Document Type</div>
+    <div class="info-value">{{ document_type }}</div>
+  </div>
+
+  <div class="info-row" style="border-bottom: none;">
+    <div class="info-label">Verification Status</div>
+
+    <div class="info-value">
+      <span style="
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: #eef9f7;
+        color: #0f8f83;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      ">
+        Verified
+      </span>
+    </div>
+  </div>
+
 </div>
 
-<p>Your profile trust score has been updated accordingly.</p>
+<p>
+  Verified documentation may contribute to profile credibility,
+  institutional validation workflows, and placement-related verification processes.
+</p>
 
 <div style="text-align: center;">
-    <a href="{{ dashboard_url }}" class="email-button">
-        View Documents
-    </a>
+  <a href="{{ dashboard_url }}" class="email-button">
+    View Documents
+  </a>
 </div>
 
-<p>Best regards,<br>
-The {{ site_name }} Team</p>
+<p>
+  Best regards,<br>
+  The {{ site_name }} Team
+</p>
 {% endblock %}

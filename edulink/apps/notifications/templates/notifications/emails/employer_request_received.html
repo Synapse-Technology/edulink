@@ -1,19 +1,63 @@
 {% extends "notifications/emails/base.html" %}
 
 {% block title %}Employer Onboarding Request Received{% endblock %}
+{% block pretitle %}Onboarding Request{% endblock %}
+{% block heading %}Your onboarding request has been received{% endblock %}
 
 {% block content %}
-<p>Dear {{ name }},</p>
+<p>Hello {{ name }},</p>
 
-<p>Thank you for submitting your request to join Edulink as an Employer Partner.</p>
+<p>
+  Thank you for submitting a request to join {{ site_name }}
+  as an employer partner.
+</p>
 
-<p>We have received your application for <strong>{{ name }}</strong>.</p>
+<p>
+  Your onboarding request has been received successfully and is now pending review.
+</p>
 
-<p>Your tracking code is: <strong>{{ tracking_code }}</strong></p>
+<div class="highlight-box">
 
-<p>Our team will review your details, including your organization's official email ({{ official_email }}) and domain ({{ domain }}). You will receive an update within 3-5 business days.</p>
+  <div class="info-row" style="border-top: none; padding-top: 0;">
+    <div class="info-label">Tracking Reference</div>
 
-<p>You can track the status of your request on our platform using your tracking code.</p>
+    <div class="info-value" style="
+      font-family: monospace;
+      letter-spacing: 0.08em;
+      font-size: 18px;
+    ">
+      {{ tracking_code }}
+    </div>
+  </div>
 
-<p>Best regards,<br>The Edulink Team</p>
+  <div class="info-row">
+    <div class="info-label">Official Email</div>
+    <div class="info-value">{{ official_email }}</div>
+  </div>
+
+  <div class="info-row">
+    <div class="info-label">Organization Domain</div>
+    <div class="info-value">{{ domain }}</div>
+  </div>
+
+  <div class="info-row" style="border-bottom: none;">
+    <div class="info-label">Estimated Review Window</div>
+    <div class="info-value">3–5 Business Days</div>
+  </div>
+
+</div>
+
+<p>
+  During review, submitted organization information, domain ownership,
+  and related verification details may be assessed by the {{ site_name }} team.
+</p>
+
+<p>
+  Please retain your tracking reference for future communication regarding this request.
+</p>
+
+<p>
+  Best regards,<br>
+  The {{ site_name }} Team
+</p>
 {% endblock %}

@@ -1,36 +1,72 @@
 {% extends "notifications/emails/base.html" %}
 
-{% block title %}Onboarding Approved - Edulink{% endblock %}
+{% block title %}Institution Onboarding Approved{% endblock %}
+{% block pretitle %}Onboarding Approval{% endblock %}
+{% block heading %}Your institution onboarding request has been approved{% endblock %}
 
 {% block content %}
-<h2 style="color: #10b981;">Institution Onboarding Approved!</h2>
+<p>Hello {{ representative_name }},</p>
 
-<p>Dear {{ representative_name }},</p>
+<p>
+  The onboarding request submitted for
+  <strong>{{ institution_name }}</strong>
+  has been reviewed and approved successfully.
+</p>
 
-<p>Great news! Your institution onboarding request for <strong>{{ institution_name }}</strong> has been approved.</p>
+<div class="highlight-box">
 
-<div class="highlight-box" style="background-color: #f0fdf4; border-color: #dcfce7; border-left-color: #10b981;">
-    <h3 style="margin-top: 0; color: #166534; font-size: 18px;">Next Steps</h3>
-    <p>You're just one step away from accessing your institution dashboard. Please complete the setup process to activate your admin account.</p>
-    
-    <div style="text-align: center;">
-        <a href="{{ setup_url }}" class="email-button" style="background-color: #10b981; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2);">
-            Complete Setup Now
-        </a>
+  <div class="info-row" style="border-top: none; padding-top: 0;">
+    <div class="info-label">Institution</div>
+    <div class="info-value">{{ institution_name }}</div>
+  </div>
+
+  <div class="info-row">
+    <div class="info-label">Tracking Reference</div>
+
+    <div class="info-value" style="
+      font-family: monospace;
+      letter-spacing: 0.08em;
+    ">
+      {{ tracking_code }}
     </div>
+  </div>
+
+  <div class="info-row" style="border-bottom: none;">
+    <div class="info-label">Setup Link Expiration</div>
+    <div class="info-value">{{ expires_in_hours }} Hours</div>
+  </div>
+
 </div>
 
-<p><strong>What you'll do next:</strong></p>
+<p>
+  To continue with onboarding, complete the administrator setup process using the secure link below.
+</p>
+
+<div style="text-align: center;">
+  <a href="{{ setup_url }}" class="email-button">
+    Complete Setup
+  </a>
+</div>
+
+<p>
+  During setup, you may be required to:
+</p>
+
 <ul>
-    <li>Set up your admin account password</li>
-    <li>Review and accept institutional responsibilities</li>
-    <li>Configure your institution profile</li>
-    <li>Enable two-factor authentication (recommended)</li>
+  <li>Create administrator credentials</li>
+  <li>Configure institutional profile information</li>
+  <li>Review onboarding responsibilities and workflows</li>
+  <li>Configure additional security settings where applicable</li>
 </ul>
 
-<p>This setup link is unique to your email address and will expire in {{ expires_in_hours }} hours for security purposes.</p>
+<p>
+  For assistance, contact
+  <a href="mailto:{{ support_email }}">{{ support_email }}</a>
+  and reference your tracking code.
+</p>
 
-<p>If you have any questions during setup, please contact us at <a href="mailto:{{ support_email }}">{{ support_email }}</a> and reference your tracking code: <strong>{{ tracking_code }}</strong>.</p>
-
-<p>Welcome to the Edulink community!<br>The Edulink Team</p>
+<p>
+  Best regards,<br>
+  The {{ site_name }} Team
+</p>
 {% endblock %}

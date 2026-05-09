@@ -1,20 +1,58 @@
 {% extends "notifications/emails/base.html" %}
 
 {% block title %}Internship Certificate Available{% endblock %}
+{% block pretitle %}Certificate Issuance{% endblock %}
+{% block heading %}Your internship certificate is available{% endblock %}
 
 {% block content %}
-    <h2>Congratulations, {{ student_name }}!</h2>
-    
-    <p>Your professional internship certificate for the <strong>{{ position }}</strong> position at <strong>{{ employer_name }}</strong> has been generated and is now available.</p>
-    
-    <div class="highlight-box">
-        <p><strong>Tracking Code:</strong> {{ tracking_code }}</p>
-        <p>This certificate is immutably recorded on our ledger and can be verified by any third party.</p>
+<p>Hello {{ student_name }},</p>
+
+<p>
+  Your internship completion certificate for the position of
+  <strong>{{ position }}</strong>
+  at
+  <strong>{{ employer_name }}</strong>
+  has been generated successfully and is now available through your dashboard.
+</p>
+
+<div class="highlight-box">
+
+  <div class="info-row" style="border-top: none; padding-top: 0;">
+    <div class="info-label">Position</div>
+    <div class="info-value">{{ position }}</div>
+  </div>
+
+  <div class="info-row">
+    <div class="info-label">Organization</div>
+    <div class="info-value">{{ employer_name }}</div>
+  </div>
+
+  <div class="info-row" style="border-bottom: none;">
+    <div class="info-label">Tracking Reference</div>
+
+    <div class="info-value" style="
+      font-family: monospace;
+      letter-spacing: 0.08em;
+    ">
+      {{ tracking_code }}
     </div>
-    
-    <p>You can view and download your certificate directly from your dashboard.</p>
-    
-    <a href="{{ dashboard_url }}" class="email-button">Go to Dashboard</a>
-    
-    <p>We wish you all the best in your future career!</p>
+  </div>
+
+</div>
+
+<p>
+  The certificate may be used for verification, institutional documentation,
+  and professional reference purposes where applicable.
+</p>
+
+<div style="text-align: center;">
+  <a href="{{ dashboard_url }}" class="email-button">
+    View Certificate
+  </a>
+</div>
+
+<p>
+  Best regards,<br>
+  The {{ site_name }} Team
+</p>
 {% endblock %}

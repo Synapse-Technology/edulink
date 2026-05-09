@@ -1,36 +1,61 @@
 {% extends "notifications/emails/base.html" %}
 
-{% block title %}Urgent: Application Deadline Closing Soon - Edulink{% endblock %}
+{% block title %}Opportunity Deadline Closing Soon{% endblock %}
+{% block pretitle %}Opportunity Status{% endblock %}
+{% block heading %}Your opportunity closes in approximately 1 hour{% endblock %}
 
 {% block content %}
-<h2>⏰ URGENT: Application Deadline Closing in 1 Hour</h2>
-
 <p>Hello {{ employer_name }},</p>
 
-<p>Your <strong>{{ opportunity_title }}</strong> internship opportunity deadline is closing <strong>in just 1 hour</strong>!</p>
+<p>
+  The application period for
+  <strong>{{ opportunity_title }}</strong>
+  is scheduled to close in approximately one hour.
+</p>
 
-<div class="highlight-box" style="background-color: #fee2e2; border-left-color: #ef4444;">
-    <p><strong style="color: #991b1b;">Deadline: {{ deadline }}</strong></p>
-    <p style="margin-top: 10px; font-size: 14px;">Applications Received: <strong>{{ application_count }}</strong></p>
+<div class="highlight-box" style="background: #fcf8f8; border-color: #efe1e1;">
+
+  <div class="info-row" style="border-top: none; padding-top: 0;">
+    <div class="info-label">Application Deadline</div>
+    <div class="info-value">{{ deadline }}</div>
+  </div>
+
+  <div class="info-row" style="border-bottom: none;">
+    <div class="info-label">Applications Received</div>
+    <div class="info-value">{{ application_count }}</div>
+  </div>
+
 </div>
 
-<p>This is your last chance to receive new applications for this opportunity. After the deadline, the posting will automatically close.</p>
+<p>
+  Once the deadline passes, the opportunity will stop accepting new applications through the platform.
+</p>
 
-<div style="text-align: center; margin: 30px 0;">
-    <a href="{{ opportunity_url }}" class="email-button">View Opportunity Now</a>
+<div style="text-align: center;">
+  <a href="{{ opportunity_url }}" class="email-button">
+    Review Opportunity
+  </a>
 </div>
 
 <div class="divider"></div>
 
-<p><strong>Last-Minute Actions:</strong></p>
+<p>
+  Before the deadline closes, you may still:
+</p>
+
 <ul>
-    <li>✓ Review current applications</li>
-    <li>✓ Share the opportunity link to your network for final applicants</li>
-    <li><strong>Need more time?</strong> <a href="mailto:{{ support_email }}?subject=Urgent%20Deadline%20Extension%20Request%20-%20{{ opportunity_title }}">Contact support immediately</a> to request a deadline extension</li>
+  <li>Review submitted applications</li>
+  <li>Monitor final application activity</li>
+  <li>Coordinate any required deadline adjustments</li>
 </ul>
 
-<p><em>Note: Deadline extensions are subject to approval. Contact support as soon as possible if you need additional time.</em></p>
+<p>
+  For assistance, contact
+  <a href="mailto:{{ support_email }}">{{ support_email }}</a>.
+</p>
 
-<p>Best regards,<br>
-<strong>The Edulink Team</strong></p>
+<p>
+  Best regards,<br>
+  The {{ site_name }} Team
+</p>
 {% endblock %}

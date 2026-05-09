@@ -1,37 +1,62 @@
 {% extends "notifications/emails/base.html" %}
 
-{% block title %}Application Withdrawn - {{ opportunity_title }}{% endblock %}
+{% block title %}Application Withdrawn{% endblock %}
+{% block pretitle %}Application Update{% endblock %}
+{% block heading %}A candidate has withdrawn their application{% endblock %}
 
 {% block content %}
-<div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-    <h2 style="color: #d9534f;">Application Withdrawn</h2>
-    
-    <p>Dear {{ employer_name }},</p>
-    
-    <p><strong>{{ student_name }}</strong> has withdrawn their application for <strong>{{ opportunity_title }}</strong>.</p>
-    
-    <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #d9534f;">
-        <h3 style="margin-top: 0; color: #d9534f;">Withdrawal Details</h3>
-        <p><strong>Student:</strong> {{ student_name }}</p>
-        <p><strong>Opportunity:</strong> {{ opportunity_title }}</p>
-        {% if reason %}
-        <p><strong>Reason:</strong> {{ reason }}</p>
-        {% endif %}
+<p>Hello {{ employer_name }},</p>
+
+<p>
+  <strong>{{ student_name }}</strong> has withdrawn their application for
+  <strong>{{ opportunity_title }}</strong>.
+</p>
+
+<div class="highlight-box" style="background: #fcf8f8; border-color: #efe1e1;">
+
+  <div class="info-row" style="border-top: none; padding-top: 0;">
+    <div class="info-label">Candidate</div>
+    <div class="info-value">{{ student_name }}</div>
+  </div>
+
+  <div class="info-row">
+    <div class="info-label">Opportunity</div>
+    <div class="info-value">{{ opportunity_title }}</div>
+  </div>
+
+  {% if reason %}
+  <div class="info-row" style="border-bottom: none;">
+    <div class="info-label">Withdrawal Reason</div>
+
+    <div style="
+      margin-top: 10px;
+      padding: 16px;
+      background: #ffffff;
+      border: 1px solid #e9dddd;
+      border-radius: 12px;
+      color: #4f5f62;
+      font-size: 14px;
+      line-height: 1.75;
+    ">
+      {{ reason }}
     </div>
-    
-    <p>You may now review other applications for this opportunity or close the position if you've found a suitable candidate through other means.</p>
-    
-    <p style="text-align: center; margin: 25px 0;">
-        <a href="{{ dashboard_url }}" 
-           style="background-color: #2c5aa0; color: white; padding: 12px 24px; 
-                  text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
-            View Applications
-        </a>
-    </p>
-    
-    <p style="margin-top: 30px; font-size: 14px; color: #666;">
-        Best regards,<br>
-        The {{ site_name }} Team
-    </p>
+  </div>
+  {% endif %}
+
 </div>
+
+<p>
+  You may continue reviewing remaining applications and managing the opportunity through your dashboard.
+</p>
+
+<div style="text-align: center;">
+  <a href="{{ dashboard_url }}" class="email-button">
+    Review Applications
+  </a>
+</div>
+
+<p>
+  Best regards,<br>
+  The {{ site_name }} Team
+</p>
 {% endblock %}

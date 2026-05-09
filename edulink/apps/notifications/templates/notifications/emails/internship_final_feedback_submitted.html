@@ -1,23 +1,59 @@
 {% extends "notifications/emails/base.html" %}
 
-{% block title %}Internship Final Feedback Received{% endblock %}
+{% block title %}Final Internship Evaluation Available{% endblock %}
+{% block pretitle %}Placement Evaluation{% endblock %}
+{% block heading %}Your final internship feedback is available{% endblock %}
 
 {% block content %}
-    <h2>Final Feedback Received</h2>
-    
-    <p>Hello {{ student_name }},</p>
-    
-    <p>Congratulations! Your internship at <strong>{{ employer_name }}</strong> has concluded, and your supervisor has submitted their final feedback.</p>
-    
-    <div class="highlight-box">
-        {% if rating %}
-        <p><strong>Final Rating:</strong> {{ rating }} / 5</p>
-        {% endif %}
-        <p><strong>Feedback Summary:</strong></p>
-        <p style="font-style: italic;">"{{ feedback_preview }}..."</p>
+<p>Hello {{ student_name }},</p>
+
+<p>
+  The final evaluation for your internship placement at
+  <strong>{{ employer_name }}</strong>
+  has been submitted by your supervisor and is now available for review.
+</p>
+
+<div class="highlight-box">
+
+  {% if rating %}
+  <div class="info-row" style="border-top: none; padding-top: 0;">
+    <div class="info-label">Final Rating</div>
+    <div class="info-value">{{ rating }} / 5</div>
+  </div>
+  {% endif %}
+
+  <div class="info-row" style="border-bottom: none;">
+    <div class="info-label">Feedback Summary</div>
+
+    <div style="
+      margin-top: 10px;
+      padding: 16px;
+      background: #ffffff;
+      border: 1px solid #dceaea;
+      border-radius: 12px;
+      color: #4f5f62;
+      font-size: 14px;
+      line-height: 1.75;
+    ">
+      {{ feedback_preview }}...
     </div>
-    
-    <p>You can view the full details of your evaluation on your dashboard.</p>
-    
-    <a href="{{ dashboard_url }}" class="email-button">View Final Evaluation</a>
+  </div>
+
+</div>
+
+<p>
+  The evaluation may include placement observations, performance feedback,
+  and supervisor remarks recorded during your internship period.
+</p>
+
+<div style="text-align: center;">
+  <a href="{{ dashboard_url }}" class="email-button">
+    View Final Evaluation
+  </a>
+</div>
+
+<p>
+  Best regards,<br>
+  The {{ site_name }} Team
+</p>
 {% endblock %}

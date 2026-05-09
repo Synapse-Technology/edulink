@@ -1,26 +1,55 @@
 {% extends "notifications/emails/base.html" %}
 
-{% block title %}Affiliation Approved - {{ site_name }}{% endblock %}
+{% block title %}Affiliation Approved{% endblock %}
+{% block pretitle %}Affiliation Status{% endblock %}
+{% block heading %}Your affiliation request has been approved{% endblock %}
 
 {% block content %}
-<h2>Affiliation Approved</h2>
-
 <p>Hello {{ student_name }},</p>
 
-<p>We are pleased to inform you that your affiliation request with <strong>{{ institution_name }}</strong> has been approved.</p>
+<p>
+  Your affiliation request with <strong>{{ institution_name }}</strong>
+  has been reviewed and approved successfully.
+</p>
 
 <div class="highlight-box">
-    <p>You are now a verified student of {{ institution_name }} on Edulink.</p>
+
+  <div class="info-row" style="border-top: none; padding-top: 0; border-bottom: none;">
+    <div class="info-label">Verification Status</div>
+
+    <div class="info-value">
+      <span style="
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: #eef9f7;
+        color: #0f8f83;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      ">
+        Verified Student
+      </span>
+    </div>
+  </div>
+
 </div>
 
-<p>This verification adds a trust badge to your profile and allows you to participate in internship programs managed by your institution.</p>
+<p>
+  Your institution affiliation is now reflected on your {{ site_name }}
+  profile and may be used within institutional placement, verification,
+  and internship workflows.
+</p>
 
 <div style="text-align: center;">
-    <a href="{{ dashboard_url }}" class="email-button">
-        Go to Dashboard
-    </a>
+  <a href="{{ dashboard_url }}" class="email-button">
+    Open Dashboard
+  </a>
 </div>
 
-<p>Best regards,<br>
-The {{ site_name }} Team</p>
+<p>
+  Best regards,<br>
+  The {{ site_name }} Team
+</p>
 {% endblock %}

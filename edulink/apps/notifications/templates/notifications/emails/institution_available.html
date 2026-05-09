@@ -1,24 +1,37 @@
 {% extends "notifications/emails/base.html" %}
 
-{% block title %}Great News! {{ institution_name }} is on Edulink{% endblock %}
+{% block title %}Institution Now Available on {{ site_name }}{% endblock %}
+{% block pretitle %}Institution Availability{% endblock %}
+{% block heading %}{{ institution_name }} is now active on {{ site_name }}{% endblock %}
 
 {% block content %}
-<h2>Great News!</h2>
+<p>Hello,</p>
 
-<p>Hi there,</p>
-
-<p>We're excited to let you know that <strong>{{ institution_name }}</strong> is now available on Edulink!</p>
+<p>
+  <strong>{{ institution_name }}</strong>
+  is now available on {{ site_name }}.
+</p>
 
 <div class="highlight-box">
-    <p>You previously expressed interest in this institution. You can now connect with them and access their opportunities.</p>
+  <p>
+    You are receiving this update because you previously expressed interest
+    in this institution through the platform.
+  </p>
 </div>
+
+<p>
+  You can now access institution-linked workflows, opportunities,
+  and verification processes associated with {{ institution_name }} where applicable.
+</p>
 
 <div style="text-align: center;">
-    <a href="{{ dashboard_url }}" class="email-button">
-        Connect Now
-    </a>
+  <a href="{{ dashboard_url }}" class="email-button">
+    Open Dashboard
+  </a>
 </div>
 
-<p>Best regards,<br>
-The Edulink Team</p>
+<p>
+  Best regards,<br>
+  The {{ site_name }} Team
+</p>
 {% endblock %}

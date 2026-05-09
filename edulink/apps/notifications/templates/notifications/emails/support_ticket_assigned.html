@@ -1,22 +1,84 @@
 {% extends "notifications/emails/base.html" %}
 
-{% block title %}Ticket Assigned - {{ tracking_code }}{% endblock %}
+{% block title %}Support Ticket Assigned{% endblock %}
+{% block pretitle %}Support Operations{% endblock %}
+{% block heading %}A support ticket has been assigned to you{% endblock %}
 
 {% block content %}
-<h2>New Support Ticket Assigned</h2>
 <p>Hello {{ staff_name }},</p>
-<p>A new support ticket has been assigned to you for resolution.</p>
+
+<p>
+  A new support ticket has been assigned to your queue for review and resolution.
+</p>
 
 <div class="highlight-box">
-    <p><strong>Tracking Code:</strong> {{ tracking_code }}</p>
-    <p><strong>Subject:</strong> {{ subject }}</p>
-    <p><strong>Category:</strong> {{ category }}</p>
-    <p><strong>Priority:</strong> {{ priority }}</p>
+
+  <div class="info-row" style="border-top: none; padding-top: 0;">
+    <div class="info-label">Tracking Reference</div>
+    <div class="info-value">#{{ tracking_code }}</div>
+  </div>
+
+  <div class="info-row">
+    <div class="info-label">Subject</div>
+    <div class="info-value">{{ subject }}</div>
+  </div>
+
+  <div class="info-row">
+    <div class="info-label">Category</div>
+    <div class="info-value">{{ category }}</div>
+  </div>
+
+  <div class="info-row" style="border-bottom: none;">
+    <div class="info-label">Priority</div>
+
+    <div class="info-value">
+      {% if priority == "High" or priority == "Urgent" %}
+      <span style="
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: #fff4f2;
+        color: #c2410c;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      ">
+        {{ priority }}
+      </span>
+      {% else %}
+      <span style="
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: #f3f7f7;
+        color: #425255;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      ">
+        {{ priority }}
+      </span>
+      {% endif %}
+    </div>
+
+  </div>
+
 </div>
 
 <div style="text-align: center;">
-    <a href="{{ admin_url }}" class="email-button">Open in Admin Panel</a>
+  <a href="{{ admin_url }}" class="email-button">
+    Open Admin Panel
+  </a>
 </div>
 
-<p>Best regards,<br>System Notification</p>
+<p>
+  Please review and respond to the ticket within the expected support response window.
+</p>
+
+<p>
+  Regards,<br>
+  {{ site_name }} System
+</p>
 {% endblock %}

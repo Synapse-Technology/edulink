@@ -1,27 +1,71 @@
 {% extends "notifications/emails/base.html" %}
 
-{% block title %}Affiliation Update - {{ site_name }}{% endblock %}
+{% block title %}Affiliation Request Update{% endblock %}
+{% block pretitle %}Affiliation Status{% endblock %}
+{% block heading %}Your affiliation request was not approved{% endblock %}
 
 {% block content %}
-<h2>Affiliation Request Update</h2>
-
 <p>Hello {{ student_name }},</p>
 
-<p>We are writing to update you on your affiliation request with <strong>{{ institution_name }}</strong>.</p>
+<p>
+  Your affiliation request with <strong>{{ institution_name }}</strong>
+  has been reviewed and was not approved at this time.
+</p>
 
-<div class="highlight-box" style="background-color: #fee2e2; border-left-color: #ef4444;">
-    <p><strong>Status: Rejected</strong></p>
-    <p>Reason: {{ rejection_reason }}</p>
+<div class="highlight-box" style="background: #fff7f7; border-color: #f3d4d4;">
+
+  <div class="info-row" style="border-top: none; padding-top: 0;">
+    <div class="info-label">Status</div>
+
+    <div class="info-value">
+      <span style="
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: #fdecec;
+        color: #b42318;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      ">
+        Rejected
+      </span>
+    </div>
+  </div>
+
+  <div class="info-row" style="border-bottom: none;">
+    <div class="info-label">Reason</div>
+
+    <div style="
+      margin-top: 10px;
+      padding: 16px;
+      background: #ffffff;
+      border: 1px solid #f0dede;
+      border-radius: 12px;
+      color: #4f5f62;
+      font-size: 14px;
+      line-height: 1.75;
+    ">
+      {{ rejection_reason }}
+    </div>
+  </div>
+
 </div>
 
-<p>Please review the rejection reason and update your profile or contact your institution for further clarification.</p>
+<p>
+  Please review the feedback above and update your information where necessary.
+  If you require additional clarification, contact your institution directly.
+</p>
 
 <div style="text-align: center;">
-    <a href="{{ dashboard_url }}" class="email-button">
-        Update Profile
-    </a>
+  <a href="{{ dashboard_url }}" class="email-button">
+    Review Profile
+  </a>
 </div>
 
-<p>Best regards,<br>
-The {{ site_name }} Team</p>
+<p>
+  Best regards,<br>
+  The {{ site_name }} Team
+</p>
 {% endblock %}

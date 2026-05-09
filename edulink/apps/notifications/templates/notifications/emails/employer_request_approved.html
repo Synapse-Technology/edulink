@@ -1,23 +1,67 @@
 {% extends "notifications/emails/base.html" %}
 
-{% block title %}Employer Onboarding Request Approved{% endblock %}
+{% block title %}Employer Onboarding Approved{% endblock %}
+{% block pretitle %}Onboarding Approval{% endblock %}
+{% block heading %}Your onboarding request has been approved{% endblock %}
 
 {% block content %}
-<p>Dear {{ name }},</p>
+<p>Hello {{ name }},</p>
 
-<p>We are pleased to inform you that your request to join Edulink as an Employer Partner has been <strong>APPROVED</strong>.</p>
+<p>
+  Your request to join {{ site_name }} as an employer partner
+  has been reviewed and approved successfully.
+</p>
 
-<p>Your organization <strong>{{ name }}</strong> has been verified.</p>
+<div class="highlight-box">
 
-<p>Please use the link below to activate your administrator account and complete your organization's profile:</p>
+  <div class="info-row" style="border-top: none; padding-top: 0;">
+    <div class="info-label">Organization</div>
+    <div class="info-value">{{ name }}</div>
+  </div>
 
-<div style="text-align: center;">
-    <a href="{{ invite_link }}" class="email-button">Activate Account</a>
+  <div class="info-row">
+    <div class="info-label">Verification Status</div>
+
+    <div class="info-value">
+      <span style="
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: #eef9f7;
+        color: #0f8f83;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      ">
+        Verified
+      </span>
+    </div>
+  </div>
+
+  <div class="info-row" style="border-bottom: none;">
+    <div class="info-label">Activation Link Expiration</div>
+    <div class="info-value">72 Hours</div>
+  </div>
+
 </div>
 
-<p>This link is valid for 72 hours. If you did not request this, please ignore this email.</p>
+<p>
+  To continue, activate your administrator account and complete the remaining onboarding setup using the secure link below.
+</p>
 
-<p>Welcome to Edulink!</p>
+<div style="text-align: center;">
+  <a href="{{ invite_link }}" class="email-button">
+    Activate Account
+  </a>
+</div>
 
-<p>Best regards,<br>The Edulink Team</p>
+<p>
+  If you did not submit this onboarding request, no further action is required.
+</p>
+
+<p>
+  Best regards,<br>
+  The {{ site_name }} Team
+</p>
 {% endblock %}

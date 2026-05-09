@@ -1,20 +1,50 @@
 {% extends "notifications/emails/base.html" %}
 
-{% block title %}Logbook Report Generated{% endblock %}
+{% block title %}Logbook Report Available{% endblock %}
+{% block pretitle %}Placement Documentation{% endblock %}
+{% block heading %}Your logbook report has been generated{% endblock %}
 
 {% block content %}
-    <h2>Logbook Report Compiled</h2>
-    
-    <p>Hello {{ student_name }},</p>
-    
-    <p>A comprehensive report of your internship logbooks has been compiled and certified.</p>
-    
-    <p>This report includes all your verified daily entries and supervisor feedback from your time at <strong>{{ employer_name }}</strong>.</p>
-    
-    <div class="highlight-box">
-        <p><strong>Total Logbooks:</strong> {{ logbooks_count }}</p>
-        <p><strong>Tracking Code:</strong> {{ tracking_code }}</p>
-    </div>
-    
-    <a href="{{ dashboard_url }}" class="email-button">View Logbook Report</a>
+<p>Hello {{ student_name }},</p>
+
+<p>
+  A consolidated report containing your internship logbook records has been
+  successfully generated.
+</p>
+
+<p>
+  The report includes verified daily submissions, placement activity records,
+  and supervisor feedback associated with your internship at
+  <strong>{{ employer_name }}</strong>.
+</p>
+
+<div class="highlight-box">
+
+  <div class="info-row" style="border-top: none; padding-top: 0;">
+    <div class="info-label">Verified Logbooks</div>
+    <div class="info-value">{{ logbooks_count }}</div>
+  </div>
+
+  <div class="info-row" style="border-bottom: none;">
+    <div class="info-label">Tracking Reference</div>
+    <div class="info-value">{{ tracking_code }}</div>
+  </div>
+
+</div>
+
+<p>
+  This report may be referenced for institutional review, placement verification,
+  and academic documentation purposes where applicable.
+</p>
+
+<div style="text-align: center;">
+  <a href="{{ dashboard_url }}" class="email-button">
+    View Logbook Report
+  </a>
+</div>
+
+<p>
+  Best regards,<br>
+  The {{ site_name }} Team
+</p>
 {% endblock %}

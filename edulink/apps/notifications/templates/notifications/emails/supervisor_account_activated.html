@@ -1,41 +1,64 @@
 {% extends "notifications/emails/base.html" %}
 
-{% block title %}Supervisor Account Activated - Edulink{% endblock %}
+{% block title %}Supervisor Account Activated{% endblock %}
+{% block pretitle %}Account Activation{% endblock %}
+{% block heading %}Your supervisor account is active{% endblock %}
 
 {% block content %}
-<h2>Account Activated Successfully</h2>
+<p>Hello {{ user_name }},</p>
 
-<p>Dear {{ user_name }},</p>
-
-<p>Your {% if is_employer %}employer{% else %}institution{% endif %} supervisor account for <strong>{{ organization_name }}</strong> has been successfully activated.</p>
+<p>
+  Your {% if is_employer %}employer{% else %}institution{% endif %} supervisor account for
+  <strong>{{ organization_name }}</strong> has been activated successfully.
+</p>
 
 <div class="highlight-box">
+  <p>
     {% if is_employer %}
-    <p>You can now log in to the Employer Portal to manage your assigned interns and logbooks.</p>
+    You can now access the Employer Portal to review assigned interns, monitor logbooks, and support placement progress.
     {% else %}
-    <p>You can now log in to the Edulink Institution Portal to manage your department and cohorts.</p>
+    You can now access the Institution Portal to support department, cohort, assessor, and student placement workflows.
     {% endif %}
+  </p>
 </div>
 
 <div style="text-align: center;">
-    <a href="{{ login_url }}" class="email-button">
-        Log In to Dashboard
-    </a>
+  <a href="{{ login_url }}" class="email-button">
+    Open Dashboard
+  </a>
 </div>
 
-<p><strong>Account Details:</strong></p>
-<ul>
-    <li>Email: {{ email }}</li>
-    {% if department %}
-    <li>Department: {{ department }}</li>
-    {% endif %}
-    {% if cohort %}
-    <li>Cohort: {{ cohort }}</li>
-    {% endif %}
-</ul>
+<div class="highlight-box">
 
-<p>If you have any questions, please contact your {% if is_employer %}employer admin{% else %}institution admin{% endif %} or Edulink support.</p>
+  <div class="info-row" style="border-top: none; padding-top: 0;">
+    <div class="info-label">Account Email</div>
+    <div class="info-value">{{ email }}</div>
+  </div>
 
-<p>Best regards,<br>
-The Edulink Team</p>
+  {% if department %}
+  <div class="info-row">
+    <div class="info-label">Department</div>
+    <div class="info-value">{{ department }}</div>
+  </div>
+  {% endif %}
+
+  {% if cohort %}
+  <div class="info-row" style="border-bottom: none;">
+    <div class="info-label">Cohort</div>
+    <div class="info-value">{{ cohort }}</div>
+  </div>
+  {% endif %}
+
+</div>
+
+<p>
+  For questions about your role or access level, please contact your
+  {% if is_employer %}employer administrator{% else %}institution administrator{% endif %}
+  or reach out to {{ site_name }} support.
+</p>
+
+<p>
+  Best regards,<br>
+  The {{ site_name }} Team
+</p>
 {% endblock %}

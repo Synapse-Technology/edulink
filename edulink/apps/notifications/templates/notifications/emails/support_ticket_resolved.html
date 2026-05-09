@@ -1,23 +1,65 @@
 {% extends "notifications/emails/base.html" %}
 
-{% block title %}Ticket Resolved - {{ tracking_code }}{% endblock %}
+{% block title %}Support Ticket Resolved{% endblock %}
+{% block pretitle %}Support Update{% endblock %}
+{% block heading %}Your support request has been resolved{% endblock %}
 
 {% block content %}
-<h2>Support Ticket Resolved</h2>
-<p>Dear {{ name }},</p>
-<p>Your support ticket <strong>#{{ tracking_code }}</strong> has been marked as resolved.</p>
+<p>Hello {{ name }},</p>
+
+<p>
+  Your support ticket has been marked as resolved by the Edulink support team.
+</p>
 
 <div class="highlight-box">
-    <p><strong>Subject:</strong> {{ subject }}</p>
-    {% if resolution_notes %}
-    <p style="margin-top: 12px;"><strong>Resolution Notes:</strong></p>
-    <p>{{ resolution_notes|linebreaksbr }}</p>
-    {% endif %}
+
+  <div class="info-row" style="border-top: none; padding-top: 0;">
+    <div class="info-label">Ticket Reference</div>
+    <div class="info-value">#{{ tracking_code }}</div>
+  </div>
+
+  <div class="info-row">
+    <div class="info-label">Subject</div>
+    <div class="info-value">{{ subject }}</div>
+  </div>
+
+  {% if resolution_notes %}
+  <div class="info-row" style="border-bottom: none;">
+    <div class="info-label">Resolution Notes</div>
+
+    <div style="
+      margin-top: 10px;
+      padding: 16px;
+      background: #f8fbfb;
+      border-radius: 12px;
+      color: #425255;
+      font-size: 14px;
+      line-height: 1.75;
+    ">
+      {{ resolution_notes|linebreaksbr }}
+    </div>
+  </div>
+  {% endif %}
+
 </div>
 
-<p>We hope we were able to assist you effectively. If you feel this issue is not fully resolved, you can reply to the ticket or open a new one at any time.</p>
+<p>
+  If the issue is still unresolved or you need additional assistance,
+  you can reply to the existing ticket or contact support again at any time.
+</p>
 
-<p>Thank you for using Edulink!</p>
+<div style="text-align: center;">
+  <a href="{{ support_url }}" class="secondary-button">
+    Contact Support
+  </a>
+</div>
 
-<p>Best regards,<br>The Edulink Support Team</p>
+<p>
+  Thank you for using {{ site_name }}.
+</p>
+
+<p>
+  Best regards,<br>
+  The {{ site_name }} Support Team
+</p>
 {% endblock %}

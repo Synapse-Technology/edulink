@@ -1,22 +1,76 @@
 {% extends "notifications/emails/base.html" %}
 
-{% block title %}Action Required: Document Rejected - {{ site_name }}{% endblock %}
+{% block title %}Document Review Update{% endblock %}
+{% block pretitle %}Document Verification{% endblock %}
+{% block heading %}Your document was not approved{% endblock %}
 
 {% block content %}
-<h2>Document Rejected</h2>
-
 <p>Hello {{ user_name }},</p>
 
-<p>We reviewed your uploaded document <strong>{{ document_type }}</strong>, and unfortunately, it was rejected.</p>
+<p>
+  The submitted document
+  <strong>{{ document_type }}</strong>
+  was reviewed and could not be approved at this time.
+</p>
 
-<div class="highlight-box" style="border-left: 4px solid #dc3545; background-color: #f8d7da; color: #721c24;">
-    <p><strong>Reason for Rejection:</strong></p>
-    <p>{{ reason }}</p>
+<div class="highlight-box" style="background: #fcf8f8; border-color: #efe1e1;">
+
+  <div class="info-row" style="border-top: none; padding-top: 0;">
+    <div class="info-label">Document Type</div>
+    <div class="info-value">{{ document_type }}</div>
+  </div>
+
+  <div class="info-row">
+    <div class="info-label">Review Status</div>
+
+    <div class="info-value">
+      <span style="
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: #fdecec;
+        color: #b42318;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      ">
+        Not Approved
+      </span>
+    </div>
+  </div>
+
+  <div class="info-row" style="border-bottom: none;">
+    <div class="info-label">Review Notes</div>
+
+    <div style="
+      margin-top: 10px;
+      padding: 16px;
+      background: #ffffff;
+      border: 1px solid #e9dddd;
+      border-radius: 12px;
+      color: #4f5f62;
+      font-size: 14px;
+      line-height: 1.75;
+    ">
+      {{ reason }}
+    </div>
+  </div>
+
 </div>
 
-<p>Please review the reason above and upload a valid document to proceed with your verification.</p>
+<p>
+  Please review the feedback provided and upload an updated document where necessary.
+</p>
 
 <div style="text-align: center;">
-    <a href="{{ dashboard_url }}" class="email-button">Update Document</a>
+  <a href="{{ dashboard_url }}" class="email-button">
+    Update Document
+  </a>
 </div>
+
+<p>
+  Best regards,<br>
+  The {{ site_name }} Team
+</p>
 {% endblock %}

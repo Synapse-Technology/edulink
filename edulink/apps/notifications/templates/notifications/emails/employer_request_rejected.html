@@ -1,17 +1,73 @@
 {% extends "notifications/emails/base.html" %}
 
-{% block title %}Employer Onboarding Request Rejected{% endblock %}
+{% block title %}Employer Onboarding Request Update{% endblock %}
+{% block pretitle %}Onboarding Review{% endblock %}
+{% block heading %}Your onboarding request was not approved{% endblock %}
 
 {% block content %}
-<p>Dear {{ name }},</p>
+<p>Hello {{ name }},</p>
 
-<p>Thank you for your interest in joining Edulink.</p>
+<p>
+  Thank you for your interest in joining {{ site_name }}.
+</p>
 
-<p>After careful review of your application for <strong>{{ name }}</strong>, we regret to inform you that we are unable to approve your request at this time.</p>
+<p>
+  Following review of your employer onboarding request, we are unable to approve the application at this time.
+</p>
 
-<p><strong>Reason:</strong> {{ rejection_reason }}</p>
+<div class="highlight-box" style="background: #fcf8f8; border-color: #efe1e1;">
 
-<p>If you believe this decision was made in error or if you have additional information to provide, please contact our support team or submit a new request with updated details.</p>
+  <div class="info-row" style="border-top: none; padding-top: 0;">
+    <div class="info-label">Application Status</div>
 
-<p>Best regards,<br>The Edulink Team</p>
+    <div class="info-value">
+      <span style="
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: #fdecec;
+        color: #b42318;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      ">
+        Not Approved
+      </span>
+    </div>
+  </div>
+
+  <div class="info-row" style="border-bottom: none;">
+    <div class="info-label">Review Notes</div>
+
+    <div style="
+      margin-top: 10px;
+      padding: 16px;
+      background: #ffffff;
+      border: 1px solid #e9dddd;
+      border-radius: 12px;
+      color: #4f5f62;
+      font-size: 14px;
+      line-height: 1.75;
+    ">
+      {{ rejection_reason }}
+    </div>
+  </div>
+
+</div>
+
+<p>
+  If additional information becomes available or corrections are required,
+  you may submit a new onboarding request or contact support for clarification.
+</p>
+
+<p>
+  For assistance, contact
+  <a href="mailto:{{ support_email }}">{{ support_email }}</a>.
+</p>
+
+<p>
+  Best regards,<br>
+  The {{ site_name }} Team
+</p>
 {% endblock %}

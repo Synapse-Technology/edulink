@@ -1,40 +1,93 @@
 {% extends "notifications/emails/base.html" %}
 
-{% block title %}Onboarding Update - Edulink{% endblock %}
+{% block title %}Institution Onboarding Update{% endblock %}
+{% block pretitle %}Onboarding Review{% endblock %}
+{% block heading %}Your onboarding request was not approved{% endblock %}
 
 {% block content %}
-<h2 style="color: #ef4444;">Institution Onboarding Update</h2>
+<p>Hello {{ representative_name }},</p>
 
-<p>Dear {{ representative_name }},</p>
+<p>
+  Thank you for your interest in onboarding
+  <strong>{{ institution_name }}</strong>
+  onto {{ site_name }}.
+</p>
 
-<p>Thank you for your interest in bringing <strong>{{ institution_name }}</strong> to Edulink.</p>
+<p>
+  Following review of the submitted information, we are unable to approve the onboarding request at this time.
+</p>
 
-<div class="highlight-box" style="background-color: #fef2f2; border-color: #fee2e2; border-left-color: #ef4444;">
-    <h3 style="margin-top: 0; color: #991b1b; font-size: 18px;">Application Status</h3>
-    <p>After careful review, we are unable to approve your institution onboarding request at this time.</p>
-    
-    <p style="margin-top: 16px;"><strong>Reason:</strong></p>
-    <div style="background-color: #ffffff; padding: 16px; border-radius: 8px; margin: 8px 0; border: 1px solid #fee2e2; font-style: italic; color: #7f1d1d;">
-        {{ rejection_reason }}
+<div class="highlight-box" style="background: #fcf8f8; border-color: #efe1e1;">
+
+  <div class="info-row" style="border-top: none; padding-top: 0;">
+    <div class="info-label">Application Status</div>
+
+    <div class="info-value">
+      <span style="
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: #fdecec;
+        color: #b42318;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      ">
+        Not Approved
+      </span>
     </div>
+  </div>
+
+  <div class="info-row">
+    <div class="info-label">Tracking Reference</div>
+
+    <div class="info-value" style="
+      font-family: monospace;
+      letter-spacing: 0.08em;
+    ">
+      {{ tracking_code }}
+    </div>
+  </div>
+
+  <div class="info-row" style="border-bottom: none;">
+    <div class="info-label">Review Notes</div>
+
+    <div style="
+      margin-top: 10px;
+      padding: 16px;
+      background: #ffffff;
+      border: 1px solid #e9dddd;
+      border-radius: 12px;
+      color: #4f5f62;
+      font-size: 14px;
+      line-height: 1.75;
+    ">
+      {{ rejection_reason }}
+    </div>
+  </div>
+
 </div>
 
-<p><strong>What you can do next:</strong></p>
-<ul>
-    <li>Review the feedback above and address any issues</li>
-    <li>Gather additional documentation or information</li>
-    <li>Resubmit your application when ready</li>
-</ul>
+<p>
+  You may review the feedback provided, update the required information,
+  and resubmit your onboarding request when ready.
+</p>
 
 <div style="text-align: center;">
-    <a href="{{ resubmit_url }}" class="email-button" style="background-color: #3b82f6; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.2);">
-        Resubmit Application
-    </a>
+  <a href="{{ resubmit_url }}" class="email-button">
+    Resubmit Application
+  </a>
 </div>
 
-<p>We encourage you to resubmit your application once you've addressed the concerns mentioned above. Our team is here to support you through this process.</p>
+<p>
+  If clarification is required, contact
+  <a href="mailto:{{ support_email }}">{{ support_email }}</a>
+  and reference your tracking code.
+</p>
 
-<p>If you have any questions or need clarification, please contact us at <a href="mailto:{{ support_email }}">{{ support_email }}</a> and reference your tracking code: <strong>{{ tracking_code }}</strong>.</p>
-
-<p>Thank you for your interest in Edulink.<br>The Edulink Team</p>
+<p>
+  Best regards,<br>
+  The {{ site_name }} Team
+</p>
 {% endblock %}

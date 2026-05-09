@@ -1,36 +1,50 @@
 {% extends "notifications/emails/base.html" %}
 
-{% block title %}Application Deadline Closing Soon - Edulink{% endblock %}
+{% block title %}Application Deadline Reminder{% endblock %}
+{% block pretitle %}Opportunity Reminder{% endblock %}
+{% block heading %}An application deadline is approaching{% endblock %}
 
 {% block content %}
-<h2>⏰ Your Opportunity Closes in 24 Hours!</h2>
-
 <p>Hello {{ student_name }},</p>
 
-<p>Great news! The <strong>{{ opportunity_title }}</strong> opportunity you're interested in is <strong>closing in 24 hours</strong>.</p>
+<p>
+  The application window for <strong>{{ opportunity_title }}</strong>
+  is scheduled to close within the next 24 hours.
+</p>
 
-<div class="highlight-box" style="background-color: #fef3c7; border-left-color: #f59e0b;">
-    <p><strong>Application Deadline: {{ deadline }}</strong></p>
-    <p style="margin-top: 10px; font-size: 14px;">Don't miss this opportunity!</p>
+<div class="highlight-box">
+
+  <div class="info-row" style="border-top: none; padding-top: 0; border-bottom: none;">
+    <div class="info-label">Application Deadline</div>
+    <div class="info-value">{{ deadline }}</div>
+  </div>
+
 </div>
 
-<p>This is your last chance to submit an application or take your next action with this opportunity. Whether you're interested in applying or want to follow up on your current application, now is the time to act.</p>
+<p>
+  If you intend to apply, we recommend reviewing the opportunity requirements
+  and submitting your application before the deadline.
+</p>
 
-<div style="text-align: center; margin: 30px 0;">
-    <a href="{{ opportunity_url }}" class="email-button">View Opportunity</a>
+<div style="text-align: center;">
+  <a href="{{ opportunity_url }}" class="email-button">
+    View Opportunity
+  </a>
 </div>
 
 <div class="divider"></div>
 
-<p><strong>What You Should Do Now:</strong></p>
-<ul>
-    <li>✓ If you haven't applied yet, <a href="{{ opportunity_url }}">review the opportunity details</a> and submit your application</li>
-    <li>✓ If you've already applied, no further action needed – the employer will review your application</li>
-    <li>✓ Missing this deadline? Check your <a href="{{ dashboard_url }}">dashboard</a> for other great opportunities</li>
-</ul>
+<p>
+  If you have already submitted an application, no further action is required at this stage.
+</p>
 
-<p><strong>Don't lose track of your opportunities!</strong> Save this email or <a href="{{ dashboard_url }}">check your applications dashboard</a> to see all your opportunities in one place.</p>
+<p>
+  You can also review other available opportunities from your
+  <a href="{{ dashboard_url }}">student dashboard</a>.
+</p>
 
-<p>Best regards,<br>
-<strong>The Edulink Team</strong></p>
+<p>
+  Best regards,<br>
+  The {{ site_name }} Team
+</p>
 {% endblock %}

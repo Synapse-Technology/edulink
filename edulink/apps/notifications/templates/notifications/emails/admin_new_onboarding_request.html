@@ -1,20 +1,59 @@
 {% extends "notifications/emails/base.html" %}
 
-{% block title %}New Onboarding Request - {{ request_type }}{% endblock %}
+{% block title %}New Onboarding Request Submitted{% endblock %}
+{% block pretitle %}Administrative Review{% endblock %}
+{% block heading %}A new onboarding request requires review{% endblock %}
 
 {% block content %}
-<p>Dear Admin,</p>
+<p>Hello Admin,</p>
 
-<p>A new {{ request_type }} onboarding request has been submitted and is pending review.</p>
+<p>
+  A new {{ request_type }} onboarding request has been submitted
+  and is pending administrative review.
+</p>
 
-<p><strong>Organization:</strong> {{ name }}<br>
-<strong>Representative:</strong> {{ representative_name }}<br>
-<strong>Email:</strong> {{ email }}<br>
-<strong>Tracking Code:</strong> {{ tracking_code }}</p>
+<div class="highlight-box">
 
-<div style="text-align: center;">
-    <a href="{{ review_link }}" class="email-button">Review Request</a>
+  <div class="info-row" style="border-top: none; padding-top: 0;">
+    <div class="info-label">Organization</div>
+    <div class="info-value">{{ name }}</div>
+  </div>
+
+  <div class="info-row">
+    <div class="info-label">Representative</div>
+    <div class="info-value">{{ representative_name }}</div>
+  </div>
+
+  <div class="info-row">
+    <div class="info-label">Email Address</div>
+    <div class="info-value">{{ email }}</div>
+  </div>
+
+  <div class="info-row" style="border-bottom: none;">
+    <div class="info-label">Tracking Reference</div>
+
+    <div class="info-value" style="
+      font-family: monospace;
+      letter-spacing: 0.08em;
+    ">
+      {{ tracking_code }}
+    </div>
+  </div>
+
 </div>
 
-<p>Best regards,<br>The Edulink System</p>
+<p>
+  Please review the submitted onboarding information and proceed with the appropriate verification workflow.
+</p>
+
+<div style="text-align: center;">
+  <a href="{{ review_link }}" class="email-button">
+    Review Request
+  </a>
+</div>
+
+<p>
+  Best regards,<br>
+  The {{ site_name }} System
+</p>
 {% endblock %}

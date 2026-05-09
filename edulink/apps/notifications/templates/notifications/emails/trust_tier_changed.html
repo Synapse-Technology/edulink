@@ -1,34 +1,61 @@
 {% extends "notifications/emails/base.html" %}
 
+{% block title %}Trust Tier Updated{% endblock %}
+{% block pretitle %}Trust & Verification{% endblock %}
+{% block heading %}Your trust tier has been updated{% endblock %}
+
 {% block content %}
-<div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-    <h2 style="color: #2c5aa0;">Trust Tier Updated!</h2>
-    
-    <p>Dear {{ entity_name }},</p>
-    
-    <p>Congratulations! Your Trust Tier on Edulink has been updated.</p>
-    
-    <div style="background-color: #f0f7ff; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #cce5ff; text-align: center;">
-        <p style="font-size: 16px; margin: 0; color: #555;">New Level</p>
-        <h1 style="margin: 10px 0; color: #2c5aa0;">{{ new_level_label }}</h1>
-        {% if new_level > old_level %}
-        <span style="background-color: #28a745; color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px;">Level Up!</span>
-        {% endif %}
-    </div>
-    
-    <p>This update reflects your continued engagement and reliability within the Edulink ecosystem.</p>
-    
-    <p style="text-align: center; margin: 25px 0;">
-        <a href="{{ dashboard_url }}" 
-           style="background-color: #2c5aa0; color: white; padding: 12px 24px; 
-                  text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
-            View Dashboard
-        </a>
-    </p>
-    
-    <p style="margin-top: 30px; font-size: 14px; color: #666;">
-        Best regards,<br>
-        The {{ site_name }} Team
-    </p>
+<p>Hello {{ entity_name }},</p>
+
+<p>
+  Your Edulink trust tier has been reviewed and updated based on your
+  activity, verification status, and engagement within the platform.
+</p>
+
+<div class="highlight-box">
+
+  <div class="info-row" style="border-top: none; padding-top: 0;">
+    <div class="info-label">Current Tier</div>
+    <div class="info-value">{{ new_level_label }}</div>
+  </div>
+
+  {% if new_level > old_level %}
+  <div style="margin-top: 16px;">
+    <span style="
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: #eef9f7;
+      color: #0f8f83;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    ">
+      Tier Progressed
+    </span>
+  </div>
+  {% endif %}
+
 </div>
+
+<p>
+  Higher trust tiers help strengthen credibility and verification across
+  the Edulink ecosystem for students, employers, and institutions.
+</p>
+
+<div style="text-align: center;">
+  <a href="{{ dashboard_url }}" class="email-button">
+    Open Dashboard
+  </a>
+</div>
+
+<p>
+  Thank you for being part of {{ site_name }}.
+</p>
+
+<p>
+  Best regards,<br>
+  The {{ site_name }} Team
+</p>
 {% endblock %}

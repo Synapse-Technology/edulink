@@ -1,25 +1,50 @@
 {% extends "notifications/emails/base.html" %}
 
-{% block title %}Welcome to Edulink - Institution Setup Complete{% endblock %}
+{% block title %}Institution Setup Complete{% endblock %}
+{% block pretitle %}Institution Administration{% endblock %}
+{% block heading %}Your institution administrator account is active{% endblock %}
 
 {% block content %}
-<p>Dear {{ user_name }},</p>
+<p>Hello {{ user_name }},</p>
 
-<p>Congratulations! Your account has been successfully activated and you are now an administrator for <strong>{{ institution_name }}</strong> on Edulink.</p>
+<p>
+  Your administrator account for
+  <strong>{{ institution_name }}</strong>
+  has been activated successfully on {{ site_name }}.
+</p>
 
-<p>You can now:</p>
+<div class="highlight-box">
+
+  <div class="info-row" style="border-top: none; padding-top: 0; border-bottom: none;">
+    <div class="info-label">Institution</div>
+    <div class="info-value">{{ institution_name }}</div>
+  </div>
+
+</div>
+
+<p>
+  Your account can now be used to support institutional workflows related to:
+</p>
+
 <ul>
-    <li>Manage your institution's profile</li>
-    <li>Verify student affiliations</li>
-    <li>Coordinate with employers</li>
-    <li>Track student placements</li>
+  <li>Institution profile and administrative management</li>
+  <li>Student affiliation verification</li>
+  <li>Placement coordination and oversight</li>
+  <li>Internship supervision and reporting workflows</li>
 </ul>
 
 <div style="text-align: center;">
-    <a href="{{ dashboard_link }}" class="email-button">Go to Dashboard</a>
+  <a href="{{ dashboard_link }}" class="email-button">
+    Open Dashboard
+  </a>
 </div>
 
-<p>We look forward to helping you manage your institution's internships efficiently.</p>
+<p>
+  Additional administrative features and permissions may become available based on your assigned access level.
+</p>
 
-<p>Best regards,<br>The Edulink Team</p>
+<p>
+  Best regards,<br>
+  The {{ site_name }} Team
+</p>
 {% endblock %}
