@@ -57,12 +57,13 @@ class StudentService {
 
       // Only update non-file fields if any exist
       if (Object.keys(jsonData).length > 0) {
-        await client.patch(`/api/students/${id}/update_profile/`, jsonData);
+        await client.post(`/api/students/${id}/update_profile/`, jsonData);
       }
 
       // 2. Update skills separately (always JSON, never in FormData)
       if (data.skills && data.skills.length > 0) {
-        await client.patch(`/api/students/${id}/update_skills/`, { skills: data.skills });
+        jsonData.skills = data.skills;
+        await client.post(`/api/students/${id}/update_profile/`, jsonData);
       }
 
       // 3. Upload files separately using multipart if present
