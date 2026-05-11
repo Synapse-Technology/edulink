@@ -1,32 +1,46 @@
-import React, { useState, useEffect } from 'react';
-import { Form, Button, Card, Container, Alert, Spinner, Row, Col, InputGroup } from 'react-bootstrap';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import React, { useMemo, useState, useEffect } from 'react';
+import { useSearchParams, useNavigate, Link } from 'react-router-dom';
+import {
+  AlertTriangle,
+  ArrowRight,
+  BriefcaseBusiness,
+  CheckCircle2,
+  Eye,
+  EyeOff,
+  Lock,
+  Mail,
+  Phone,
+  ShieldCheck,
+  User,
+  Users,
+} from 'lucide-react';
+
 import { employerService } from '../../../services/employer/employerService';
 import { sanitizeAdminError } from '../../../utils/adminErrorSanitizer';
 
 const ActivateAdmin: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  
+
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [employerName, setEmployerName] = useState('');
   const [email, setEmail] = useState('');
-  
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     phoneNumber: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
   });
-  
+
   const [isPreFilled, setIsPreFilled] = useState(false);
   const [isPhonePreFilled, setIsPhonePreFilled] = useState(false);
-  
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const inviteId = searchParams.get('id');
   const token = searchParams.get('token');
@@ -41,40 +55,41 @@ const ActivateAdmin: React.FC = () => {
 
       try {
         const response = await employerService.validateInviteToken(inviteId, token);
+
         if (response.valid) {
           setEmail(response.email);
           setEmployerName(response.employer_name);
 
-          // Pre-fill names from contact_person ONLY if the role is ADMIN
-          // For SUPERVISORS, we want them to enter their own details, not the employer admin's details
           if (response.role === 'ADMIN') {
-             if (response.contact_person) {
-                const names = response.contact_person.trim().split(' ');
-                const firstName = names[0] || '';
-                const lastName = names.slice(1).join(' ') || '';
-                
-                setFormData(prev => ({
-                   ...prev,
-                   firstName: firstName,
-                   lastName: lastName
-                }));
-                setIsPreFilled(true);
-             }
-             
-             if (response.phone_number) {
-                 setFormData(prev => ({
-                     ...prev,
-                     phoneNumber: response.phone_number || ''
-                 }));
-                 setIsPhonePreFilled(true);
-             }
+            if (response.contact_person) {
+              const names = response.contact_person.trim().split(' ');
+              const firstName = names[0] || '';
+              const lastName = names.slice(1).join(' ') || '';
+
+              setFormData((prev) => ({
+                ...prev,
+                firstName,
+                lastName,
+              }));
+
+              setIsPreFilled(true);
+            }
+
+            if (response.phone_number) {
+              setFormData((prev) => ({
+                ...prev,
+                phoneNumber: response.phone_number || '',
+              }));
+
+              setIsPhonePreFilled(true);
+            }
           }
         } else {
           setError('Invalid or expired activation link.');
         }
       } catch (err: any) {
         const sanitized = sanitizeAdminError(err);
-        setError(sanitized.message);
+        setError(sanitized.message || sanitized.userMessage || 'Failed to verify invitation.');
       } finally {
         setIsLoading(false);
       }
@@ -83,387 +98,858 @@ const ActivateAdmin: React.FC = () => {
     validateToken();
   }, [inviteId, token]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+  const passwordChecks = useMemo(() => {
+    const password = formData.password;
+
+    return {
+      length: password.length >= 8,
+      uppercase: /[A-Z]/.test(password),
+      lowercase: /[a-z]/.test(password),
+      number: /\d/.test(password),
+      match:
+        formData.confirmPassword.length > 0 &&
+        formData.password === formData.confirmPassword,
+    };
+  }, [formData.password, formData.confirmPassword]);
+
+  const passwordScore = Object.values(passwordChecks).filter(Boolean).length;
+
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = event.target;
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+
     if (formErrors[name]) {
-      setFormErrors(prev => ({ ...prev, [name]: '' }));
+      setFormErrors((prev) => ({
+        ...prev,
+        [name]: '',
+      }));
     }
+
+    if (error) setError('');
   };
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-    
-    if (!formData.firstName.trim()) newErrors.firstName = 'First name is required';
-    if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required';
-    if (!formData.password) newErrors.password = 'Password is required';
-    if (formData.password.length < 8) newErrors.password = 'Password must be at least 8 characters';
+
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = 'First name is required.';
+    }
+
+    if (!formData.lastName.trim()) {
+      newErrors.lastName = 'Last name is required.';
+    }
+
+    if (!formData.password) {
+      newErrors.password = 'Password is required.';
+    } else if (!passwordChecks.length) {
+      newErrors.password = 'Password must be at least 8 characters.';
+    }
+
     if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
+      newErrors.confirmPassword = 'Passwords do not match.';
     }
 
     setFormErrors(newErrors);
+
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+
     if (!validateForm()) return;
     if (!inviteId || !token) return;
 
     setIsSubmitting(true);
+
     try {
       await employerService.activateAccount({
         invite_id: inviteId,
-        token: token,
-        first_name: formData.firstName,
-        last_name: formData.lastName,
-        phone_number: formData.phoneNumber,
-        password: formData.password
+        token,
+        first_name: formData.firstName.trim(),
+        last_name: formData.lastName.trim(),
+        phone_number: formData.phoneNumber.trim(),
+        password: formData.password,
       });
 
-      // Redirect to login (or first time setup if we have a route for that)
-      // For now, redirect to login
-      navigate('/employer/login', { 
-        state: { 
-          message: 'Account activated successfully. Please log in with your credentials.' 
-        } 
+      navigate('/employer/login', {
+        state: {
+          message: 'Account activated successfully. Please log in with your credentials.',
+        },
       });
     } catch (err: any) {
       const sanitized = sanitizeAdminError(err);
-      setError(sanitized.message);
+      setError(sanitized.message || sanitized.userMessage || 'Failed to activate account.');
       setIsSubmitting(false);
     }
   };
 
   if (isLoading) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
-        <div className="text-center text-white">
-          <Spinner animation="border" role="status" variant="light" style={{ width: '3rem', height: '3rem' }}>
-            <span className="visually-hidden">Loading...</span>
-          </Spinner>
-          <p className="mt-3" style={{ opacity: 0.9 }}>Verifying invitation...</p>
-        </div>
-      </div>
+      <main className="activate-page">
+        <section className="activation-loading">
+          <div className="loading-icon">
+            <ShieldCheck size={34} />
+          </div>
+
+          <span>Verifying invitation</span>
+          <h1>Checking employer access link</h1>
+          <p>Please wait while EduLink verifies this secure activation request.</p>
+        </section>
+
+        <style>{styles}</style>
+      </main>
     );
   }
 
   if (error) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '20px'
-      }}>
-        <Container>
-          <Row className="justify-content-center">
-            <Col md={6} lg={5}>
-              <Card className="shadow-lg border-0" style={{ borderRadius: '16px' }}>
-                <Card.Body className="text-center p-5">
-                  <div className="mb-4">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" fill="#dc3545" className="bi bi-exclamation-circle" viewBox="0 0 16 16">
-                      <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
-                      <path d="M7.002 11a1 1 0 1 1 2 0 1 1 0 0 1-2 0zM7.1 4.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 4.995z"/>
-                    </svg>
-                  </div>
-                  <h4 className="mb-3 fw-bold">Activation Error</h4>
-                  <Alert variant="danger" className="mb-4">{error}</Alert>
-                  <Button variant="primary" size="lg" className="px-5 fw-bold" onClick={() => navigate('/')}>Return to Home</Button>
-                </Card.Body>
-              </Card>
-            </Col>
-          </Row>
-        </Container>
-      </div>
+      <main className="activate-page">
+        <section className="activation-error-card">
+          <div className="error-icon">
+            <AlertTriangle size={38} />
+          </div>
+
+          <span>Activation failed</span>
+          <h1>Unable to verify this invitation</h1>
+          <p>{error}</p>
+
+          <button type="button" onClick={() => navigate('/')} className="activate-submit">
+            Return to EduLink
+            <ArrowRight size={16} />
+          </button>
+        </section>
+
+        <style>{styles}</style>
+      </main>
     );
   }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'center',
-      padding: '40px 20px'
-    }}>
-      <Container fluid>
-        <Row className="justify-content-center">
-          <Col lg={10} xl={9}>
-            <Row className="g-4">
-              {/* Left Panel - Visual Content */}
-              <Col lg={5} className="d-flex flex-column justify-content-center mb-4 mb-lg-0">
-                <div className="text-white" style={{ paddingRight: '40px' }}>
-                  <div style={{ marginBottom: '40px' }}>
-                    <h1 className="display-4 fw-bold mb-3">Ready to Onboard Interns?</h1>
-                    <p className="lead" style={{ fontSize: '1.25rem', opacity: 0.95 }}>Activate your employer account and start building your talent pipeline with ease</p>
-                  </div>
+    <main className="activate-page">
+      <section className="activate-shell">
+        <aside className="activate-context">
+          <div className="brand-mark">
+            <ShieldCheck size={30} />
+          </div>
 
-                  <div style={{ marginBottom: '30px' }}>
-                    <div className="d-flex mb-4" style={{ alignItems: 'flex-start' }}>
-                      <div className="me-3" style={{ 
-                        width: '48px', 
-                        height: '48px', 
-                        borderRadius: '12px',
-                        background: 'rgba(255,255,255,0.2)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0
-                      }}>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="white" className="bi bi-star" viewBox="0 0 16 16">
-                          <path d="M2.866 14.85c-.078.444.36.791.746.593l4.39-2.256 4.389 2.256c.386.198.824-.149.746-.592l-.83-4.73 3.522-3.356c.33-.314.160-.888-.282-.95l-4.898-.696L8.465.792a.513.513 0 0 0-.927 0L5.354 5.12l-4.898.696c-.441.062-.612.636-.283.95l3.523 3.356-.83 4.73zm4.905-2.767-3.686 1.894.694-3.957a.565.565 0 0 0-.163-.505L1.71 6.745l4.052-.576a.525.525 0 0 0 .393-.288L8 2.223l1.847 3.658a.525.525 0 0 0 .393.288l4.052.575-2.906 2.77a.565.565 0 0 0-.163.506l.694 3.957-3.686-1.894a.503.503 0 0 0-.526 0z"/>
-                        </svg>
-                      </div>
-                      <div>
-                        <h5 className="mb-1 fw-bold">Trusted by Top Employers</h5>
-                        <p className="mb-0" style={{ opacity: 0.9 }}>Join hundreds of companies recruiting top talent through Edulink</p>
-                      </div>
-                    </div>
+          <span className="context-kicker">EduLink employer access</span>
 
-                    <div className="d-flex mb-4" style={{ alignItems: 'flex-start' }}>
-                      <div className="me-3" style={{ 
-                        width: '48px', 
-                        height: '48px', 
-                        borderRadius: '12px',
-                        background: 'rgba(255,255,255,0.2)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0
-                      }}>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="white" className="bi bi-speedometer" viewBox="0 0 16 16">
-                          <path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zM0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8z"/>
-                          <path d="M8 4.5a.5.5 0 0 1 .5.5v3.362l2.236-2.236a.5.5 0 1 1 .707.707l-3 3a.5.5 0 0 1-.707 0l-3-3a.5.5 0 1 1 .707-.707L7.5 8.362V5a.5.5 0 0 1 .5-.5z"/>
-                        </svg>
-                      </div>
-                      <div>
-                        <h5 className="mb-1 fw-bold">Quick & Simple</h5>
-                        <p className="mb-0" style={{ opacity: 0.9 }}>Get set up in minutes and start posting opportunities right away</p>
-                      </div>
-                    </div>
+          <h1>Activate verified employer workspace</h1>
 
-                    <div className="d-flex" style={{ alignItems: 'flex-start' }}>
-                      <div className="me-3" style={{ 
-                        width: '48px', 
-                        height: '48px', 
-                        borderRadius: '12px',
-                        background: 'rgba(255,255,255,0.2)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0
-                      }}>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="white" className="bi bi-graph-up" viewBox="0 0 16 16">
-                          <path fillRule="evenodd" d="M0 0h1v15h15v1H0V0zm10 3.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V4.9l-3.613 4.417a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61L13.445 4H10.5a.5.5 0 0 1-.5-.5z"/>
-                        </svg>
-                      </div>
-                      <div>
-                        <h5 className="mb-1 fw-bold">Grow Your Team</h5>
-                        <p className="mb-0" style={{ opacity: 0.9 }}>Access quality candidates from verified educational institutions</p>
-                      </div>
-                    </div>
-                  </div>
+          <p>
+            Complete your account setup to manage internship opportunities,
+            supervisors, student placements, and verified attachment workflows.
+          </p>
+
+          <div className="trust-list">
+            <div>
+              <ShieldCheck size={16} />
+              <span>Verified employer onboarding</span>
+            </div>
+
+            <div>
+              <Users size={16} />
+              <span>Manage supervisors and student placements</span>
+            </div>
+
+            <div>
+              <BriefcaseBusiness size={16} />
+              <span>Publish and track internship opportunities</span>
+            </div>
+          </div>
+
+          <div className="context-footer">
+            <strong>{employerName}</strong>
+            <span>{email}</span>
+          </div>
+        </aside>
+
+        <section className="activate-card">
+          <header className="activate-card-header">
+            <div className="card-icon">
+              <BriefcaseBusiness size={24} />
+            </div>
+
+            <span>Secure account activation</span>
+            <h2>Complete your employer admin profile</h2>
+            <p>
+              This account will be linked to <strong>{employerName}</strong>.
+            </p>
+          </header>
+
+          {error && (
+            <div className="form-alert">
+              <AlertTriangle size={17} />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <div className="employer-strip">
+            <div>
+              <span>Organization</span>
+              <strong>{employerName}</strong>
+            </div>
+
+            <div>
+              <span>Admin email</span>
+              <strong>{email}</strong>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="activate-form">
+            <div className="name-grid">
+              <label className="field">
+                <span>First name</span>
+
+                <div className={`input-wrap ${formErrors.firstName ? 'invalid' : ''}`}>
+                  <User size={16} />
+                  <input
+                    type="text"
+                    name="firstName"
+                    value={formData.firstName}
+                    onChange={handleInputChange}
+                    placeholder="First name"
+                    readOnly={isPreFilled}
+                  />
                 </div>
-              </Col>
 
-              {/* Right Panel - Form */}
-              <Col lg={7}>
-                <Card className="shadow-lg border-0 h-100" style={{ borderRadius: '16px', overflow: 'hidden' }}>
-                  <Card.Body className="p-5">
-                    {/* Header */}
-                    <div className="mb-4">
-                      <div className="d-inline-flex align-items-center justify-content-center" style={{
-                        width: '64px',
-                        height: '64px',
-                        borderRadius: '12px',
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                        color: 'white',
-                        marginBottom: '20px'
-                      }}>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" className="bi bi-briefcase" viewBox="0 0 16 16">
-                          <path d="M6.5 1A1.5 1.5 0 0 0 5 2.5V3H1.5A1.5 1.5 0 0 0 0 4.5v8A1.5 1.5 0 0 0 1.5 14h13a1.5 1.5 0 0 0 1.5-1.5v-8A1.5 1.5 0 0 0 14.5 3H11v-.5A1.5 1.5 0 0 0 9.5 1h-3zm0 1h3a.5.5 0 0 1 .5.5V3H6v-.5a.5.5 0 0 1 .5-.5zm1.886 6.914L15 7.151V12.5a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5V7.15l6.614 1.763a1.5 1.5 0 0 0 .772 0z"/>
-                        </svg>
-                      </div>
-                      <h3 className="fw-bold mb-1">Activate Your Account</h3>
-                      <p className="text-muted mb-0">Complete your profile to manage internship opportunities at {employerName}</p>
-                    </div>
+                {formErrors.firstName && <small>{formErrors.firstName}</small>}
+              </label>
 
-                    {/* Employer Info */}
-                    <div style={{
-                      background: '#f8f9fa',
-                      borderRadius: '12px',
-                      padding: '16px',
-                      marginBottom: '24px',
-                      borderLeft: '4px solid #667eea'
-                    }}>
-                      <p className="mb-2"><strong className="text-dark">{employerName}</strong></p>
-                      <p className="text-muted small mb-0">{email}</p>
-                    </div>
+              <label className="field">
+                <span>Last name</span>
 
-                    {/* Form */}
-                    <Form onSubmit={handleSubmit}>
-                      <Row className="g-3 mb-3">
-                        <Col sm={6}>
-                          <Form.Group>
-                            <Form.Label className="fw-600 mb-2" style={{ fontSize: '0.95rem' }}>First Name</Form.Label>
-                            <Form.Control
-                              type="text"
-                              name="firstName"
-                              value={formData.firstName}
-                              onChange={handleInputChange}
-                              isInvalid={!!formErrors.firstName}
-                              placeholder="Enter first name"
-                              readOnly={isPreFilled}
-                              className={isPreFilled ? "bg-light" : ""}
-                              style={{ borderRadius: '8px', padding: '10px 14px', border: '1.5px solid #e0e0e0' }}
-                            />
-                            <Form.Control.Feedback type="invalid">
-                              {formErrors.firstName}
-                            </Form.Control.Feedback>
-                          </Form.Group>
-                        </Col>
-                        <Col sm={6}>
-                          <Form.Group>
-                            <Form.Label className="fw-600 mb-2" style={{ fontSize: '0.95rem' }}>Last Name</Form.Label>
-                            <Form.Control
-                              type="text"
-                              name="lastName"
-                              value={formData.lastName}
-                              onChange={handleInputChange}
-                              isInvalid={!!formErrors.lastName}
-                              placeholder="Enter last name"
-                              readOnly={isPreFilled}
-                              className={isPreFilled ? "bg-light" : ""}
-                              style={{ borderRadius: '8px', padding: '10px 14px', border: '1.5px solid #e0e0e0' }}
-                            />
-                            <Form.Control.Feedback type="invalid">
-                              {formErrors.lastName}
-                            </Form.Control.Feedback>
-                          </Form.Group>
-                        </Col>
-                      </Row>
+                <div className={`input-wrap ${formErrors.lastName ? 'invalid' : ''}`}>
+                  <User size={16} />
+                  <input
+                    type="text"
+                    name="lastName"
+                    value={formData.lastName}
+                    onChange={handleInputChange}
+                    placeholder="Last name"
+                    readOnly={isPreFilled}
+                  />
+                </div>
 
-                      <Form.Group className="mb-3">
-                        <Form.Label className="fw-600 mb-2" style={{ fontSize: '0.95rem' }}>Phone Number</Form.Label>
-                        <Form.Control
-                          type="text"
-                          name="phoneNumber"
-                          value={formData.phoneNumber}
-                          onChange={handleInputChange}
-                          placeholder="Enter phone number"
-                          readOnly={isPhonePreFilled}
-                          className={isPhonePreFilled ? "bg-light" : ""}
-                          style={{ borderRadius: '8px', padding: '10px 14px', border: '1.5px solid #e0e0e0' }}
-                        />
-                      </Form.Group>
+                {formErrors.lastName && <small>{formErrors.lastName}</small>}
+              </label>
+            </div>
 
-                      <Form.Group className="mb-3">
-                        <Form.Label className="fw-600 mb-2" style={{ fontSize: '0.95rem' }}>Create Password</Form.Label>
-                        <InputGroup hasValidation>
-                          <Form.Control
-                            type={showPassword ? "text" : "password"}
-                            name="password"
-                            value={formData.password}
-                            onChange={handleInputChange}
-                            isInvalid={!!formErrors.password}
-                            placeholder="Min. 8 characters"
-                            style={{ borderRadius: '8px 0 0 8px', padding: '10px 14px', border: '1.5px solid #e0e0e0' }}
-                          />
-                          <Button 
-                            variant="outline-secondary" 
-                            onClick={() => setShowPassword(!showPassword)}
-                            type="button"
-                            style={{ borderRadius: '0 8px 8px 0' }}
-                          >
-                            <i className={`bi bi-eye${showPassword ? '-slash' : ''}`}></i>
-                          </Button>
-                          <Form.Control.Feedback type="invalid">
-                            {formErrors.password}
-                          </Form.Control.Feedback>
-                        </InputGroup>
-                      </Form.Group>
+            <label className="field">
+              <span>Phone number</span>
 
-                      <Form.Group className="mb-4">
-                        <Form.Label className="fw-600 mb-2" style={{ fontSize: '0.95rem' }}>Confirm Password</Form.Label>
-                        <InputGroup hasValidation>
-                          <Form.Control
-                            type={showPassword ? "text" : "password"}
-                            name="confirmPassword"
-                            value={formData.confirmPassword}
-                            onChange={handleInputChange}
-                            isInvalid={!!formErrors.confirmPassword}
-                            placeholder="Re-enter password"
-                            style={{ borderRadius: '8px 0 0 8px', padding: '10px 14px', border: '1.5px solid #e0e0e0' }}
-                          />
-                          <Button 
-                            variant="outline-secondary" 
-                            onClick={() => setShowPassword(!showPassword)}
-                            type="button"
-                            style={{ borderRadius: '0 8px 8px 0' }}
-                          >
-                            <i className={`bi bi-eye${showPassword ? '-slash' : ''}`}></i>
-                          </Button>
-                          <Form.Control.Feedback type="invalid">
-                            {formErrors.confirmPassword}
-                          </Form.Control.Feedback>
-                        </InputGroup>
-                      </Form.Group>
+              <div className="input-wrap">
+                <Phone size={16} />
+                <input
+                  type="text"
+                  name="phoneNumber"
+                  value={formData.phoneNumber}
+                  onChange={handleInputChange}
+                  placeholder="Phone number"
+                  readOnly={isPhonePreFilled}
+                />
+              </div>
+            </label>
 
-                      <div className="d-grid mb-3">
-                        <Button 
-                          type="submit" 
-                          disabled={isSubmitting} 
-                          className="fw-bold py-2"
-                          style={{
-                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                            border: 'none',
-                            borderRadius: '8px',
-                            fontSize: '1rem'
-                          }}
-                        >
-                          {isSubmitting ? (
-                            <>
-                              <Spinner
-                                as="span"
-                                animation="border"
-                                size="sm"
-                                role="status"
-                                aria-hidden="true"
-                                className="me-2"
-                              />
-                              Activating...
-                            </>
-                          ) : (
-                            'Activate Account'
-                          )}
-                        </Button>
-                      </div>
+            <label className="field">
+              <span>Create password</span>
 
-                      <p className="text-center text-muted small mb-0">
-                        By activating, you agree to Edulink's <a href="/terms" className="text-decoration-none" style={{ color: '#667eea' }}>Terms</a> and <a href="/privacy" className="text-decoration-none" style={{ color: '#667eea' }}>Privacy Policy</a>
-                      </p>
-                    </Form>
-                  </Card.Body>
-                </Card>
-              </Col>
-            </Row>
-          </Col>
-        </Row>
-      </Container>
-    </div>
+              <div className={`input-wrap ${formErrors.password ? 'invalid' : ''}`}>
+                <Lock size={16} />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  name="password"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  placeholder="Minimum 8 characters"
+                />
+
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+
+              {formErrors.password && <small>{formErrors.password}</small>}
+            </label>
+
+            <label className="field">
+              <span>Confirm password</span>
+
+              <div className={`input-wrap ${formErrors.confirmPassword ? 'invalid' : ''}`}>
+                <Lock size={16} />
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleInputChange}
+                  placeholder="Re-enter password"
+                />
+
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword((prev) => !prev)}
+                  aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+
+              {formErrors.confirmPassword && (
+                <small>{formErrors.confirmPassword}</small>
+              )}
+            </label>
+
+            <div className="password-panel">
+              <div className="password-panel-top">
+                <span>Password strength</span>
+                <strong>
+                  {passwordScore >= 4
+                    ? 'Strong'
+                    : passwordScore >= 2
+                      ? 'Moderate'
+                      : 'Weak'}
+                </strong>
+              </div>
+
+              <div className="password-meter">
+                <span style={{ width: `${(passwordScore / 5) * 100}%` }} />
+              </div>
+
+              <div className="password-checks">
+                <span className={passwordChecks.length ? 'passed' : ''}>
+                  8+ characters
+                </span>
+                <span className={passwordChecks.uppercase ? 'passed' : ''}>
+                  Uppercase
+                </span>
+                <span className={passwordChecks.lowercase ? 'passed' : ''}>
+                  Lowercase
+                </span>
+                <span className={passwordChecks.number ? 'passed' : ''}>
+                  Number
+                </span>
+                <span className={passwordChecks.match ? 'passed' : ''}>
+                  Match
+                </span>
+              </div>
+            </div>
+
+            <button type="submit" disabled={isSubmitting} className="activate-submit">
+              {isSubmitting ? 'Activating account...' : 'Activate employer account'}
+              {!isSubmitting && <ArrowRight size={16} />}
+            </button>
+
+            <p className="terms-copy">
+              By activating, you agree to EduLink’s{' '}
+              <Link to="/terms">Terms</Link> and <Link to="/privacy">Privacy Policy</Link>.
+            </p>
+          </form>
+        </section>
+      </section>
+
+      <style>{styles}</style>
+    </main>
   );
 };
+
+const styles = `
+  .activate-page {
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at top right, rgba(4, 120, 87, .09), transparent 28%),
+      radial-gradient(circle at bottom left, rgba(15, 23, 42, .08), transparent 26%),
+      #f8fafc;
+    color: #111827;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 28px;
+    font-family:
+      Inter,
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      sans-serif;
+  }
+
+  .activate-shell {
+    width: min(1120px, 100%);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 500px;
+    gap: 18px;
+  }
+
+  .activate-context,
+  .activate-card,
+  .activation-loading,
+  .activation-error-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 24px 70px rgba(15, 23, 42, .08);
+    border-radius: 28px;
+  }
+
+  .activate-context {
+    padding: 38px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 680px;
+  }
+
+  .brand-mark,
+  .card-icon,
+  .loading-icon,
+  .error-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .brand-mark {
+    width: 68px;
+    height: 68px;
+    border-radius: 22px;
+    background: #ecfdf5;
+    color: #047857;
+    margin-bottom: 24px;
+  }
+
+  .context-kicker,
+  .activate-card-header > span,
+  .activation-loading > span,
+  .activation-error-card > span {
+    display: block;
+    color: #047857;
+    font-size: .72rem;
+    font-weight: 900;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .activate-context h1 {
+    color: #0f172a;
+    font-size: clamp(2.25rem, 4vw, 3.45rem);
+    line-height: .98;
+    font-weight: 950;
+    letter-spacing: -.07em;
+    margin: 0 0 16px;
+    max-width: 580px;
+  }
+
+  .activate-context p,
+  .activate-card-header p,
+  .activation-loading p,
+  .activation-error-card p {
+    color: #64748b;
+    line-height: 1.75;
+    margin: 0;
+    max-width: 620px;
+  }
+
+  .trust-list {
+    display: grid;
+    gap: 12px;
+    margin-top: 30px;
+  }
+
+  .trust-list div {
+    min-height: 48px;
+    border-radius: 16px;
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 0 14px;
+    color: #334155;
+    font-size: .9rem;
+    font-weight: 800;
+  }
+
+  .trust-list svg {
+    color: #047857;
+  }
+
+  .context-footer {
+    margin-top: 34px;
+    border-top: 1px solid #e5e7eb;
+    padding-top: 20px;
+  }
+
+  .context-footer strong {
+    display: block;
+    color: #0f172a;
+    font-weight: 900;
+    margin-bottom: 4px;
+  }
+
+  .context-footer span {
+    color: #64748b;
+    font-size: .86rem;
+  }
+
+  .activate-card {
+    overflow: hidden;
+  }
+
+  .activate-card-header {
+    padding: 26px 28px 20px;
+    border-bottom: 1px solid #eef2f7;
+  }
+
+  .card-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 18px;
+    background: #0f172a;
+    color: #ffffff;
+    margin-bottom: 18px;
+  }
+
+  .activate-card-header h2 {
+    color: #0f172a;
+    font-size: 1.45rem;
+    font-weight: 950;
+    letter-spacing: -.04em;
+    margin: 0 0 8px;
+  }
+
+  .activate-card-header strong {
+    color: #047857;
+  }
+
+  .form-alert {
+    margin: 18px 28px 0;
+    border-radius: 14px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+    padding: 12px;
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    font-size: .88rem;
+    font-weight: 750;
+  }
+
+  .employer-strip {
+    margin: 20px 28px 0;
+    border-radius: 18px;
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    overflow: hidden;
+  }
+
+  .employer-strip div {
+    padding: 14px;
+  }
+
+  .employer-strip div + div {
+    border-left: 1px solid #e5e7eb;
+  }
+
+  .employer-strip span {
+    display: block;
+    color: #64748b;
+    font-size: .7rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    margin-bottom: 5px;
+  }
+
+  .employer-strip strong {
+    color: #0f172a;
+    font-size: .86rem;
+    font-weight: 900;
+    word-break: break-word;
+  }
+
+  .activate-form {
+    padding: 24px 28px 28px;
+    display: grid;
+    gap: 15px;
+  }
+
+  .name-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .field {
+    display: grid;
+    gap: 7px;
+  }
+
+  .field > span {
+    color: #334155;
+    font-size: .82rem;
+    font-weight: 850;
+  }
+
+  .field small {
+    color: #b91c1c;
+    font-size: .76rem;
+    font-weight: 750;
+  }
+
+  .input-wrap {
+    min-height: 46px;
+    border: 1px solid #dbe3ea;
+    background: #ffffff;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 0 12px;
+    color: #94a3b8;
+  }
+
+  .input-wrap:focus-within {
+    border-color: #047857;
+    box-shadow: 0 0 0 4px rgba(4, 120, 87, .08);
+  }
+
+  .input-wrap.invalid {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, .08);
+  }
+
+  .input-wrap input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: none;
+    color: #111827;
+    font-weight: 650;
+    background: transparent;
+  }
+
+  .input-wrap input[readonly] {
+    color: #64748b;
+    cursor: default;
+  }
+
+  .input-wrap button {
+    border: 0;
+    background: transparent;
+    color: #64748b;
+    padding: 0;
+    display: flex;
+    cursor: pointer;
+  }
+
+  .password-panel {
+    border-radius: 16px;
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    padding: 14px;
+  }
+
+  .password-panel-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+
+  .password-panel-top span {
+    color: #64748b;
+    font-size: .78rem;
+    font-weight: 850;
+  }
+
+  .password-panel-top strong {
+    color: #0f172a;
+    font-size: .8rem;
+    font-weight: 900;
+  }
+
+  .password-meter {
+    height: 8px;
+    border-radius: 999px;
+    background: #e5e7eb;
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+
+  .password-meter span {
+    height: 100%;
+    display: block;
+    border-radius: inherit;
+    background: #047857;
+    transition: width .2s ease;
+  }
+
+  .password-checks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+  }
+
+  .password-checks span {
+    border-radius: 999px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    color: #94a3b8;
+    padding: 6px 8px;
+    font-size: .7rem;
+    font-weight: 850;
+  }
+
+  .password-checks span.passed {
+    background: #ecfdf5;
+    border-color: #bbf7d0;
+    color: #047857;
+  }
+
+  .activate-submit {
+    min-height: 50px;
+    border: 0;
+    border-radius: 15px;
+    background: #0f172a;
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-weight: 950;
+    cursor: pointer;
+    margin-top: 2px;
+  }
+
+  .activate-submit:disabled {
+    opacity: .6;
+    cursor: not-allowed;
+  }
+
+  .terms-copy {
+    color: #64748b;
+    text-align: center;
+    font-size: .78rem;
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  .terms-copy a {
+    color: #047857;
+    font-weight: 850;
+    text-decoration: none;
+  }
+
+  .activation-loading,
+  .activation-error-card {
+    width: min(560px, 100%);
+    padding: 38px;
+    text-align: center;
+  }
+
+  .loading-icon,
+  .error-icon {
+    width: 82px;
+    height: 82px;
+    border-radius: 26px;
+    margin: 0 auto 20px;
+  }
+
+  .loading-icon {
+    background: #ecfdf5;
+    color: #047857;
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+
+  .error-icon {
+    background: #fef2f2;
+    color: #b91c1c;
+  }
+
+  .activation-loading h1,
+  .activation-error-card h1 {
+    color: #0f172a;
+    font-size: 1.8rem;
+    font-weight: 950;
+    letter-spacing: -.04em;
+    margin: 0 0 10px;
+  }
+
+  .activation-error-card .activate-submit {
+    width: 100%;
+    margin-top: 22px;
+  }
+
+  @keyframes pulse {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+
+    50% {
+      transform: scale(.96);
+      opacity: .78;
+    }
+  }
+
+  @media (max-width: 980px) {
+    .activate-shell {
+      grid-template-columns: 1fr;
+    }
+
+    .activate-context {
+      min-height: auto;
+      padding: 30px;
+    }
+  }
+
+  @media (max-width: 620px) {
+    .activate-page {
+      padding: 14px;
+      align-items: flex-start;
+    }
+
+    .activate-context {
+      display: none;
+    }
+
+    .activate-card {
+      border-radius: 22px;
+    }
+
+    .activate-card-header,
+    .activate-form {
+      padding-left: 20px;
+      padding-right: 20px;
+    }
+
+    .employer-strip {
+      margin-left: 20px;
+      margin-right: 20px;
+      grid-template-columns: 1fr;
+    }
+
+    .employer-strip div + div {
+      border-left: 0;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .name-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+`;
 
 export default ActivateAdmin;
