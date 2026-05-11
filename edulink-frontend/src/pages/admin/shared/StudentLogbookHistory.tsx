@@ -12,11 +12,9 @@ import {
   Eye,
   FileText,
   Lock,
-  MessageSquare,
   Paperclip,
   RotateCcw,
   ShieldCheck,
-  User as UserIcon,
   XCircle,
 } from 'lucide-react';
 import styled, { css, keyframes } from 'styled-components';

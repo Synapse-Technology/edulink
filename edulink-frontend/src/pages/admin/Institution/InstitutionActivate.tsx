@@ -4,7 +4,6 @@ import {
   AlertTriangle,
   ArrowRight,
   Building2,
-  CheckCircle2,
   Eye,
   EyeOff,
   Globe,
