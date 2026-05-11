@@ -33,7 +33,6 @@ const ActivateAdmin: React.FC = () => {
     confirmPassword: '',
   });
 
-  const [isPreFilled, setIsPreFilled] = useState(false);
   const [isPhonePreFilled, setIsPhonePreFilled] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
@@ -69,8 +68,6 @@ const ActivateAdmin: React.FC = () => {
                 firstName,
                 lastName,
               }));
-
-              setIsPreFilled(true);
             }
 
             if (response.phone_number) {
@@ -312,7 +309,6 @@ const ActivateAdmin: React.FC = () => {
                     value={formData.firstName}
                     onChange={handleInputChange}
                     placeholder="First name"
-                    readOnly={isPreFilled}
                   />
                 </div>
 
@@ -330,7 +326,6 @@ const ActivateAdmin: React.FC = () => {
                     value={formData.lastName}
                     onChange={handleInputChange}
                     placeholder="Last name"
-                    readOnly={isPreFilled}
                   />
                 </div>
 
