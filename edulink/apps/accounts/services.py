@@ -6,7 +6,6 @@ Follows architecture rules: pure business logic, no HTTP handling, triggers even
 import logging
 import secrets
 import string
-import uuid
 from datetime import timedelta
 
 from django.conf import settings
@@ -385,18 +384,16 @@ def change_user_password(*, user_id: str, old_password: str, new_password: str) 
     return user
 
 
-def reset_user_password(*, email: str) -> str:
+def reset_user_password(*, email: str) -> None:
     """
     Initiate password reset process.
     Creates reset token via notifications service.
-    Records USER_PASSWORD_RESET_REQUESTED event.
+    Records USER_PASSWORD_RESET_REQUESTED event without exposing the token.
     """
     try:
         user = User.objects.get(email=email)
     except User.DoesNotExist:
-        # Don't reveal whether user exists (security)
-        # Still create a dummy token for consistent behavior
-        dummy_token = str(uuid.uuid4())
+        # Don't reveal whether user exists (security).
         record_event(
             event_type="USER_PASSWORD_RESET_REQUESTED_NONEXISTENT",
             actor_id=None,
@@ -407,7 +404,7 @@ def reset_user_password(*, email: str) -> str:
                 "requested_at": timezone.now().isoformat()
             }
         )
-        return dummy_token
+        return None
     
     # Create reset token via notifications service
     try:
@@ -432,16 +429,15 @@ def reset_user_password(*, email: str) -> str:
             entity_id=user.id,
             payload={
                 "email": email,
-                "reset_token": reset_token,
                 "requested_at": timezone.now().isoformat(),
                 "expires_at": (timezone.now() + timedelta(hours=1)).isoformat()
             }
         )
         
-        return reset_token
+        return None
         
     except Exception as e:
-        # Log the error but still return a dummy token for security
+        # Log the error but keep the public response generic.
         record_event(
             event_type="USER_PASSWORD_RESET_FAILED",
             actor_id=user.id,
@@ -453,7 +449,7 @@ def reset_user_password(*, email: str) -> str:
                 "failed_at": timezone.now().isoformat()
             }
         )
-        return str(uuid.uuid4())  # Return dummy token
+        return None
 
 
 def update_user_profile(*, user_id: str, actor_id: str | None = None, **kwargs) -> User:
@@ -510,7 +506,7 @@ def update_user_profile(*, user_id: str, actor_id: str | None = None, **kwargs) 
     return user
 
 
-def assign_user_role(*, user_id: str, new_role: str) -> User:
+def assign_user_role(*, user_id: str, new_role: str, actor_id: str | None = None) -> User:
     """
     Assign a new role to user.
     Records USER_ROLE_CHANGED event.
@@ -544,7 +540,7 @@ def assign_user_role(*, user_id: str, new_role: str) -> User:
     # Record role change event
     record_event(
         event_type="USER_ROLE_CHANGED",
-        actor_id=None,
+        actor_id=actor_id,
         entity_type="User",
         entity_id=user.id,
         payload={

@@ -111,20 +111,10 @@ if _s3_access_key and _s3_secret_key and _s3_endpoint:
         }
     }
 else:
-    import logging as _logging
-    _logging.getLogger(__name__).critical(
-        f"[STORAGE] S3 not configured — falling back to local filesystem. "
-        f"access_key={'SET' if _s3_access_key else 'MISSING'} "
-        f"secret_key={'SET' if _s3_secret_key else 'MISSING'} "
-        f"endpoint={'SET' if _s3_endpoint else 'MISSING'}"
+    raise ImproperlyConfigured(
+        "SUPABASE_S3_ACCESS_KEY, SUPABASE_S3_SECRET_KEY, and SUPABASE_S3_ENDPOINT "
+        "must be set in production so private uploaded documents are not served from local media."
     )
-    STORAGES["default"] = {
-        "BACKEND": "django.core.files.storage.FileSystemStorage",
-        "OPTIONS": {
-            "location": os.path.join(BASE_DIR, "media"),
-            "base_url": "/media/",
-        }
-    }
 
 # Static files
 STORAGES["staticfiles"] = {

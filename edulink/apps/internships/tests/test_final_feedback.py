@@ -8,6 +8,7 @@ from edulink.apps.institutions.models import Institution, InstitutionStaff
 from edulink.apps.employers.models import Employer, Supervisor
 from edulink.apps.students.models import Student
 from edulink.apps.internships.models import InternshipOpportunity, InternshipApplication, ApplicationStatus
+from edulink.apps.internships.serializers import InternshipApplicationSerializer
 from edulink.apps.internships.services import submit_final_feedback, apply_for_internship
 from edulink.apps.notifications.models import Notification
 from edulink.apps.shared.error_handling import AuthorizationError
@@ -173,3 +174,42 @@ class TestFinalFeedback:
                 feedback="Late assessment should not mutate certified records.",
                 rating=5,
             )
+
+    def test_application_serializer_scopes_final_assessment_fields(self, employer_admin, application, student_user):
+        assessor = User.objects.get(username="inst_assessor")
+        submit_final_feedback(
+            actor=employer_admin,
+            application_id=application.id,
+            feedback="Employer lane assessment.",
+            rating=5,
+        )
+        submit_final_feedback(
+            actor=assessor,
+            application_id=application.id,
+            feedback="Institution lane assessment.",
+            rating=4,
+        )
+        application.refresh_from_db()
+
+        class Request:
+            def __init__(self, user):
+                self.user = user
+
+        student_data = InternshipApplicationSerializer(
+            application,
+            context={"request": Request(student_user)},
+        ).data
+        employer_data = InternshipApplicationSerializer(
+            application,
+            context={"request": Request(employer_admin)},
+        ).data
+        institution_data = InternshipApplicationSerializer(
+            application,
+            context={"request": Request(assessor)},
+        ).data
+
+        assert "final_feedback" not in student_data
+        assert "institution_final_feedback" not in employer_data
+        assert employer_data["employer_final_feedback"] == "Employer lane assessment."
+        assert institution_data["employer_final_feedback"] == "Employer lane assessment."
+        assert institution_data["institution_final_feedback"] == "Institution lane assessment."

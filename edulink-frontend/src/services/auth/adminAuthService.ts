@@ -16,23 +16,17 @@ interface AdminLoginCredentials {
 }
 
 /**
- * Updated AdminAuthResponse - Backend now returns user data only
- * Tokens are in HttpOnly cookies (not in response body)
- * 
- * IMPORTANT: This changed with Phase 1 of the auth refactor.
- * Backend admin login endpoint (/api/admin/auth/login/) now matches
- * regular user login pattern - returns user data, tokens in cookies.
+ * Admin login returns staff identity plus a short-lived access token.
+ * The refresh token is stored by the backend in an HttpOnly cookie.
  */
 interface AdminAuthResponse {
   user: AdminUser;
   message?: string;
   access?: string;
-  refresh?: string;
 }
 
 interface AdminTokenRefreshResponse {
   access: string;
-  refresh?: string;
   message?: string;
 }
 
@@ -47,6 +41,26 @@ interface UpdateAdminUserData {
   email?: string;
   role?: 'SUPER_ADMIN' | 'PLATFORM_ADMIN' | 'MODERATOR' | 'AUDITOR';
   permissions?: string[];
+}
+
+export interface PlatformStaffAccount {
+  id: string;
+  email: string;
+  role: 'SUPER_ADMIN' | 'PLATFORM_ADMIN' | 'MODERATOR' | 'AUDITOR';
+  is_active: boolean;
+  created_at: string;
+  last_login: string | null;
+  permissions: string[];
+}
+
+export interface PlatformStaffInvite {
+  id: string;
+  email: string;
+  role: string;
+  invited_by: string;
+  invited_at: string;
+  expires_at: string;
+  is_accepted: boolean;
 }
 
 interface AdminDashboardStats {
@@ -118,7 +132,7 @@ class AdminAuthService {
         throw new AuthenticationError(passwordValidation.errors[0].message);
       }
 
-      // Backend sets HttpOnly cookies; response body contains only user data
+      // Backend sets the refresh cookie; access token stays in memory only.
       const response = await this.client.post<AdminAuthResponse>(
         '/api/admin/auth/login/',
         credentials
@@ -126,9 +140,6 @@ class AdminAuthService {
 
       if (response.access) {
         this.client.setToken(response.access);
-      }
-      if (response.refresh) {
-        this.client.setRefreshToken(response.refresh);
       }
 
       return response;
@@ -141,13 +152,10 @@ class AdminAuthService {
   }
 
   /**
-   * Refresh admin token - tokens obtained from HttpOnly cookies automatically
-   * No need to manually pass refresh token anymore
+   * Refresh admin token using the HttpOnly refresh cookie.
    */
   async refreshToken(): Promise<AdminTokenRefreshResponse> {
     try {
-      // Backend reads refresh_token from HttpOnly cookie automatically
-      // No need to send it in request body
       const response = await this.client.post<AdminTokenRefreshResponse>(
         '/api/admin/auth/token/refresh/',
         {}
@@ -155,9 +163,6 @@ class AdminAuthService {
 
       if (response.access) {
         this.client.setToken(response.access);
-      }
-      if (response.refresh) {
-        this.client.setRefreshToken(response.refresh);
       }
 
       return response;
@@ -174,7 +179,6 @@ class AdminAuthService {
    */
   async logout(): Promise<void> {
     try {
-      // Backend will use the refresh_token from HttpOnly cookie to blacklist it
       await this.client.post('/api/admin/auth/logout/', {});
     } catch (error) {
       // Logout should not block UI even if API call fails
@@ -476,6 +480,50 @@ class AdminAuthService {
     }
   }
 
+  async getPlatformStaff(): Promise<PlatformStaffAccount[]> {
+    try {
+      return await this.client.get<PlatformStaffAccount[]>('/api/admin/staff/');
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error;
+      }
+      throw new AuthorizationError('Failed to fetch platform staff');
+    }
+  }
+
+  async getPlatformStaffInvites(): Promise<PlatformStaffInvite[]> {
+    try {
+      return await this.client.get<PlatformStaffInvite[]>('/api/admin/staff/invites/');
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error;
+      }
+      throw new AuthorizationError('Failed to fetch staff invitations');
+    }
+  }
+
+  async cancelPlatformStaffInvite(inviteId: string): Promise<void> {
+    try {
+      await this.client.delete(`/api/admin/staff/invites/${inviteId}/`);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error;
+      }
+      throw new AuthorizationError('Failed to cancel staff invitation');
+    }
+  }
+
+  async updatePlatformStaffStatus(staffId: string, isActive: boolean): Promise<void> {
+    try {
+      await this.client.patch(`/api/admin/staff/${staffId}/`, { is_active: isActive });
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error;
+      }
+      throw new AuthorizationError('Failed to update staff access');
+    }
+  }
+
   async getInstitutions(params?: any): Promise<any> {
     try {
       const response = await this.client.get('/api/admin/institutions/', { params });
@@ -550,22 +598,22 @@ class AdminAuthService {
 
   // Utility methods
   isAdminAuthenticated(): boolean {
-    const token = localStorage.getItem('adminToken');
-    const admin = localStorage.getItem('adminUser');
-    return !!(token && admin);
+    return !!this.getStoredAdmin();
   }
 
   getStoredAdmin(): AdminUser | null {
     try {
-      const adminData = localStorage.getItem('adminUser');
-      return adminData ? JSON.parse(adminData) : null;
+      const authStorage = localStorage.getItem('auth-storage');
+      if (!authStorage) return null;
+      const parsed = JSON.parse(authStorage);
+      return parsed?.state?.admin || null;
     } catch {
       return null;
     }
   }
 
   getAdminRole(): string | null {
-    return localStorage.getItem('adminRole');
+    return this.getStoredAdmin()?.role || null;
   }
 
   hasPermission(permission: string): boolean {
@@ -596,6 +644,7 @@ class AdminAuthService {
 
   clearAdminAuth(): void {
     localStorage.removeItem('adminToken');
+    localStorage.removeItem('adminRefreshToken');
     localStorage.removeItem('adminUser');
     localStorage.removeItem('adminRole');
   }

@@ -27,6 +27,7 @@ from .models import (
     InternshipEvidence,
     Incident,
     ExternalPlacementDeclaration,
+    SupervisionCheckIn,
 )
 from .workflows import opportunity_workflow, application_workflow
 from .logbook_format import (
@@ -50,6 +51,11 @@ from .policies import (
     can_propose_incident_resolution,
     can_approve_incident_resolution,
     can_dismiss_incident,
+    can_schedule_supervision_checkin,
+    can_complete_supervision_checkin,
+    can_confirm_supervision_checkin,
+    can_cancel_supervision_checkin,
+    get_supervision_checkin_actor_side,
 )
 
 PENDING_EVIDENCE_STATUSES = [
@@ -833,6 +839,229 @@ def _get_student_for_external_declaration(declaration: ExternalPlacementDeclarat
             context=ErrorContext().with_resource("external_placement_declaration", declaration.id).build(),
         )
     return student
+
+
+def _get_checkin_for_application(application_id: UUID, checkin_id: UUID) -> SupervisionCheckIn:
+    try:
+        return SupervisionCheckIn.objects.select_related("application", "application__opportunity").get(
+            id=checkin_id,
+            application_id=application_id,
+        )
+    except SupervisionCheckIn.DoesNotExist:
+        raise NotFoundError(
+            user_message="Supervision check-in not found for this application.",
+            developer_message=f"Check-in {checkin_id} was not found for application {application_id}",
+            context=ErrorContext()
+                .with_resource("application", application_id)
+                .with_resource("supervision_checkin", checkin_id)
+                .build(),
+        )
+
+
+def schedule_supervision_checkin(
+    *,
+    actor,
+    application_id: UUID,
+    scheduled_for,
+    mode: str = SupervisionCheckIn.MODE_VIRTUAL,
+    meeting_url: str = "",
+    supervisor_notes: str = "",
+    private_notes: str = "",
+    metadata: dict = None,
+) -> SupervisionCheckIn:
+    application = InternshipApplication.objects.select_related("opportunity").get(id=application_id)
+
+    if not can_schedule_supervision_checkin(actor, application):
+        raise AuthorizationError(
+            user_message="You are not authorized to schedule supervision for this placement.",
+            developer_message=f"User {actor.id} cannot schedule supervision for application {application_id}",
+            context=ErrorContext().with_user_id(actor.id).with_resource("application", application_id).build(),
+        )
+
+    if scheduled_for < timezone.now():
+        raise ValidationError(
+            user_message="Supervision check-ins must be scheduled for a future time.",
+            developer_message=f"Past supervision schedule requested for application {application_id}: {scheduled_for}",
+            context=ErrorContext().with_resource("application", application_id).build(),
+        )
+
+    checkin_metadata = {
+        **(metadata or {}),
+        "owner_side": get_supervision_checkin_actor_side(actor, application),
+    }
+
+    checkin = SupervisionCheckIn.objects.create(
+        application=application,
+        scheduled_for=scheduled_for,
+        mode=mode,
+        meeting_url=meeting_url,
+        supervisor_notes=supervisor_notes,
+        private_notes=private_notes,
+        metadata=checkin_metadata,
+        scheduled_by=actor.id,
+    )
+
+    from edulink.apps.ledger.services import record_event
+
+    record_event(
+        event_type="SUPERVISION_CHECKIN_SCHEDULED",
+        actor_id=actor.id,
+        entity_id=checkin.id,
+        entity_type="supervision_checkin",
+        payload={
+            "application_id": str(application.id),
+            "scheduled_for": scheduled_for.isoformat(),
+            "mode": mode,
+            "owner_side": checkin_metadata["owner_side"],
+        },
+    )
+    return checkin
+
+
+@transaction.atomic
+def complete_supervision_checkin(
+    *,
+    actor,
+    application_id: UUID,
+    checkin_id: UUID,
+    supervisor_notes: str = "",
+    private_notes: str = "",
+) -> SupervisionCheckIn:
+    try:
+        checkin = SupervisionCheckIn.objects.select_for_update().select_related(
+            "application",
+            "application__opportunity",
+        ).get(id=checkin_id, application_id=application_id)
+    except SupervisionCheckIn.DoesNotExist:
+        raise NotFoundError(
+            user_message="Supervision check-in not found for this application.",
+            developer_message=f"Check-in {checkin_id} was not found for application {application_id}",
+            context=ErrorContext()
+                .with_resource("application", application_id)
+                .with_resource("supervision_checkin", checkin_id)
+                .build(),
+        )
+
+    if not can_complete_supervision_checkin(actor, checkin):
+        raise AuthorizationError(
+            user_message="You are not authorized to complete this supervision check-in.",
+            developer_message=f"User {actor.id} cannot complete check-in {checkin_id}",
+            context=ErrorContext().with_user_id(actor.id).with_resource("supervision_checkin", checkin_id).build(),
+        )
+
+    checkin.status = SupervisionCheckIn.STATUS_COMPLETED
+    checkin.completed_by = actor.id
+    checkin.completed_at = timezone.now()
+    if supervisor_notes:
+        checkin.supervisor_notes = supervisor_notes
+    if private_notes:
+        checkin.private_notes = private_notes
+    checkin.save(update_fields=[
+        "status",
+        "completed_by",
+        "completed_at",
+        "supervisor_notes",
+        "private_notes",
+        "updated_at",
+    ])
+
+    from edulink.apps.ledger.services import record_event
+
+    record_event(
+        event_type="SUPERVISION_CHECKIN_COMPLETED",
+        actor_id=actor.id,
+        entity_id=checkin.id,
+        entity_type="supervision_checkin",
+        payload={"application_id": str(application_id)},
+    )
+    return checkin
+
+
+@transaction.atomic
+def confirm_supervision_checkin(*, actor, application_id: UUID, checkin_id: UUID) -> SupervisionCheckIn:
+    try:
+        checkin = SupervisionCheckIn.objects.select_for_update().select_related(
+            "application",
+            "application__opportunity",
+        ).get(id=checkin_id, application_id=application_id)
+    except SupervisionCheckIn.DoesNotExist:
+        raise NotFoundError(
+            user_message="Supervision check-in not found for this application.",
+            developer_message=f"Check-in {checkin_id} was not found for application {application_id}",
+            context=ErrorContext()
+                .with_resource("application", application_id)
+                .with_resource("supervision_checkin", checkin_id)
+                .build(),
+        )
+
+    if not can_confirm_supervision_checkin(actor, checkin):
+        raise AuthorizationError(
+            user_message="You are not authorized to confirm this supervision check-in.",
+            developer_message=f"User {actor.id} cannot confirm check-in {checkin_id}",
+            context=ErrorContext().with_user_id(actor.id).with_resource("supervision_checkin", checkin_id).build(),
+        )
+
+    if not checkin.student_confirmed_at:
+        checkin.student_confirmed_at = timezone.now()
+        checkin.save(update_fields=["student_confirmed_at", "updated_at"])
+
+        from edulink.apps.ledger.services import record_event
+
+        record_event(
+            event_type="SUPERVISION_CHECKIN_CONFIRMED",
+            actor_id=actor.id,
+            entity_id=checkin.id,
+            entity_type="supervision_checkin",
+            payload={"application_id": str(application_id)},
+        )
+
+    return checkin
+
+
+@transaction.atomic
+def cancel_supervision_checkin(
+    *,
+    actor,
+    application_id: UUID,
+    checkin_id: UUID,
+    reason: str = "",
+) -> SupervisionCheckIn:
+    try:
+        checkin = SupervisionCheckIn.objects.select_for_update().select_related(
+            "application",
+            "application__opportunity",
+        ).get(id=checkin_id, application_id=application_id)
+    except SupervisionCheckIn.DoesNotExist:
+        raise NotFoundError(
+            user_message="Supervision check-in not found for this application.",
+            developer_message=f"Check-in {checkin_id} was not found for application {application_id}",
+            context=ErrorContext()
+                .with_resource("application", application_id)
+                .with_resource("supervision_checkin", checkin_id)
+                .build(),
+        )
+
+    if not can_cancel_supervision_checkin(actor, checkin):
+        raise AuthorizationError(
+            user_message="You are not authorized to cancel this supervision check-in.",
+            developer_message=f"User {actor.id} cannot cancel check-in {checkin_id}",
+            context=ErrorContext().with_user_id(actor.id).with_resource("supervision_checkin", checkin_id).build(),
+        )
+
+    checkin.status = SupervisionCheckIn.STATUS_CANCELLED
+    checkin.cancellation_reason = reason
+    checkin.save(update_fields=["status", "cancellation_reason", "updated_at"])
+
+    from edulink.apps.ledger.services import record_event
+
+    record_event(
+        event_type="SUPERVISION_CHECKIN_CANCELLED",
+        actor_id=actor.id,
+        entity_id=checkin.id,
+        entity_type="supervision_checkin",
+        payload={"application_id": str(application_id), "reason": reason},
+    )
+    return checkin
 
 
 def _validate_logbook_submission_window(*, application: InternshipApplication, metadata: dict) -> None:

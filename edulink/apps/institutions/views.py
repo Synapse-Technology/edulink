@@ -2,9 +2,8 @@ from rest_framework import viewsets, status, filters
 from rest_framework.views import APIView
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.response import Response
-from django.conf import settings
+from edulink.apps.accounts.auth_tokens import build_login_response
 
 from edulink.apps.accounts.permissions import IsSystemAdmin, IsStudent, IsInstitutionAdmin
 from .models import Institution, InstitutionSuggestion, InstitutionInterest, InstitutionRequest, InstitutionStaff, Department, Cohort
@@ -71,20 +70,18 @@ from .policies import (
     is_institution_staff,
 )
 
-# Module-level config
-DEBUG = settings.DEBUG
-
 class InstitutionLoginView(APIView):
     """
     Institution-specific login endpoint.
     Only allows Institution Admins and Supervisors to login.
-    Uses Django's session framework (HttpOnly cookies) instead of JWT.
+    Uses the shared portal auth contract: access token in response body,
+    refresh token in an HttpOnly cookie.
     """
     permission_classes = [AllowAny]
     
     def post(self, request):
         """
-        Authenticate institution staff and create session (HttpOnly cookie handled by Django).
+        Authenticate institution staff and return the shared auth response.
         """
         from edulink.apps.accounts.serializers import UserLoginSerializer, UserSerializer
         from edulink.apps.accounts.services import authenticate_user
@@ -101,16 +98,12 @@ class InstitutionLoginView(APIView):
                     {"detail": "Access denied. This login is for institution staff only."},
                     status=status.HTTP_403_FORBIDDEN
                 )
-            refresh = RefreshToken.for_user(user)
-            
-            # Return user data
             user_serializer = UserSerializer(user)
-            return Response({
-                'message': 'Login successful',
-                'user': user_serializer.data,
-                'access': str(refresh.access_token),
-                'refresh': str(refresh),
-            }, status=status.HTTP_200_OK)
+            return build_login_response(
+                request=request,
+                user=user,
+                user_data=user_serializer.data,
+            )
             
         except ValueError as e:
             return Response({'detail': str(e)}, status=status.HTTP_401_UNAUTHORIZED)

@@ -6,6 +6,7 @@ from pathlib import Path
 import dj_database_url
 from datetime import timedelta
 from dotenv import load_dotenv
+from django.core.exceptions import ImproperlyConfigured
 
 # Load environment variables from .env file
 load_dotenv()
@@ -17,13 +18,23 @@ cache_dir = BASE_DIR / ".cache" / "django-cache"
 cache_dir.mkdir(parents=True, exist_ok=True)
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get(
-    "DJANGO_SECRET_KEY",
-    os.environ.get("SECRET_KEY", "django-insecure-n%6^@49(@dn^2!77l)hq6r4u4!$6!!)mbujn*5fy9y-!dw_th1"),
+_settings_module = os.environ.get("DJANGO_SETTINGS_MODULE", "")
+_is_local_settings = (
+    not _settings_module
+    or _settings_module.endswith(".dev")
+    or _settings_module.endswith(".test")
 )
+_configured_secret = os.environ.get("DJANGO_SECRET_KEY") or os.environ.get("SECRET_KEY")
+if _configured_secret:
+    SECRET_KEY = _configured_secret
+elif _is_local_settings:
+    SECRET_KEY = "edulink-dev-only-insecure-secret-key"
+else:
+    raise ImproperlyConfigured("DJANGO_SECRET_KEY or SECRET_KEY must be configured.")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+_debug_default = "True" if _is_local_settings else "False"
+DEBUG = os.environ.get("DJANGO_DEBUG", _debug_default).lower() in {"1", "true", "yes"}
 
 ALLOWED_HOSTS = []
 
@@ -227,9 +238,9 @@ Q_CLUSTER = {
 }
 
 # Pusher Configuration (Managed Real-time)
-PUSHER_APP_ID = os.getenv("PUSHER_APP_ID", "2112435")
-PUSHER_KEY = os.getenv("PUSHER_KEY", "f43311e71172349f71a2")
-PUSHER_SECRET = os.getenv("PUSHER_SECRET", "f68dffd5647b45eb1134")
+PUSHER_APP_ID = os.getenv("PUSHER_APP_ID", "")
+PUSHER_KEY = os.getenv("PUSHER_KEY", "")
+PUSHER_SECRET = os.getenv("PUSHER_SECRET", "")
 PUSHER_CLUSTER = os.getenv("PUSHER_CLUSTER", "mt1")
 PUSHER_SSL = True
 
@@ -274,8 +285,8 @@ CORS_EXPOSE_HEADERS = [
 EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "Edulink <noreply@edulink.com>")
 EMAIL_HOST = os.getenv("EMAIL_HOST", "sandbox.smtp.mailtrap.io")
-EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "91ab20b75900d4")
-EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "e21d4d58c66dfe")
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
 EMAIL_PORT = os.getenv("EMAIL_PORT", "2525")
 EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "False").lower() == "true"
 EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", "False").lower() == "true"

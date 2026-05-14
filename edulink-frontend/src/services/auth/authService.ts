@@ -18,13 +18,12 @@ interface RegisterData {
 
 interface TokenRefreshResponse {
   access: string;
-  refresh?: string;
 }
 
 /**
- * AuthResponse - Backend returns user data + tokens in response body
- * Some endpoints also set HttpOnly cookies (UserViewSet)
- * Frontend stores response-body tokens temporarily as fallback
+ * AuthResponse - backend returns user data and a short-lived access token.
+ * The refresh token is stored by the backend in an HttpOnly cookie and is never
+ * persisted by frontend JavaScript.
  */
 interface AuthResponse {
   message?: string;
@@ -42,11 +41,6 @@ interface AuthResponse {
     employer_id?: string;
   };
   access?: string;
-  refresh?: string;
-  tokens?: {
-    access: string;
-    refresh: string;
-  };
 }
 
 interface UserProfile {
@@ -63,12 +57,10 @@ interface UserProfile {
 /**
  * AuthService - Handles authentication API calls
  *
- * Cookie-based auth flow:
- * 1. login() → POST /api/auth/users/login/ → backend sets refresh cookie + returns user/tokens
- * 2. Subsequent requests: browser includes cookies automatically (withCredentials: true)
- * 3. logout() → POST /api/auth/logout/ → backend clears cookies
- *
- * No token management here - browser and server handle that automatically.
+ * 1. login() -> backend sets refresh cookie and returns access token + user.
+ * 2. API client keeps access token in memory for Authorization headers.
+ * 3. Refresh uses the HttpOnly refresh cookie; no refresh token is stored in JS.
+ * 4. logout() clears the refresh cookie and local auth state.
  */
 class AuthService {
   private client = apiClient;
@@ -101,14 +93,10 @@ class AuthService {
         credentials
       );
 
-      const accessToken = response.access ?? response.tokens?.access;
-      const refreshToken = response.refresh ?? response.tokens?.refresh;
+      const accessToken = response.access;
 
       if (accessToken) {
         this.client.setToken(accessToken);
-      }
-      if (refreshToken) {
-        this.client.setRefreshToken(refreshToken);
       }
 
       return response;
@@ -127,14 +115,10 @@ class AuthService {
         credentials
       );
 
-      const accessToken = response.access ?? response.tokens?.access;
-      const refreshToken = response.refresh ?? response.tokens?.refresh;
+      const accessToken = response.access;
 
       if (accessToken) {
         this.client.setToken(accessToken);
-      }
-      if (refreshToken) {
-        this.client.setRefreshToken(refreshToken);
       }
 
       return response;
@@ -153,14 +137,10 @@ class AuthService {
         credentials
       );
 
-      const accessToken = response.access ?? response.tokens?.access;
-      const refreshToken = response.refresh ?? response.tokens?.refresh;
+      const accessToken = response.access;
 
       if (accessToken) {
         this.client.setToken(accessToken);
-      }
-      if (refreshToken) {
-        this.client.setRefreshToken(refreshToken);
       }
 
       return response;
@@ -198,7 +178,7 @@ class AuthService {
     }
 
     try {
-      // Backend sets HttpOnly cookies + returns user data only
+      // Registration creates an account. Login is a separate explicit step.
       const response = await this.client.post<AuthResponse>(
         '/api/auth/users/register/',
         {
@@ -226,14 +206,7 @@ class AuthService {
    */
   async logout(): Promise<void> {
     try {
-      let refresh: string | null = null;
-      try {
-        refresh = sessionStorage.getItem('refresh_token');
-      } catch (e) {
-        void e;
-      }
-
-      await this.client.post('/api/auth/logout/', refresh ? { refresh } : {});
+      await this.client.post('/api/auth/logout/', {});
     } catch (error) {
       console.warn('Logout API call failed:', error);
       // Even if logout endpoint fails, clear local state (cookies are separate)

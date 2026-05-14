@@ -198,7 +198,7 @@ const Home: React.FC = () => {
               <div className="why-box">
                 <h3>Why Choose EduLink KE?</h3>
                 <p>
-                  Kenya's attachment market is fragmented across portals, WhatsApp, employer websites, and paper processes. EduLink KE gives pilot institutions one trusted workflow from student verification to completion reporting.
+                  Kenya's attachment market is fragmented across portals, WhatsApp, employer websites, and paper processes. EduLink KE gives institutions and employers one trusted workflow for logbooks, final reports, private feedback, and remote supervision.
                 </p>
                 <div className="text-center">
                   <Link to="/why-us" className="more-btn">
@@ -214,15 +214,15 @@ const Home: React.FC = () => {
                   <div className="icon-box d-flex flex-column justify-content-center align-items-center">
                     <i className="bi bi-clipboard-data"></i>
                     <h4>Run The Full Cycle</h4>
-                    <p>Applications, supervision, logbooks, incidents, evidence, completion, and certificates.</p>
+                    <p>Applications, check-ins, logbooks, final reports, incidents, completion, and certificates.</p>
                   </div>
                 </div>
 
                 <div className="col-xl-4" data-aos="fade-up" data-aos-delay="300">
                   <div className="icon-box d-flex flex-column justify-content-center align-items-center">
                     <i className="bi bi-gem"></i>
-                    <h4>Trust Before Scale</h4>
-                    <p>Institution affiliation and employer verification reduce fake listings and weak records.</p>
+                    <h4>Lower Operating Cost</h4>
+                    <p>Reduce printed records and unnecessary supervisor travel through virtual placement reviews.</p>
                   </div>
                 </div>
 

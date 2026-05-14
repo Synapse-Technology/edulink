@@ -54,6 +54,8 @@ const AcademicStructure = lazy(() => import('./components/admin/institution/Acad
 const SupervisorDashboard = lazy(() => import('./pages/admin/shared/supervisor/SupervisorDashboard'));
 const SupervisorOverview = lazy(() => import('./pages/admin/shared/supervisor/SupervisorOverview'));
 const SupervisorLogbooks = lazy(() => import('./pages/admin/shared/supervisor/SupervisorLogbooks'));
+const SupervisorAssignments = lazy(() => import('./pages/admin/shared/supervisor/SupervisorAssignments'));
+const SupervisorCheckIns = lazy(() => import('./pages/admin/shared/supervisor/SupervisorCheckIns'));
 const SupervisorStudents = lazy(() => import('./pages/admin/shared/supervisor/SupervisorStudents'));
 const SupervisorIncidents = lazy(() => import('./pages/admin/shared/supervisor/SupervisorIncidents'));
 const SupervisorSettings = lazy(() => import('./pages/admin/shared/supervisor/SupervisorSettings'));
@@ -103,6 +105,8 @@ const EmployerProfileRequests = lazy(() => import('./pages/admin/Employer/Employ
 const EmployerReviews = lazy(() => import('./pages/admin/Employer/EmployerReviews'));
 const EmployerSupervisorDashboard = lazy(() => import('./pages/admin/Employer/Supervisor/SupervisorDashboard'));
 const EmployerSupervisorLogbooks = lazy(() => import('./pages/admin/Employer/Supervisor/SupervisorLogbooks'));
+const EmployerSupervisorAssignments = lazy(() => import('./pages/admin/Employer/Supervisor/SupervisorAssignments'));
+const EmployerSupervisorCheckIns = lazy(() => import('./pages/admin/Employer/Supervisor/SupervisorCheckIns'));
 const EmployerSupervisorIncidents = lazy(() => import('./pages/admin/Employer/Supervisor/SupervisorIncidents'));
 const EmployerSupervisorInternships = lazy(() => import('./pages/admin/Employer/Supervisor/SupervisorInternships'));
 const EmployerSupervisorMilestones = lazy(() => import('./pages/admin/Employer/Supervisor/SupervisorMilestones'));
@@ -566,6 +570,8 @@ function App() {
             >
               <Route index element={<SupervisorOverview />} />
               <Route path="overview" element={<SupervisorOverview />} />
+              <Route path="assignments" element={<SupervisorAssignments />} />
+              <Route path="check-ins" element={<SupervisorCheckIns />} />
               <Route path="logbooks" element={<SupervisorLogbooks />} />
               <Route path="students" element={<SupervisorStudents />} />
               <Route
@@ -690,6 +696,22 @@ function App() {
               element={
                 <EmployerSupervisorRoute>
                   <EmployerSupervisorLogbooks />
+                </EmployerSupervisorRoute>
+              }
+            />
+            <Route
+              path="/employer/supervisor/assignments"
+              element={
+                <EmployerSupervisorRoute>
+                  <EmployerSupervisorAssignments />
+                </EmployerSupervisorRoute>
+              }
+            />
+            <Route
+              path="/employer/supervisor/check-ins"
+              element={
+                <EmployerSupervisorRoute>
+                  <EmployerSupervisorCheckIns />
                 </EmployerSupervisorRoute>
               }
             />

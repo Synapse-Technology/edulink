@@ -18,12 +18,12 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.db.models import Q
 from django.core.exceptions import ValidationError
-from django.conf import settings
 
 from .models import PlatformStaffProfile, AdminActionLog, StaffInvite
 from edulink.apps.ledger.queries import get_recent_ledger_events
 from edulink.apps.institutions.queries import get_institution_interest_statistics
 from . import policies, services, queries, serializers
+from edulink.apps.accounts.auth_tokens import build_login_response, build_refresh_response, clear_refresh_cookie
 
 User = get_user_model()
 
@@ -738,13 +738,13 @@ class AdminLoginView(APIView):
     
     def post(self, request):
         """
-        Authenticate platform staff and return JWT tokens via HttpOnly cookies.
+        Authenticate platform staff using the shared portal auth contract.
         Only users with PlatformStaffProfile can login through this endpoint.
-        Tokens are set as HttpOnly cookies (NOT in response body) for security.
+        The refresh token is set as an HttpOnly cookie and the access token is
+        returned for in-memory Authorization headers.
         """
         from edulink.apps.accounts.serializers import UserLoginSerializer
         from edulink.apps.accounts.services import authenticate_user
-        from django.middleware.csrf import get_token
         
         serializer = UserLoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -760,9 +760,6 @@ class AdminLoginView(APIView):
                     status=status.HTTP_403_FORBIDDEN
                 )
             
-            # Generate JWT tokens
-            refresh = RefreshToken.for_user(user)
-            
             # Get user data with platform staff role (NO TOKENS IN BODY)
             user_data = {
                 'id': user.id,
@@ -771,41 +768,16 @@ class AdminLoginView(APIView):
                 'last_name': user.last_name,
                 'role': user.role,
                 'platform_staff_role': policies.get_platform_staff_role(actor=user),
+                'permissions': policies.get_platform_staff_permissions(actor=user),
                 'is_platform_staff': True
             }
             
-            response = Response({
-                'message': 'Admin login successful',
-                'user': user_data,
-                'access': str(refresh.access_token),
-                'refresh': str(refresh),
-            }, status=status.HTTP_200_OK)
-            
-            # Set tokens as HttpOnly cookies (same pattern as regular user login)
-            response.set_cookie(
-                key='access_token',
-                value=str(refresh.access_token),
-                max_age=7200,  # 2 hours
-                secure=not settings.DEBUG,
-                httponly=True,
-                samesite='Lax',
-                path='/',
+            response = build_login_response(
+                request=request,
+                user=user,
+                user_data=user_data,
+                message='Admin login successful',
             )
-            
-            response.set_cookie(
-                key='refresh_token',
-                value=str(refresh),
-                max_age=1209600,  # 14 days
-                secure=not settings.DEBUG,
-                httponly=True,
-                samesite='Lax',
-                path='/',
-            )
-            
-            # Set CSRF token for state-changing requests
-            csrf_token = get_token(request)
-            response['X-CSRFToken'] = csrf_token
-            
             return response
             
         except ValueError as e:
@@ -828,13 +800,10 @@ class AdminTokenRefreshView(APIView):
         try:
             refresh_token = request.COOKIES.get('refresh_token')
             if not refresh_token:
-                # Fallback: accept refresh_token from request body for compatibility
-                refresh_token = request.data.get('refresh')
-                if not refresh_token:
-                    return Response(
-                        {"error_code": "NO_REFRESH_TOKEN", "message": "Refresh token not found"},
-                        status=status.HTTP_401_UNAUTHORIZED
-                    )
+                return Response(
+                    {"error_code": "NO_REFRESH_TOKEN", "message": "Refresh token not found"},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
             
             token = RefreshToken(refresh_token)
             user_id = token['user_id']
@@ -853,37 +822,11 @@ class AdminTokenRefreshView(APIView):
             new_access = serializer.validated_data.get('access')
             new_rotated_refresh = serializer.validated_data.get('refresh')
 
-            response = Response(
-                {
-                    'message': 'Token refreshed successfully',
-                    'access': new_access,
-                    'refresh': new_rotated_refresh,
-                },
-                status=status.HTTP_200_OK
+            response = build_refresh_response(
+                request=request,
+                access_token=new_access,
+                refresh_token=new_rotated_refresh or refresh_token,
             )
-            
-            # Set new access token in cookie
-            response.set_cookie(
-                key='access_token',
-                value=new_access,
-                max_age=7200,
-                secure=not settings.DEBUG,
-                httponly=True,
-                samesite='Lax',
-                path='/',
-            )
-            
-            # Set new refresh token in cookie (rotation)
-            response.set_cookie(
-                key='refresh_token',
-                value=new_rotated_refresh or refresh_token,
-                max_age=1209600,
-                secure=not settings.DEBUG,
-                httponly=True,
-                samesite='Lax',
-                path='/',
-            )
-            
             return response
             
         except (TokenError, InvalidToken):
@@ -896,6 +839,24 @@ class AdminTokenRefreshView(APIView):
                 {"error_code": "USER_NOT_FOUND", "message": "User not found"},
                 status=status.HTTP_404_NOT_FOUND
             )
+
+
+class AdminLogoutView(APIView):
+    """Admin-specific logout endpoint that clears the shared refresh cookie."""
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        try:
+            refresh_token = request.COOKIES.get('refresh_token')
+            if refresh_token:
+                try:
+                    RefreshToken(refresh_token).blacklist()
+                except Exception:
+                    pass
+        finally:
+            response = Response({'message': 'Logout successful'}, status=status.HTTP_200_OK)
+            clear_refresh_cookie(response)
+            return response
 
 
 class AcceptStaffInviteView(APIView):

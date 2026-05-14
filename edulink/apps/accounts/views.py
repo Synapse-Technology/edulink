@@ -4,7 +4,6 @@ Follows architecture rules: thin views, no business logic, call services only.
 """
 
 import logging
-from django.conf import settings
 from django.contrib.auth import logout as django_logout  # Use Django's built-in session logout
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -39,10 +38,11 @@ from .services import (
     list_users,
     deactivate_own_account
 )
+from .permissions import CanAssignRole, CanManageUsers
+from .auth_tokens import build_login_response, build_refresh_response, clear_refresh_cookie
 
 # Module-level logger and DEBUG config
 logger = logging.getLogger(__name__)
-DEBUG = settings.DEBUG
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -61,8 +61,10 @@ class UserViewSet(viewsets.ModelViewSet):
         action = getattr(self, 'action', None)
         if action in ['register', 'login', 'reset_password_request', 'reset_password_confirm', 'token_refresh', 'token_obtain_pair', 'get_csrf_token']:
             return [AllowAny()]
-        elif action in ['list', 'retrieve', 'assign_role']:
-            return [IsAuthenticated()]  # Additional role-based checks can be added
+        elif action in ['list', 'retrieve']:
+            return [CanManageUsers()]
+        elif action == 'assign_role':
+            return [CanAssignRole()]
         else:
             return [IsAuthenticated()]
     
@@ -135,37 +137,13 @@ class UserViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_403_FORBIDDEN
                 )
             
-            # Generate JWT tokens
-            refresh = RefreshToken.for_user(user)
-            
-            # Prepare response with tokens in body for HYBRID AUTH
             user_serializer = UserSerializer(user)
-            response = Response({
-                'message': 'Login successful',
-                'user': user_serializer.data,
-                'access': str(refresh.access_token),  # Return access token in response body
-                'refresh': str(refresh),  # Return refresh token in response body
-            }, status=status.HTTP_200_OK)
-            
-            # 🔐 HYBRID AUTH: Also set refresh token as HttpOnly cookie (access token in response body for memory storage)
-            response.set_cookie(
-                key='refresh_token',
-                value=str(refresh),
-                max_age=1209600,  # 14 days (match JWT_REFRESH_TOKEN_LIFETIME)
-                secure=not DEBUG,
-                httponly=True,
-                samesite='None' if not DEBUG else 'Lax',  # None for cross-site on production
-                path='/',
+            response = build_login_response(
+                request=request,
+                user=user,
+                user_data=user_serializer.data,
             )
-            
-            # Set CSRF token for state-changing requests
-            from django.middleware.csrf import get_token
-            csrf_token = get_token(request)
-            response['X-CSRFToken'] = csrf_token
-            
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.warning(f"✅ [LOGIN] User {user.email} logged in with JWT tokens")
+            logger.info("User %s logged in", user.email)
             
             return response
         except ValueError as e:
@@ -191,7 +169,7 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'])
     def token_refresh(self, request):
         try:
-            refresh_token = request.COOKIES.get('refresh_token') or request.data.get('refresh')
+            refresh_token = request.COOKIES.get('refresh_token')
             
             if not refresh_token:
                 logger = logging.getLogger(__name__)
@@ -207,19 +185,12 @@ class UserViewSet(viewsets.ModelViewSet):
             serializer = TokenRefreshSerializer(data={'refresh': refresh_token})
             serializer.is_valid(raise_exception=True)
 
-            response = Response(serializer.validated_data, status=status.HTTP_200_OK)
-
             rotated_refresh = serializer.validated_data.get('refresh')
-            if rotated_refresh:
-                response.set_cookie(
-                    key='refresh_token',
-                    value=rotated_refresh,
-                    max_age=1209600,
-                    secure=not DEBUG,
-                    httponly=True,
-                    samesite='None' if not DEBUG else 'Lax',
-                    path='/',
-                )
+            response = build_refresh_response(
+                request=request,
+                access_token=serializer.validated_data.get('access'),
+                refresh_token=rotated_refresh,
+            )
 
             logger = logging.getLogger(__name__)
             logger.warning(f"✅ [TOKEN_REFRESH] Access token refreshed")
@@ -255,29 +226,32 @@ class UserViewSet(viewsets.ModelViewSet):
         User logout endpoint - clear session (HttpOnly cookie handled by Django).
         """
         try:
-            refresh_token = request.COOKIES.get('refresh_token') or request.data.get('refresh')
+            refresh_token = request.COOKIES.get('refresh_token')
             if refresh_token:
                 try:
                     RefreshToken(refresh_token).blacklist()
                 except Exception:
                     pass
 
-            # Clear Django session (removes sessionid cookie)
             django_logout(request)
-            
-            return Response(
+
+            response = Response(
                 {'message': 'Logout successful'},
                 status=status.HTTP_200_OK
             )
+            clear_refresh_cookie(response)
+            return response
             
         except Exception as e:
             logger.error(f"Logout error: {str(e)}")
             # Still clear session even if error occurs
             django_logout(request)
-            return Response(
+            response = Response(
                 {'message': 'Logout successful'},
                 status=status.HTTP_200_OK
             )
+            clear_refresh_cookie(response)
+            return response
     
     @action(detail=False, methods=['post'])
     def change_password(self, request):
@@ -304,13 +278,10 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
-        reset_token = reset_user_password(**serializer.validated_data)
+        reset_user_password(**serializer.validated_data)
         
-        # In production, send email with reset link
-        # For now, return token for testing
         return Response({
-            'message': 'Password reset email sent',
-            'reset_token': reset_token  # Remove in production
+            'message': 'If an account exists for that email, a password reset link has been sent.'
         }, status=status.HTTP_200_OK)
     
     @action(detail=False, methods=['post'], url_path='reset-password-confirm')
@@ -386,7 +357,11 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         
         try:
-            user = assign_user_role(user_id=pk, **serializer.validated_data)
+            user = assign_user_role(
+                user_id=pk,
+                new_role=serializer.validated_data["role"],
+                actor_id=str(request.user.id),
+            )
             user_serializer = UserSerializer(user)
             return Response({
                 'message': 'Role assigned successfully',

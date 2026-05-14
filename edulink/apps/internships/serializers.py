@@ -7,6 +7,7 @@ from .models import (
     SuccessStory,
     SupervisorAssignment,
     ExternalPlacementDeclaration,
+    SupervisionCheckIn,
     OpportunityStatus,
     ApplicationStatus,
 )
@@ -14,6 +15,7 @@ from .roles import (
     is_assigned_employer_supervisor as _is_assigned_employer_supervisor,
     is_assigned_institution_supervisor as _is_assigned_institution_supervisor,
 )
+from .policies import can_cancel_supervision_checkin, can_complete_supervision_checkin
 
 
 def _is_employer_admin_for_application(user, application) -> bool:
@@ -219,6 +221,91 @@ class InternshipApplicationSerializer(serializers.ModelSerializer):
             'id', 'created_at', 'updated_at', 'status', 
             'opportunity', 'student_id', 'application_snapshot'
         ]
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        request = self.context.get("request")
+        if not request or not request.user.is_authenticated:
+            return self._strip_final_assessment_fields(representation)
+
+        user = request.user
+        if user.is_system_admin:
+            return representation
+
+        sensitive_fields = {
+            "employer_final_feedback",
+            "employer_final_rating",
+            "employer_final_feedback_by",
+            "employer_final_feedback_at",
+            "institution_final_feedback",
+            "institution_final_rating",
+            "institution_final_feedback_by",
+            "institution_final_feedback_at",
+            "final_feedback",
+            "final_rating",
+        }
+
+        if user.is_student:
+            # Students see only the released summary after certification.
+            if instance.status == ApplicationStatus.CERTIFIED:
+                for field in sensitive_fields - {"final_feedback", "final_rating"}:
+                    representation.pop(field, None)
+                return representation
+            return self._strip_final_assessment_fields(representation)
+
+        can_see_employer_lane = (
+            _is_assigned_employer_supervisor(user, instance)
+            or _is_employer_admin_for_application(user, instance)
+        )
+        can_see_institution_lane = (
+            _is_assigned_institution_supervisor(user, instance)
+            or _is_institution_admin_for_application(user, instance)
+        )
+
+        # Institution assessors/certifiers need employer assessments to certify
+        # without exposing institution-only assessment notes back to employers.
+        if can_see_institution_lane:
+            can_see_employer_lane = True
+
+        if not can_see_employer_lane:
+            for field in [
+                "employer_final_feedback",
+                "employer_final_rating",
+                "employer_final_feedback_by",
+                "employer_final_feedback_at",
+            ]:
+                representation.pop(field, None)
+
+        if not can_see_institution_lane:
+            for field in [
+                "institution_final_feedback",
+                "institution_final_rating",
+                "institution_final_feedback_by",
+                "institution_final_feedback_at",
+            ]:
+                representation.pop(field, None)
+
+        if not (can_see_employer_lane or can_see_institution_lane):
+            representation.pop("final_feedback", None)
+            representation.pop("final_rating", None)
+
+        return representation
+
+    def _strip_final_assessment_fields(self, representation):
+        for field in [
+            "employer_final_feedback",
+            "employer_final_rating",
+            "employer_final_feedback_by",
+            "employer_final_feedback_at",
+            "institution_final_feedback",
+            "institution_final_rating",
+            "institution_final_feedback_by",
+            "institution_final_feedback_at",
+            "final_feedback",
+            "final_rating",
+        ]:
+            representation.pop(field, None)
+        return representation
         
     def get_student_info(self, obj):
         from edulink.apps.students.queries import get_student_by_id
@@ -426,6 +513,32 @@ class SubmitEvidenceSerializer(serializers.Serializer):
     evidence_type = serializers.ChoiceField(choices=InternshipEvidence.TYPE_CHOICES, default=InternshipEvidence.TYPE_OTHER)
     metadata = serializers.JSONField(required=False, default=dict)
 
+    def validate(self, attrs):
+        if attrs.get("evidence_type") != InternshipEvidence.TYPE_LOGBOOK:
+            return attrs
+
+        from .logbook_format import normalize_logbook_metadata
+
+        metadata = normalize_logbook_metadata(attrs.get("metadata") or {})
+        daily_entries = metadata.get("daily_entries") or []
+        entries = metadata.get("entries") or {}
+
+        if not metadata.get("week_start_date"):
+            raise serializers.ValidationError("Logbook week_start_date is required.")
+
+        has_daily_work = any(
+            (entry.get("description") or "").strip()
+            for entry in daily_entries
+            if isinstance(entry, dict)
+        )
+        has_entry_work = any(str(value).strip() for value in entries.values()) if isinstance(entries, dict) else False
+
+        if not has_daily_work and not has_entry_work:
+            raise serializers.ValidationError("Logbook entries must include at least one daily activity.")
+
+        attrs["metadata"] = metadata
+        return attrs
+
 
 class ExternalPlacementDeclarationSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source="get_status_display", read_only=True)
@@ -567,6 +680,117 @@ class IncidentSerializer(serializers.ModelSerializer):
 class ResolveIncidentSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=[Incident.STATUS_RESOLVED, Incident.STATUS_DISMISSED])
     resolution_notes = serializers.CharField()
+
+
+class SupervisionCheckInSerializer(serializers.ModelSerializer):
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
+    mode_display = serializers.CharField(source="get_mode_display", read_only=True)
+    internship_title = serializers.CharField(source="application.opportunity.title", read_only=True)
+    student_info = serializers.SerializerMethodField()
+    can_complete = serializers.SerializerMethodField()
+    can_cancel = serializers.SerializerMethodField()
+
+    class Meta:
+        model = SupervisionCheckIn
+        fields = [
+            "id",
+            "application",
+            "internship_title",
+            "student_info",
+            "scheduled_for",
+            "mode",
+            "mode_display",
+            "status",
+            "status_display",
+            "scheduled_by",
+            "completed_by",
+            "completed_at",
+            "student_confirmed_at",
+            "meeting_url",
+            "supervisor_notes",
+            "private_notes",
+            "cancellation_reason",
+            "metadata",
+            "can_complete",
+            "can_cancel",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = fields
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        request = self.context.get("request")
+        if not request or not request.user.is_authenticated:
+            representation.pop("private_notes", None)
+            return representation
+
+        user = request.user
+        application = instance.application
+        can_see_private = (
+            user.is_system_admin
+            or _is_assigned_employer_supervisor(user, application)
+            or _is_assigned_institution_supervisor(user, application)
+            or _is_employer_admin_for_application(user, application)
+            or _is_institution_admin_for_application(user, application)
+        )
+        if not can_see_private:
+            representation.pop("private_notes", None)
+        return representation
+
+    def get_student_info(self, obj):
+        from edulink.apps.students.queries import get_student_by_id
+
+        student = get_student_by_id(obj.application.student_id)
+        if not student:
+            return None
+        return {
+            "id": str(student.id),
+            "name": f"{student.user.first_name} {student.user.last_name}",
+            "email": student.user.email,
+        }
+
+    def get_can_complete(self, obj):
+        request = self.context.get("request")
+        return bool(
+            request
+            and request.user.is_authenticated
+            and can_complete_supervision_checkin(request.user, obj)
+        )
+
+    def get_can_cancel(self, obj):
+        request = self.context.get("request")
+        return bool(
+            request
+            and request.user.is_authenticated
+            and can_cancel_supervision_checkin(request.user, obj)
+        )
+
+
+class ScheduleSupervisionCheckInSerializer(serializers.Serializer):
+    scheduled_for = serializers.DateTimeField()
+    mode = serializers.ChoiceField(choices=SupervisionCheckIn.MODE_CHOICES, default=SupervisionCheckIn.MODE_VIRTUAL)
+    meeting_url = serializers.URLField(required=False, allow_blank=True)
+    supervisor_notes = serializers.CharField(required=False, allow_blank=True)
+    private_notes = serializers.CharField(required=False, allow_blank=True)
+    metadata = serializers.JSONField(required=False, default=dict)
+
+    def validate_scheduled_for(self, value):
+        from django.utils import timezone
+
+        if value <= timezone.now():
+            raise serializers.ValidationError("Supervision check-ins must be scheduled for a future time.")
+        return value
+
+
+class CompleteSupervisionCheckInSerializer(serializers.Serializer):
+    supervisor_notes = serializers.CharField(required=False, allow_blank=True)
+    private_notes = serializers.CharField(required=False, allow_blank=True)
+
+
+class CancelSupervisionCheckInSerializer(serializers.Serializer):
+    reason = serializers.CharField(required=False, allow_blank=True)
+
 
 class AssignSupervisorSerializer(serializers.Serializer):
     supervisor_id = serializers.UUIDField()

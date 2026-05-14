@@ -3,10 +3,9 @@ from rest_framework.views import APIView
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework_simplejwt.tokens import RefreshToken
-from django.conf import settings
 from django_filters.rest_framework import DjangoFilterBackend
 from edulink.apps.shared.error_handling import AuthorizationError
+from edulink.apps.accounts.auth_tokens import build_login_response
 
 from .models import EmployerRequest, Employer, Supervisor
 from .serializers import (
@@ -34,14 +33,12 @@ from .policies import (
     is_employer_staff
 )
 
-# Module-level config
-DEBUG = settings.DEBUG
-
 class EmployerLoginView(APIView):
     """
     Employer-specific login endpoint.
     Only allows Employer Admins and Supervisors to login.
-    Uses Django's session framework (HttpOnly cookies) instead of JWT.
+    Uses the shared portal auth contract: access token in response body,
+    refresh token in an HttpOnly cookie.
     """
     permission_classes = [AllowAny]
 
@@ -61,16 +58,12 @@ class EmployerLoginView(APIView):
                     {"detail": "Access denied. This login is for employer staff only."},
                     status=status.HTTP_403_FORBIDDEN
                 )
-            refresh = RefreshToken.for_user(user)
-            
-            # Return user data
             user_serializer = UserSerializer(user)
-            return Response({
-                'message': 'Login successful',
-                'user': user_serializer.data,
-                'access': str(refresh.access_token),
-                'refresh': str(refresh),
-            }, status=status.HTTP_200_OK)
+            return build_login_response(
+                request=request,
+                user=user,
+                user_data=user_serializer.data,
+            )
             
         except ValueError as e:
             return Response({'detail': str(e)}, status=status.HTTP_401_UNAUTHORIZED)

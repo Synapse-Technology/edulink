@@ -21,11 +21,11 @@ const roleBenefits = [
     eyebrow: 'Placement governance',
     icon: 'bi-bank',
     body:
-      'Coordinate attachments and internships without leaking employer application workflows into institution monitoring.',
+      'Coordinate attachments and internships without printing logbooks, chasing reports, or sending supervisors to every site by default.',
     points: [
       'Verify student affiliations and placement declarations',
       'Monitor cohorts, current placements, and placement history',
-      'Assign institution assessors to review student progress',
+      'Run remote supervision check-ins and virtual reviews',
       'Certify completion from verified placement records',
     ],
   },
@@ -38,7 +38,7 @@ const roleBenefits = [
     points: [
       'Publish EduLink-hosted opportunities',
       'Manage employer-specific applications and interns',
-      'Assign employer supervisors for workplace review',
+      'Review logbooks and give private supervisor feedback',
       'Access stronger signals than CV claims alone',
     ],
   },
@@ -59,7 +59,7 @@ const workflow = [
   },
   {
     title: 'Evidence and supervision',
-    text: 'Students submit logbooks while institution assessors and employer supervisors review within their own scope.',
+    text: 'Students submit logbooks while institution assessors and employer supervisors review, comment privately, and schedule remote check-ins within their own scope.',
   },
   {
     title: 'Talent proof',
@@ -70,7 +70,7 @@ const workflow = [
 const trustItems = [
   'Role-separated access for students, institutions, employers, assessors, and supervisors',
   'Application privacy between employer workflows and institution placement monitoring',
-  'Verifiable logbooks, placement history, and completion records',
+  'Non-editable reviewed logbooks, final reports, check-ins, and completion records',
   'A growing talent pool of students with real workplace evidence',
 ];
 
@@ -92,7 +92,8 @@ const WhyUs: React.FC = () => (
               <p>
                 Students need more than a list of vacancies. Institutions need
                 visibility into placements. Employers need better signals than
-                CV claims. EduLink connects the three with verified workflows.
+                CV claims. EduLink connects the three with verified workflows
+                that reduce paper, travel, and supervision blind spots.
               </p>
               <div className="why-hero-actions">
                 <Link to="/opportunities" className="btn btn-primary">
@@ -115,7 +116,7 @@ const WhyUs: React.FC = () => (
               </div>
               <div className="proof-row">
                 <span>03</span>
-                <strong>Scoped supervision</strong>
+                <strong>Remote supervision</strong>
               </div>
               <div className="proof-row">
                 <span>04</span>
@@ -188,7 +189,9 @@ const WhyUs: React.FC = () => (
                 EduLink is not just an internship board. It creates the
                 verified evidence layer that helps students prove experience,
                 institutions govern placements, and employers identify stronger
-                early-career talent.
+                early-career talent. Funding and attachment programs can help
+                create opportunities; EduLink is the digital operating system
+                that makes those placements cheaper to run and easier to audit.
               </p>
             </div>
             <ul>

@@ -16,6 +16,7 @@ from .models import (
     SuccessStory,
     Incident,
     ExternalPlacementDeclaration,
+    SupervisionCheckIn,
 )
 
 
@@ -215,6 +216,69 @@ def get_evidence_for_application(application_id: UUID) -> QuerySet[InternshipEvi
 
 def get_incidents_for_application(application_id: UUID) -> QuerySet[Incident]:
     return Incident.objects.filter(application_id=application_id)
+
+
+def get_supervision_checkins_for_application(application_id: UUID) -> QuerySet[SupervisionCheckIn]:
+    return SupervisionCheckIn.objects.filter(
+        application_id=application_id,
+    ).select_related("application", "application__opportunity").order_by("scheduled_for", "created_at")
+
+
+def get_supervision_checkins_for_user(user) -> QuerySet[SupervisionCheckIn]:
+    queryset = SupervisionCheckIn.objects.select_related(
+        "application",
+        "application__opportunity",
+    ).order_by("scheduled_for", "created_at")
+
+    if not user.is_authenticated:
+        return SupervisionCheckIn.objects.none()
+
+    if user.is_system_admin:
+        return queryset
+
+    if user.is_student:
+        student = get_student_for_user(str(user.id))
+        if student:
+            return queryset.filter(application__student_id=student.id)
+        return SupervisionCheckIn.objects.none()
+
+    if user.is_institution_admin:
+        institution = get_institution_for_user(str(user.id))
+        if not institution:
+            return SupervisionCheckIn.objects.none()
+        affiliated_student_ids = get_affiliated_student_ids(str(institution.id))
+        return queryset.filter(
+            Q(application__opportunity__institution_id=institution.id)
+            | Q(application__student_id__in=affiliated_student_ids)
+            | Q(application__application_snapshot__institution_id=str(institution.id))
+        ).distinct()
+
+    if user.is_employer_admin:
+        employer = get_employer_for_user(user.id)
+        if employer:
+            return queryset.filter(application__opportunity__employer_id=employer.id)
+        return SupervisionCheckIn.objects.none()
+
+    if user.is_supervisor:
+        employer_supervisor_id = get_supervisor_id_for_user(user.id)
+        institution_supervisor_id = get_institution_staff_id_for_user(str(user.id))
+        user_id = user.id if isinstance(user.id, UUID) else UUID(str(user.id))
+
+        filters = Q(application__employer_supervisor_id=user_id) | Q(application__institution_supervisor_id=user_id)
+        if employer_supervisor_id:
+            filters |= Q(application__employer_supervisor_id=employer_supervisor_id)
+        if institution_supervisor_id:
+            filters |= Q(application__institution_supervisor_id=institution_supervisor_id)
+        return queryset.filter(filters)
+
+    return SupervisionCheckIn.objects.none()
+
+
+def get_supervision_checkin_by_id(checkin_id: UUID) -> Optional[SupervisionCheckIn]:
+    try:
+        return SupervisionCheckIn.objects.select_related("application", "application__opportunity").get(id=checkin_id)
+    except SupervisionCheckIn.DoesNotExist:
+        return None
 
 def get_pending_evidence_for_user(user) -> QuerySet[InternshipEvidence]:
     """

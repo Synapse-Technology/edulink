@@ -1,13 +1,10 @@
 from rest_framework import viewsets, status, filters
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.shortcuts import get_object_or_404
-from django.conf import settings
-from django.contrib.auth import login as django_login  # Use Django's built-in session login
 from django_filters.rest_framework import DjangoFilterBackend
 from edulink.apps.shared.pagination import StandardResultsSetPagination, LargeResultsSetPagination
 from .models import Student, StudentInstitutionAffiliation
@@ -41,25 +38,20 @@ from .queries import (
 from edulink.apps.trust.services import compute_student_trust_tier
 from .policies import is_student
 from edulink.apps.institutions.permissions import IsActiveInstitutionAdmin
-
-# Module-level config
-DEBUG = settings.DEBUG
+from edulink.apps.accounts.auth_tokens import build_login_response
 
 class StudentLoginView(APIView):
     """
     Student-specific login endpoint.
     Only allows Students to login.
-    Returns JWT tokens (not session cookies) for better cross-domain compatibility on Render.
-    
-    Cloudflare blocks cross-domain SameSite=None cookies, so we switched to JWT tokens
-    sent via Authorization headers instead of relying on cookie storage.
+    Uses the shared portal auth contract: access token in response body,
+    refresh token in an HttpOnly cookie.
     """
     permission_classes = [AllowAny]
     
     def post(self, request):
         """
-        Authenticate student and return JWT tokens.
-        Frontend stores tokens and sends via Authorization: Bearer <token> header.
+        Authenticate student and return the shared auth response.
         """
         from edulink.apps.accounts.serializers import UserLoginSerializer, UserSerializer
         from edulink.apps.accounts.services import authenticate_user
@@ -80,19 +72,13 @@ class StudentLoginView(APIView):
                     status=status.HTTP_403_FORBIDDEN
                 )
             
-            # Generate JWT tokens (access token for API calls, refresh for token renewal)
-            refresh = RefreshToken.for_user(user)
-            
-            logger.warning(f"✅ [LOGIN] Student login successful: {user.email}, access_token_issued")
-            
-            # Return user data with tokens
             user_serializer = UserSerializer(user)
-            return Response({
-                'message': 'Login successful',
-                'user': user_serializer.data,
-                'access': str(refresh.access_token),
-                'refresh': str(refresh),
-            }, status=status.HTTP_200_OK)
+            logger.info("Student login successful: %s", user.email)
+            return build_login_response(
+                request=request,
+                user=user,
+                user_data=user_serializer.data,
+            )
             
         except ValueError as e:
             return Response({'detail': str(e)}, status=status.HTTP_401_UNAUTHORIZED)

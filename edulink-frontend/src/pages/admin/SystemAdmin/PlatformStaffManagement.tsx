@@ -20,31 +20,67 @@ import {
   X,
   XCircle,
 } from 'lucide-react';
-import axios from 'axios';
 
 import AdminLayout from '../../../components/admin/AdminLayout';
 import PlatformStaffManagementSkeleton from '../../../components/admin/skeletons/PlatformStaffManagementSkeleton';
+import adminAuthService, {
+  type PlatformStaffAccount,
+  type PlatformStaffInvite,
+} from '../../../services/auth/adminAuthService';
 import { sanitizeAdminError } from '../../../utils/adminErrorSanitizer';
 
-interface PlatformStaff {
-  id: string;
-  email: string;
-  role: 'SUPER_ADMIN' | 'PLATFORM_ADMIN' | 'MODERATOR' | 'AUDITOR';
-  is_active: boolean;
-  created_at: string;
-  last_login: string | null;
-  permissions: string[];
-}
+type PlatformStaff = PlatformStaffAccount;
+type StaffInvite = PlatformStaffInvite;
 
-interface StaffInvite {
-  id: string;
-  email: string;
-  role: string;
-  invited_by: string;
-  invited_at: string;
-  expires_at: string;
-  is_accepted: boolean;
-}
+const permissionLabels: Record<string, string> = {
+  access_admin_panel: 'Admin panel access',
+  view_dashboard: 'Dashboard visibility',
+  view_analytics: 'Platform analytics',
+  view_audit_logs: 'Audit log access',
+  export_audit_logs: 'Audit export',
+  manage_staff: 'Staff lifecycle',
+  manage_users: 'User management',
+  suspend_users: 'User suspension',
+  change_user_roles: 'User role changes',
+  manage_institutions: 'Institution management',
+  review_institution_requests: 'Institution request review',
+  manage_employers: 'Employer management',
+  review_employer_requests: 'Employer request review',
+  manage_contact_submissions: 'Contact inbox',
+  respond_to_support_tickets: 'Support responses',
+  moderate_content: 'Moderation actions',
+  perform_ledger_audits: 'Ledger audits',
+  system_config: 'System configuration',
+  emergency_actions: 'Emergency actions',
+  flag_suspicious_behavior: 'Suspicious behavior flags',
+  view_user_activity: 'User activity review',
+};
+
+const roleCapabilityMap: Record<PlatformStaff['role'], { purpose: string; allowed: string[]; restricted: string[] }> = {
+  SUPER_ADMIN: {
+    purpose: 'Root platform authority for staff lifecycle, emergency controls, system configuration, and privileged operations.',
+    allowed: ['manage_staff', 'manage_users', 'manage_institutions', 'manage_employers', 'system_config', 'emergency_actions', 'view_audit_logs'],
+    restricted: [],
+  },
+  PLATFORM_ADMIN: {
+    purpose: 'Day-to-day operations authority for user, institution, employer, support, and moderation workflows.',
+    allowed: ['manage_users', 'manage_institutions', 'manage_employers', 'respond_to_support_tickets', 'moderate_content', 'view_analytics'],
+    restricted: ['manage_staff', 'system_config', 'emergency_actions', 'view_audit_logs'],
+  },
+  MODERATOR: {
+    purpose: 'Support and moderation authority without user lifecycle, audit export, or system configuration access.',
+    allowed: ['respond_to_support_tickets', 'manage_contact_submissions', 'moderate_content', 'flag_suspicious_behavior'],
+    restricted: ['manage_users', 'manage_staff', 'manage_institutions', 'manage_employers', 'view_audit_logs', 'system_config'],
+  },
+  AUDITOR: {
+    purpose: 'Read-only compliance authority for analytics, audit logs, ledger audits, and user activity review.',
+    allowed: ['view_analytics', 'view_audit_logs', 'export_audit_logs', 'perform_ledger_audits', 'view_user_activity'],
+    restricted: ['manage_users', 'manage_staff', 'respond_to_support_tickets', 'moderate_content', 'system_config', 'emergency_actions'],
+  },
+};
+
+const formatPermission = (permission: string) =>
+  permissionLabels[permission] || permission.replace(/_/g, ' ');
 
 const PlatformStaffManagement: React.FC = () => {
   const [staff, setStaff] = useState<PlatformStaff[]>([]);
@@ -61,27 +97,18 @@ const PlatformStaffManagement: React.FC = () => {
     fetchStaffData();
   }, []);
 
-  const getToken = () => localStorage.getItem('adminToken');
-
   const fetchStaffData = async () => {
     try {
       if (isLoading) setIsLoading(true);
       else setIsRefreshing(true);
 
-      const token = getToken();
-      if (!token) throw new Error('No authentication token');
-
       const [staffResponse, invitesResponse] = await Promise.all([
-        axios.get('/api/admin/staff/', {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        axios.get('/api/admin/staff/invites/', {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
+        adminAuthService.getPlatformStaff(),
+        adminAuthService.getPlatformStaffInvites(),
       ]);
 
-      setStaff(staffResponse.data);
-      setInvites(invitesResponse.data);
+      setStaff(staffResponse);
+      setInvites(invitesResponse);
       setError('');
     } catch (err) {
       const sanitized = sanitizeAdminError(err);
@@ -127,11 +154,7 @@ const PlatformStaffManagement: React.FC = () => {
 
   const handleCancelInvite = async (inviteId: string) => {
     try {
-      const token = getToken();
-
-      await axios.delete(`/api/admin/staff/invites/${inviteId}/`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await adminAuthService.cancelPlatformStaffInvite(inviteId);
 
       fetchStaffData();
     } catch (err) {
@@ -142,15 +165,7 @@ const PlatformStaffManagement: React.FC = () => {
 
   const handleToggleStatus = async (staffId: string, isActive: boolean) => {
     try {
-      const token = getToken();
-
-      await axios.patch(
-        `/api/admin/staff/${staffId}/`,
-        { is_active: !isActive },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
+      await adminAuthService.updatePlatformStaffStatus(staffId, !isActive);
 
       fetchStaffData();
     } catch (err) {
@@ -205,6 +220,8 @@ const PlatformStaffManagement: React.FC = () => {
 
     return new Date(value).toLocaleString('en-GB');
   };
+
+  const getRoleCapabilities = (role: PlatformStaff['role']) => roleCapabilityMap[role];
 
   if (isLoading) {
     return (
@@ -312,6 +329,54 @@ const PlatformStaffManagement: React.FC = () => {
             <strong>{stats.neverLoggedIn}</strong>
             <span>Never logged in</span>
           </article>
+        </section>
+
+        <section className="staff-capability-panel">
+          <div className="staff-panel-header">
+            <div>
+              <span className="staff-panel-kicker">Role separation plan</span>
+              <h2>Capability boundaries</h2>
+              <p>Each system admin subrole has a distinct operational lane, with write access kept away from audit-only and support-only roles.</p>
+            </div>
+          </div>
+
+          <div className="capability-grid">
+            {(Object.keys(roleCapabilityMap) as PlatformStaff['role'][]).map((roleName) => {
+              const role = getRoleMeta(roleName);
+              const capabilities = getRoleCapabilities(roleName);
+
+              return (
+                <article key={roleName} className="capability-card">
+                  <div className="capability-card-top">
+                    <span className={`staff-role ${role.className}`}>
+                      {role.icon}
+                      {role.label}
+                    </span>
+                  </div>
+
+                  <p>{capabilities.purpose}</p>
+
+                  <div className="capability-columns">
+                    <div>
+                      <strong>Allowed</strong>
+                      {capabilities.allowed.map((permission) => (
+                        <span key={permission}>{formatPermission(permission)}</span>
+                      ))}
+                    </div>
+
+                    {capabilities.restricted.length > 0 && (
+                      <div>
+                        <strong>Restricted</strong>
+                        {capabilities.restricted.map((permission) => (
+                          <span key={permission} className="restricted">{formatPermission(permission)}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
         </section>
 
         <section className="staff-panel">
@@ -436,7 +501,7 @@ const PlatformStaffManagement: React.FC = () => {
                             {member.permissions.length > 0 ? (
                               <>
                                 {member.permissions.slice(0, 2).map((permission) => (
-                                  <span key={permission}>{permission}</span>
+                                  <span key={permission}>{formatPermission(permission)}</span>
                                 ))}
 
                                 {member.permissions.length > 2 && (
@@ -601,18 +666,40 @@ const PlatformStaffManagement: React.FC = () => {
                 <div className="record-block">
                   <h4>
                     <Key size={14} />
-                    Assigned permissions
+                    Assigned permissions and boundaries
                   </h4>
+
+                  <p className="record-note">
+                    {getRoleCapabilities(selectedStaff.role).purpose}
+                  </p>
 
                   <div className="permission-list expanded">
                     {selectedStaff.permissions.length > 0 ? (
                       selectedStaff.permissions.map((permission) => (
-                        <span key={permission}>{permission}</span>
+                        <span key={permission}>{formatPermission(permission)}</span>
                       ))
                     ) : (
                       <span className="empty-permission">
                         No specific permissions assigned
                       </span>
+                    )}
+                  </div>
+
+                  <div className="capability-columns modal-scope">
+                    <div>
+                      <strong>Role can perform</strong>
+                      {getRoleCapabilities(selectedStaff.role).allowed.map((permission) => (
+                        <span key={permission}>{formatPermission(permission)}</span>
+                      ))}
+                    </div>
+
+                    {getRoleCapabilities(selectedStaff.role).restricted.length > 0 && (
+                      <div>
+                        <strong>Role cannot perform</strong>
+                        {getRoleCapabilities(selectedStaff.role).restricted.map((permission) => (
+                          <span key={permission} className="restricted">{formatPermission(permission)}</span>
+                        ))}
+                      </div>
                     )}
                   </div>
                 </div>
@@ -746,7 +833,8 @@ const PlatformStaffManagement: React.FC = () => {
 
         .staff-signal-grid article,
         .staff-panel,
-        .invite-panel {
+        .invite-panel,
+        .staff-capability-panel {
           background: #ffffff;
           border: 1px solid #e5e7eb;
           box-shadow: 0 10px 26px rgba(15,23,42,.04);
@@ -791,10 +879,81 @@ const PlatformStaffManagement: React.FC = () => {
         }
 
         .staff-panel,
-        .invite-panel {
+        .invite-panel,
+        .staff-capability-panel {
           border-radius: 20px;
           overflow: hidden;
           margin-bottom: 18px;
+        }
+
+        .capability-grid {
+          padding: 18px;
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        .capability-card {
+          border: 1px solid #e5e7eb;
+          border-radius: 16px;
+          padding: 14px;
+          background: #ffffff;
+        }
+
+        .capability-card-top {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 12px;
+        }
+
+        .capability-card p,
+        .record-note {
+          color: #64748b;
+          font-size: .82rem;
+          line-height: 1.55;
+          margin: 0 0 14px;
+        }
+
+        .capability-columns {
+          display: grid;
+          gap: 10px;
+        }
+
+        .capability-columns.modal-scope {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          margin-top: 14px;
+        }
+
+        .capability-columns div {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+        }
+
+        .capability-columns strong {
+          flex-basis: 100%;
+          color: #0f172a;
+          font-size: .74rem;
+          font-weight: 900;
+          text-transform: uppercase;
+          letter-spacing: .06em;
+        }
+
+        .capability-columns span {
+          border-radius: 999px;
+          padding: 5px 8px;
+          background: #ecfdf5;
+          color: #047857;
+          border: 1px solid #bbf7d0;
+          font-size: .72rem;
+          font-weight: 800;
+        }
+
+        .capability-columns span.restricted {
+          background: #f8fafc;
+          color: #64748b;
+          border-color: #e5e7eb;
         }
 
         .staff-panel-header {
@@ -1261,6 +1420,10 @@ const PlatformStaffManagement: React.FC = () => {
             grid-template-columns: repeat(3, minmax(0, 1fr));
           }
 
+          .capability-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
           .invite-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
           }
@@ -1290,7 +1453,9 @@ const PlatformStaffManagement: React.FC = () => {
           }
 
           .invite-grid,
-          .staff-modal-body {
+          .staff-modal-body,
+          .capability-grid,
+          .capability-columns.modal-scope {
             grid-template-columns: 1fr;
           }
 

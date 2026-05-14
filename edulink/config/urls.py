@@ -39,11 +39,10 @@ urlpatterns = [
     path("api/contact/", include("edulink.apps.contact.urls")),
 ]
 
-# Serve media files in both development and production
-# Note: In production, it's better to use a dedicated storage provider like Cloudinary or S3
-urlpatterns += [
-    re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
-]
+if settings.DEBUG:
+    urlpatterns += [
+        re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
+    ]
 
 # Serve a few legacy root/static assets that some external scripts request
 # These are small placeholders to avoid noisy 404s in the logs. Files live
@@ -59,4 +58,3 @@ urlpatterns += [
     re_path(r'^css/(?P<path>.*)$', serve, {'document_root': legacy_static_root}),
     re_path(r'^static/(?P<path>.*)$', serve, {'document_root': legacy_static_root}),
 ]
-

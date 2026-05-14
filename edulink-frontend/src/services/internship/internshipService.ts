@@ -136,6 +136,59 @@ export interface InternshipApplication {
   application_snapshot?: any;
 }
 
+export interface SupervisorAssignment {
+  id: string;
+  application: InternshipApplication;
+  supervisor_id: string;
+  assigned_by_id: string;
+  assignment_type: 'EMPLOYER' | 'INSTITUTION';
+  status: 'PENDING' | 'ACCEPTED' | 'REJECTED';
+  assigned_at: string;
+  accepted_at?: string | null;
+  rejected_at?: string | null;
+  rejection_reason?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface SupervisionCheckIn {
+  id: string;
+  application: string;
+  internship_title?: string;
+  student_info?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  scheduled_for: string;
+  mode: 'VIRTUAL' | 'PHONE' | 'ONSITE' | 'OTHER';
+  mode_display?: string;
+  status: 'SCHEDULED' | 'COMPLETED' | 'MISSED' | 'CANCELLED';
+  status_display?: string;
+  scheduled_by: string;
+  completed_by?: string | null;
+  completed_at?: string | null;
+  student_confirmed_at?: string | null;
+  meeting_url?: string;
+  supervisor_notes?: string;
+  private_notes?: string;
+  cancellation_reason?: string;
+  metadata?: Record<string, any>;
+  can_complete?: boolean;
+  can_cancel?: boolean;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface ScheduleSupervisionCheckInPayload {
+  scheduled_for: string;
+  mode?: SupervisionCheckIn['mode'];
+  meeting_url?: string;
+  supervisor_notes?: string;
+  private_notes?: string;
+  metadata?: Record<string, any>;
+}
+
 // Alias for backward compatibility if needed, but we should migrate.
 export type Internship = InternshipOpportunity;
 
@@ -637,6 +690,116 @@ class InternshipService {
     } catch (error) {
       if (error instanceof ApiError) throw error;
       throw new Error('Failed to certify internship');
+    }
+  }
+
+  async getSupervisorAssignments(params?: {
+    status?: SupervisorAssignment['status'];
+    assignment_type?: SupervisorAssignment['assignment_type'];
+  }): Promise<SupervisorAssignment[]> {
+    try {
+      const response = await this.client.get<SupervisorAssignment[] | PaginatedResponse<SupervisorAssignment>>(
+        '/api/internships/supervisor-assignments/',
+        { params }
+      );
+      return Array.isArray(response) ? response : response.results || [];
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new Error('Failed to fetch supervisor assignments');
+    }
+  }
+
+  async acceptSupervisorAssignment(assignmentId: string): Promise<SupervisorAssignment> {
+    try {
+      return await this.client.post<SupervisorAssignment>(
+        `/api/internships/supervisor-assignments/${assignmentId}/accept/`,
+        {}
+      );
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new Error('Failed to accept supervisor assignment');
+    }
+  }
+
+  async rejectSupervisorAssignment(
+    assignmentId: string,
+    reason?: string
+  ): Promise<SupervisorAssignment> {
+    try {
+      return await this.client.post<SupervisorAssignment>(
+        `/api/internships/supervisor-assignments/${assignmentId}/reject/`,
+        { reason: reason || '' }
+      );
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new Error('Failed to reject supervisor assignment');
+    }
+  }
+
+  async getSupervisionCheckIns(applicationId: string): Promise<SupervisionCheckIn[]> {
+    try {
+      const response = await this.client.get<SupervisionCheckIn[] | PaginatedResponse<SupervisionCheckIn>>(
+        `/api/internships/applications/${applicationId}/supervision-checkins/`
+      );
+      return Array.isArray(response) ? response : response.results || [];
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new Error('Failed to fetch supervision check-ins');
+    }
+  }
+
+  async scheduleSupervisionCheckIn(
+    applicationId: string,
+    data: ScheduleSupervisionCheckInPayload
+  ): Promise<SupervisionCheckIn> {
+    try {
+      return await this.client.post<SupervisionCheckIn>(
+        `/api/internships/applications/${applicationId}/supervision-checkins/`,
+        data
+      );
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new Error('Failed to schedule supervision check-in');
+    }
+  }
+
+  async completeSupervisionCheckIn(
+    applicationId: string,
+    checkInId: string,
+    data: { supervisor_notes?: string; private_notes?: string } = {}
+  ): Promise<SupervisionCheckIn> {
+    try {
+      return await this.client.post<SupervisionCheckIn>(
+        `/api/internships/applications/${applicationId}/supervision-checkins/${checkInId}/complete/`,
+        data
+      );
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new Error('Failed to complete supervision check-in');
+    }
+  }
+
+  async confirmSupervisionCheckIn(applicationId: string, checkInId: string): Promise<SupervisionCheckIn> {
+    try {
+      return await this.client.post<SupervisionCheckIn>(
+        `/api/internships/applications/${applicationId}/supervision-checkins/${checkInId}/confirm/`,
+        {}
+      );
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new Error('Failed to confirm supervision check-in');
+    }
+  }
+
+  async cancelSupervisionCheckIn(applicationId: string, checkInId: string, reason = ''): Promise<SupervisionCheckIn> {
+    try {
+      return await this.client.post<SupervisionCheckIn>(
+        `/api/internships/applications/${applicationId}/supervision-checkins/${checkInId}/cancel/`,
+        { reason }
+      );
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new Error('Failed to cancel supervision check-in');
     }
   }
 

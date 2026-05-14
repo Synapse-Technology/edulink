@@ -3,8 +3,9 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import Iterable
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils import timezone
 
@@ -50,6 +51,11 @@ class Command(BaseCommand):
     @transaction.atomic
     def handle(self, *args, **options):
         password = options["password"]
+        if not settings.DEBUG and password == DEMO_PASSWORD:
+            raise CommandError(
+                "Refusing to seed demo users with the default shared password outside DEBUG. "
+                "Pass --password with a deployment-specific value."
+            )
 
         institution = self._institution()
         department = self._department(institution)

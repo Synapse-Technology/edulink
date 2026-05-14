@@ -10,6 +10,7 @@ from django.utils import timezone
 from django.core.exceptions import ValidationError
 
 from .models import PlatformStaffProfile, AdminActionLog, StaffInvite
+from . import policies
 
 User = get_user_model()
 
@@ -97,13 +98,7 @@ class PlatformStaffListSerializer(serializers.ModelSerializer):
         
     def get_permissions(self, obj):
         """Get permissions list based on role."""
-        # Simple mapping based on role - could be more complex in real implementation
-        permissions = ['view_dashboard']
-        if obj.role in ['SUPER_ADMIN', 'PLATFORM_ADMIN']:
-            permissions.extend(['manage_users', 'manage_institutions', 'manage_staff'])
-        if obj.role == 'SUPER_ADMIN':
-            permissions.extend(['system_config', 'view_audit_logs'])
-        return permissions
+        return policies.get_platform_staff_permissions_for_role(obj.role)
 
 
 class StaffInviteListSerializer(serializers.ModelSerializer):

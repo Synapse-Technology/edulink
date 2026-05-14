@@ -5,7 +5,14 @@ from edulink.apps.institutions.queries import get_institution_for_user, get_inst
 from edulink.apps.students.queries import get_student_for_user, get_student_approved_affiliation
 from edulink.apps.employers.policies import can_post_internship as employer_can_post
 from edulink.apps.employers.queries import get_employer_by_id, get_employer_for_user, get_employer_supervisor_by_user
-from .models import InternshipOpportunity, InternshipApplication, OpportunityStatus, ApplicationStatus, ExternalPlacementDeclaration
+from .models import (
+    InternshipOpportunity,
+    InternshipApplication,
+    OpportunityStatus,
+    ApplicationStatus,
+    ExternalPlacementDeclaration,
+    SupervisionCheckIn,
+)
 from .roles import (
     is_assigned_employer_supervisor,
     is_assigned_institution_supervisor,
@@ -294,6 +301,131 @@ def can_submit_final_feedback(actor, application: InternshipApplication) -> bool
         return True
 
     return False
+
+
+def _institution_admin_can_monitor_application(actor, application: InternshipApplication) -> bool:
+    if not actor.is_institution_admin:
+        return False
+
+    institution_id = get_actor_institution_id(actor)
+    if not institution_id:
+        return False
+
+    if application.opportunity.institution_id == institution_id:
+        return True
+
+    snapshot_institution_id = (application.application_snapshot or {}).get("institution_id")
+    if snapshot_institution_id and str(snapshot_institution_id) == str(institution_id):
+        return True
+
+    affiliation = get_student_approved_affiliation(application.student_id)
+    return bool(affiliation and affiliation.institution_id == institution_id)
+
+
+def _employer_admin_can_monitor_application(actor, application: InternshipApplication) -> bool:
+    if not actor.is_employer_admin or not application.opportunity.employer_id:
+        return False
+    return can_create_internship(actor, employer_id=application.opportunity.employer_id)
+
+
+def get_supervision_checkin_actor_side(actor, application: InternshipApplication) -> Optional[str]:
+    """
+    Resolve which supervision lane the actor represents for this application.
+    Virtual check-ins are shared records, but their lifecycle is owned by the
+    side that scheduled them.
+    """
+    if getattr(actor, "is_system_admin", False):
+        return "PLATFORM"
+
+    if is_assigned_employer_supervisor(actor, application) or _employer_admin_can_monitor_application(actor, application):
+        return "EMPLOYER"
+
+    if is_assigned_institution_supervisor(actor, application) or _institution_admin_can_monitor_application(actor, application):
+        return "INSTITUTION"
+
+    return None
+
+
+def get_supervision_checkin_owner_side(checkin: SupervisionCheckIn) -> Optional[str]:
+    owner_side = (checkin.metadata or {}).get("owner_side")
+    if owner_side in {"EMPLOYER", "INSTITUTION", "PLATFORM"}:
+        return owner_side
+    return None
+
+
+def can_manage_supervision_checkin_lifecycle(actor, checkin: SupervisionCheckIn) -> bool:
+    if getattr(actor, "is_system_admin", False):
+        return True
+
+    if str(checkin.scheduled_by) == str(actor.id):
+        return True
+
+    owner_side = get_supervision_checkin_owner_side(checkin)
+    if not owner_side:
+        return False
+
+    return get_supervision_checkin_actor_side(actor, checkin.application) == owner_side
+
+
+def can_view_supervision_checkin(actor, checkin: SupervisionCheckIn) -> bool:
+    if actor.is_system_admin:
+        return True
+
+    application = checkin.application
+
+    if actor.is_student:
+        student = get_student_for_user(str(actor.id))
+        return bool(student and student.id == application.student_id)
+
+    if is_assigned_supervisor(actor, application):
+        return True
+
+    if _employer_admin_can_monitor_application(actor, application):
+        return True
+
+    if _institution_admin_can_monitor_application(actor, application):
+        return True
+
+    return False
+
+
+def can_schedule_supervision_checkin(actor, application: InternshipApplication) -> bool:
+    if application.status != ApplicationStatus.ACTIVE:
+        return False
+
+    if actor.is_system_admin:
+        return True
+
+    if is_assigned_supervisor(actor, application):
+        return True
+
+    if _employer_admin_can_monitor_application(actor, application):
+        return True
+
+    if _institution_admin_can_monitor_application(actor, application):
+        return True
+
+    return False
+
+
+def can_complete_supervision_checkin(actor, checkin: SupervisionCheckIn) -> bool:
+    if checkin.status != SupervisionCheckIn.STATUS_SCHEDULED:
+        return False
+    return can_manage_supervision_checkin_lifecycle(actor, checkin)
+
+
+def can_confirm_supervision_checkin(actor, checkin: SupervisionCheckIn) -> bool:
+    if not actor.is_student or checkin.status == SupervisionCheckIn.STATUS_CANCELLED:
+        return False
+
+    student = get_student_for_user(str(actor.id))
+    return bool(student and student.id == checkin.application.student_id)
+
+
+def can_cancel_supervision_checkin(actor, checkin: SupervisionCheckIn) -> bool:
+    if checkin.status != SupervisionCheckIn.STATUS_SCHEDULED:
+        return False
+    return can_manage_supervision_checkin_lifecycle(actor, checkin)
 
 def can_assign_supervisor(actor, opportunity: InternshipOpportunity) -> bool:
     """

@@ -24,7 +24,6 @@ class ApiClient {
   private config: ApiClientConfig;
   private isRefreshing: boolean = false;
   private accessToken: string | null = null;
-  private refreshToken: string | null = null;
   private csrfToken: string | null = null;
   private csrfTokenPromise: Promise<string | null> | null = null;
   private failedQueue: Array<{
@@ -189,20 +188,15 @@ class ApiClient {
           this.isRefreshing = true;
 
           try {
-            const refreshToken = this.getRefreshToken();
-
             const refreshResponse = await this.client.post(
               '/api/auth/token/refresh/',
-              refreshToken ? { refresh: refreshToken } : {},
+              {},
               { headers: { 'skip-auth': 'true' } }
             );
             
             // Extract new access token from response
             if (refreshResponse.data.access) {
               this.accessToken = refreshResponse.data.access;
-              if (refreshResponse.data.refresh) {
-                this.setRefreshToken(refreshResponse.data.refresh);
-              }
               this.processQueue(null);
               // Retry original request with new token
               return this.client(originalRequest);
@@ -328,33 +322,8 @@ class ApiClient {
     return null;
   }
 
-  private getRefreshToken(): string | null {
-    if (this.refreshToken) {
-      return this.refreshToken;
-    }
-
-    try {
-      const token = sessionStorage.getItem('refresh_token');
-      if (token) {
-        this.refreshToken = token;
-        return token;
-      }
-    } catch (e) {
-      void e;
-    }
-
-    return null;
-  }
-
   private clearAuth(): void {
     this.accessToken = null;
-    this.refreshToken = null;
-
-    try {
-      sessionStorage.removeItem('refresh_token');
-    } catch (e) {
-      void e;
-    }
     
     // Clear Zustand storage
     try {
@@ -435,22 +404,9 @@ class ApiClient {
   }
 
   setRefreshToken(token: string): void {
-    if (!token) {
-      this.refreshToken = null;
-      try {
-        sessionStorage.removeItem('refresh_token');
-      } catch (e) {
-        void e;
-      }
-      return;
-    }
-
-    this.refreshToken = token;
-    try {
-      sessionStorage.setItem('refresh_token', token);
-    } catch (e) {
-      void e;
-    }
+    // Refresh tokens are intentionally not exposed to JavaScript.
+    // The backend stores them in an HttpOnly cookie and rotates them on refresh.
+    void token;
   }
 
   setAdminToken(token: string): void {

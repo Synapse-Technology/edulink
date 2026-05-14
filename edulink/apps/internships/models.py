@@ -334,6 +334,65 @@ class Incident(BaseModel):
         app_label = "internships"
         db_table = "internship_incidents"
 
+
+class SupervisionCheckIn(BaseModel):
+    """
+    Scheduled supervision touchpoint for an active attachment.
+
+    This records remote and physical supervision activity without becoming a
+    messaging or video platform. Meeting links point to external tools.
+    """
+    MODE_VIRTUAL = "VIRTUAL"
+    MODE_PHONE = "PHONE"
+    MODE_ONSITE = "ONSITE"
+    MODE_OTHER = "OTHER"
+
+    MODE_CHOICES = [
+        (MODE_VIRTUAL, "Virtual session"),
+        (MODE_PHONE, "Phone call"),
+        (MODE_ONSITE, "On-site visit"),
+        (MODE_OTHER, "Other"),
+    ]
+
+    STATUS_SCHEDULED = "SCHEDULED"
+    STATUS_COMPLETED = "COMPLETED"
+    STATUS_MISSED = "MISSED"
+    STATUS_CANCELLED = "CANCELLED"
+
+    STATUS_CHOICES = [
+        (STATUS_SCHEDULED, "Scheduled"),
+        (STATUS_COMPLETED, "Completed"),
+        (STATUS_MISSED, "Missed"),
+        (STATUS_CANCELLED, "Cancelled"),
+    ]
+
+    application = models.ForeignKey(
+        InternshipApplication,
+        on_delete=models.CASCADE,
+        related_name="supervision_checkins",
+    )
+    scheduled_for = models.DateTimeField()
+    mode = models.CharField(max_length=20, choices=MODE_CHOICES, default=MODE_VIRTUAL)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_SCHEDULED)
+    scheduled_by = models.UUIDField()
+    completed_by = models.UUIDField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    student_confirmed_at = models.DateTimeField(null=True, blank=True)
+    meeting_url = models.URLField(max_length=1000, blank=True)
+    supervisor_notes = models.TextField(blank=True)
+    private_notes = models.TextField(blank=True)
+    cancellation_reason = models.TextField(blank=True)
+    metadata = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        app_label = "internships"
+        db_table = "supervision_checkins"
+        indexes = [
+            models.Index(fields=["application", "status"]),
+            models.Index(fields=["scheduled_for"]),
+            models.Index(fields=["scheduled_by"]),
+        ]
+
 class SupervisorAssignment(BaseModel):
     """
     Represents the assignment of a supervisor to an internship application.

@@ -14,6 +14,7 @@ urlpatterns = [
     # Authentication
     path('auth/login/', views.AdminLoginView.as_view(), name='admin-login'),
     path('auth/token/refresh/', views.AdminTokenRefreshView.as_view(), name='admin-token-refresh'),
+    path('auth/logout/', views.AdminLogoutView.as_view(), name='admin-logout'),
     
     # Dashboard
     path('dashboard/', views.AdminDashboardView.as_view(), name='dashboard'),

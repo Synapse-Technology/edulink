@@ -8,7 +8,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q
 from django.http import Http404
 from edulink.apps.shared.pagination import StandardResultsSetPagination, LargeResultsSetPagination
-from edulink.apps.shared.error_handling import AuthorizationError
+from edulink.apps.shared.error_handling import AuthorizationError, ConflictError, ValidationError, NotFoundError
 from .permissions import (
     CanViewApplication, CanSubmitApplication, CanWithdrawApplication,
     CanSubmitEvidence, CanReviewEvidence, CanReportIncident, CanViewIncident
@@ -35,7 +35,9 @@ from .serializers import (
     BulkExtendDeadlineSerializer, DeadlineAnalyticsSerializer,
     SupervisorAssignmentSerializer, AcceptSupervisorAssignmentSerializer, RejectSupervisorAssignmentSerializer,
     ExternalPlacementDeclarationSerializer, ExternalPlacementDeclarationCreateSerializer,
-    ExternalPlacementDeclarationReviewSerializer
+    ExternalPlacementDeclarationReviewSerializer,
+    SupervisionCheckInSerializer, ScheduleSupervisionCheckInSerializer,
+    CompleteSupervisionCheckInSerializer, CancelSupervisionCheckInSerializer
 )
 from .filters import InternshipOpportunityFilter, InternshipApplicationFilter
 from .services import (
@@ -46,13 +48,16 @@ from .services import (
     create_success_story, submit_final_feedback, bulk_extend_opportunity_deadlines, get_deadline_analytics,
     withdraw_application, create_supervisor_assignment, accept_supervisor_assignment, reject_supervisor_assignment,
     declare_external_placement, approve_external_placement_declaration,
-    request_external_placement_changes, reject_external_placement_declaration
+    request_external_placement_changes, reject_external_placement_declaration,
+    schedule_supervision_checkin, complete_supervision_checkin,
+    confirm_supervision_checkin, cancel_supervision_checkin
 )
 from .queries import (
     get_opportunities_for_user, get_applications_for_user, 
     get_opportunity_by_id, get_application_by_id,
     get_external_placement_declarations_for_user,
     get_certification_applications_for_institution_user,
+    get_supervision_checkins_for_user,
 )
 
 logger = logging.getLogger(__name__)
@@ -604,6 +609,89 @@ class ApplicationViewSet(viewsets.ReadOnlyModelViewSet):
         except AuthorizationError as e:
              return Response({"detail": str(e)}, status=status.HTTP_403_FORBIDDEN)
         except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['get', 'post'], url_path='supervision-checkins')
+    def supervision_checkins(self, request, pk=None):
+        if request.method == 'GET':
+            checkins = get_supervision_checkins_for_user(request.user).filter(application_id=pk)
+            serializer = SupervisionCheckInSerializer(checkins, many=True, context={'request': request})
+            return Response(serializer.data)
+
+        serializer = ScheduleSupervisionCheckInSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            checkin = schedule_supervision_checkin(
+                actor=request.user,
+                application_id=pk,
+                **serializer.validated_data,
+            )
+            return Response(
+                SupervisionCheckInSerializer(checkin, context={'request': request}).data,
+                status=status.HTTP_201_CREATED,
+            )
+        except AuthorizationError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_403_FORBIDDEN)
+        except (ConflictError, ValidationError, ValueError) as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except InternshipApplication.DoesNotExist:
+            return Response({"detail": "Application not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=True, methods=['post'], url_path='supervision-checkins/(?P<checkin_id>[^/.]+)/complete')
+    def complete_checkin(self, request, pk=None, checkin_id=None):
+        serializer = CompleteSupervisionCheckInSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            checkin = complete_supervision_checkin(
+                actor=request.user,
+                application_id=pk,
+                checkin_id=checkin_id,
+                **serializer.validated_data,
+            )
+            return Response(SupervisionCheckInSerializer(checkin, context={'request': request}).data)
+        except AuthorizationError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_403_FORBIDDEN)
+        except NotFoundError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_404_NOT_FOUND)
+        except (ConflictError, ValidationError, ValueError) as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'], url_path='supervision-checkins/(?P<checkin_id>[^/.]+)/confirm')
+    def confirm_checkin(self, request, pk=None, checkin_id=None):
+        try:
+            checkin = confirm_supervision_checkin(
+                actor=request.user,
+                application_id=pk,
+                checkin_id=checkin_id,
+            )
+            return Response(SupervisionCheckInSerializer(checkin, context={'request': request}).data)
+        except AuthorizationError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_403_FORBIDDEN)
+        except NotFoundError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_404_NOT_FOUND)
+        except (ConflictError, ValidationError, ValueError) as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'], url_path='supervision-checkins/(?P<checkin_id>[^/.]+)/cancel')
+    def cancel_checkin(self, request, pk=None, checkin_id=None):
+        serializer = CancelSupervisionCheckInSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            checkin = cancel_supervision_checkin(
+                actor=request.user,
+                application_id=pk,
+                checkin_id=checkin_id,
+                reason=serializer.validated_data.get('reason', ''),
+            )
+            return Response(SupervisionCheckInSerializer(checkin, context={'request': request}).data)
+        except AuthorizationError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_403_FORBIDDEN)
+        except NotFoundError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_404_NOT_FOUND)
+        except (ConflictError, ValidationError, ValueError) as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 

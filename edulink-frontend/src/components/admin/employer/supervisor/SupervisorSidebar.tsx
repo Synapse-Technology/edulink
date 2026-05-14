@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   Users,
   FileText,
+  ClipboardCheck,
   X,
   Building2,
   AlertTriangle,
@@ -11,6 +12,7 @@ import {
   User as UserIcon,
   ShieldCheck,
   BriefcaseBusiness,
+  Video,
 } from 'lucide-react';
 import { useAuth } from '../../../../contexts/AuthContext';
 
@@ -116,6 +118,20 @@ const SupervisorSidebar: React.FC<SupervisorSidebarProps> = ({
               icon={Users}
               label="My Interns"
               description="Assigned students"
+            />
+
+            <NavItem
+              to="/employer/supervisor/assignments"
+              icon={ClipboardCheck}
+              label="Assignments"
+              description="Accept requests"
+            />
+
+            <NavItem
+              to="/employer/supervisor/check-ins"
+              icon={Video}
+              label="Check-ins"
+              description="Remote supervision"
             />
 
             <NavItem

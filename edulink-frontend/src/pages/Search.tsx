@@ -168,17 +168,22 @@ const Search: React.FC = () => {
     }
   }, [selectedCategory, selectedDifficulty, sortBy]);
 
-  // Highlight text function
-  const highlightText = (text: string) => {
-    if (!highlightedText.length) return text;
-    
-    let highlightedTextContent = text;
-    highlightedText.forEach(term => {
-      const regex = new RegExp(`(${term})`, 'gi');
-      highlightedTextContent = highlightedTextContent.replace(regex, '<mark class="search-highlight">$1</mark>');
-    });
-    
-    return highlightedTextContent;
+  const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  const highlightText = (text: string): React.ReactNode => {
+    const rawTerms = highlightedText.filter(Boolean);
+    const safeTerms = rawTerms.map(escapeRegExp);
+    if (!safeTerms.length) return text;
+
+    const regex = new RegExp(`(${safeTerms.join('|')})`, 'gi');
+    const normalizedTerms = new Set(rawTerms.map(term => term.toLowerCase()));
+    return text.split(regex).map((part, index) => (
+      normalizedTerms.has(part.toLowerCase()) ? (
+        <mark className="search-highlight" key={`${part}-${index}`}>{part}</mark>
+      ) : (
+        <React.Fragment key={`${part}-${index}`}>{part}</React.Fragment>
+      )
+    ));
   };
 
   const getCategoryColor = (category: string) => {
@@ -379,7 +384,7 @@ const Search: React.FC = () => {
                               {/* Title and Author */}
                               <div className="mb-3">
                                 <h5 className="card-title mb-2">
-                                  <span dangerouslySetInnerHTML={{ __html: highlightText(result.title) }} />
+                                  <span>{highlightText(result.title)}</span>
                                 </h5>
                                 <h6 className="card-subtitle text-muted mb-1">
                                   by {result.author}
@@ -402,7 +407,7 @@ const Search: React.FC = () => {
 
                               {/* Description */}
                               <p className="card-text flex-grow-1">
-                                <span dangerouslySetInnerHTML={{ __html: highlightText(result.description) }} />
+                                <span>{highlightText(result.description)}</span>
                               </p>
 
                               {/* Tags */}
@@ -410,7 +415,7 @@ const Search: React.FC = () => {
                                 <div className="d-flex flex-wrap gap-1">
                                   {result.tags.slice(0, 3).map(tag => (
                                     <small key={tag} className="badge bg-light text-dark">
-                                      <span dangerouslySetInnerHTML={{ __html: highlightText(tag) }} />
+                                      <span>{highlightText(tag)}</span>
                                     </small>
                                   ))}
                                   {result.tags.length > 3 && (

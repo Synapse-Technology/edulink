@@ -18,6 +18,7 @@ import {
   Clock,
   TrendingUp,
   ExternalLink,
+  Video,
 } from 'lucide-react';
 import StudentLayout from '../../components/dashboard/StudentLayout';
 import { studentService } from '../../services/student/studentService';
@@ -28,6 +29,7 @@ import { showToast } from '../../utils/toast';
 import { getErrorMessage, logError } from '../../utils/errorMapper';
 import { dateFormatter } from '../../utils/dateFormatter';
 import type { Internship } from '../../types/internship';
+import { internshipService, type SupervisionCheckIn } from '../../services/internship/internshipService';
 import StudentInternshipSkeleton from '../../components/student/skeletons/StudentInternshipSkeleton';
 import ReportIncidentModal from '../../components/student/ReportIncidentModal';
 import {
@@ -624,12 +626,18 @@ const StudentInternship: React.FC = () => {
   const [showIncidentModal, setShowIncidentModal] = useState(false);
   const [generatingArtifacts, setGeneratingArtifacts] = useState<Record<string, boolean>>({});
   const [artifacts, setArtifacts] = useState<Artifact[]>([]);
+  const [checkIns, setCheckIns] = useState<SupervisionCheckIn[]>([]);
+  const [confirmingCheckIn, setConfirmingCheckIn] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
       try {
         const data = await studentService.getActiveInternship();
-        if (data) setInternship((data as any).internship || (data as any));
+        const active = data ? ((data as any).internship || (data as any)) : null;
+        if (active) {
+          setInternship(active);
+          setCheckIns(await internshipService.getSupervisionCheckIns(active.id));
+        }
         setArtifacts(await artifactService.getArtifacts());
       } catch (err) {
         showToast.error(getErrorMessage(err, { action: 'Load Internship' }));
@@ -674,6 +682,21 @@ const StudentInternship: React.FC = () => {
     } finally {
       if (toastId) showToast.dismiss(toastId);
       setGeneratingArtifacts(prev => ({ ...prev, [artifactType]: false }));
+    }
+  };
+
+  const confirmCheckIn = async (checkInId: string) => {
+    if (!internship) return;
+    try {
+      setConfirmingCheckIn(checkInId);
+      await internshipService.confirmSupervisionCheckIn(internship.id, checkInId);
+      setCheckIns(await internshipService.getSupervisionCheckIns(internship.id));
+      showToast.success('Supervision check-in confirmed.');
+    } catch (err) {
+      showToast.error(getErrorMessage(err, { action: 'Confirm Check-In' }));
+      logError(err, { action: 'Confirm Check-In', data: { checkInId } });
+    } finally {
+      setConfirmingCheckIn(null);
     }
   };
 
@@ -733,6 +756,7 @@ const StudentInternship: React.FC = () => {
 
   const isComplete = internship ? COMPLETED_STATUSES.includes(internship.status) : false;
   const isClosed   = internship ? CLOSED_STATUSES.includes(internship.status) : false;
+  const upcomingCheckIns = checkIns.filter(item => item.status === 'SCHEDULED');
 
   /* ════════════════════════════════════
      RENDER
@@ -866,6 +890,65 @@ const StudentInternship: React.FC = () => {
                         </div>
                       </div>
                     </div>
+                </StudentCard>
+
+                <StudentCard
+                  label="Remote oversight"
+                  title="Supervision Check-ins"
+                  actions={
+                    <StudentStatus tone={upcomingCheckIns.length ? 'warning' : 'default'}>
+                      <Video size={10} /> {upcomingCheckIns.length} scheduled
+                    </StudentStatus>
+                  }
+                >
+                  <div className="si-sup-list">
+                    {checkIns.length > 0 ? (
+                      checkIns.slice(0, 4).map(checkIn => {
+                        const confirmed = Boolean(checkIn.student_confirmed_at);
+                        return (
+                          <div className="si-sup-row" key={checkIn.id}>
+                            <div className={`si-sup-icon ${confirmed || checkIn.status === 'COMPLETED' ? 'ok' : 'pending'}`}>
+                              <Video size={16} />
+                            </div>
+                            <div className="si-sup-body">
+                              <div className="si-sup-name">
+                                {checkIn.mode_display || checkIn.mode} · {dateFormatter.shortDate(checkIn.scheduled_for)}
+                              </div>
+                              <div className="si-sup-sub">
+                                {checkIn.status}{confirmed ? ' · confirmed' : ''}
+                                {checkIn.supervisor_notes ? ` · ${checkIn.supervisor_notes}` : ''}
+                              </div>
+                            </div>
+                            <div className="si-sup-actions">
+                              {checkIn.meeting_url && checkIn.status === 'SCHEDULED' && (
+                                <a className="si-btn si-btn-ghost si-btn-sm" href={checkIn.meeting_url} target="_blank" rel="noreferrer">
+                                  Join <ExternalLink size={12} />
+                                </a>
+                              )}
+                              {checkIn.status !== 'CANCELLED' && !confirmed && (
+                                <button
+                                  type="button"
+                                  className="si-btn si-btn-primary si-btn-sm"
+                                  disabled={confirmingCheckIn === checkIn.id}
+                                  onClick={() => confirmCheckIn(checkIn.id)}
+                                >
+                                  {confirmingCheckIn === checkIn.id ? 'Confirming...' : 'Confirm'}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="si-sup-row">
+                        <div className="si-sup-icon pending"><Video size={16} /></div>
+                        <div className="si-sup-body">
+                          <div className="si-sup-name">No supervision check-ins scheduled</div>
+                          <div className="si-sup-sub">Your supervisor can schedule virtual, phone, or on-site reviews from their portal.</div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </StudentCard>
 
                 {/* Artifact actions card */}

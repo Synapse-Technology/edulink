@@ -21,8 +21,21 @@ def can_generate_artifact(actor, application_id: UUID) -> bool:
         return student and application.student_id == student.id
         
     if actor.is_supervisor:
-        return (str(application.employer_supervisor_id) == str(actor.id) or 
-                str(application.institution_supervisor_id) == str(actor.id))
+        from edulink.apps.internships.roles import is_assigned_supervisor
+
+        return is_assigned_supervisor(actor, application)
+
+    if actor.is_institution_admin:
+        from edulink.apps.institutions.queries import get_institution_for_user
+        from edulink.apps.students.queries import get_student_approved_affiliation
+
+        institution = get_institution_for_user(str(actor.id))
+        if not institution:
+            return False
+        if str(application.opportunity.institution_id) == str(institution.id):
+            return True
+        affiliation = get_student_approved_affiliation(application.student_id)
+        return bool(affiliation and str(affiliation.institution_id) == str(institution.id))
                 
     return False
 
@@ -43,11 +56,27 @@ def can_view_artifact(actor, artifact) -> bool:
         return False
         
     if actor.is_supervisor:
-        return (str(application.employer_supervisor_id) == str(actor.id) or 
-                str(application.institution_supervisor_id) == str(actor.id))
+        from edulink.apps.internships.roles import is_assigned_supervisor
+
+        return is_assigned_supervisor(actor, application)
                 
     # Org Admins
     if actor.is_employer_admin:
-        return str(application.opportunity.employer_id) == str(actor.employer_id) # Hypothetical employer_id on actor
+        from edulink.apps.employers.queries import get_employer_for_user
+
+        employer = get_employer_for_user(actor.id)
+        return bool(employer and str(application.opportunity.employer_id) == str(employer.id))
+
+    if actor.is_institution_admin:
+        from edulink.apps.institutions.queries import get_institution_for_user
+        from edulink.apps.students.queries import get_student_approved_affiliation
+
+        institution = get_institution_for_user(str(actor.id))
+        if not institution:
+            return False
+        if str(application.opportunity.institution_id) == str(institution.id):
+            return True
+        affiliation = get_student_approved_affiliation(application.student_id)
+        return bool(affiliation and str(affiliation.institution_id) == str(institution.id))
         
     return False

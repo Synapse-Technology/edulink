@@ -5,10 +5,12 @@ import {
   LayoutDashboard,
   Users,
   FileText,
+  ClipboardCheck,
   AlertTriangle,
   Settings,
   BookOpen,
   X,
+  Video,
 } from 'lucide-react';
 import { useAuthStore } from '../../../../stores/authStore';
 import styled from 'styled-components';
@@ -211,6 +213,8 @@ interface SupervisorSidebarProps {
 
 const menuItems = [
   { id: 'overview',  label: 'Overview',   icon: LayoutDashboard, path: '/institution/supervisor-dashboard/overview' },
+  { id: 'assignments', label: 'Assignments', icon: ClipboardCheck, path: '/institution/supervisor-dashboard/assignments' },
+  { id: 'check-ins', label: 'Check-ins', icon: Video, path: '/institution/supervisor-dashboard/check-ins' },
   { id: 'logbooks',  label: 'Logbooks',   icon: FileText,         path: '/institution/supervisor-dashboard/logbooks' },
   { id: 'students',  label: 'Students',   icon: Users,            path: '/institution/supervisor-dashboard/students' },
   { id: 'incidents', label: 'Incidents',  icon: AlertTriangle,    path: '/institution/supervisor-dashboard/incidents' },

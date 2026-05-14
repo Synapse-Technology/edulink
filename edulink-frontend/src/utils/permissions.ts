@@ -221,7 +221,7 @@ export const canAccessAdminPanel = (admin: AdminUser | null): boolean => {
  * SUPER_ADMIN and PLATFORM_ADMIN only
  */
 export const canManageUsers = (admin: AdminUser | null): boolean => {
-  return admin !== null && ['SUPER_ADMIN', 'PLATFORM_ADMIN'].includes(admin.role);
+  return admin !== null && admin.permissions.includes('manage_users');
 };
 
 /**
@@ -229,7 +229,7 @@ export const canManageUsers = (admin: AdminUser | null): boolean => {
  * SUPER_ADMIN and PLATFORM_ADMIN only
  */
 export const canManageInstitutions = (admin: AdminUser | null): boolean => {
-  return admin !== null && ['SUPER_ADMIN', 'PLATFORM_ADMIN'].includes(admin.role);
+  return admin !== null && admin.permissions.includes('manage_institutions');
 };
 
 /**
@@ -237,7 +237,7 @@ export const canManageInstitutions = (admin: AdminUser | null): boolean => {
  * SUPER_ADMIN and PLATFORM_ADMIN only
  */
 export const canManageEmployers = (admin: AdminUser | null): boolean => {
-  return admin !== null && ['SUPER_ADMIN', 'PLATFORM_ADMIN'].includes(admin.role);
+  return admin !== null && admin.permissions.includes('manage_employers');
 };
 
 /**
@@ -245,10 +245,7 @@ export const canManageEmployers = (admin: AdminUser | null): boolean => {
  * SUPER_ADMIN, PLATFORM_ADMIN, and AUDITOR
  */
 export const canViewAuditLogs = (admin: AdminUser | null): boolean => {
-  return (
-    admin !== null &&
-    ['SUPER_ADMIN', 'PLATFORM_ADMIN', 'AUDITOR'].includes(admin.role)
-  );
+  return admin !== null && admin.permissions.includes('view_audit_logs');
 };
 
 /**
@@ -256,10 +253,7 @@ export const canViewAuditLogs = (admin: AdminUser | null): boolean => {
  * SUPER_ADMIN, PLATFORM_ADMIN, and MODERATOR
  */
 export const canModerateContent = (admin: AdminUser | null): boolean => {
-  return (
-    admin !== null &&
-    ['SUPER_ADMIN', 'PLATFORM_ADMIN', 'MODERATOR'].includes(admin.role)
-  );
+  return admin !== null && admin.permissions.includes('moderate_content');
 };
 
 /**
@@ -267,7 +261,7 @@ export const canModerateContent = (admin: AdminUser | null): boolean => {
  * SUPER_ADMIN only
  */
 export const canManageSystemSettings = (admin: AdminUser | null): boolean => {
-  return admin?.role === 'SUPER_ADMIN';
+  return admin !== null && admin.permissions.includes('system_config');
 };
 
 /**
@@ -275,7 +269,7 @@ export const canManageSystemSettings = (admin: AdminUser | null): boolean => {
  * SUPER_ADMIN and PLATFORM_ADMIN
  */
 export const canViewAnalytics = (admin: AdminUser | null): boolean => {
-  return admin !== null && ['SUPER_ADMIN', 'PLATFORM_ADMIN'].includes(admin.role);
+  return admin !== null && admin.permissions.includes('view_analytics');
 };
 
 /**

@@ -2,6 +2,7 @@ from django.test import TestCase
 from django.contrib.auth import get_user_model
 from unittest.mock import patch, MagicMock
 from .models import PlatformStaffProfile
+from . import policies
 from .queries import get_platform_staff_list
 from .services import create_staff_invite
 
@@ -114,3 +115,27 @@ class PlatformStaffServiceTests(TestCase):
         call_args = mock_send_notification.call_args[1]
         self.assertEqual(call_args['recipient_email'], 'newstaff@example.com')
         self.assertIn('invite_token', call_args)
+
+
+class PlatformStaffPermissionTests(TestCase):
+    def test_role_permissions_are_separated_by_staff_function(self):
+        self.assertIn(
+            'respond_to_support_tickets',
+            policies.get_platform_staff_permissions_for_role(PlatformStaffProfile.ROLE_MODERATOR),
+        )
+        self.assertNotIn(
+            'manage_users',
+            policies.get_platform_staff_permissions_for_role(PlatformStaffProfile.ROLE_MODERATOR),
+        )
+        self.assertIn(
+            'view_audit_logs',
+            policies.get_platform_staff_permissions_for_role(PlatformStaffProfile.ROLE_AUDITOR),
+        )
+        self.assertNotIn(
+            'respond_to_support_tickets',
+            policies.get_platform_staff_permissions_for_role(PlatformStaffProfile.ROLE_AUDITOR),
+        )
+        self.assertIn(
+            'system_config',
+            policies.get_platform_staff_permissions_for_role(PlatformStaffProfile.ROLE_SUPER_ADMIN),
+        )
